@@ -368,7 +368,6 @@ Detailed documentation available in the `docs/` folder:
 
 | File | Description |
 |------|-------------|
-| **CLAUDE.md** | Complete guide for working with Claude Code on this project (architecture, commands, plugins) |
 | **ROADMAP_TECHNIQUE.md** | Detailed technical roadmap (12 weeks): security, quality, tests, performance |
 | **ANALYSE_COMPLETE.md** | In-depth code analysis: quality, architecture, identified issues, recommendations |
 | **TEST_GOOGLE_OAUTH.md** | Test guide for Google Drive OAuth implementation with PKCE |
@@ -377,7 +376,7 @@ Detailed documentation available in the `docs/` folder:
 | **ROLLBACK_TO_CLIENT_SECRET.md** | Justification for client_secret rollback (serverless architecture) |
 | **garmin_callbacks_traces.md** | Garmin callback traces for debug/reference |
 
-**For Claude Code developers**: Read `docs/CLAUDE.md` first.
+**For Claude Code developers**: Read `CLAUDE.md` (project root) first.
 
 ---
 
