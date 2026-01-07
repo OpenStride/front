@@ -238,6 +238,6 @@ Planned features (see README sections 12, 19):
 
 ## Related Documentation
 
-- Full product vision and architecture: `README` (French)
+- Full product vision and architecture: `README.md`
 - Conventional commits expected for contributions
-- AI assistant project: https://chatgpt.com/g/g-p-67d572f93a0481919a72209e081cc282-open-stride/project
+- Technical roadmap and analysis: `docs/` folder
