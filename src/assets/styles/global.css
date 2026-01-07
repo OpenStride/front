@@ -1,0 +1,67 @@
+@import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap");
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+@import "./variables.css";
+@import "tailwindcss";
+
+html {
+  overscroll-behavior: none;
+}
+
+.icon-container {
+  z-index: 99;
+}
+
+body {
+  font-family: var(--font-main);
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  color: var(--text-color);
+  overscroll-behavior: none;
+}
+
+.layout,
+main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  /* ✅ Border-radius léger */
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ✅ Focus : contour visible pour accessibilité */
+button:focus {
+  outline: 2px solid rgba(0, 123, 255, 0.5);
+}
+
+input {
+  border: 1px solid #eeeeee;
+  border-radius: 6px;
+}
+
+.center {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  justify-content: center;
+}
+
+.bottom-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+
+}

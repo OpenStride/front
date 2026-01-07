@@ -1,0 +1,25 @@
+:root {
+  /* 🌈 Couleurs */
+  --primary-color: #333333;
+  --secondary-color: #88aa00;
+  --text-color: #333333;
+  --bg-color: #fafafa;
+
+  /* 🖋 Typographie */
+  --font-main: "Baloo 2", sans-serif;
+  --font-size-logo: 32px;
+  --font-weight-bold: 600;
+}
+
+@theme {
+  --color-green-50: #f8fbea;
+  --color-green-100: #edf6c8;
+  --color-green-200: #dff19a;
+  --color-green-300: #cbe56d;
+  --color-green-400: #b4d647;
+  --color-green-500: #88aa00;
+  --color-green-600: #6d8a00;
+  --color-green-700: #566d00;
+  --color-green-800: #415200;
+  --color-green-900: #2f3c00;
+}
