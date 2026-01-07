@@ -95,8 +95,6 @@ Proposed phases:
 3. Multi-session aggregation (trends).
 4. AI Coach (contextual advice) – disableable plugin.
 
-Link: https://chatgpt.com/g/g-p-67d572f93a0481919a72209e081cc282-open-stride/project
-
 Assistant principles:
 - No raw sample sending by default.
 - Anonymization / reduction (derived features).
