@@ -1,51 +1,167 @@
 <template>
-  <div class="onboarding-step">
-    <h2>Choisissez votre stockage</h2>
-    <p class="desc">Par défaut, vos données seront stockées localement sur cet appareil.<br>
-      <strong>Si vous souhaitez synchroniser et sauvegarder vos activités, ajoutez un stockage en ligne.</strong>
+  <div class="onboarding-storage-step">
+    <h2 class="text-2xl font-bold mb-2 text-center">Sauvegarder vos données (optionnel)</h2>
+    <p class="text-gray-600 mb-6 text-center leading-relaxed">
+      <strong>Vos données sont déjà stockées localement sur cet appareil.</strong><br>
+      Si vous souhaitez synchroniser avec le cloud pour avoir une sauvegarde ou accéder depuis plusieurs appareils, ajoutez un stockage en ligne.
     </p>
-    <div class="actions">
-      <button @click="$emit('next')">Continuer en local</button>
-      <button @click="addStorage">Ajouter un stockage en ligne</button>
+
+    <!-- Bouton skip proéminent -->
+    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
+      <button
+        @click="$emit('skip')"
+        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+      >
+        <i class="fas fa-forward"></i>
+        Continuer sans synchronisation cloud
+      </button>
+      <p class="text-sm text-gray-500 mt-3 text-center">
+        Vous pourrez toujours activer la synchronisation plus tard dans les paramètres.
+      </p>
     </div>
-    <div v-if="showRemoteFound" class="import-remote">
-      <p>Un compte distant a été trouvé. Voulez-vous importer vos données ?</p>
-      <button @click="$emit('import-remote', remoteData)">Importer mes données</button>
+
+    <div class="relative text-center text-gray-400 text-sm font-medium my-6">
+      <span class="bg-white px-4 relative z-10">ou</span>
+      <div class="absolute top-1/2 left-0 right-0 h-px bg-gray-200 -z-0"></div>
+    </div>
+
+    <!-- Liste de sélection storage -->
+    <div v-if="!selectedStorageId">
+      <ul class="space-y-4">
+        <li
+          v-for="storage in allStoragePlugins"
+          :key="storage.id"
+          @click="selectStorage(storage.id)"
+          class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
+        >
+          <div class="flex items-center space-x-4">
+            <img v-if="storage.icon" :src="storage.icon" :alt="storage.label" class="w-8 h-8" />
+            <i v-else class="fas fa-cloud text-green-600 text-xl"></i>
+            <div>
+              <span class="font-semibold block">{{ storage.label }}</span>
+              <p v-if="storage.description" class="text-sm text-gray-500">{{ storage.description }}</p>
+            </div>
+          </div>
+          <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+            Sélectionner
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Setup component embarqué -->
+    <div v-else class="storage-setup">
+      <button
+        @click="selectedStorageId = null"
+        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+      >
+        <i class="fas fa-arrow-left"></i> Choisir un autre stockage
+      </button>
+
+      <div class="bg-white p-6 rounded shadow">
+        <component
+          v-if="setupComponent"
+          :is="setupComponent"
+        />
+      </div>
+
+      <button
+        v-if="isConnected"
+        @click="$emit('next')"
+        class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+      >
+        Continuer <i class="fas fa-arrow-right"></i>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-// Simule la détection d'un compte distant
-const showRemoteFound = ref(false);
-const remoteData = ref(null);
-function addStorage() {
-  // Ici, lance le flow d'ajout de provider (réutilise la vue existante si possible)
-  // Si un compte est trouvé, affiche l'import
-  showRemoteFound.value = true;
-  remoteData.value = { activities: [], preferences: {} };
+import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue';
+import { allStoragePlugins } from '@/services/StoragePluginRegistry';
+import { StoragePluginManager } from '@/services/StoragePluginManager';
+import { IndexedDBService } from '@/services/IndexedDBService';
+
+const props = defineProps<{
+  savedStorageId?: string | null
+}>();
+
+const emit = defineEmits<{
+  next: []
+  skip: []
+  storageSelected: [storageId: string]
+}>();
+
+const manager = StoragePluginManager.getInstance();
+const selectedStorageId = ref(props.savedStorageId || null);
+const setupComponent = shallowRef<any>(null);
+const isConnected = ref(false);
+
+// Charger setup component quand storage sélectionné
+watch(selectedStorageId, async (id) => {
+  if (id) {
+    const plugin = allStoragePlugins.find(p => p.id === id);
+    if (plugin) {
+      setupComponent.value = await plugin.setupComponent();
+      await manager.enablePlugin(id);
+      emit('storageSelected', id);
+
+      // Vérifier si déjà connecté (tokens existants)
+      const db = await IndexedDBService.getInstance();
+      const token = await db.getData('gdrive_access_token');
+      if (token) {
+        isConnected.value = true;
+      }
+    }
+  } else {
+    setupComponent.value = null;
+    isConnected.value = false;
+  }
+});
+
+// Polling pour détecter connexion après OAuth
+let checkInterval: NodeJS.Timeout | null = null;
+
+onMounted(() => {
+  if (selectedStorageId.value) {
+    startConnectionPolling();
+  }
+});
+
+onUnmounted(() => {
+  stopConnectionPolling();
+});
+
+watch(selectedStorageId, (id) => {
+  if (id && !isConnected.value) {
+    startConnectionPolling();
+  } else if (!id) {
+    stopConnectionPolling();
+  }
+});
+
+function startConnectionPolling() {
+  if (checkInterval) return;
+
+  checkInterval = setInterval(async () => {
+    const db = await IndexedDBService.getInstance();
+    const token = await db.getData('gdrive_access_token');
+    if (token) {
+      isConnected.value = true;
+      stopConnectionPolling();
+    }
+  }, 1000);
+}
+
+function stopConnectionPolling() {
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
+}
+
+function selectStorage(id: string) {
+  selectedStorageId.value = id;
 }
 </script>
 
-<style scoped>
-.onboarding-step {
-  text-align: center;
-}
-.desc {
-  margin-bottom: 1.2rem;
-  color: #555;
-}
-.actions {
-  display: flex;
-  gap: 1.2rem;
-  justify-content: center;
-  margin-bottom: 1.2rem;
-}
-.import-remote {
-  margin-top: 1.2rem;
-  background: #f4f4f4;
-  border-radius: 8px;
-  padding: 1rem;
-}
-</style>

@@ -49,8 +49,18 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  if (to.path === '/') {
+  // Empêcher accès à /onboarding si déjà complété
+  if (to.path === '/onboarding') {
+    const { IndexedDBService } = await import('@/services/IndexedDBService');
+    const db = await IndexedDBService.getInstance();
+    const state = await db.getData('onboarding_state');
+    if (state?.completed) {
+      return next('/my-activities');
+    }
+  }
 
+  // Rediriger home vers activities si l'utilisateur a des données
+  if (to.path === '/') {
     const db = await getActivityDBService();
     const activities = await db.getActivities({ limit: 1, offset: 0 });
 
