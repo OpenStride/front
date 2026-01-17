@@ -1,7 +1,7 @@
 // services/GarminService.ts
 import pluginEnv from './env'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
-import { getActivityDBService } from '@/services/ActivityDBService'
+import { getActivityService } from '@/services/ActivityService'
 import { getIndexedDBService } from '@/services/IndexedDBService'
 
 const baseURL = pluginEnv.apiUrl
@@ -15,7 +15,7 @@ export async function fetchActivities(
     onProgress?: (percent: number, message: string) => void
 ): Promise<number> {
     const dbService = await getIndexedDBService()
-    const activityDB = await getActivityDBService()
+    const activityService = await getActivityService()
     const token = await dbService.getData('garmin_token')
     const secret = await dbService.getData('garmin_token_secret')
     if (!token || !secret) throw new Error('Token Garmin manquant.')
@@ -39,8 +39,8 @@ export async function fetchActivities(
             const summaries = raw.map(adaptGarminSummary)
             const details = raw.map(adaptGarminDetails)
 
-            await activityDB.saveActivities(summaries)
-            await activityDB.saveDetails(details)
+            // ✅ Atomic transaction: both succeed or both fail
+            await activityService.saveActivitiesWithDetails(summaries, details)
 
             totalCount += summaries.length
             const pct = Math.round(((i + 1) / days) * 100)
@@ -67,7 +67,7 @@ export async function backFillActivities(
     onProgress?: (percent: number, message: string) => void
 ): Promise<number> {
     const dbService = await getIndexedDBService()
-    const activityDB = await getActivityDBService()
+    const activityService = await getActivityService()
     const token = await dbService.getData('garmin_token')
     const secret = await dbService.getData('garmin_token_secret')
     if (!token || !secret) throw new Error('Token Garmin manquant.')
@@ -88,8 +88,8 @@ export async function backFillActivities(
     const details = raw.map(adaptGarminDetails)
 
     onProgress?.(80, '💾 Sauvegarde en base…')
-    await activityDB.saveActivities(summaries)
-    await activityDB.saveDetails(details)
+    // ✅ Atomic transaction: both succeed or both fail
+    await activityService.saveActivitiesWithDetails(summaries, details)
 
     onProgress?.(100, `✅ Backfill terminé : ${summaries.length} activités`)
     return summaries.length

@@ -30,23 +30,93 @@ export class IndexedDBService {
     return this.db?.objectStoreNames ? Array.from(this.db.objectStoreNames) : [];
   }
 
+  /**
+   * EMERGENCY: Delete entire database and recreate from scratch
+   * Use this if migration is stuck
+   */
+  public static async resetDatabase(): Promise<void> {
+    console.warn('[IndexedDBService] 🔥 RESET: Deleting entire database...');
+
+    // Close existing connection
+    if (IndexedDBService.instance?.db) {
+      IndexedDBService.instance.db.close();
+    }
+    IndexedDBService.instance = null;
+
+    return new Promise((resolve, reject) => {
+      const deleteRequest = indexedDB.deleteDatabase("OpenStrideDB");
+
+      deleteRequest.onsuccess = () => {
+        console.log('[IndexedDBService] ✅ Database deleted successfully');
+        resolve();
+      };
+
+      deleteRequest.onerror = () => {
+        console.error('[IndexedDBService] ❌ Error deleting database');
+        reject(deleteRequest.error);
+      };
+
+      deleteRequest.onblocked = () => {
+        console.warn('[IndexedDBService] ⚠️ Database deletion blocked. Close all tabs.');
+      };
+    });
+  }
+
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("OpenStrideDB", 7);
-
-      const objectStores: { name: string; options?: IDBObjectStoreParameters }[] = [
-        { name: "settings", options: { keyPath: "key" } },
-        { name: "activities" }, // no keyPath
-        { name: "activity_details" },
-        { name: "notifLogs", options: { autoIncrement: true } },
-        { name: "aggregatedData", options: { keyPath: "id" } }, // new store for metrics
-      ];
+      const request = indexedDB.open("OpenStrideDB", 9);
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        for (const { name, options } of objectStores) {
+        const oldVersion = event.oldVersion;
+
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v9`);
+
+        // Migration from v8 to v9: SIMPLIFIED - just recreate stores
+        // Users can re-import data from Google Drive or providers
+        if (oldVersion > 0 && oldVersion < 9) {
+          console.warn('[IndexedDBService] Migration v8→v9 requires fresh start. Please re-import your data.');
+
+          // Delete old stores if they exist
+          if (db.objectStoreNames.contains('activities')) {
+            db.deleteObjectStore('activities');
+          }
+          if (db.objectStoreNames.contains('activity_details')) {
+            db.deleteObjectStore('activity_details');
+          }
+        }
+
+        // Create missing stores (for fresh install)
+        const objectStores: { name: string; options?: IDBObjectStoreParameters; indices?: { name: string; keyPath: string; unique: boolean }[] }[] = [
+          { name: "settings", options: { keyPath: "key" } },
+          {
+            name: "activities",
+            options: { keyPath: "id" },
+            indices: [
+              { name: "startTime", keyPath: "startTime", unique: false },
+              { name: "deleted", keyPath: "deleted", unique: false },
+              { name: "synced", keyPath: "synced", unique: false },
+              { name: "provider", keyPath: "provider", unique: false }
+            ]
+          },
+          {
+            name: "activity_details",
+            options: { keyPath: "id" }
+          },
+          { name: "notifLogs", options: { autoIncrement: true } },
+          { name: "aggregatedData", options: { keyPath: "id" } },
+          { name: "friends", options: { keyPath: "id" } },
+          { name: "friend_activities", options: { keyPath: "id" } }
+        ];
+
+        for (const { name, options, indices } of objectStores) {
           if (!db.objectStoreNames.contains(name)) {
-            db.createObjectStore(name, options);
+            const store = db.createObjectStore(name, options);
+            if (indices) {
+              indices.forEach(index => {
+                store.createIndex(index.name, index.keyPath, { unique: index.unique });
+              });
+            }
           }
         }
       };
@@ -259,6 +329,53 @@ export class IndexedDBService {
     });
   }
 
+  /**
+   * Delete a single item from a store by key
+   */
+  public async deleteFromStore(storeName: string, key: IDBValidKey): Promise<void> {
+    if (!this.db) throw new Error("DB not initialized");
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+      const request = store.delete(key);
+
+      request.onsuccess = () => {
+        this.emitter.dispatchEvent(new CustomEvent('dbChange', {
+          detail: { store: storeName, key }
+        }));
+        resolve();
+      };
+
+      request.onerror = () => reject(request.error);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  /**
+   * Delete multiple items from a store by keys
+   */
+  public async deleteMultipleFromStore(storeName: string, keys: IDBValidKey[]): Promise<void> {
+    if (!this.db) throw new Error("DB not initialized");
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+
+      for (const key of keys) {
+        store.delete(key);
+      }
+
+      tx.oncomplete = () => {
+        this.emitter.dispatchEvent(new CustomEvent('dbChange', {
+          detail: { store: storeName, key: '' }
+        }));
+        resolve();
+      };
+
+      tx.onerror = () => reject(tx.error);
+    });
+  }
 
 public async clearStore(storeName: string): Promise<void> {
     if (!this.db) throw new Error("DB not initialized");

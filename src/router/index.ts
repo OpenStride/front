@@ -9,7 +9,10 @@ import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
 import LegalPage from '@/views/LegalPage.vue';
 import CGUPage from '@/views/CGUPage.vue';
 import Callback from '@/views/Callback.vue';
-import { getActivityDBService } from '@/services/ActivityDBService';
+import FriendsPage from '@/views/FriendsPage.vue';
+import AddFriendPage from '@/views/AddFriendPage.vue';
+import { getActivityService } from '@/services/ActivityService';
+import { IndexedDBService } from '@/services/IndexedDBService';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -19,6 +22,16 @@ const routes = [
   { path: '/cgu', component: CGUPage },
   { path: '/callback', component: Callback },
   { path: '/storage-providers', component: StorageProviders },
+  { path: '/friends', component: FriendsPage },
+  {
+    path: '/add-friend',
+    name: 'AddFriend',
+    component: AddFriendPage,
+    meta: {
+      title: 'Ajouter un ami - OpenStride',
+      requiresAuth: false
+    }
+  },
   { path: '/my-activities', component: MyActivities },
   {
     path: '/history/:parameter?',
@@ -50,12 +63,19 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   if (to.path === '/') {
+    // Check own activities
+    const activityService = await getActivityService();
+    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 });
 
-    const db = await getActivityDBService();
-    const activities = await db.getActivities({ limit: 1, offset: 0 });
+    // Check friend activities
+    const db = await IndexedDBService.getInstance();
+    const friendActivities = await db.getAllData('friend_activities');
 
-    if (activities.length > 0) {
-      return next('/my-activities');
+    // If user has ANY activities (own or friends), stay on HomePage
+    // HomePage will show the mixed feed via ActivityFeedService
+    if (ownActivities.length > 0 || friendActivities.length > 0) {
+      // Don't redirect, let HomePage show the activity feed
+      return next();
     }
   }
 

@@ -12,52 +12,39 @@ const GDriveBackupPlugin: StoragePlugin = {
     //syncData: GoogleDriveSync,
     readRemote: readRemote,
     writeRemote: writeRemote,
-    icon: new URL('../assets/logo.png', import.meta.url).href
-    ,
-    async updateManifest(summary, aggregateHash) {
-        try {
-            const fs = await GoogleDriveFileService.getInstance();
-            const manifest = {
-                manifestVersion: 1,
-                generatedAt: Date.now(),
-                stores: summary,
-                global: { hashAggregate: aggregateHash }
-            };
-            await fs.writeManifest(manifest);
-            console.log('[GDrivePlugin] Manifest updated');
-        } catch (err) {
-            console.warn('[GDrivePlugin] Manifest update failed', err);
-        }
+    icon: new URL('../assets/logo.png', import.meta.url).href,
+
+    // Public file sharing support
+    supportsPublicFiles: true,
+
+    async writePublicFile(filename: string, content: any): Promise<string | null> {
+        const fs = await GoogleDriveFileService.getInstance();
+        return await fs.writePublicFile(filename, content);
     },
-    async optimizeImport(requestedStores) {
-        try {
-            const fs = await GoogleDriveFileService.getInstance();
-            const manifest = await fs.readManifest();
-            if (!manifest?.stores) return requestedStores;
-            const db = await IndexedDBService.getInstance();
-            const local = await db.getData('lastStorageManifestSummary');
-            if (!local?.stores) return requestedStores; // no baseline, import all
-            const remoteMap = new Map(manifest.stores.map((s: any) => [s.name, s.contentHash]));
-            const localMap = new Map((local.stores as any[]).map((s: any) => [s.name, s.contentHash]));
-            const filtered = requestedStores.filter(name => remoteMap.get(name) !== localMap.get(name));
-            if (filtered.length === 0) {
-                console.log('[GDrivePlugin] All requested stores already up-to-date (hash match)');
-                return [];
-            }
-            console.log('[GDrivePlugin] optimizeImport -> will import stores:', filtered);
-            return filtered;
-        } catch {
-            return requestedStores;
-        }
+
+    async deleteFile(fileId: string): Promise<boolean> {
+        const fs = await GoogleDriveFileService.getInstance();
+        return await fs.deleteFile(fileId);
     },
-    async getRemoteManifest() {
-        try {
-            const fs = await GoogleDriveFileService.getInstance();
-            const manifest = await fs.readManifest();
-            if (!manifest?.stores) return null;
-            return { stores: manifest.stores };
-        } catch { return null; }
+
+    async getPublicFileUrl(filename: string): Promise<string | null> {
+        const fs = await GoogleDriveFileService.getInstance();
+        return await fs.getPublicFileUrl(filename);
+    },
+
+    extractFileIdFromUrl(url: string): string | null {
+        // Google Drive format: https://drive.google.com/uc?id={fileId}&export=download
+        const match = url.match(/[?&]id=([^&]+)/);
+        return match ? match[1] : null;
     }
+
+    // DEPRECATED: Hash-based optimization methods below are no longer used by SyncService
+    // SyncService uses incremental sync with synced flag + version-based conflict detection
+    // These methods remain for backward compatibility with old StorageService (will be removed)
+
+    // async updateManifest(summary, aggregateHash) { ... }
+    // async optimizeImport(requestedStores) { ... }
+    // async getRemoteManifest() { ... }
 }
 
 export default GDriveBackupPlugin
