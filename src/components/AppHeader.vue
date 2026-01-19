@@ -18,12 +18,17 @@
           </svg>
         </span>
       </button>
-      <div class="burger-menu" @click="toggleMenu">☰</div>
+      <div class="burger-menu" @click="toggleMenu">
+        <i class="fas fa-bars" aria-hidden="true"></i>
+      </div>
     </div>
     <nav :class="['nav-menu', { active: isMenuOpen }]">
-      <span class="close-menu" @click="closeMenu">✖</span>
+      <span class="close-menu" @click="closeMenu">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </span>
       <router-link to="/" @click="closeMenu">{{ t('navigation.home') }}</router-link>
       <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
+      <router-link to="/friends" @click="closeMenu">{{ t('navigation.friends') }}</router-link>
       <router-link to="/data-providers" @click="closeMenu">{{ t('navigation.dataProviders') }}</router-link>
       <router-link to="/storage-providers" @click="closeMenu">{{ t('navigation.storageProviders') }}</router-link>
       <router-link to="/my-activities" @click="closeMenu">{{ t('navigation.myActivities') }}</router-link>
@@ -46,14 +51,16 @@
 import { ref } from "vue";
 import { useI18n } from 'vue-i18n';
 import { DataProviderService } from '@/services/DataProviderService';
-import { StorageService } from '@/services/StorageService';
+import { getSyncService } from '@/services/SyncService';
+import { FriendService } from '@/services/FriendService';
 
 const { t } = useI18n();
 
 const isMenuOpen = ref(false);
 const refreshing = ref(false);
 const dataProviderService = DataProviderService.getInstance();
-const storageService = StorageService.getInstance();
+const syncService = getSyncService();
+const friendService = FriendService.getInstance();
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
@@ -63,19 +70,27 @@ const closeMenu = () => {
   isMenuOpen.value = false;
 };
 
-// Lance un refresh des data providers puis une sync explicite des stores critiques.
-// Pas d'appel direct aux plugins de storage: on passe par StorageService qui déclenchera ses flux habituels.
+/**
+ * Manual refresh flow:
+ * 1. Refresh data providers (fetch new activities from Garmin, Coros, etc.)
+ * 2. Sync to remote storage (incremental sync with conflict detection)
+ * 3. Sync friends' activities
+ * 4. Notify views to reload
+ */
 const onRefresh = async () => {
   if (refreshing.value) return;
   refreshing.value = true;
   try {
+    // 1. Refresh data providers (fetch new activities)
     await dataProviderService.triggerRefresh();
-    // Sync explicite des stores principaux pour forcer la sauvegarde après fetch.
-    await storageService.syncStores([
-      { store: 'activities', key: '' },
-      { store: 'activity_details', key: '' }
-    ]);
-    // Emit a custom event so views (e.g., MyActivities) can update without full page reload
+
+    // 2. Sync to remote storage (NEW: uses version-based incremental sync)
+    await syncService.syncNow();
+
+    // 3. Sync friends' activities
+    await friendService.refreshAllFriends();
+
+    // 4. Emit event for views to reload
     window.dispatchEvent(new CustomEvent('openstride:activities-refreshed'));
   } catch (e) {
     console.error('Refresh error', e);

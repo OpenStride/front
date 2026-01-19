@@ -16,6 +16,7 @@
         for="file-upload"
         class="block w-full text-center py-2 border border-dashed border-gray-400 rounded-md cursor-pointer hover:bg-gray-50"
       >
+        <i class="fas fa-camera" aria-hidden="true"></i>
         {{ t('profile.choosePhoto') }}
       </label>
       <input
@@ -63,6 +64,44 @@
       </button>
     </div>
 
+    <!-- Section Partage / Confidentialité -->
+    <div v-if="isProfileSaved" class="bg-white shadow-lg rounded-2xl p-6 space-y-4">
+      <h3 class="text-xl font-bold text-center">{{ t('profile.sharePrivacy') }}</h3>
+
+      <!-- Privacy Settings -->
+      <div class="space-y-2">
+        <label class="text-sm font-medium text-gray-700">{{ t('profile.defaultPrivacy') }}</label>
+        <select
+          v-model="defaultPrivacy"
+          @change="saveDefaultPrivacy"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
+        >
+          <option value="private">{{ t('profile.private') }}</option>
+          <option value="public">{{ t('profile.public') }}</option>
+        </select>
+        <p class="text-xs text-gray-500">
+          {{ t('profile.privacyHint') }}
+        </p>
+      </div>
+
+      <!-- Publish Button -->
+      <button
+        @click="publishData"
+        :disabled="publishing"
+        class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400"
+      >
+        {{ publishing ? t('profile.publishing') : (publicUrl ? t('profile.updateData') : t('profile.publishData')) }}
+      </button>
+
+      <!-- QR Code Display -->
+      <div v-if="publicUrl" class="mt-4">
+        <p class="text-sm font-medium text-gray-700 text-center mb-2">
+          {{ t('profile.scanToFollow') }}
+        </p>
+        <QRCodeDisplay :url="publicUrl" />
+      </div>
+    </div>
+
     <!-- Configuration de l'application (toujours visible) -->
     <div class="max-w-sm mx-auto bg-white shadow rounded-xl p-6 space-y-4">
       <h3 class="text-lg font-semibold text-gray-700">{{ t('profile.appSettings') }}</h3>
@@ -72,21 +111,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
+import { FriendService } from '@/services/FriendService'
+import { ToastService } from '@/services/ToastService'
 import { messaging } from '@/lib/firebase'
 import { getToken } from 'firebase/messaging'
+import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import type { FriendServiceEvent } from '@/types/friend'
 
 const { t } = useI18n()
 
 const isProfileSaved = ref(false)
 let dbService: IndexedDBService | null = null
+const friendService = FriendService.getInstance()
 
 const username = ref('')
 const photoPreview = ref<string | null>(null)
 const savedProfile = ref({ username: '', photo: '' })
+
+// Privacy & Sharing
+const defaultPrivacy = ref<'public' | 'private'>('private')
+const publicUrl = ref<string | null>(null)
+const publishing = ref(false)
+
+// Event listener for FriendService events
+const handleFriendEvent = (event: Event) => {
+  const customEvent = event as CustomEvent<FriendServiceEvent>;
+  const { type, message, messageType } = customEvent.detail;
+
+  if (message && messageType) {
+    ToastService.push(message, {
+      type: messageType,
+      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
+    });
+  }
+};
 
 onMounted(async () => {
   dbService = await IndexedDBService.getInstance()
@@ -95,6 +157,21 @@ onMounted(async () => {
   if (savedProfile.value.username) {
     isProfileSaved.value = true
   }
+
+  // Load privacy settings
+  const privacySetting = await dbService.getData('defaultPrivacy')
+  defaultPrivacy.value = privacySetting || 'private'
+
+  // Load public URL if available
+  publicUrl.value = await friendService.getMyPublicUrl()
+
+  // Listen to FriendService events
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+})
+
+onUnmounted(() => {
+  // Clean up event listener
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
 })
 
 const cropImageToSquare = (file: File): Promise<string> => {
@@ -165,5 +242,24 @@ const editProfile = () => {
   username.value = savedProfile.value.username
   photoPreview.value = savedProfile.value.photo
   isProfileSaved.value = false
+}
+
+const saveDefaultPrivacy = async () => {
+  if (!dbService) return
+  await dbService.saveData('defaultPrivacy', defaultPrivacy.value)
+}
+
+const publishData = async () => {
+  publishing.value = true
+  try {
+    const url = await friendService.publishPublicData()
+    if (url) {
+      publicUrl.value = url
+    }
+  } catch (error) {
+    console.error('[ProfilePage] Error publishing data:', error)
+  } finally {
+    publishing.value = false
+  }
 }
 </script>

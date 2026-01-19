@@ -23,7 +23,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
-import { getActivityDBService } from '@/services/ActivityDBService'
+import { getActivityService } from '@/services/ActivityService'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
 import { ActivityAnalyzer} from '@/services/ActivityAnalyzer'
 
@@ -48,10 +48,10 @@ const loading = ref(true)
 
 onMounted(async () => {
   const id = route.params.activityId as string
-  const db = await getActivityDBService();
-  activityDetails.value = await db.getDetails(id);
+  const activityService = await getActivityService();
+  activityDetails.value = await activityService.getDetails(id);
   const analyzer = new ActivityAnalyzer(activityDetails.value?.samples ?? [])
-  activity.value = await db.getActivity(id);
+  activity.value = await activityService.getActivity(id);
   samples.value = analyzer.sampleAverageByDistance(500);
   loading.value = false
 })

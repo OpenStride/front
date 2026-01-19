@@ -22,4 +22,34 @@ export interface StoragePlugin {
      * when local hash matches remote.
      */
     getRemoteManifest?(): Promise<{ stores: Array<{ name: string; contentHash: string; lastModified?: number; itemCount?: number }> } | null>;
+
+    // ========== PUBLIC FILE SHARING CAPABILITIES ==========
+    /**
+     * Optional: indicates if this plugin supports public file sharing
+     * (files accessible via public URL without authentication)
+     */
+    supportsPublicFiles?: boolean;
+
+    /**
+     * Optional: write a file to public storage (anyone with link can read)
+     * Returns the public URL for accessing the file, or null if failed
+     */
+    writePublicFile?(filename: string, content: any): Promise<string | null>;
+
+    /**
+     * Optional: delete a file from storage by its ID
+     * Used for cleanup and rollback operations
+     */
+    deleteFile?(fileId: string): Promise<boolean>;
+
+    /**
+     * Optional: get the public URL for an existing file
+     */
+    getPublicFileUrl?(filename: string): Promise<string | null>;
+
+    /**
+     * Optional: extract file ID from a public URL
+     * Provider-specific URL parsing
+     */
+    extractFileIdFromUrl?(url: string): string | null;
 }
