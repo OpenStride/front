@@ -3,29 +3,29 @@
     <section class="hero">
       <img src="@/assets/images/hero-image.png" alt="OpenStride Hero" class="hero-image" />
       <div class="hero-text">
-        <h1>Explorez. Contrôlez. Partagez.</h1>
-        <p>Votre compagnon d'activités qui respecte votre vie privée. Open-source, gratuit et entièrement transparent.</p>
-  <button class="cta-button" @click="navigateToOnboarding">Commencer maintenant</button>
+        <h1>{{ t('home.hero.title') }}</h1>
+        <p>{{ t('home.hero.subtitle') }}</p>
+        <button class="cta-button" @click="navigateToOnboarding">{{ t('home.hero.cta') }}</button>
       </div>
     </section>
 
     <section class="features">
-      <div class="feature"><i class="fas fa-lock"></i><h3>Respect de votre vie privée</h3><p>Vos données restent vos données.</p></div>
-      <div class="feature"><i class="fas fa-code-branch"></i><h3>Open-source</h3><p>Transparent et évolutif par tous.</p></div>
-      <div class="feature"><i class="fas fa-coins"></i><h3>Gratuit</h3><p>Aucun frais caché, pour toujours.</p></div>
-      <div class="feature"><i class="fas fa-cogs"></i><h3>Personnalisable</h3><p>Choisissez vos fournisseurs de données.</p></div>
+      <div class="feature"><i class="fas fa-lock"></i><h3>{{ t('home.features.privacy.title') }}</h3><p>{{ t('home.features.privacy.description') }}</p></div>
+      <div class="feature"><i class="fas fa-code-branch"></i><h3>{{ t('home.features.openSource.title') }}</h3><p>{{ t('home.features.openSource.description') }}</p></div>
+      <div class="feature"><i class="fas fa-coins"></i><h3>{{ t('home.features.free.title') }}</h3><p>{{ t('home.features.free.description') }}</p></div>
+      <div class="feature"><i class="fas fa-cogs"></i><h3>{{ t('home.features.customizable.title') }}</h3><p>{{ t('home.features.customizable.description') }}</p></div>
     </section>
 
     <section class="quick-access">
       <div class="step">
-        <h3>1️⃣ Connectez un fournisseur de données</h3>
-        <p>Pour pouvoir voir vos premières activités, connectez un fournisseur de données (Garmin, Coros, Suunto etc.).</p>
-        <button @click="navigateToDataProviders">Configurer les fournisseurs de données</button>
+        <h3>{{ t('home.quickAccess.step1.title') }}</h3>
+        <p>{{ t('home.quickAccess.step1.description') }}</p>
+        <button @click="navigateToDataProviders">{{ t('home.quickAccess.step1.button') }}</button>
       </div>
       <div class="step">
-        <h3>2️⃣ Configurez la sauvegarde</h3>
-        <p>Pour sécuriser vos données, choisissez un fournisseur de sauvegarde (Google Drive, Dropbox, etc.).</p>
-        <button @click="navigateToBackupProviders">Configurer la sauvegarde</button>
+        <h3>{{ t('home.quickAccess.step2.title') }}</h3>
+        <p>{{ t('home.quickAccess.step2.description') }}</p>
+        <button @click="navigateToBackupProviders">{{ t('home.quickAccess.step2.button') }}</button>
       </div>
     </section>
 
@@ -34,8 +34,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
+const { t } = useI18n();
 
 const navigateToDataProviders = () => {
   router.push('/data-providers');

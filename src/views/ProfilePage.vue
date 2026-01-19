@@ -1,14 +1,14 @@
 <template>
   <div class="max-w-md mx-auto mt-10 space-y-6">
     <h2 class="text-2xl font-bold text-center">
-      {{ isProfileSaved ? savedProfile.username : 'Créer un Profil' }}
+      {{ isProfileSaved ? savedProfile.username : t('profile.createProfile') }}
     </h2>
 
     <!-- Formulaire de création de profil -->
     <div v-if="!isProfileSaved" class="space-y-4 bg-white shadow rounded-xl p-6">
       <input
         v-model="username"
-        placeholder="Entrez votre pseudo"
+        :placeholder="t('profile.enterUsername')"
         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
       />
 
@@ -16,7 +16,7 @@
         for="file-upload"
         class="block w-full text-center py-2 border border-dashed border-gray-400 rounded-md cursor-pointer hover:bg-gray-50"
       >
-        📷 Choisir une photo
+        {{ t('profile.choosePhoto') }}
       </label>
       <input
         type="file"
@@ -28,14 +28,14 @@
       />
 
       <div v-if="photoPreview" class="flex justify-center">
-        <img :src="photoPreview" alt="Photo de profil" class="w-24 h-24 rounded-full object-cover border" />
+        <img :src="photoPreview" :alt="t('profile.profilePhoto')" class="w-24 h-24 rounded-full object-cover border" />
       </div>
 
       <button
         @click="saveProfile"
         class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
       >
-        Sauvegarder
+        {{ t('common.save') }}
       </button>
     </div>
 
@@ -48,7 +48,7 @@
         <img
           v-if="savedProfile.photo"
           :src="savedProfile.photo"
-          alt="Photo de profil"
+          :alt="t('profile.profilePhoto')"
           class="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
         />
       </div>
@@ -59,17 +59,27 @@
         @click="editProfile"
         class="mt-4 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
       >
-        Modifier le profil
+        {{ t('profile.editProfile') }}
       </button>
+    </div>
+
+    <!-- Configuration de l'application (toujours visible) -->
+    <div class="max-w-sm mx-auto bg-white shadow rounded-xl p-6 space-y-4">
+      <h3 class="text-lg font-semibold text-gray-700">{{ t('profile.appSettings') }}</h3>
+      <LanguageSelector />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { messaging } from '@/lib/firebase'
 import { getToken } from 'firebase/messaging'
+import LanguageSelector from '@/components/LanguageSelector.vue'
+
+const { t } = useI18n()
 
 const isProfileSaved = ref(false)
 let dbService: IndexedDBService | null = null

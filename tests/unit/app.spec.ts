@@ -2,6 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '@/App.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createI18n } from 'vue-i18n'
+import en from '@/locales/en.json'
+import fr from '@/locales/fr.json'
+
+// Create i18n instance for tests
+const i18n = createI18n({
+    legacy: false,
+    locale: 'en',
+    fallbackLocale: 'en',
+    messages: { en, fr }
+})
 
 // Fake router for testing
 const router = createRouter({
@@ -10,7 +21,7 @@ const router = createRouter({
         {
             path: '/',
             component: {
-                template: '<div>Page d’accueil</div>'
+                template: '<div>Home Page</div>'
             }
         }
     ]
@@ -23,13 +34,13 @@ describe('App.vue global layout', () => {
 
         const wrapper = mount(App, {
             global: {
-                plugins: [router]
+                plugins: [router, i18n]
             }
         })
 
         expect(wrapper.findComponent({ name: 'AppHeader' }).exists()).toBe(true)
         expect(wrapper.text().toLowerCase()).toContain('openstride') // si visible dans le header
         expect(wrapper.text().toLowerCase()).toContain('profile') // si visible dans le header
-        expect(wrapper.text()).toContain('Page d’accueil')
+        expect(wrapper.text()).toContain('Home Page')
     })
 })

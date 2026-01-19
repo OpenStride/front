@@ -9,17 +9,20 @@
         :key="activity.id"
         :activity="activity"
       />
-      <p v-if="loading">Chargement...</p>
-      <p v-if="!hasMore && !loading">Toutes les activités sont chargées.</p>
+      <p v-if="loading">{{ t('activities.loading') }}</p>
+      <p v-if="!hasMore && !loading">{{ t('activities.allLoaded') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { useI18n } from 'vue-i18n';
 import ActivityCard from "@/components/ActivityCard.vue";
 import { getActivityDBService } from "@/services/ActivityDBService";
 import { useSlotExtensions } from '@/composables/useSlotExtensions';
+
+const { t } = useI18n();
 // Refresh logic moved to global header refresh button; no per-view pull-to-refresh anymore.
 
 // Allow plugins to inject aggregated overview widgets
