@@ -9,7 +9,7 @@
       </div>
 
       <!-- Unit System -->
-      <div>
+      <!-- <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
           {{ t('profile.preferences.units') }}
         </label>
@@ -33,10 +33,10 @@
             <span>{{ t('profile.preferences.imperial') }}</span>
           </label>
         </div>
-      </div>
+      </div> -->
 
       <!-- Theme -->
-      <div>
+      <!-- <div>
         <label for="theme" class="block text-sm font-medium text-gray-700 mb-2">
           {{ t('profile.preferences.theme') }}
         </label>
@@ -49,10 +49,10 @@
           <option value="dark">{{ t('profile.preferences.themeDark') }}</option>
           <option value="auto">{{ t('profile.preferences.themeAuto') }}</option>
         </select>
-      </div>
+      </div> -->
 
       <!-- Date Format -->
-      <div>
+      <!-- <div>
         <label for="dateFormat" class="block text-sm font-medium text-gray-700 mb-2">
           {{ t('profile.preferences.dateFormat') }}
         </label>
@@ -65,7 +65,7 @@
           <option value="MM/DD/YYYY">MM/DD/YYYY</option>
           <option value="YYYY-MM-DD">YYYY-MM-DD</option>
         </select>
-      </div>
+      </div> -->
 
       <button
         @click="savePreferences"
