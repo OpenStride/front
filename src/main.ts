@@ -5,15 +5,23 @@ import { IndexedDBService } from './services/IndexedDBService';
 import { StorageService } from '@/services/StorageService';
 import { setupBackupListener } from '@/services/StorageListener';
 import { aggregationService } from '@/services/AggregationService';
+import i18n, { getInitialLocale, setHtmlLang } from '@/locales';
 
 import "@/assets/styles/global.css";
 import 'leaflet/dist/leaflet.css';
 
 async function bootstrap() {
     await IndexedDBService.getInstance();
+
+    // Load user locale or detect from browser
+    const locale = await getInitialLocale();
+    i18n.global.locale.value = locale;
+    setHtmlLang(locale);
+
     await aggregationService.loadConfigFromSettings();
     const app = createApp(App);
     app.use(router);
+    app.use(i18n);
     app.mount('#app');
 
     await setupBackupListener(1000);

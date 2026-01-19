@@ -1,9 +1,9 @@
 <template>
   <div class="onboarding-storage-step">
-    <h2 class="text-2xl font-bold mb-2 text-center">Sauvegarder vos données (optionnel)</h2>
+    <h2 class="text-2xl font-bold mb-2 text-center">{{ t('onboarding.storage.title') }}</h2>
     <p class="text-gray-600 mb-6 text-center leading-relaxed">
-      <strong>Vos données sont déjà stockées localement sur cet appareil.</strong><br>
-      Si vous souhaitez synchroniser avec le cloud pour avoir une sauvegarde ou accéder depuis plusieurs appareils, ajoutez un stockage en ligne.
+      <strong>{{ t('onboarding.storage.subtitle') }}</strong><br>
+      {{ t('onboarding.storage.subtitleExtended') }}
     </p>
 
     <!-- Bouton skip proéminent -->
@@ -13,15 +13,15 @@
         class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
         <i class="fas fa-forward"></i>
-        Continuer sans synchronisation cloud
+        {{ t('onboarding.storage.skipButton') }}
       </button>
       <p class="text-sm text-gray-500 mt-3 text-center">
-        Vous pourrez toujours activer la synchronisation plus tard dans les paramètres.
+        {{ t('onboarding.storage.skipHint') }}
       </p>
     </div>
 
     <div class="relative text-center text-gray-400 text-sm font-medium my-6">
-      <span class="bg-white px-4 relative z-10">ou</span>
+      <span class="bg-white px-4 relative z-10">{{ t('common.or') }}</span>
       <div class="absolute top-1/2 left-0 right-0 h-px bg-gray-200 -z-0"></div>
     </div>
 
@@ -43,7 +43,7 @@
             </div>
           </div>
           <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
-            Sélectionner
+            {{ t('common.select') }}
           </button>
         </li>
       </ul>
@@ -55,7 +55,7 @@
         @click="selectedStorageId = null"
         class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
       >
-        <i class="fas fa-arrow-left"></i> Choisir un autre stockage
+        <i class="fas fa-arrow-left"></i> {{ t('onboarding.storage.backButton') }}
       </button>
 
       <div class="bg-white p-6 rounded shadow">
@@ -70,7 +70,7 @@
         @click="$emit('next')"
         class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
-        Continuer <i class="fas fa-arrow-right"></i>
+        {{ t('common.continue') }} <i class="fas fa-arrow-right"></i>
       </button>
     </div>
   </div>
@@ -78,9 +78,12 @@
 
 <script setup lang="ts">
 import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { allStoragePlugins } from '@/services/StoragePluginRegistry';
 import { StoragePluginManager } from '@/services/StoragePluginManager';
 import { IndexedDBService } from '@/services/IndexedDBService';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   savedStorageId?: string | null
