@@ -76,3 +76,16 @@ export interface FriendSyncResult {
   lastFetched: number;
   timestamp: number;            // timestamp of sync operation
 }
+
+/**
+ * Events emitted by FriendService
+ */
+export interface FriendServiceEvent {
+  type: 'friend-added' | 'friend-removed' | 'sync-completed' | 'publish-completed' |
+        'publish-warning' | 'publish-error' | 'friend-error' | 'refresh-completed';
+  friend?: Friend;
+  syncResult?: FriendSyncResult;
+  publishUrl?: string;
+  message?: string;
+  messageType?: 'success' | 'error' | 'warning' | 'info';
+}

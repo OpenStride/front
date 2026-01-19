@@ -39,11 +39,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { IndexedDBService } from '@/services/IndexedDBService';
 import { FriendService } from '@/services/FriendService';
 import { ToastService } from '@/services/ToastService';
 import type { Activity, ActivityDetails } from '@/types/activity';
+import type { FriendServiceEvent } from '@/types/friend';
 
 const props = defineProps<{
   activity: Activity;
@@ -67,8 +68,29 @@ const hasOverride = computed(() => {
   return activityPrivacy.value !== null;
 });
 
+// Event listener for FriendService events
+const handleFriendEvent = (event: Event) => {
+  const customEvent = event as CustomEvent<FriendServiceEvent>;
+  const { type, message, messageType } = customEvent.detail;
+
+  if (message && messageType) {
+    ToastService.push(message, {
+      type: messageType,
+      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
+    });
+  }
+};
+
 onMounted(async () => {
   await loadPrivacySettings();
+
+  // Listen to FriendService events
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+});
+
+onUnmounted(() => {
+  // Clean up event listener
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
 });
 
 const loadPrivacySettings = async () => {

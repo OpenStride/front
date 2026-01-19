@@ -46,10 +46,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FriendService } from '@/services/FriendService';
+import { ToastService } from '@/services/ToastService';
 import { ShareUrlService } from '@/services/ShareUrlService';
+import type { FriendServiceEvent } from '@/types/friend';
 
 const route = useRoute();
 const router = useRouter();
@@ -63,8 +65,29 @@ const friendName = ref('');
 const errorMessage = ref('');
 const manifestUrl = ref<string | null>(null);
 
+// Event listener for FriendService events
+const handleFriendEvent = (event: Event) => {
+  const customEvent = event as CustomEvent<FriendServiceEvent>;
+  const { type, message, messageType } = customEvent.detail;
+
+  if (message && messageType) {
+    ToastService.push(message, {
+      type: messageType,
+      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
+    });
+  }
+};
+
 onMounted(async () => {
+  // Listen to FriendService events
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+
   await processDeepLink();
+});
+
+onUnmounted(() => {
+  // Clean up event listener
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
 });
 
 async function processDeepLink() {

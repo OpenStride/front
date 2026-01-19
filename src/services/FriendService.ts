@@ -1,13 +1,13 @@
 import { IndexedDBService } from './IndexedDBService';
 import { PublicDataService } from './PublicDataService';
 import { PublicFileService } from './PublicFileService';
-import type { Friend, PublicManifest, FriendSyncResult } from '@/types/friend';
-import { ToastService } from './ToastService';
+import type { Friend, PublicManifest, FriendSyncResult, FriendServiceEvent } from '@/types/friend';
 import { ShareUrlService } from './ShareUrlService';
 import { GoogleDriveApiService } from './GoogleDriveApiService';
 
 export class FriendService {
   private static instance: FriendService;
+  public emitter = new EventTarget();
 
   private constructor() {}
 
@@ -16,6 +16,15 @@ export class FriendService {
       FriendService.instance = new FriendService();
     }
     return FriendService.instance;
+  }
+
+  /**
+   * Emit a friend service event
+   */
+  private emitEvent(event: FriendServiceEvent): void {
+    this.emitter.dispatchEvent(
+      new CustomEvent<FriendServiceEvent>('friend-event', { detail: event })
+    );
   }
 
   // ========== PUBLISHING METHODS (Phase 1) ==========
@@ -37,7 +46,11 @@ export class FriendService {
       const { manifest, yearFiles } = await publicDataService.generateAllPublicData();
 
       if (yearFiles.size === 0) {
-        ToastService.push('Aucune activité publique à partager', { type: 'warning', timeout: 4000 });
+        this.emitEvent({
+          type: 'publish-warning',
+          message: 'Aucune activité publique à partager',
+          messageType: 'warning'
+        });
         return null;
       }
 
@@ -64,10 +77,11 @@ export class FriendService {
       // If any year file failed, rollback all uploads
       if (uploadErrors.length > 0) {
         console.error(`[FriendService] Failed to upload year files: ${uploadErrors.join(', ')}`);
-        ToastService.push(
-          `Échec de publication pour les années: ${uploadErrors.join(', ')}`,
-          { type: 'error', timeout: 5000 }
-        );
+        this.emitEvent({
+          type: 'publish-error',
+          message: `Échec de publication pour les années: ${uploadErrors.join(', ')}`,
+          messageType: 'error'
+        });
 
         // Rollback: delete uploaded files
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds);
@@ -87,7 +101,11 @@ export class FriendService {
 
       if (!manifestUrl) {
         console.error('[FriendService] Failed to upload manifest');
-        ToastService.push('Échec de publication du manifest', { type: 'error', timeout: 5000 });
+        this.emitEvent({
+          type: 'publish-error',
+          message: 'Échec de publication du manifest',
+          messageType: 'error'
+        });
 
         // Rollback: delete all uploaded year files
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds);
@@ -98,12 +116,21 @@ export class FriendService {
       const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl);
       await db.saveData('myPublicUrl', shareUrl);
 
-      ToastService.push('Données publiques publiées avec succès!', { type: 'success', timeout: 4000 });
+      this.emitEvent({
+        type: 'publish-completed',
+        publishUrl: shareUrl,
+        message: 'Données publiques publiées avec succès!',
+        messageType: 'success'
+      });
 
       return shareUrl;
     } catch (error) {
       console.error('[FriendService] Error publishing public data:', error);
-      ToastService.push('Erreur lors de la publication', { type: 'error', timeout: 5000 });
+      this.emitEvent({
+        type: 'publish-error',
+        message: 'Erreur lors de la publication',
+        messageType: 'error'
+      });
 
       // Rollback on unexpected error
       await this.rollbackUploadedFiles(
@@ -320,7 +347,11 @@ export class FriendService {
       if (ShareUrlService.isShareUrl(publicUrl)) {
         const unwrapped = ShareUrlService.unwrapManifestUrl(publicUrl);
         if (!unwrapped) {
-          ToastService.push('URL de partage invalide', { type: 'error', timeout: 4000 });
+          this.emitEvent({
+            type: 'friend-error',
+            message: 'URL de partage invalide',
+            messageType: 'error'
+          });
           return null;
         }
         manifestUrl = unwrapped;
@@ -330,7 +361,11 @@ export class FriendService {
       // Fetch manifest to get profile info
       const manifest = await this.fetchManifest(manifestUrl);
       if (!manifest) {
-        ToastService.push('Impossible de charger le profil', { type: 'error', timeout: 4000 });
+        this.emitEvent({
+          type: 'friend-error',
+          message: 'Impossible de charger le profil',
+          messageType: 'error'
+        });
         return null;
       }
 
@@ -342,14 +377,23 @@ export class FriendService {
       // Validate friend ID is unique (no collision)
       const isUnique = await this.validateFriendIdUnique(friendId, manifestUrl);
       if (!isUnique) {
-        ToastService.push('Erreur: collision d\'identifiant', { type: 'error', timeout: 4000 });
+        this.emitEvent({
+          type: 'friend-error',
+          message: 'Erreur: collision d\'identifiant',
+          messageType: 'error'
+        });
         return null;
       }
 
       // Check if friend already exists
       const existingFriend = await db.getDataFromStore('friends', friendId).catch(() => null);
       if (existingFriend) {
-        ToastService.push('Cet ami est déjà ajouté', { type: 'warning', timeout: 3000 });
+        this.emitEvent({
+          type: 'friend-error',
+          friend: existingFriend,
+          message: 'Cet ami est déjà ajouté',
+          messageType: 'warning'
+        });
         return existingFriend;
       }
 
@@ -370,23 +414,35 @@ export class FriendService {
       // Save to IndexedDB
       await db.addItemsToStore('friends', [friend], (f) => f.id);
 
-      ToastService.push(`${friend.username} ajouté avec succès!`, { type: 'success', timeout: 3000 });
+      this.emitEvent({
+        type: 'friend-added',
+        friend,
+        message: `${friend.username} ajouté avec succès!`,
+        messageType: 'success'
+      });
 
       // Fetch recent activities immediately (quick sync)
       console.log('[FriendService] Quick syncing friend activities...');
       const syncResult = await this.syncFriendActivitiesQuick(friendId, 30);
 
       if (syncResult.success && syncResult.activitiesAdded > 0) {
-        ToastService.push(
-          `${syncResult.activitiesAdded} activités récentes synchronisées`,
-          { type: 'success', timeout: 3000 }
-        );
+        this.emitEvent({
+          type: 'sync-completed',
+          friend,
+          syncResult,
+          message: `${syncResult.activitiesAdded} activités récentes synchronisées`,
+          messageType: 'success'
+        });
       }
 
       return friend;
     } catch (error) {
       console.error('[FriendService] Error adding friend:', error);
-      ToastService.push('Erreur lors de l\'ajout', { type: 'error', timeout: 4000 });
+      this.emitEvent({
+        type: 'friend-error',
+        message: 'Erreur lors de l\'ajout',
+        messageType: 'error'
+      });
       return null;
     }
   }
@@ -418,10 +474,18 @@ export class FriendService {
         await db.deleteMultipleFromStore('friend_activities', activityKeys);
       }
 
-      ToastService.push('Ami supprimé', { type: 'success', timeout: 2000 });
+      this.emitEvent({
+        type: 'friend-removed',
+        message: 'Ami supprimé',
+        messageType: 'success'
+      });
     } catch (error) {
       console.error('[FriendService] Error removing friend:', error);
-      ToastService.push('Erreur lors de la suppression', { type: 'error', timeout: 4000 });
+      this.emitEvent({
+        type: 'friend-error',
+        message: 'Erreur lors de la suppression',
+        messageType: 'error'
+      });
     }
   }
 
@@ -664,10 +728,11 @@ export class FriendService {
     const totalActivities = results.reduce((sum, r) => sum + r.activitiesAdded, 0);
 
     if (successCount > 0) {
-      ToastService.push(
-        `${successCount} ami(s) synchronisé(s), ${totalActivities} activité(s)`,
-        { type: 'success', timeout: 3000 }
-      );
+      this.emitEvent({
+        type: 'refresh-completed',
+        message: `${successCount} ami(s) synchronisé(s), ${totalActivities} activité(s)`,
+        messageType: 'success'
+      });
     }
 
     return results;

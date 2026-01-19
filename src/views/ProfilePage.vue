@@ -105,12 +105,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { FriendService } from '@/services/FriendService'
+import { ToastService } from '@/services/ToastService'
 import { messaging } from '@/lib/firebase'
 import { getToken } from 'firebase/messaging'
 import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
+import type { FriendServiceEvent } from '@/types/friend'
 
 const isProfileSaved = ref(false)
 let dbService: IndexedDBService | null = null
@@ -124,6 +126,19 @@ const savedProfile = ref({ username: '', photo: '' })
 const defaultPrivacy = ref<'public' | 'private'>('private')
 const publicUrl = ref<string | null>(null)
 const publishing = ref(false)
+
+// Event listener for FriendService events
+const handleFriendEvent = (event: Event) => {
+  const customEvent = event as CustomEvent<FriendServiceEvent>;
+  const { type, message, messageType } = customEvent.detail;
+
+  if (message && messageType) {
+    ToastService.push(message, {
+      type: messageType,
+      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
+    });
+  }
+};
 
 onMounted(async () => {
   dbService = await IndexedDBService.getInstance()
@@ -139,6 +154,14 @@ onMounted(async () => {
 
   // Load public URL if available
   publicUrl.value = await friendService.getMyPublicUrl()
+
+  // Listen to FriendService events
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+})
+
+onUnmounted(() => {
+  // Clean up event listener
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
 })
 
 const cropImageToSquare = (file: File): Promise<string> => {

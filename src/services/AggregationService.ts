@@ -115,7 +115,7 @@ export class AggregationService {
       console.log('[AggregationService] No startTime for activity', activity?.id);
       return;
     }
-    const date = new Date(typeof startTs === 'number' && startTs < 2e12 ? startTs*1000 : startTs);
+    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs*1000 : startTs);
 
     const db = await IndexedDBService.getInstance();
     console.log('[AggregationService] Aggregating activity', activity?.id, 'details:', details);
@@ -165,7 +165,7 @@ export class AggregationService {
       console.log('[AggregationService] No startTime for deleted activity', activity?.id);
       return;
     }
-    const date = new Date(typeof startTs === 'number' && startTs < 2e12 ? startTs * 1000 : startTs);
+    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : startTs);
 
     const db = await IndexedDBService.getInstance();
     console.log('[AggregationService] Removing activity from aggregations', activity?.id);

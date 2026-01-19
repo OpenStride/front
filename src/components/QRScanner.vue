@@ -59,10 +59,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Html5Qrcode } from 'html5-qrcode';
 import { FriendService } from '@/services/FriendService';
 import { ToastService } from '@/services/ToastService';
+import type { FriendServiceEvent } from '@/types/friend';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -82,6 +83,24 @@ const showManualInput = ref(false);
 const manualUrl = ref('');
 
 let html5QrCode: Html5Qrcode | null = null;
+
+// Event listener for FriendService events
+const handleFriendEvent = (event: Event) => {
+  const customEvent = event as CustomEvent<FriendServiceEvent>;
+  const { type, message, messageType } = customEvent.detail;
+
+  if (message && messageType) {
+    ToastService.push(message, {
+      type: messageType,
+      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
+    });
+  }
+};
+
+onMounted(() => {
+  // Listen to FriendService events
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+});
 
 const startScanning = async () => {
   try {
@@ -165,6 +184,8 @@ watch(() => props.isOpen, (newVal) => {
 
 onUnmounted(() => {
   stopScanning();
+  // Clean up event listener
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
 });
 </script>
 
