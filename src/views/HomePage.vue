@@ -8,17 +8,17 @@
       <!-- Stats Summary -->
       <div v-if="!loading && counts.total > 0" class="stats-bar">
         <div class="stat-item">
-          <span class="stat-label">Mes activités</span>
+          <span class="stat-label">{{ t('activities.myActivities') }}</span>
           <span class="stat-value">{{ counts.own }}</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <span class="stat-label">Amis</span>
+          <span class="stat-label">{{ t('activities.friends') }}</span>
           <span class="stat-value">{{ counts.friends }}</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <span class="stat-label">Total</span>
+          <span class="stat-label">{{ t('activities.total') }}</span>
           <span class="stat-value">{{ counts.total }}</span>
         </div>
       </div>
@@ -32,9 +32,9 @@
           :friend-username="activity.source === 'friend' ? activity.friendUsername : undefined"
         />
 
-        <p v-if="loading" class="loading-text">Chargement...</p>
+        <p v-if="loading" class="loading-text">{{ t('activities.loading') }}</p>
         <p v-if="!hasMore && !loading && activities.length > 0" class="end-text">
-          Toutes les activités sont chargées
+          {{ t('activities.allLoaded') }}
         </p>
 
         <!-- Empty State for users who had activities before -->
@@ -42,16 +42,16 @@
           <div class="empty-icon">
             <i class="fas fa-person-running" aria-hidden="true"></i>
           </div>
-          <h3 class="empty-title">Aucune activité</h3>
+          <h3 class="empty-title">{{ t('activities.noActivity') }}</h3>
           <p class="empty-description">
-            Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici
+            {{ t('activities.noActivityDescription') }}
           </p>
           <div class="empty-actions">
             <button @click="navigateToDataProviders" class="action-btn primary">
-              Configurer les données
+              {{ t('activities.configureData') }}
             </button>
             <button @click="navigateToFriends" class="action-btn secondary">
-              Ajouter des amis
+              {{ t('activities.addFriends') }}
             </button>
           </div>
         </div>
@@ -63,12 +63,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import ActivityCard from '@/components/ActivityCard.vue';
 import WelcomeLanding from '@/components/WelcomeLanding.vue';
 import { useMixedFeed } from '@/composables/useMixedFeed';
 import { IndexedDBService } from '@/services/IndexedDBService';
 
 const router = useRouter();
+const { t } = useI18n();
 const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed();
 
 const scrollArea = ref<HTMLElement | null>(null);

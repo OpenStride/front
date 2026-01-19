@@ -1,0 +1,135 @@
+{
+  "common": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "configure": "Configurer",
+    "refresh": "Actualiser",
+    "loading": "Chargement...",
+    "or": "ou",
+    "continue": "Continuer",
+    "back": "Retour",
+    "select": "Sélectionner"
+  },
+  "languages": {
+    "en": "Anglais",
+    "fr": "Français",
+    "label": "Langue"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "profile": "Profil",
+    "friends": "Amis",
+    "dataProviders": "Sources de données",
+    "storageProviders": "Stockage cloud",
+    "myActivities": "Mes activités"
+  },
+  "profile": {
+    "createProfile": "Créer un Profil",
+    "enterUsername": "Entrez votre pseudo",
+    "choosePhoto": "Choisir une photo",
+    "editProfile": "Modifier le profil",
+    "profilePhoto": "Photo de profil",
+    "appSettings": "Paramètres",
+    "sharePrivacy": "Partage & Confidentialité",
+    "defaultPrivacy": "Confidentialité par défaut",
+    "private": "Privé (par défaut)",
+    "public": "Public",
+    "privacyHint": "Vous pouvez modifier la confidentialité de chaque activité individuellement.",
+    "publishing": "Publication...",
+    "updateData": "Mettre à jour",
+    "publishData": "Publier mes données",
+    "scanToFollow": "Scannez ce code pour me suivre"
+  },
+  "home": {
+    "hero": {
+      "title": "Explorez. Contrôlez. Partagez.",
+      "subtitle": "Votre compagnon d'activités qui respecte votre vie privée. Open-source, gratuit et entièrement transparent.",
+      "cta": "Commencer maintenant"
+    },
+    "features": {
+      "privacy": {
+        "title": "Respect de votre vie privée",
+        "description": "Vos données restent vos données."
+      },
+      "openSource": {
+        "title": "Open-source",
+        "description": "Transparent et évolutif par tous."
+      },
+      "free": {
+        "title": "Gratuit",
+        "description": "Aucun frais caché, pour toujours."
+      },
+      "customizable": {
+        "title": "Personnalisable",
+        "description": "Choisissez vos fournisseurs de données."
+      }
+    },
+    "quickAccess": {
+      "step1": {
+        "title": "1. Connectez un fournisseur de données",
+        "description": "Pour pouvoir voir vos premières activités, connectez un fournisseur de données (Garmin, Coros, Suunto etc.).",
+        "button": "Configurer les fournisseurs de données"
+      },
+      "step2": {
+        "title": "2. Configurez la sauvegarde",
+        "description": "Pour sécuriser vos données, choisissez un fournisseur de sauvegarde (Google Drive, Dropbox, etc.).",
+        "button": "Configurer la sauvegarde"
+      }
+    }
+  },
+  "activities": {
+    "loading": "Chargement...",
+    "allLoaded": "Toutes les activités sont chargées.",
+    "noActivities": "Aucune activité pour le moment.",
+    "myActivities": "Mes activités",
+    "friends": "Amis",
+    "total": "Total",
+    "noActivity": "Aucune activité",
+    "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
+    "configureData": "Configurer les données",
+    "addFriends": "Ajouter des amis"
+  },
+  "dataProviders": {
+    "title": "Fournisseurs de données connectés",
+    "available": "Fournisseurs disponibles",
+    "noProviders": "Aucun fournisseur connecté."
+  },
+  "storageProviders": {
+    "title": "Plugins de stockage connectés",
+    "available": "Plugins disponibles",
+    "noPlugins": "Aucun plugin de stockage connecté."
+  },
+  "onboarding": {
+    "provider": {
+      "title": "Ajoutez votre première source de données",
+      "subtitle": "Choisissez comment importer vos activités sportives.",
+      "backButton": "Choisir un autre fournisseur",
+      "success": "Activités importées avec succès ! Passage à l'étape suivante..."
+    },
+    "storage": {
+      "title": "Sauvegarder vos données (optionnel)",
+      "subtitle": "Vos données sont déjà stockées localement sur cet appareil.",
+      "subtitleExtended": "Si vous souhaitez synchroniser avec le cloud pour avoir une sauvegarde ou accéder depuis plusieurs appareils, ajoutez un stockage en ligne.",
+      "skipButton": "Continuer sans synchronisation cloud",
+      "skipHint": "Vous pourrez toujours activer la synchronisation plus tard dans les paramètres.",
+      "backButton": "Choisir un autre stockage"
+    },
+    "complete": {
+      "title": "Félicitations !",
+      "subtitle": "Votre compte OpenStride est configuré.",
+      "activitiesImported": "{count} activité(s) importée(s)",
+      "syncWith": "Synchronisation avec {name}",
+      "localOnly": "Stockage local uniquement",
+      "viewActivities": "Voir mes activités",
+      "hint": "Vous pourrez toujours ajouter d'autres sources ou modifier vos paramètres plus tard dans les Réglages."
+    }
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "notFound": "Non trouvé."
+  }
+}

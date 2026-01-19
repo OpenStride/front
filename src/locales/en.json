@@ -1,0 +1,135 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "configure": "Configure",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "or": "or",
+    "continue": "Continue",
+    "back": "Back",
+    "select": "Select"
+  },
+  "languages": {
+    "en": "English",
+    "fr": "French",
+    "label": "Language"
+  },
+  "navigation": {
+    "home": "Home",
+    "profile": "Profile",
+    "friends": "Friends",
+    "dataProviders": "Data Providers",
+    "storageProviders": "Storage Providers",
+    "myActivities": "My Activities"
+  },
+  "profile": {
+    "createProfile": "Create a Profile",
+    "enterUsername": "Enter your username",
+    "choosePhoto": "Choose a photo",
+    "editProfile": "Edit profile",
+    "profilePhoto": "Profile photo",
+    "appSettings": "App Settings",
+    "sharePrivacy": "Share & Privacy",
+    "defaultPrivacy": "Default Privacy",
+    "private": "Private (default)",
+    "public": "Public",
+    "privacyHint": "You can modify the privacy of each activity individually.",
+    "publishing": "Publishing...",
+    "updateData": "Update",
+    "publishData": "Publish my data",
+    "scanToFollow": "Scan this code to follow me"
+  },
+  "home": {
+    "hero": {
+      "title": "Explore. Control. Share.",
+      "subtitle": "Your activity companion that respects your privacy. Open-source, free and fully transparent.",
+      "cta": "Get started now"
+    },
+    "features": {
+      "privacy": {
+        "title": "Privacy first",
+        "description": "Your data stays your data."
+      },
+      "openSource": {
+        "title": "Open-source",
+        "description": "Transparent and evolving by everyone."
+      },
+      "free": {
+        "title": "Free",
+        "description": "No hidden fees, forever."
+      },
+      "customizable": {
+        "title": "Customizable",
+        "description": "Choose your data providers."
+      }
+    },
+    "quickAccess": {
+      "step1": {
+        "title": "1. Connect a data provider",
+        "description": "To see your first activities, connect a data provider (Garmin, Coros, Suunto, etc.).",
+        "button": "Configure data providers"
+      },
+      "step2": {
+        "title": "2. Configure backup",
+        "description": "To secure your data, choose a backup provider (Google Drive, Dropbox, etc.).",
+        "button": "Configure backup"
+      }
+    }
+  },
+  "activities": {
+    "loading": "Loading...",
+    "allLoaded": "All activities are loaded.",
+    "noActivities": "No activities yet.",
+    "myActivities": "My Activities",
+    "friends": "Friends",
+    "total": "Total",
+    "noActivity": "No activity",
+    "noActivityDescription": "Connect a data provider or add friends to see activities here",
+    "configureData": "Configure data",
+    "addFriends": "Add friends"
+  },
+  "dataProviders": {
+    "title": "Connected Data Providers",
+    "available": "Available Providers",
+    "noProviders": "No providers connected."
+  },
+  "storageProviders": {
+    "title": "Connected File Plugins",
+    "available": "Available plugins",
+    "noPlugins": "No File Plugin connected."
+  },
+  "onboarding": {
+    "provider": {
+      "title": "Add your first data source",
+      "subtitle": "Choose how to import your sports activities.",
+      "backButton": "Choose another provider",
+      "success": "Activities imported successfully! Moving to the next step..."
+    },
+    "storage": {
+      "title": "Save your data (optional)",
+      "subtitle": "Your data is already stored locally on this device.",
+      "subtitleExtended": "If you want to sync with the cloud for backup or access from multiple devices, add an online storage.",
+      "skipButton": "Continue without cloud sync",
+      "skipHint": "You can always enable sync later in settings.",
+      "backButton": "Choose another storage"
+    },
+    "complete": {
+      "title": "Congratulations!",
+      "subtitle": "Your OpenStride account is set up.",
+      "activitiesImported": "{count} activity(ies) imported",
+      "syncWith": "Sync with {name}",
+      "localOnly": "Local storage only",
+      "viewActivities": "View my activities",
+      "hint": "You can always add other sources or change your settings later in Settings."
+    }
+  },
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "notFound": "Not found."
+  }
+}

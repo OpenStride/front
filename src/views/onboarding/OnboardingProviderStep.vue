@@ -1,8 +1,8 @@
 <template>
   <div class="onboarding-provider-step">
-    <h2 class="text-2xl font-bold mb-2 text-center">Ajoutez votre première source de données</h2>
+    <h2 class="text-2xl font-bold mb-2 text-center">{{ t('onboarding.provider.title') }}</h2>
     <p class="text-gray-600 mb-6 text-center">
-      Choisissez comment importer vos activités sportives.
+      {{ t('onboarding.provider.subtitle') }}
     </p>
 
     <!-- Liste de sélection (si aucun provider sélectionné) -->
@@ -25,7 +25,7 @@
           <button
             class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
           >
-            Sélectionner
+            {{ t('common.select') }}
           </button>
         </li>
       </ul>
@@ -37,7 +37,7 @@
         @click="selectedProviderId = null"
         class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
       >
-        <i class="fas fa-arrow-left"></i> Choisir un autre fournisseur
+        <i class="fas fa-arrow-left"></i> {{ t('onboarding.provider.backButton') }}
       </button>
 
       <div class="bg-white p-6 rounded shadow">
@@ -51,16 +51,19 @@
     <!-- Message de détection d'activités -->
     <div v-if="hasActivities" class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded">
       <i class="fas fa-check-circle text-2xl"></i>
-      <p class="font-medium">Activités importées avec succès ! Passage à l'étape suivante...</p>
+      <p class="font-medium">{{ t('onboarding.provider.success') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { allProviderPlugins } from '@/services/ProviderPluginRegistry';
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager';
 import { getActivityDBService } from '@/services/ActivityDBService';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   savedProviderId?: string | null

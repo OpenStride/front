@@ -4,12 +4,19 @@ import router from './router'
 import { IndexedDBService } from './services/IndexedDBService';
 import { aggregationService } from '@/services/AggregationService';
 import { FriendService } from '@/services/FriendService';
+import i18n, { getInitialLocale, setHtmlLang } from '@/locales';
 
 import "@/assets/styles/global.css";
 import 'leaflet/dist/leaflet.css';
 
 async function bootstrap() {
     await IndexedDBService.getInstance();
+
+    // Load user locale or detect from browser
+    const locale = await getInitialLocale();
+    i18n.global.locale.value = locale;
+    setHtmlLang(locale);
+
     await aggregationService.loadConfigFromSettings();
 
     // Start event-driven aggregation (no O(n) scans!)
@@ -17,6 +24,7 @@ async function bootstrap() {
 
     const app = createApp(App);
     app.use(router);
+    app.use(i18n);
     app.mount('#app');
 
     // NOTE: Automatic backup removed - now using manual sync via SyncService

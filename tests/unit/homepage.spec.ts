@@ -3,6 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import HomePage from '@/views/HomePage.vue'
 import { useRouter } from 'vue-router'
+import { createI18n } from 'vue-i18n'
+import en from '@/locales/en.json'
+import fr from '@/locales/fr.json'
 
 // Mock Firebase messaging to avoid browser API errors in test environment
 vi.mock('@/lib/firebase', () => ({
@@ -34,31 +37,30 @@ vi.mock('vue-router', async (importOriginal) => {
   }
 })
 
-describe.skip('HomePage', () => {
+// Create i18n instance for tests
+const i18n = createI18n({
+  legacy: false,
+  locale: 'fr',
+  fallbackLocale: 'en',
+  messages: { en, fr }
+})
+
+// TODO: Update tests to match new HomePage (activity feed instead of landing page)
+// Current tests are for the old landing page version which has been replaced
+// by an activity feed with social features
+describe.skip('HomePage - Tests need to be updated for new feed-based version', () => {
   const pushMock = vi.fn()
     ; (useRouter as any).mockReturnValue({ push: pushMock })
 
-  it('affiche le texte principal', () => {
-    const wrapper = shallowMount(HomePage)
-    expect(wrapper.text()).toContain('Explorez. Contrôlez. Partagez.')
-    expect(wrapper.text()).toContain('Respect de votre vie privée')
+  it('should render activity feed when user has activities', () => {
+    // TODO: Test new activity feed functionality
   })
 
-  it('navigue vers /data-providers quand on clique sur Commencer maintenant', async () => {
-    const wrapper = shallowMount(HomePage)
-    const button = wrapper.find('button.cta-button')
-    await button.trigger('click')
-    expect(pushMock).toHaveBeenCalledWith('/data-providers')
+  it('should show WelcomeLanding for new users', () => {
+    // TODO: Test WelcomeLanding component rendering
   })
 
-  it('navigue vers /backup-providers quand on clique sur "Configurer la sauvegarde"', async () => {
-    const wrapper = shallowMount(HomePage)
-    const buttons = wrapper.findAll('button')
-    const backupButton = buttons.find(btn => btn.text().includes('sauvegarde'))
-    expect(backupButton).toBeTruthy()
-    await backupButton!.trigger('click')
-    expect(pushMock).toHaveBeenCalledWith('/backup-providers')
+  it('should display stats bar with counts', () => {
+    // TODO: Test stats bar with own/friends/total counts
   })
-
-
 })

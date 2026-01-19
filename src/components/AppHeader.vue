@@ -26,12 +26,12 @@
       <span class="close-menu" @click="closeMenu">
         <i class="fas fa-times" aria-hidden="true"></i>
       </span>
-      <router-link to="/" @click="closeMenu">Accueil</router-link>
-      <router-link to="/profile" @click="closeMenu">Profile</router-link>
-      <router-link to="/friends" @click="closeMenu">Amis</router-link>
-      <router-link to="/data-providers" @click="closeMenu">Data Providers</router-link>
-      <router-link to="/storage-providers" @click="closeMenu">Storage Providers</router-link>
-      <router-link to="/my-activities" @click="closeMenu">Mes activites</router-link>
+      <router-link to="/" @click="closeMenu">{{ t('navigation.home') }}</router-link>
+      <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
+      <router-link to="/friends" @click="closeMenu">{{ t('navigation.friends') }}</router-link>
+      <router-link to="/data-providers" @click="closeMenu">{{ t('navigation.dataProviders') }}</router-link>
+      <router-link to="/storage-providers" @click="closeMenu">{{ t('navigation.storageProviders') }}</router-link>
+      <router-link to="/my-activities" @click="closeMenu">{{ t('navigation.myActivities') }}</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -41,7 +41,7 @@
             <path d="M6 20.5v-4.2h4.2" />
           </svg>
         </span>
-        <span class="label">Refresh</span>
+        <span class="label">{{ t('common.refresh') }}</span>
       </button>
     </nav>
   </header>
@@ -49,9 +49,12 @@
 
 <script setup>
 import { ref } from "vue";
+import { useI18n } from 'vue-i18n';
 import { DataProviderService } from '@/services/DataProviderService';
 import { getSyncService } from '@/services/SyncService';
 import { FriendService } from '@/services/FriendService';
+
+const { t } = useI18n();
 
 const isMenuOpen = ref(false);
 const refreshing = ref(false);
