@@ -1,6 +1,6 @@
 <template>
   <header class="header">
-    <div class="logo" @click="$router.push('/my-activities')" role="button" tabindex="0">
+    <div class="logo" @click="$router.push('/')" role="button" tabindex="0">
       <img src="@/assets/logo.svg" alt="Logo" />
       <h1 class="brand-name"><span class="normal">open</span><span class="secondary">Stride</span></h1>
     </div>

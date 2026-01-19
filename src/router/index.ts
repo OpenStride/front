@@ -2,14 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router';
 import ProfilePage from "@/views/ProfilePage.vue";
 import MyActivities from '@/views/MyActivities.vue';
 import ActivityDetails from '@/views/ActivityDetails.vue';
+import HomePage from '@/views/HomePage.vue';
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
 import LegalPage from '@/views/LegalPage.vue';
 import CGUPage from '@/views/CGUPage.vue';
 import Callback from '@/views/Callback.vue';
+import { getActivityDBService } from '@/services/ActivityDBService';
 
 const routes = [
-  // Redirect home to activities
-  { path: '/', redirect: '/my-activities' },
+  { path: '/', component: HomePage },
   { path: '/onboarding', component: OnboardingFlow },
   { path: '/legal', component: LegalPage },
   { path: '/cgu', component: CGUPage },
@@ -53,6 +54,16 @@ router.beforeEach(async (to, from, next) => {
     const db = await IndexedDBService.getInstance();
     const state = await db.getData('onboarding_state');
     if (state?.completed) {
+      return next('/my-activities');
+    }
+  }
+
+  // Rediriger home vers activities si l'utilisateur a des données
+  if (to.path === '/') {
+    const db = await getActivityDBService();
+    const activities = await db.getActivities({ limit: 1, offset: 0 });
+
+    if (activities.length > 0) {
       return next('/my-activities');
     }
   }
