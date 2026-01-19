@@ -1,169 +1,232 @@
 <template>
-  <div class="max-w-md mx-auto mt-10 space-y-6">
-    <h2 class="text-2xl font-bold text-center">
-      {{ isProfileSaved ? savedProfile.username : t('profile.createProfile') }}
-    </h2>
-
-    <!-- Formulaire de création de profil -->
-    <div v-if="!isProfileSaved" class="space-y-4 bg-white shadow rounded-xl p-6">
-      <input
-        v-model="username"
-        :placeholder="t('profile.enterUsername')"
-        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-      />
-
-      <label
-        for="file-upload"
-        class="block w-full text-center py-2 border border-dashed border-gray-400 rounded-md cursor-pointer hover:bg-gray-50"
-      >
-        {{ t('profile.choosePhoto') }}
-      </label>
-      <input
-        type="file"
-        id="file-upload"
-        class="hidden"
-        capture="user"
-        accept="image/*"
-        @change="onFileChange"
-      />
-
-      <div v-if="photoPreview" class="flex justify-center">
-        <img :src="photoPreview" :alt="t('profile.profilePhoto')" class="w-24 h-24 rounded-full object-cover border" />
-      </div>
-
+  <div class="profile-container">
+    <!-- Tabs Navigation -->
+    <nav class="profile-tabs" role="tablist" aria-label="Profile sections">
       <button
-        @click="saveProfile"
-        class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
+        v-for="tab in tabs"
+        :key="tab.id"
+        :class="['profile-tab', { active: activeTab === tab.id }]"
+        :aria-selected="activeTab === tab.id"
+        :aria-controls="`panel-${tab.id}`"
+        role="tab"
+        @click="selectTab(tab.id)"
       >
-        {{ t('common.save') }}
+        <i :class="tab.icon" aria-hidden="true"></i>
+        <span class="tab-label">{{ t(tab.labelKey) }}</span>
       </button>
-    </div>
+    </nav>
 
-    <!-- Affichage du profil sauvegardé -->
-    <div
-      v-else
-      class="max-w-sm mx-auto bg-white shadow-lg rounded-2xl p-6 text-center space-y-4"
-    >
-      <div class="flex justify-center">
-        <img
-          v-if="savedProfile.photo"
-          :src="savedProfile.photo"
-          :alt="t('profile.profilePhoto')"
-          class="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
-        />
+    <!-- Content Area -->
+    <div class="profile-content">
+      <div
+        v-for="tab in tabs"
+        :key="tab.id"
+        v-show="activeTab === tab.id"
+        :id="`panel-${tab.id}`"
+        role="tabpanel"
+        :aria-labelledby="`tab-${tab.id}`"
+      >
+        <component :is="tab.component" />
       </div>
-
-      <p class="text-lg font-semibold">{{ savedProfile.username }}</p>
-
-      <button
-        @click="editProfile"
-        class="mt-4 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
-      >
-        {{ t('profile.editProfile') }}
-      </button>
-    </div>
-
-    <!-- Configuration de l'application (toujours visible) -->
-    <div class="max-w-sm mx-auto bg-white shadow rounded-xl p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-700">{{ t('profile.appSettings') }}</h3>
-      <LanguageSelector />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { messaging } from '@/lib/firebase'
-import { getToken } from 'firebase/messaging'
-import LanguageSelector from '@/components/LanguageSelector.vue'
+import { useRoute, useRouter } from 'vue-router'
+import ProfileAthlete from '@/components/profile/ProfileAthlete.vue'
+import ProfilePreferences from '@/components/profile/ProfilePreferences.vue'
+import ProfileDataSources from '@/components/profile/ProfileDataSources.vue'
+import ProfileCloudBackup from '@/components/profile/ProfileCloudBackup.vue'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
-const isProfileSaved = ref(false)
-let dbService: IndexedDBService | null = null
+type TabId = 'profile' | 'preferences' | 'data-sources' | 'cloud-backup'
 
-const username = ref('')
-const photoPreview = ref<string | null>(null)
-const savedProfile = ref({ username: '', photo: '' })
+interface Tab {
+  id: TabId
+  labelKey: string
+  icon: string
+  component: any
+}
 
-onMounted(async () => {
-  dbService = await IndexedDBService.getInstance()
-  savedProfile.value.username = (await dbService.getData('username')) || ''
-  savedProfile.value.photo = (await dbService.getData('profile_photo')) || ''
-  if (savedProfile.value.username) {
-    isProfileSaved.value = true
+const tabs: Tab[] = [
+  {
+    id: 'profile',
+    labelKey: 'profile.tabs.profile',
+    icon: 'fas fa-user',
+    component: ProfileAthlete
+  },
+  {
+    id: 'preferences',
+    labelKey: 'profile.tabs.preferences',
+    icon: 'fas fa-cog',
+    component: ProfilePreferences
+  },
+  {
+    id: 'data-sources',
+    labelKey: 'profile.tabs.dataSources',
+    icon: 'fas fa-database',
+    component: ProfileDataSources
+  },
+  {
+    id: 'cloud-backup',
+    labelKey: 'profile.tabs.cloudBackup',
+    icon: 'fas fa-cloud',
+    component: ProfileCloudBackup
+  }
+]
+
+const activeTab = ref<TabId>('profile')
+
+// Initialize active tab from query param
+onMounted(() => {
+  const tabParam = route.query.tab as TabId
+  if (tabParam && tabs.some(t => t.id === tabParam)) {
+    activeTab.value = tabParam
   }
 })
 
-const cropImageToSquare = (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const reader = new FileReader()
-
-    reader.onload = (e) => {
-      img.src = e.target?.result as string
-    }
-
-    img.onload = () => {
-      const size = Math.min(img.width, img.height)
-      const offsetX = (img.width - size) / 2
-      const offsetY = (img.height - size) / 2
-
-      const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, offsetX, offsetY, size, size, 0, 0, size, size)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
-      resolve(dataUrl)
-    }
-
-    reader.readAsDataURL(file)
-  })
-}
-
-const onFileChange = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    cropImageToSquare(file).then((dataURL) => {
-      photoPreview.value = dataURL
-    })
+// Watch for route query changes
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && tabs.some(t => t.id === newTab)) {
+    activeTab.value = newTab as TabId
   }
-}
+})
 
-const requestNotificationPermission = async () => {
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: 'BD0btZI1W7WcbbfdHEZHh-IHLuKX6ZW9fZGpx0rEe_ye-Wjgy1OG3UTkBYQFzDRKgxZLbZ0hlyb0QaxXa_17cAE'
-    })
-    if (token) {
-      console.log('Token FCM récupéré :', token)
-      dbService?.saveData('fcm_token', token)
-    } else {
-      console.warn('❌ Permission refusée ou aucun token dispo.')
-    }
-  } catch (err) {
-    console.error('🚫 Erreur FCM :', err)
-  }
-}
-
-const saveProfile = async () => {
-  if (!dbService) return
-  await dbService.saveData('username', username.value)
-  if (photoPreview.value) {
-    await dbService.saveData('profile_photo', photoPreview.value)
-  }
-  savedProfile.value.username = username.value
-  savedProfile.value.photo = photoPreview.value!
-  isProfileSaved.value = true
-  await requestNotificationPermission()
-}
-
-const editProfile = () => {
-  username.value = savedProfile.value.username
-  photoPreview.value = savedProfile.value.photo
-  isProfileSaved.value = false
+// Update URL when tab changes
+const selectTab = (tabId: TabId) => {
+  activeTab.value = tabId
+  router.push({ query: { tab: tabId } })
 }
 </script>
+
+<style scoped>
+.profile-container {
+  display: flex;
+  min-height: calc(100vh - 80px);
+  background-color: #f9fafb;
+}
+
+/* Desktop: Vertical tabs on the left */
+@media (min-width: 768px) {
+  .profile-tabs {
+    display: flex;
+    flex-direction: column;
+    width: 20%;
+    min-width: 200px;
+    background-color: white;
+    border-right: 1px solid #e5e7eb;
+    padding: 1.5rem 0;
+  }
+
+  .profile-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+
+  .profile-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+    font-size: 0.95rem;
+    border-left: 3px solid transparent;
+  }
+
+  .profile-tab:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+
+  .profile-tab.active {
+    background-color: #ecfdf5;
+    color: #059669;
+    border-left-color: #059669;
+    font-weight: 600;
+  }
+
+  .profile-tab i {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+  }
+
+  .tab-label {
+    display: inline;
+  }
+}
+
+/* Mobile: Horizontal scrollable tabs on top */
+@media (max-width: 767px) {
+  .profile-container {
+    flex-direction: column;
+  }
+
+  .profile-tabs {
+    display: flex;
+    overflow-x: auto;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .profile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-content {
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .profile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    min-width: fit-content;
+  }
+
+  .profile-tab:hover {
+    color: #374151;
+  }
+
+  .profile-tab.active {
+    color: #059669;
+    border-bottom-color: #059669;
+    font-weight: 600;
+  }
+
+  .profile-tab i {
+    font-size: 1.25rem;
+  }
+
+  .tab-label {
+    font-size: 0.7rem;
+  }
+}
+</style>

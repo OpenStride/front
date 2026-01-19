@@ -1,6 +1,6 @@
 <template>
   <header class="header">
-    <div class="logo" @click="$router.push('/')" role="button" tabindex="0">
+    <div class="logo" @click="$router.push('/my-activities')" role="button" tabindex="0">
       <img src="@/assets/logo.svg" alt="Logo" />
       <h1 class="brand-name"><span class="normal">open</span><span class="secondary">Stride</span></h1>
     </div>
@@ -22,11 +22,8 @@
     </div>
     <nav :class="['nav-menu', { active: isMenuOpen }]">
       <span class="close-menu" @click="closeMenu">✖</span>
-      <router-link to="/" @click="closeMenu">{{ t('navigation.home') }}</router-link>
-      <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
-      <router-link to="/data-providers" @click="closeMenu">{{ t('navigation.dataProviders') }}</router-link>
-      <router-link to="/storage-providers" @click="closeMenu">{{ t('navigation.storageProviders') }}</router-link>
       <router-link to="/my-activities" @click="closeMenu">{{ t('navigation.myActivities') }}</router-link>
+      <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">

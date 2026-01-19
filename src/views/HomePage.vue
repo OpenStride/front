@@ -40,11 +40,11 @@ const router = useRouter();
 const { t } = useI18n();
 
 const navigateToDataProviders = () => {
-  router.push('/data-providers');
+  router.push('/profile?tab=data-sources');
 };
 
 const navigateToBackupProviders = () => {
-  router.push('/backup-providers');
+  router.push('/profile?tab=cloud-backup');
 };
 
 const navigateToOnboarding = () => {

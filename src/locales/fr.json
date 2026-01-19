@@ -31,7 +31,37 @@
     "choosePhoto": "Choisir une photo",
     "editProfile": "Modifier le profil",
     "profilePhoto": "Photo de profil",
-    "appSettings": "Paramètres"
+    "appSettings": "Paramètres",
+    "tabs": {
+      "profile": "Profil",
+      "preferences": "Préférences",
+      "dataSources": "Sources de données",
+      "cloudBackup": "Sauvegarde cloud"
+    },
+    "identity": {
+      "section": "Identité"
+    },
+    "athlete": {
+      "title": "Profil",
+      "section": "Informations athlète",
+      "weight": "Poids (kg)",
+      "maxHR": "FC max (bpm)",
+      "restingHR": "FC repos (bpm)",
+      "ftp": "FTP (watts)",
+      "saveSuccess": "Profil athlète sauvegardé"
+    },
+    "preferences": {
+      "title": "Préférences de l'application",
+      "units": "Système d'unités",
+      "metric": "Métrique (km)",
+      "imperial": "Impérial (mi)",
+      "theme": "Thème",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "themeAuto": "Auto",
+      "dateFormat": "Format de date",
+      "saveSuccess": "Préférences sauvegardées"
+    }
   },
   "home": {
     "hero": {
