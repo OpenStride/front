@@ -62,14 +62,22 @@
         Modifier le profil
       </button>
     </div>
+
+    <!-- Plugin Settings Slot -->
+    <div v-if="isProfileSaved">
+      <component
+        v-for="(SettingsComponent, index) in settingsComponents"
+        :key="index"
+        :is="SettingsComponent"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { IndexedDBService } from '@/services/IndexedDBService'
-import { messaging } from '@/lib/firebase'
-import { getToken } from 'firebase/messaging'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 
 const isProfileSaved = ref(false)
 let dbService: IndexedDBService | null = null
@@ -77,6 +85,9 @@ let dbService: IndexedDBService | null = null
 const username = ref('')
 const photoPreview = ref<string | null>(null)
 const savedProfile = ref({ username: '', photo: '' })
+
+// Load plugin settings components
+const { components: settingsComponents } = useSlotExtensions('profile.settings')
 
 onMounted(async () => {
   dbService = await IndexedDBService.getInstance()
@@ -123,22 +134,6 @@ const onFileChange = (event: Event) => {
   }
 }
 
-const requestNotificationPermission = async () => {
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: 'BD0btZI1W7WcbbfdHEZHh-IHLuKX6ZW9fZGpx0rEe_ye-Wjgy1OG3UTkBYQFzDRKgxZLbZ0hlyb0QaxXa_17cAE'
-    })
-    if (token) {
-      console.log('Token FCM récupéré :', token)
-      dbService?.saveData('fcm_token', token)
-    } else {
-      console.warn('❌ Permission refusée ou aucun token dispo.')
-    }
-  } catch (err) {
-    console.error('🚫 Erreur FCM :', err)
-  }
-}
-
 const saveProfile = async () => {
   if (!dbService) return
   await dbService.saveData('username', username.value)
@@ -148,7 +143,6 @@ const saveProfile = async () => {
   savedProfile.value.username = username.value
   savedProfile.value.photo = photoPreview.value!
   isProfileSaved.value = true
-  await requestNotificationPermission()
 }
 
 const editProfile = () => {

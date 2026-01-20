@@ -4,6 +4,8 @@ import type { ProviderPlugin } from '@/types/provider';
 export class DataProviderService {
     private static instance: DataProviderService;
     private pluginManager = DataProviderPluginManager.getInstance();
+    public emitter = new EventTarget();
+
     private constructor() { }
 
     public static getInstance(): DataProviderService {
@@ -19,6 +21,17 @@ export class DataProviderService {
             try {
                 if (plugin.refreshData) {
                     await plugin.refreshData();
+
+                    // Emit event after successful refresh
+                    this.emitter.dispatchEvent(
+                        new CustomEvent('provider-activities-imported', {
+                            detail: {
+                                providerId: plugin.id,
+                                providerLabel: plugin.label,
+                                timestamp: Date.now()
+                            }
+                        })
+                    );
                 } else {
                     console.warn(`⚠️ Plugin ${plugin.label} does not implement refreshData.`);
                 }
