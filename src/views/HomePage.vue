@@ -116,7 +116,11 @@ const onRefresh = async () => {
 };
 
 const navigateToDataProviders = () => {
-  router.push('/data-providers');
+  router.push('/profile?tab=data-sources');
+};
+
+const navigateToBackupProviders = () => {
+  router.push('/profile?tab=cloud-backup');
 };
 
 const navigateToFriends = () => {
