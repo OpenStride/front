@@ -7,7 +7,10 @@ import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
 import LegalPage from '@/views/LegalPage.vue';
 import CGUPage from '@/views/CGUPage.vue';
 import Callback from '@/views/Callback.vue';
-import { getActivityDBService } from '@/services/ActivityDBService';
+import FriendsPage from '@/views/FriendsPage.vue';
+import AddFriendPage from '@/views/AddFriendPage.vue';
+import { getActivityService } from '@/services/ActivityService';
+import { IndexedDBService } from '@/services/IndexedDBService';
 
 const routes = [
   { path: '/', component: HomePage },
@@ -15,6 +18,16 @@ const routes = [
   { path: '/legal', component: LegalPage },
   { path: '/cgu', component: CGUPage },
   { path: '/callback', component: Callback },
+  { path: '/friends', component: FriendsPage },
+  {
+    path: '/add-friend',
+    name: 'AddFriend',
+    component: AddFriendPage,
+    meta: {
+      title: 'Ajouter un ami - OpenStride',
+      requiresAuth: false
+    }
+  },
   { path: '/my-activities', component: MyActivities },
   {
     path: '/history/:parameter?',
@@ -50,7 +63,6 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   // Empêcher accès à /onboarding si déjà complété
   if (to.path === '/onboarding') {
-    const { IndexedDBService } = await import('@/services/IndexedDBService');
     const db = await IndexedDBService.getInstance();
     const state = await db.getData('onboarding_state');
     if (state?.completed) {
@@ -60,11 +72,19 @@ router.beforeEach(async (to, from, next) => {
 
   // Rediriger home vers activities si l'utilisateur a des données
   if (to.path === '/') {
-    const db = await getActivityDBService();
-    const activities = await db.getActivities({ limit: 1, offset: 0 });
+    // Check own activities
+    const activityService = await getActivityService();
+    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 });
 
-    if (activities.length > 0) {
-      return next('/my-activities');
+    // Check friend activities
+    const db = await IndexedDBService.getInstance();
+    const friendActivities = await db.getAllData('friend_activities');
+
+    // If user has ANY activities (own or friends), stay on HomePage
+    // HomePage will show the mixed feed via ActivityFeedService
+    if (ownActivities.length > 0 || friendActivities.length > 0) {
+      // Don't redirect, let HomePage show the activity feed
+      return next();
     }
   }
 

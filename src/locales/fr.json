@@ -21,6 +21,7 @@
   "navigation": {
     "home": "Accueil",
     "profile": "Profil",
+    "friends": "Amis",
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "myActivities": "Mes activités"
@@ -61,7 +62,16 @@
       "themeAuto": "Auto",
       "dateFormat": "Format de date",
       "saveSuccess": "Préférences sauvegardées"
-    }
+    },
+    "sharePrivacy": "Partage & Confidentialité",
+    "defaultPrivacy": "Confidentialité par défaut",
+    "private": "Privé (par défaut)",
+    "public": "Public",
+    "privacyHint": "Vous pouvez modifier la confidentialité de chaque activité individuellement.",
+    "publishing": "Publication...",
+    "updateData": "Mettre à jour",
+    "publishData": "Publier mes données",
+    "scanToFollow": "Scannez ce code pour me suivre"
   },
   "home": {
     "hero": {
@@ -103,7 +113,14 @@
   "activities": {
     "loading": "Chargement...",
     "allLoaded": "Toutes les activités sont chargées.",
-    "noActivities": "Aucune activité pour le moment."
+    "noActivities": "Aucune activité pour le moment.",
+    "myActivities": "Mes activités",
+    "friends": "Amis",
+    "total": "Total",
+    "noActivity": "Aucune activité",
+    "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
+    "configureData": "Configurer les données",
+    "addFriends": "Ajouter des amis"
   },
   "dataProviders": {
     "title": "Fournisseurs de données connectés",

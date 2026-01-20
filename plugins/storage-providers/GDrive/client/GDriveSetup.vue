@@ -73,8 +73,7 @@ import { onMounted, ref } from 'vue';
 
 import { GoogleDriveAuthService } from './GoogleDriveAuthService';
 import { GoogleDriveFileService } from './GoogleDriveFileService';
-//import { GoogleDriveSync } from './GoogleDriveSync';
-import { StorageService } from '@/services/StorageService';
+import { getSyncService } from '@/services/SyncService';
 import { IndexedDBService } from '@/services/IndexedDBService';
 
 const isRefreshing = ref(false)
@@ -117,11 +116,8 @@ async function onRefresh() {
 }
 
 const refreshFromGoogleDrive = async () => {
-  /* if (!GoogleDriveSync) return;
-  return GoogleDriveSync(); */
-  const storageService = await StorageService.getInstance();
-  //TODO: tout recuperer
-  storageService.syncStores([]);
+  const syncService = getSyncService();
+  await syncService.syncNow();
 };
 
 const disconnectGoogleDrive = async () => {

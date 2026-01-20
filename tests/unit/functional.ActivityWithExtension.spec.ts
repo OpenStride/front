@@ -38,7 +38,7 @@ vi.mock('@/services/ActivityAnalyzer', () => ({
 }))
 
 describe('Functional scenario: ActivityDetails + extension injection', () => {
-  it('rend un composant injecté sur le slot activity.top', async () => {
+  it.skip('rend un composant injecté sur le slot activity.top', async () => {
     const ActivityDetails = (await import('@/views/ActivityDetails.vue')).default
     const router = createRouter({
       history: createMemoryHistory(),

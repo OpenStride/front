@@ -1,4 +1,5 @@
 import { IndexedDBService } from './IndexedDBService';
+import { getActivityService, type ActivityServiceEvent } from './ActivityService';
 import type { AggregationMetricDefinition, AggregatedRecord, AggregationPeriod } from '@/types/aggregation';
 
 // Basic ISO week helper (simplified; can refine later)
@@ -17,10 +18,17 @@ function getMonthKey(date: Date): string {
 
 function getYearKey(date: Date): string { return `${date.getFullYear()}`; }
 
+/**
+ * Event-driven aggregation service
+ *
+ * Listens to ActivityService events and incrementally updates aggregations.
+ * No O(n) scans - each activity change triggers only the affected aggregates.
+ */
 export class AggregationService {
   private static instance: AggregationService;
   private metrics: AggregationMetricDefinition[] = [];
   private subscribers = new Set<(ev:{metricId:string;periodType:AggregationPeriod;periodKey:string})=>void>();
+  private activityServiceListener: ((evt: Event) => void) | null = null;
 
   static getInstance() {
     if (!this.instance) this.instance = new AggregationService();
@@ -40,6 +48,44 @@ export class AggregationService {
       await db.saveData('aggregationConfig', { metrics: this.metrics });
     }
     console.log('[AggregationService] Metrics in use:', this.metrics);
+  }
+
+  /**
+   * Start listening to ActivityService events for automatic aggregation
+   * Call this once during app bootstrap
+   */
+  async startListening() {
+    const activityService = await getActivityService();
+
+    this.activityServiceListener = async (evt: Event) => {
+      const e = evt as CustomEvent<ActivityServiceEvent>;
+      const { type, activity, details } = e.detail;
+
+      console.log(`[AggregationService] Activity ${type}: ${activity.id}`);
+
+      if (type === 'deleted') {
+        // Subtract from aggregations
+        await this.removeActivityFromAggregation(activity, details);
+      } else {
+        // Add or update aggregations (saved, updated)
+        await this.addActivityForAggregation(activity, details);
+      }
+    };
+
+    activityService.emitter.addEventListener('activity-changed', this.activityServiceListener);
+    console.log('[AggregationService] Started listening to ActivityService events');
+  }
+
+  /**
+   * Stop listening to ActivityService events (for testing/cleanup)
+   */
+  async stopListening() {
+    if (this.activityServiceListener) {
+      const activityService = await getActivityService();
+      activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener);
+      this.activityServiceListener = null;
+      console.log('[AggregationService] Stopped listening to ActivityService events');
+    }
   }
 
   listMetrics() { return this.metrics.slice(); }
@@ -69,7 +115,7 @@ export class AggregationService {
       console.log('[AggregationService] No startTime for activity', activity?.id);
       return;
     }
-    const date = new Date(typeof startTs === 'number' && startTs < 2e12 ? startTs*1000 : startTs);
+    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs*1000 : startTs);
 
     const db = await IndexedDBService.getInstance();
     console.log('[AggregationService] Aggregating activity', activity?.id, 'details:', details);
@@ -100,6 +146,59 @@ export class AggregationService {
         record.lastUpdated = Date.now();
         console.log(`[AggregationService] Update record ${id}: sum=${record.sum} count=${record.count} value=${record.value}`);
         await db.addItemsToStore('aggregatedData', [record], (r)=>r.id);
+        this.notify({ metricId: metric.id, periodType: p, periodKey: key });
+      }
+    }
+  }
+
+  /**
+   * Remove activity from aggregations (decrement counters)
+   * Called when an activity is soft-deleted
+   */
+  async removeActivityFromAggregation(activity: any, details: any) {
+    if (!activity) return;
+    const merged = { ...activity, ...details };
+
+    // heuristique startTime ms or sec
+    const startTs = merged.startTime || merged.start_time || merged.timestamp;
+    if (!startTs) {
+      console.log('[AggregationService] No startTime for deleted activity', activity?.id);
+      return;
+    }
+    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : startTs);
+
+    const db = await IndexedDBService.getInstance();
+    console.log('[AggregationService] Removing activity from aggregations', activity?.id);
+
+    for (const metric of this.metrics) {
+      if (!metric.enabled) continue;
+      const raw = this.getValueByPath(merged, metric.sourceRef);
+      if (raw == null) continue;
+      const numeric = typeof raw === 'number' ? raw : parseFloat(raw);
+      if (isNaN(numeric)) continue;
+
+      for (const p of metric.periods) {
+        const key = this.periodKey(p, date);
+        const id = `${metric.id}|${p}|${key}`;
+
+        let record: AggregatedRecord | null = null;
+        try {
+          record = await db.getDataFromStore('aggregatedData', id);
+        } catch {
+          // Record doesn't exist, nothing to remove
+          continue;
+        }
+
+        if (!record) continue;
+
+        // Decrement
+        record.sum -= numeric;
+        record.count = Math.max(0, record.count - 1); // Prevent negative count
+        record.value = record.count > 0 ? (metric.aggregation === 'avg' ? record.sum / record.count : record.sum) : 0;
+        record.lastUpdated = Date.now();
+
+        console.log(`[AggregationService] Decremented record ${id}: sum=${record.sum} count=${record.count} value=${record.value}`);
+        await db.addItemsToStore('aggregatedData', [record], (r) => r.id);
         this.notify({ metricId: metric.id, periodType: p, periodKey: key });
       }
     }

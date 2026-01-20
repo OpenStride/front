@@ -1,5 +1,15 @@
-export interface Activity {
+/**
+ * Base interface for all stored records with sync metadata
+ */
+export interface Timestamped {
     id: string;
+    version: number;        // Incremented on each modification (conflict detection)
+    lastModified: number;   // Timestamp in ms
+    synced?: boolean;       // True if synced to remote storage
+    deleted?: boolean;      // Soft delete flag
+}
+
+export interface Activity extends Timestamped {
     provider: string;
     startTime: number;
     duration: number;
@@ -20,8 +30,7 @@ export interface Sample {
     speed?: number;
 }
 
-export interface ActivityDetails {
-    id: string;
+export interface ActivityDetails extends Timestamped {
     samples?: Sample[];
     laps?: {
         time: number;

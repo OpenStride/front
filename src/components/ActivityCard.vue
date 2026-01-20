@@ -1,11 +1,18 @@
 <template>
   <div class="activity-card" data-test="activity-card">
-    <MapPreview
-      v-if="hasMap"
-      class="map-top"
-      :polyline="activity.mapPolyline"
-      theme="osm"
-    />
+    <div class="map-container">
+      <MapPreview
+        v-if="hasMap"
+        class="map-top"
+        :polyline="activity.mapPolyline"
+        theme="osm"
+      />
+      <!-- Friend Badge -->
+      <div v-if="friendUsername" class="friend-badge">
+        <i class="fas fa-user friend-icon" aria-hidden="true"></i>
+        <span class="friend-name">{{ friendUsername }}</span>
+      </div>
+    </div>
     <div class="card-content">
       <!-- header inchangé -->
       <div class="activity-card-header">
@@ -56,7 +63,10 @@ import MapPreview from './MapPreview.vue';
 import router from '@/router';
 import { Activity } from '@/types/activity';
 
-const props = defineProps<{ activity: Activity }>();
+const props = defineProps<{
+  activity: Activity;
+  friendUsername?: string;
+}>();
 const activity = props.activity;
 const showMenu = ref(false);
 
@@ -140,9 +150,42 @@ const toggleMenu = () => {
   width: 100%;
 }
 
+.map-container {
+  position: relative;
+  width: 100%;
+}
+
 .map-top {
   width: 100%;
   height: 240px;
+}
+
+.friend-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: linear-gradient(135deg, var(--color-green-500) 0%, var(--color-green-600) 100%);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(136, 170, 0, 0.3);
+  z-index: 10;
+}
+
+.friend-icon {
+  font-size: 0.875rem;
+}
+
+.friend-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-content {

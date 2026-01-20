@@ -2,13 +2,37 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// Mock ActivityDBService pour éviter accès IndexedDB
+// Mock IndexedDBService to avoid real IndexedDB access
+vi.mock('@/services/IndexedDBService', () => ({
+  IndexedDBService: class {
+    static instance = null
+    static async getInstance() {
+      if (!this.instance) {
+        this.instance = new this()
+      }
+      return this.instance
+    }
+    async getData() { return null }
+    async saveData() { }
+  }
+}))
+
+// Mock ActivityService pour éviter accès IndexedDB
+vi.mock('@/services/ActivityService', () => ({
+  getActivityService: async () => ({
+    getActivity: async () => ({ id: 'test-123', startTime: Date.now(), distance: 1000, type: 'run' }),
+    getDetails: async () => ({ id: 'test-123', samples: [] })
+  })
+}))
+
+// Mock ActivityDBService pour éviter accès IndexedDB (legacy)
 vi.mock('@/services/ActivityDBService', () => ({
   getActivityDBService: async () => ({
     getActivity: async () => ({ id: 'test-123', startTime: Date.now() / 1000, distance: 1000, type: 'RUNNING' }),
     getDetails: async () => ({ id: 'test-123', samples: [] })
   })
 }))
+
 // Mock analyzer
 vi.mock('@/services/ActivityAnalyzer', () => ({
   ActivityAnalyzer: class { constructor() { } sampleAverageByDistance() { return [] } }

@@ -21,6 +21,7 @@
   "navigation": {
     "home": "Home",
     "profile": "Profile",
+    "friends": "Friends",
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
     "myActivities": "My Activities"
@@ -61,7 +62,16 @@
       "themeAuto": "Auto",
       "dateFormat": "Date Format",
       "saveSuccess": "Preferences saved"
-    }
+    },
+    "sharePrivacy": "Share & Privacy",
+    "defaultPrivacy": "Default Privacy",
+    "private": "Private (default)",
+    "public": "Public",
+    "privacyHint": "You can modify the privacy of each activity individually.",
+    "publishing": "Publishing...",
+    "updateData": "Update",
+    "publishData": "Publish my data",
+    "scanToFollow": "Scan this code to follow me"
   },
   "home": {
     "hero": {
@@ -103,7 +113,14 @@
   "activities": {
     "loading": "Loading...",
     "allLoaded": "All activities are loaded.",
-    "noActivities": "No activities yet."
+    "noActivities": "No activities yet.",
+    "myActivities": "My Activities",
+    "friends": "Friends",
+    "total": "Total",
+    "noActivity": "No activity",
+    "noActivityDescription": "Connect a data provider or add friends to see activities here",
+    "configureData": "Configure data",
+    "addFriends": "Add friends"
   },
   "dataProviders": {
     "title": "Connected Data Providers",
