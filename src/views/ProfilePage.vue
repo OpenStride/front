@@ -38,6 +38,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getActiveAppPlugins } from '@/services/ExtensionPluginRegistry'
 import ProfileAthlete from '@/components/profile/ProfileAthlete.vue'
+import ProfileFriends from '@/components/profile/ProfileFriends.vue'
 import ProfilePreferences from '@/components/profile/ProfilePreferences.vue'
 import ProfileDataSources from '@/components/profile/ProfileDataSources.vue'
 import ProfileCloudBackup from '@/components/profile/ProfileCloudBackup.vue'
@@ -63,6 +64,12 @@ const tabs: Tab[] = [
     labelKey: 'profile.tabs.profile',
     icon: 'fas fa-user',
     component: ProfileAthlete
+  },
+  {
+    id: 'friends',
+    labelKey: 'profile.tabs.friends',
+    icon: 'fas fa-user-friends',
+    component: ProfileFriends
   },
   {
     id: 'preferences',

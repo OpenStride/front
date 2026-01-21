@@ -40,7 +40,8 @@
       "dataSources": "Sources de données",
       "cloudBackup": "Sauvegarde cloud",
       "appExtensions": "Extensions",
-      "sharing": "Partage & Confidentialité"
+      "sharing": "Partage & Confidentialité",
+      "friends": "Amis"
     },
     "identity": {
       "section": "Identité"
@@ -124,6 +125,15 @@
     "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
     "configureData": "Configurer les données",
     "addFriends": "Ajouter des amis"
+  },
+  "friends": {
+    "title": "Activités des amis",
+    "activities": "Activités",
+    "sync": "Synchroniser",
+    "addFriend": "Ajouter un ami",
+    "noActivities": "Aucune activité d'amis",
+    "noActivitiesDescription": "Ajoutez des amis pour voir leurs activités ici",
+    "manageFriends": "Gérer mes amis"
   },
   "dataProviders": {
     "title": "Fournisseurs de données connectés",
