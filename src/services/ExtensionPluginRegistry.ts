@@ -1,6 +1,6 @@
 // src/services/AppPluginRegistry.ts
 import type { ExtensionPlugin } from '@/types/extension'
-import { IndexedDBService } from '@/services/IndexedDBService'
+import { AppExtensionPluginManager } from '@/services/AppExtensionPluginManager'
 
 // Chargement automatique de tous les plugins applicatifs
 const modules = import.meta.glob('../../plugins/app-extensions/**/index.ts', { eager: true }) as Record<string, { default: ExtensionPlugin }>
@@ -8,9 +8,8 @@ const modules = import.meta.glob('../../plugins/app-extensions/**/index.ts', { e
 export const allAppPlugins: ExtensionPlugin[] = Object.values(modules).map(m => m.default)
 
 export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
-    //const enabledIds = await IndexedDBService.getInstance().getData('enabled_app_plugins') || []
-    //mock
-    const enabledIds = ['standard-details', 'aggregated-details', 'aggregated-progress'];
+    const manager = AppExtensionPluginManager.getInstance()
+    const enabledIds = await manager.getEnabledPluginIds()
     return allAppPlugins.filter(p => enabledIds.includes(p.id))
 }
 

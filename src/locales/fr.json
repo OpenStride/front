@@ -24,6 +24,7 @@
     "friends": "Amis",
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
+    "appExtensions": "Extensions",
     "myActivities": "Mes activités"
   },
   "profile": {
@@ -161,5 +162,15 @@
     "generic": "Une erreur est survenue. Veuillez réessayer.",
     "network": "Erreur réseau. Veuillez vérifier votre connexion.",
     "notFound": "Non trouvé."
+  },
+  "providers": {
+    "setup": {
+      "title": "{provider} – Connexion",
+      "connected": "Connecté à {provider}",
+      "notConnected": "Non connecté",
+      "connect": "Connecter {provider}",
+      "reconnect": "Reconnecter {provider}",
+      "disconnect": "Déconnecter"
+    }
   }
 }

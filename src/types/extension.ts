@@ -4,6 +4,7 @@ import type { Component } from 'vue'
 export interface ExtensionPlugin {
     id: string
     label: string
+    description?: string
     icon?: string
 
     // Slots dynamiques où injecter des composants Vue

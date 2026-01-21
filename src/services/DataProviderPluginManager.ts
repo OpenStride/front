@@ -1,13 +1,22 @@
-//gere les plugins associés à l'utilisateur
-
 // services/DataProviderPluginManager.ts
 import { allProviderPlugins } from '@/services/ProviderPluginRegistry';
-import { IndexedDBService } from '@/services/IndexedDBService';
 import type { ProviderPlugin } from '@/types/provider';
+import { PluginManagerBase } from './PluginManagerBase';
 
-export class DataProviderPluginManager {
+/**
+ * Manages data provider plugins (Garmin, Coros, ZipImport, etc.)
+ * Extends PluginManagerBase to eliminate code duplication
+ */
+export class DataProviderPluginManager extends PluginManagerBase<ProviderPlugin> {
     private static instance: DataProviderPluginManager;
-    private constructor() { }
+
+    protected readonly storageKey = 'enabledDataProviderPlugins';
+    protected readonly allPlugins = allProviderPlugins;
+    protected readonly defaultPlugins: string[] = []; // No defaults - user must explicitly connect
+
+    private constructor() {
+        super();
+    }
 
     public static getInstance(): DataProviderPluginManager {
         if (!DataProviderPluginManager.instance) {
@@ -16,30 +25,15 @@ export class DataProviderPluginManager {
         return DataProviderPluginManager.instance;
     }
 
-    public async enablePlugin(pluginId: string): Promise<void> {
-        const db = await IndexedDBService.getInstance();
-        const enabledIds = await this.getEnabledPluginIds();
-        if (!enabledIds.includes(pluginId)) {
-            enabledIds.push(pluginId);
-            await db.saveData('enabledDataProviderPlugins', enabledIds);
-        }
-    }
-
-    /**  
-     * Récupère la liste des plugin IDs activés par l’utilisateur  
-     * stockés dans ta table "settings" (ou équivalent).  
-     */
-    private async getEnabledPluginIds(): Promise<string[]> {
-        const db = await IndexedDBService.getInstance();
-        const ids = await db.getData('enabledDataProviderPlugins');
-        return Array.isArray(ids) ? ids : [];
+    protected getPluginId(plugin: ProviderPlugin): string {
+        return plugin.id;
     }
 
     /**
-     * Renvoie les plugins installés **et** activés/configurés
+     * Legacy method - kept for backward compatibility
+     * Use getEnabledPlugins() instead (inherited from base class)
      */
     public async getMyDataProviderPlugins(): Promise<ProviderPlugin[]> {
-        const enabledIds = await this.getEnabledPluginIds();
-        return allProviderPlugins.filter(p => enabledIds.includes(p.id));
+        return this.getEnabledPlugins();
     }
 }

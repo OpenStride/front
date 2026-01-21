@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4">
+  <div v-if="bestRows.length > 0" class="bg-white rounded-lg shadow p-4">
     <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
       <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
         <path d="M3 17l6-6 4 4 8-8 1 1-9 9-4-4-7 7z"/>
@@ -79,7 +79,7 @@ const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }
 }>()
 
-const analyzer = new ActivityAnalyzer(props.data.details.samples ?? [])
+const analyzer = new ActivityAnalyzer(props.data.details?.samples ?? [])
 
 /* ===== Distances cibles ====================================== */
 const targets = [
@@ -118,11 +118,19 @@ function badgeColor(d: number): string {
 
 /* ===== Calcul & filtrage ===================================== */
 const totalDistance = props.data.activity.distance ?? 0
-const bestRaw = analyzer.bestSegments(targets)
+
+// Handle case where samples are empty or invalid
+let bestRaw: Record<number, { duration: number; avgSpeed: number } | null> = {}
+try {
+  bestRaw = analyzer.bestSegments(targets)
+} catch (error) {
+  console.warn('[ActivityBests] Cannot compute best segments:', error)
+}
 
 const bestRows = computed(() =>
   targets
     .filter(dist => dist <= totalDistance) // masque distances non atteintes
+    .filter(dist => bestRaw[dist] !== null && bestRaw[dist] !== undefined) // Filter out null results
     .map(dist => {
       const info = bestRaw[dist]!
       const pace = info.duration / (dist / 1000)

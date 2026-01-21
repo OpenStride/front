@@ -8,9 +8,10 @@
         v-for="activity in activities"
         :key="activity.id"
         :activity="activity"
+        data-test="activity-card"
       />
-      <p v-if="loading">{{ t('activities.loading') }}</p>
-      <p v-if="!hasMore && !loading">{{ t('activities.allLoaded') }}</p>
+      <p v-if="loading" data-test="loading-message">{{ t('activities.loading') }}</p>
+      <p v-if="!hasMore && !loading" data-test="all-loaded-message">{{ t('activities.allLoaded') }}</p>
     </div>
   </div>
 </template>

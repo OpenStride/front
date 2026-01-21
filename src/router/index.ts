@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import ProfilePage from "@/views/ProfilePage.vue";
 import MyActivities from '@/views/MyActivities.vue';
 import ActivityDetails from '@/views/ActivityDetails.vue';
+import AppExtensions from '@/views/AppExtensions.vue';
 import HomePage from '@/views/HomePage.vue';
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
 import LegalPage from '@/views/LegalPage.vue';
@@ -18,6 +19,7 @@ const routes = [
   { path: '/legal', component: LegalPage },
   { path: '/cgu', component: CGUPage },
   { path: '/callback', component: Callback },
+  { path: '/app-extensions', component: AppExtensions },
   { path: '/friends', component: FriendsPage },
   {
     path: '/add-friend',

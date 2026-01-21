@@ -2,8 +2,17 @@ import { StoragePluginManager } from '@/services/StoragePluginManager';
 import type { StoragePlugin } from '@/types/storage';
 import { IndexedDBService } from '@/services/IndexedDBService';
 import { getActivityService } from '@/services/ActivityService';
-import { ToastService } from '@/services/ToastService';
 import type { Activity, ActivityDetails } from '@/types/activity';
+
+/**
+ * Events emitted by SyncService
+ */
+export interface SyncServiceEvent {
+    type: 'sync-started' | 'sync-completed' | 'sync-failed' | 'sync-in-progress' | 'sync-no-plugins' | 'sync-conflict';
+    activitiesSynced?: number;
+    errors?: string[];
+    conflictActivity?: string;
+}
 
 /**
  * SyncService - Explicit sync orchestration with conflict detection
@@ -18,6 +27,7 @@ export class SyncService {
     private static instance: SyncService;
     private pluginManager = StoragePluginManager.getInstance();
     private syncing = false;
+    public emitter = new EventTarget();
 
     private constructor() { }
 
@@ -34,7 +44,12 @@ export class SyncService {
     public async syncNow(): Promise<{ success: boolean; activitiesSynced: number; errors: string[] }> {
         if (this.syncing) {
             console.warn('[SyncService] Sync already in progress');
-            ToastService.push('Synchronisation déjà en cours', { type: 'info', timeout: 2000 });
+
+            // Emit sync-in-progress event instead of showing toast directly
+            this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-in-progress', {
+                detail: { type: 'sync-in-progress' }
+            }));
+
             return { success: false, activitiesSynced: 0, errors: ['Sync already in progress'] };
         }
 
@@ -44,12 +59,21 @@ export class SyncService {
 
         try {
             console.log('[SyncService] 🔄 Starting sync...');
-            ToastService.push('Synchronisation...', { type: 'info', timeout: 1000 });
+
+            // Emit sync-started event instead of showing toast directly
+            this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-started', {
+                detail: { type: 'sync-started' }
+            }));
 
             const plugins = await this.pluginManager.getMyStoragePlugins();
             if (plugins.length === 0) {
                 console.warn('[SyncService] No storage plugins enabled');
-                ToastService.push('Aucun stockage distant configuré', { type: 'warning', timeout: 3000 });
+
+                // Emit sync-no-plugins event instead of showing toast directly
+                this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-no-plugins', {
+                    detail: { type: 'sync-no-plugins' }
+                }));
+
                 return { success: false, activitiesSynced: 0, errors: ['No plugins'] };
             }
 
@@ -71,25 +95,43 @@ export class SyncService {
             // Success
             if (errors.length === 0) {
                 console.log(`[SyncService] ✅ Sync complete: ${totalSynced} activities`);
-                ToastService.push(
-                    totalSynced > 0
-                        ? `✅ ${totalSynced} activité(s) synchronisée(s)`
-                        : '✅ Tout est à jour',
-                    { type: 'success', timeout: 3000 }
-                );
+
+                // Emit sync-completed event instead of showing toast directly
+                this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-completed', {
+                    detail: {
+                        type: 'sync-completed',
+                        activitiesSynced: totalSynced,
+                        errors: []
+                    }
+                }));
+
                 return { success: true, activitiesSynced: totalSynced, errors: [] };
             } else {
                 console.warn(`[SyncService] ⚠️ Sync completed with errors:`, errors);
-                ToastService.push(
-                    `⚠️ Synchronisation partielle (${errors.length} erreur(s))`,
-                    { type: 'warning', timeout: 4000 }
-                );
+
+                // Emit sync-completed with errors instead of showing toast directly
+                this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-completed', {
+                    detail: {
+                        type: 'sync-completed',
+                        activitiesSynced: totalSynced,
+                        errors
+                    }
+                }));
+
                 return { success: false, activitiesSynced: totalSynced, errors };
             }
 
         } catch (error) {
             console.error('[SyncService] ❌ Sync failed:', error);
-            ToastService.push('❌ Échec de la synchronisation', { type: 'error', timeout: 4000 });
+
+            // Emit sync-failed event instead of showing toast directly
+            this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-failed', {
+                detail: {
+                    type: 'sync-failed',
+                    errors: [String(error)]
+                }
+            }));
+
             return { success: false, activitiesSynced: 0, errors: [String(error)] };
         } finally {
             this.syncing = false;
@@ -241,7 +283,7 @@ export class SyncService {
 
     /**
      * Resolve conflict using Last-Write-Wins
-     * Returns the winner and shows notification to user
+     * Returns the winner and emits notification event
      */
     private resolveConflict(local: Activity, remote: Activity): Activity {
         const winner = local.lastModified > remote.lastModified ? local : remote;
@@ -254,10 +296,13 @@ export class SyncService {
             `\nWinner: ${winner === local ? 'Local' : 'Remote'}`
         );
 
-        ToastService.push(
-            `⚠️ "${local.title || 'Activité'}" modifiée sur 2 appareils. Version la plus récente appliquée.`,
-            { type: 'warning', timeout: 5000 }
-        );
+        // Emit sync-conflict event instead of showing toast directly
+        this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-conflict', {
+            detail: {
+                type: 'sync-conflict',
+                conflictActivity: local.title || 'Activité'
+            }
+        }));
 
         return winner;
     }

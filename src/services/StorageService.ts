@@ -2,13 +2,22 @@ import { StoragePluginManager } from '@/services/StoragePluginManager';
 import type { StoragePlugin } from '@/types/storage';
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { sha256Hex, stableStoreString } from '@/utils/hash'
-import { ToastService } from '@/services/ToastService'
+
+/**
+ * Events emitted by StorageService
+ */
+export interface StorageServiceEvent {
+    type: 'backup-started' | 'backup-completed' | 'backup-failed';
+    changed?: boolean;
+    error?: Error;
+}
 
 export class StorageService {
     private static instance: StorageService;
     private pluginManager = StoragePluginManager.getInstance();
     private suppressBackupsUntil = 0; // timestamp ms; while in hydration/import we ignore backup triggers
     private lastBackupToastAt = 0;
+    public emitter = new EventTarget();
     private constructor() { }
 
     public static getInstance(): StorageService {
@@ -43,13 +52,21 @@ export class StorageService {
 
             const changed = await this.syncStores(uniqueStores.map(store => ({ store, key: '' })));
             console.log('✅ Backup completed');
+
+            // Emit backup-completed event instead of showing toast directly
             if (changed && (Date.now() - this.lastBackupToastAt > 1500)) {
-                ToastService.push('Sauvegarde terminée', { type: 'success', timeout: 3000 });
+                this.emitter.dispatchEvent(new CustomEvent<StorageServiceEvent>('backup-completed', {
+                    detail: { type: 'backup-completed', changed: true }
+                }));
                 this.lastBackupToastAt = Date.now();
             }
         } catch (error) {
             console.error('❌ Backup failed:', error);
-            ToastService.push('Echec de la sauvegarde', { type: 'error', timeout: 5000 });
+
+            // Emit backup-failed event instead of showing toast directly
+            this.emitter.dispatchEvent(new CustomEvent<StorageServiceEvent>('backup-failed', {
+                detail: { type: 'backup-failed', error: error as Error }
+            }));
         }
     }
 

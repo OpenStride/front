@@ -7,10 +7,11 @@
       @disconnect="disconnectGarmin"
     />
 
-    <div v-if="isConnected" class="mt-6 text-center space-y-4">
+    <div v-if="isConnected" class="mt-6 text-center space-y-4" data-test="garmin-fetch-section">
       <button
         @click="fetchActivities(7)"
         :disabled="isLoading"
+        data-test="fetch-activities-button"
         :class="[
           'inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg shadow-sm transition',
           isLoading
@@ -18,7 +19,7 @@
             : 'bg-green-600 text-white hover:bg-green-700'
         ]"
       >
-        <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
+        <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }" aria-hidden="true"></i>
         Fetch Past Activities
       </button>
 
@@ -26,6 +27,7 @@
         <select
           v-model.number="selectedRange"
           :disabled="isLoading"
+          data-test="range-selector"
           class="border rounded px-3 py-2 text-sm"
         >
           <option :value="30">Dernier mois</option>
@@ -35,6 +37,7 @@
         <button
           @click="fetchActivities(selectedRange)"
           :disabled="isLoading"
+          data-test="import-period-button"
           :class="[
             'inline-flex items-center gap-2 px-4 py-2 text-sm rounded transition',
             isLoading
@@ -42,20 +45,20 @@
               : 'bg-blue-600 text-white hover:bg-blue-700'
           ]"
         >
-          <i class="fas fa-download" :class="{ 'fa-spin': isLoading }"></i>
+          <i class="fas fa-download" :class="{ 'fa-spin': isLoading }" aria-hidden="true"></i>
           Importer période
         </button>
       </div>
 
       <!-- Barre de progression dynamique -->
-      <div v-if="isLoading" class="h-2 mt-2 bg-gray-200 rounded overflow-hidden">
+      <div v-if="isLoading" class="h-2 mt-2 bg-gray-200 rounded overflow-hidden" data-test="progress-bar">
         <div
           class="h-full bg-green-600 rounded transition-all"
           :style="{ width: progressPercent + '%' }"
         ></div>
       </div>
 
-      <p class="text-sm text-gray-600">{{ fetchStatus }}</p>
+      <p class="text-sm text-gray-600" data-test="fetch-status">{{ fetchStatus }}</p>
     </div>
   </div>
 </template>

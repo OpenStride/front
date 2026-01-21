@@ -1,5 +1,12 @@
+import type { IStorageService } from '@/types/plugin-context';
 
-export class IndexedDBService {
+/**
+ * IndexedDB service for local data storage
+ *
+ * Implements IStorageService for plugin dependency injection.
+ * Provides low-level database access for settings, activities, and aggregations.
+ */
+export class IndexedDBService implements IStorageService {
   private static instance: IndexedDBService | null = null;
   private db: IDBDatabase | null = null;
   public emitter = new EventTarget();
