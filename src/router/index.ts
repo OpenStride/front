@@ -4,6 +4,7 @@ import MyActivities from '@/views/MyActivities.vue';
 import ActivityDetails from '@/views/ActivityDetails.vue';
 import DataProviders from '@/views/DataProviders.vue';
 import StorageProviders from '@/views/StorageProviders.vue';
+import AppExtensions from '@/views/AppExtensions.vue';
 import HomePage from '@/views/HomePage.vue';
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
 import LegalPage from '@/views/LegalPage.vue';
@@ -19,6 +20,7 @@ const routes = [
   { path: '/cgu', component: CGUPage },
   { path: '/callback', component: Callback },
   { path: '/storage-providers', component: StorageProviders },
+  { path: '/app-extensions', component: AppExtensions },
   { path: '/my-activities', component: MyActivities },
   {
     path: '/history/:parameter?',

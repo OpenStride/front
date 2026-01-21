@@ -26,6 +26,7 @@
       <router-link to="/profile" @click="closeMenu">Profile</router-link>
       <router-link to="/data-providers" @click="closeMenu">Data Providers</router-link>
       <router-link to="/storage-providers" @click="closeMenu">Storage Providers</router-link>
+      <router-link to="/app-extensions" @click="closeMenu">App Extensions</router-link>
       <router-link to="/my-activities" @click="closeMenu">Mes activites</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
