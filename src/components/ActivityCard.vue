@@ -133,8 +133,19 @@ const hasMap = computed(() =>
   Array.isArray(activity.mapPolyline) && activity.mapPolyline.length > 1
 );
 
-const showDetails = () =>
-  router.push({ name: 'ActivityDetails', params: { activityId: activity.id } });
+const showDetails = () => {
+  // Check if this is a friend activity (has friendId from FriendActivity interface)
+  const friendActivity = activity as any;
+  if (friendActivity.friendId) {
+    router.push({
+      name: 'ActivityDetails',
+      params: { activityId: friendActivity.activityId },
+      query: { source: 'friend', friendId: friendActivity.friendId }
+    });
+  } else {
+    router.push({ name: 'ActivityDetails', params: { activityId: activity.id } });
+  }
+};
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value;

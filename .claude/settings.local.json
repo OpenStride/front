@@ -50,7 +50,14 @@
       "Bash(do basename \"$test\" .spec.ts)",
       "Bash(git reset:*)",
       "Bash(npm run lint:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc:*)",
+      "Bash(if [ -d dist/assets ])",
+      "Bash(then grep -r openstride.org dist/assets/*.js)",
+      "Bash(else echo \"dist/ folder not found - need to build first\")",
+      "Bash(fi:*)",
+      "Bash(git restore:*)",
+      "Bash(curl:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }
