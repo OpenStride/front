@@ -132,5 +132,15 @@
     "generic": "An error occurred. Please try again.",
     "network": "Network error. Please check your connection.",
     "notFound": "Not found."
+  },
+  "providers": {
+    "setup": {
+      "title": "{provider} – Connection",
+      "connected": "Connected to {provider}",
+      "notConnected": "Not connected",
+      "connect": "Connect {provider}",
+      "reconnect": "Reconnect {provider}",
+      "disconnect": "Disconnect"
+    }
   }
 }

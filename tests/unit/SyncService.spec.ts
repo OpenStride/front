@@ -324,10 +324,17 @@ describe('SyncService', () => {
   describe('Conflict Detection', () => {
     it('should detect conflict when same version but different lastModified', async () => {
       const { IndexedDBService } = await import('@/services/IndexedDBService')
-      const { ToastService } = await import('@/services/ToastService')
       const db: any = await IndexedDBService.getInstance()
 
       const baseTime = Date.now()
+
+      // Listen for sync-conflict event
+      const conflictEvents: any[] = []
+      const conflictHandler = (evt: Event) => {
+        const customEvent = evt as CustomEvent
+        conflictEvents.push(customEvent.detail)
+      }
+      syncService.emitter.addEventListener('sync-conflict', conflictHandler)
 
       // Local activity modified at baseTime
       const localActivity: Activity = {
@@ -365,10 +372,11 @@ describe('SyncService', () => {
       const result = await syncService.syncNow()
 
       expect(result.success).toBe(true)
-      expect(ToastService.push).toHaveBeenCalledWith(
-        expect.stringContaining('modifiée sur 2 appareils'),
-        expect.objectContaining({ type: 'warning' })
-      )
+      expect(conflictEvents.length).toBe(1)
+      expect(conflictEvents[0].type).toBe('sync-conflict')
+      expect(conflictEvents[0].conflictActivity).toBe('Morning Run (Local)')
+
+      syncService.emitter.removeEventListener('sync-conflict', conflictHandler)
     })
 
     it('should resolve conflict with LWW (Last-Write-Wins) - remote wins', async () => {

@@ -54,7 +54,7 @@ const activity = computed(() => props.data.activity)
 const details = computed(() => props.data.details)
 
 const polyline = computed(() => {
-  if (!details.value.samples || details.value.samples.length === 0) return []
+  if (!details.value || !details.value.samples || details.value.samples.length === 0) return []
 
   return details.value.samples
     .filter(s => typeof s.lat === 'number' && typeof s.lng === 'number')

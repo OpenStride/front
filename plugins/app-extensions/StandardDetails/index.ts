@@ -3,6 +3,7 @@ import type { ExtensionPlugin } from '@/types/extension'
 const StandardDetailsPlugin: ExtensionPlugin = {
     id: 'standard-details',
     label: 'Activity Details',
+    description: 'Display heart rate, cadence, speed graphs and zones for each activity',
     icon: 'fas fa-heart-pulse',
     slots: {
         'activity.top': [async () => (await import('./ActivityTopBlock.vue')).default],

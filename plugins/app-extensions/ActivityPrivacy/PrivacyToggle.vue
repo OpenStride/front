@@ -1,5 +1,5 @@
 <template>
-  <div class="privacy-toggle-container">
+  <div v-if="props.data?.activity?.id" class="privacy-toggle-container">
     <div class="privacy-card">
       <div class="privacy-header">
         <div class="privacy-icon">
@@ -25,16 +25,6 @@
         <span class="toggle-label">{{ isPublic ? 'Public' : 'Privé' }}</span>
       </div>
     </div>
-
-    <div v-if="hasOverride" class="privacy-note">
-      <i class="fas fa-info-circle note-icon" aria-hidden="true"></i>
-      <span class="note-text">
-        Paramètre personnalisé (défaut: {{ defaultPrivacy === 'public' ? 'public' : 'privé' }})
-      </span>
-      <button @click="resetToDefault" class="reset-btn" :disabled="saving">
-        Réinitialiser
-      </button>
-    </div>
   </div>
 </template>
 
@@ -47,9 +37,11 @@ import type { Activity, ActivityDetails } from '@/types/activity';
 import type { FriendServiceEvent } from '@/types/friend';
 
 const props = defineProps<{
-  activity: Activity;
-  details: ActivityDetails;
+  data: { activity: Activity; details: ActivityDetails };
 }>();
+
+const activity = computed(() => props.data?.activity);
+const details = computed(() => props.data?.details);
 
 const friendService = FriendService.getInstance();
 
@@ -62,10 +54,6 @@ const isPublic = computed(() => {
     return activityPrivacy.value === 'public';
   }
   return defaultPrivacy.value === 'public';
-});
-
-const hasOverride = computed(() => {
-  return activityPrivacy.value !== null;
 });
 
 // Event listener for FriendService events
@@ -94,6 +82,11 @@ onUnmounted(() => {
 });
 
 const loadPrivacySettings = async () => {
+  if (!activity.value || !activity.value.id) {
+    console.warn('[PrivacyToggle] Cannot load privacy settings: activity is undefined');
+    return;
+  }
+
   const db = await IndexedDBService.getInstance();
 
   // Load default privacy
@@ -101,20 +94,25 @@ const loadPrivacySettings = async () => {
   defaultPrivacy.value = defaultSetting || 'private';
 
   // Load activity-specific override
-  const override = await db.getData(`activityPrivacy_${props.activity.id}`);
+  const override = await db.getData(`activityPrivacy_${activity.value.id}`);
   if (override !== null && override !== undefined) {
     activityPrivacy.value = override === true || override === 'public' ? 'public' : 'private';
   }
 };
 
 const togglePrivacy = async () => {
+  if (!activity.value || !activity.value.id) {
+    console.warn('[PrivacyToggle] Cannot toggle privacy: activity is undefined');
+    return;
+  }
+
   saving.value = true;
   try {
     const db = await IndexedDBService.getInstance();
     const newValue = !isPublic.value;
 
     // Save override
-    await db.saveData(`activityPrivacy_${props.activity.id}`, newValue ? 'public' : 'private');
+    await db.saveData(`activityPrivacy_${activity.value.id}`, newValue ? 'public' : 'private');
     activityPrivacy.value = newValue ? 'public' : 'private';
 
     ToastService.push(
@@ -127,27 +125,6 @@ const togglePrivacy = async () => {
   } catch (error) {
     console.error('[PrivacyToggle] Error toggling privacy:', error);
     ToastService.push('Erreur lors de la modification', { type: 'error', timeout: 3000 });
-  } finally {
-    saving.value = false;
-  }
-};
-
-const resetToDefault = async () => {
-  saving.value = true;
-  try {
-    const db = await IndexedDBService.getInstance();
-
-    // Remove override
-    await db.deleteData(`activityPrivacy_${props.activity.id}`);
-    activityPrivacy.value = null;
-
-    ToastService.push('Paramètre réinitialisé', { type: 'success', timeout: 2000 });
-
-    // Trigger re-publication in background
-    republishInBackground();
-  } catch (error) {
-    console.error('[PrivacyToggle] Error resetting privacy:', error);
-    ToastService.push('Erreur lors de la réinitialisation', { type: 'error', timeout: 3000 });
   } finally {
     saving.value = false;
   }
@@ -269,49 +246,6 @@ const republishInBackground = () => {
   font-weight: 500;
   color: #374151;
   min-width: 3.5rem;
-}
-
-.privacy-note {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background: #fffbeb;
-  border-radius: 0.5rem;
-  border: 1px solid #fef3c7;
-  font-size: 0.75rem;
-}
-
-.note-icon {
-  font-size: 0.875rem;
-  color: #d97706;
-}
-
-.note-text {
-  flex: 1;
-  color: #78350f;
-}
-
-.reset-btn {
-  padding: 0.25rem 0.75rem;
-  background: #f59e0b;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.reset-btn:hover:not(:disabled) {
-  background: #d97706;
-}
-
-.reset-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {

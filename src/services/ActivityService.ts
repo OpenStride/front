@@ -1,5 +1,6 @@
 import { Activity, ActivityDetails } from '@/types/activity';
 import { IndexedDBService } from './IndexedDBService';
+import type { IActivityService } from '@/types/plugin-context';
 
 /**
  * Events emitted by ActivityService
@@ -18,8 +19,10 @@ export interface ActivityServiceEvent {
  *
  * Emits events for aggregation and other reactive services:
  * - 'activity-changed': Fired after save/update/delete with { type, activity, details }
+ *
+ * Implements IActivityService for plugin dependency injection.
  */
-export class ActivityService {
+export class ActivityService implements IActivityService {
     private static instance: ActivityService | null = null;
     private db: IndexedDBService | null = null;
     public emitter = new EventTarget();
@@ -277,15 +280,26 @@ export class ActivityService {
     /**
      * Get single activity by ID
      */
-    public async getActivity(id: string): Promise<Activity | null> {
-        return await (this.db as any).getDataFromStore('activities', id) as Activity | null;
+    public async getActivity(id: string): Promise<Activity | undefined> {
+        const result = await (this.db as any).getDataFromStore('activities', id) as Activity | null;
+        return result ?? undefined;
+    }
+
+    /**
+     * Get all activities (excluding deleted)
+     * Used by plugins via IActivityService interface
+     */
+    public async getAllActivities(): Promise<Activity[]> {
+        const all = await (this.db as any).getAllData('activities') as Activity[];
+        return all.filter(a => !a.deleted).sort((a, b) => b.startTime - a.startTime);
     }
 
     /**
      * Get activity details by ID
      */
-    public async getDetails(id: string): Promise<ActivityDetails | null> {
-        return await (this.db as any).getDataFromStore('activity_details', id) as ActivityDetails | null;
+    public async getDetails(id: string): Promise<ActivityDetails | undefined> {
+        const result = await (this.db as any).getDataFromStore('activity_details', id) as ActivityDetails | null;
+        return result ?? undefined;
     }
 
     /**

@@ -1,13 +1,22 @@
-//gere les plugins associés à l'utilisateur
-
-// services/BackupPluginManager.ts
+// services/StoragePluginManager.ts
 import { allStoragePlugins } from '@/services/StoragePluginRegistry';
-import { IndexedDBService } from '@/services/IndexedDBService';
 import type { StoragePlugin } from '@/types/storage';
+import { PluginManagerBase } from './PluginManagerBase';
 
-export class StoragePluginManager {
+/**
+ * Manages storage provider plugins (Google Drive, etc.)
+ * Extends PluginManagerBase to eliminate code duplication
+ */
+export class StoragePluginManager extends PluginManagerBase<StoragePlugin> {
     private static instance: StoragePluginManager;
-    private constructor() { }
+
+    protected readonly storageKey = 'enabledStoragePlugins';
+    protected readonly allPlugins = allStoragePlugins;
+    protected readonly defaultPlugins: string[] = []; // No defaults - user must explicitly connect
+
+    private constructor() {
+        super();
+    }
 
     public static getInstance(): StoragePluginManager {
         if (!StoragePluginManager.instance) {
@@ -16,30 +25,15 @@ export class StoragePluginManager {
         return StoragePluginManager.instance;
     }
 
-    public async enablePlugin(pluginId: string): Promise<void> {
-        const db = await IndexedDBService.getInstance();
-        const enabledIds = await this.getEnabledPluginIds();
-        if (!enabledIds.includes(pluginId)) {
-            enabledIds.push(pluginId);
-            await db.saveData('enabledStoragePlugins', enabledIds);
-        }
-    }
-
-    /**  
-     * Récupère la liste des plugin IDs activés par l’utilisateur  
-     * stockés dans ta table "settings" (ou équivalent).  
-     */
-    private async getEnabledPluginIds(): Promise<string[]> {
-        const db = await IndexedDBService.getInstance();
-        const ids = await db.getData('enabledStoragePlugins');
-        return Array.isArray(ids) ? ids : [];
+    protected getPluginId(plugin: StoragePlugin): string {
+        return plugin.id;
     }
 
     /**
-     * Renvoie les plugins installés **et** activés/configurés
+     * Legacy method - kept for backward compatibility
+     * Use getEnabledPlugins() instead (inherited from base class)
      */
     public async getMyStoragePlugins(): Promise<StoragePlugin[]> {
-        const enabledIds = await this.getEnabledPluginIds();
-        return allStoragePlugins.filter(p => enabledIds.includes(p.id));
+        return this.getEnabledPlugins();
     }
 }
