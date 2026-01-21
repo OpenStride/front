@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "VITE_APP_BASE_URL=https://openstride.org vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.vue",
     "test:unit": "vitest",
-    "test:e2e": "cypress run"
+    "test:e2e": "cypress run",
+    "deploy": "powershell -ExecutionPolicy Bypass -File deploy-firebase.ps1",
+    "deploy:bash": "bash deploy-firebase.sh",
+    "deploy:firebase": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -20,12 +24,15 @@
     "firebase": "^11.6.0",
     "fit-file-parser": "^1.21.0",
     "fit-parser": "^0.10.1",
+    "html5-qrcode": "^2.3.8",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "pako": "^2.1.0",
     "papaparse": "^5.5.3",
+    "qrcode": "^1.5.4",
     "register-service-worker": "^1.7.2",
     "vue": "^3.2.13",
+    "vue-i18n": "^11.2.8",
     "vue-router": "^4.0.3"
   },
   "devDependencies": {

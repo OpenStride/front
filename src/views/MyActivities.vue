@@ -9,17 +9,20 @@
         :key="activity.id"
         :activity="activity"
       />
-      <p v-if="loading">Chargement...</p>
-      <p v-if="!hasMore && !loading">Toutes les activités sont chargées.</p>
+      <p v-if="loading">{{ t('activities.loading') }}</p>
+      <p v-if="!hasMore && !loading">{{ t('activities.allLoaded') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { useI18n } from 'vue-i18n';
 import ActivityCard from "@/components/ActivityCard.vue";
-import { getActivityDBService } from "@/services/ActivityDBService";
+import { getActivityService } from "@/services/ActivityService";
 import { useSlotExtensions } from '@/composables/useSlotExtensions';
+
+const { t } = useI18n();
 // Refresh logic moved to global header refresh button; no per-view pull-to-refresh anymore.
 
 // Allow plugins to inject aggregated overview widgets
@@ -51,10 +54,10 @@ const handleScroll = () => {
 
 const loadActivities = async () => {
   if (loading.value || !hasMore.value) return;
-  const activityDB = await getActivityDBService(); 
+  const activityService = await getActivityService();
   loading.value = true;
 
-  const newActivities = await activityDB.getActivities({
+  const newActivities = await activityService.getActivities({
     offset: page.value * pageSize,
     limit: pageSize,
   });
@@ -70,7 +73,7 @@ const loadActivities = async () => {
 
 // Soft reload after a background refresh: reset pagination and refetch first pages
 const softReload = async () => {
-  const activityDB = await getActivityDBService();
+  const activityService = await getActivityService();
   const prevLength = activities.value.length;
   activities.value = [];
   page.value = 0;
