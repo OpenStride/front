@@ -8,9 +8,16 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
     plugins: [vue(), tailwindcss(), VitePWA({
-        registerType: 'autoUpdate',   // SW updates itself silently
-        workbox: {
-            cleanupOutdatedCaches: true // remove caches with obsolete keys
+        registerType: 'autoUpdate',
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
+        injectManifest: {
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        },
+        devOptions: {
+            enabled: true,
+            type: 'module'
         }
     })],
     resolve: {

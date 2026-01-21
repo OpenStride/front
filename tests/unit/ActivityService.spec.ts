@@ -478,9 +478,9 @@ describe('ActivityService', () => {
       expect(result!.id).toBe('test-1')
     })
 
-    it('should return null if not found', async () => {
+    it('should return undefined if not found', async () => {
       const result = await service.getActivity('non-existent')
-      expect(result).toBeNull()
+      expect(result).toBeUndefined()
     })
   })
 
@@ -496,9 +496,9 @@ describe('ActivityService', () => {
       expect(result!.samples).toHaveLength(50)
     })
 
-    it('should return null if not found', async () => {
+    it('should return undefined if not found', async () => {
       const result = await service.getDetails('non-existent')
-      expect(result).toBeNull()
+      expect(result).toBeUndefined()
     })
   })
 

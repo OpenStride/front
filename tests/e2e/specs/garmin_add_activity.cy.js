@@ -1,4 +1,3 @@
-
 /**
  * Test E2E mocké: activation plugin Garmin & ajout d'une activité via refresh.
  * On intercepte fetch vers l'API Garmin et renvoie un payload synthétique.
@@ -6,6 +5,7 @@
 describe('Garmin provider refresh (mock UI flow)', () => {
   beforeEach(() => {
     cy.fixture('garmin_activity').as('garminData')
+
     // Stub fetch avant navigation (pas de réseau réel, donc pas d'intercepts à attendre)
     cy.on('window:before:load', (win) => {
       const originalFetch = win.fetch.bind(win)
@@ -24,24 +24,48 @@ describe('Garmin provider refresh (mock UI flow)', () => {
   })
 
   it('active le provider Garmin, injecte les tokens via query et récupère une activité', () => {
-    cy.visit('/data-providers')
-    cy.contains('Available Providers')
-    cy.contains('li', 'Garmin').within(() => {
-      cy.contains('Add').click()
+    // Setup clean test environment
+    cy.setupTest('/data-providers')
+
+    // Verify the page loaded correctly
+    cy.getByTestId('available-providers-section').should('be.visible')
+    cy.getByTestId('available-providers-title').should('be.visible')
+
+    // Find and enable the Garmin provider
+    cy.getByTestId('available-provider-garmin').within(() => {
+      cy.getByTestId('add-provider-garmin').click()
     })
-    cy.contains('Configure').click()
+
+    // Wait for the provider to be added
+    cy.getByTestId('connected-provider-garmin').should('be.visible')
+
+    // Click Configure to go to the Garmin setup page
+    cy.getByTestId('configure-provider-garmin').click()
     cy.url().should('match', /data-provider\/garmin/)
 
     // Simule retour OAuth avec tokens
     cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')
-    cy.contains('Fetch Past Activities').should('be.visible').and('not.be.disabled').click()
 
-    // Laisse le temps au GarminRefresh (7 itérations * ~200ms + traitement)
+    // Wait for the app to be ready
+    cy.waitForApp()
+
+    // Verify the fetch button is visible and click it
+    cy.getByTestId('fetch-activities-button')
+      .should('be.visible')
+      .and('not.be.disabled')
+      .click()
+
+    // Wait for the fetch to complete (7 iterations * ~200ms + processing)
     cy.wait(2500)
 
-    // Visite la page activités et vérifie la présence de l'activité mock
+    // Navigate to activities page and verify the activity was imported
     cy.visit('/my-activities')
-    cy.get('[data-test=activity-card]', { timeout: 8000 }).should('exist')
-    cy.contains(/Sortie Test Garmin/i, { timeout: 8000 })
+    cy.waitForApp()
+
+    // Verify the activity card exists
+    cy.getByTestId('activity-card', { timeout: 8000 }).should('exist')
+
+    // Verify the activity name is present
+    cy.contains(/Sortie Test Garmin/i, { timeout: 8000 }).should('exist')
   })
 })

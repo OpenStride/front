@@ -52,7 +52,8 @@ const routes = [
   },
   // Redirects for backward compatibility
   { path: '/data-providers', redirect: '/profile?tab=data-sources' },
-  { path: '/storage-providers', redirect: '/profile?tab=cloud-backup' }
+  { path: '/storage-providers', redirect: '/profile?tab=cloud-backup' },
+  { path: '/app-extensions', redirect: '/profile?tab=app-extensions' }
 ];
 
 const router = createRouter({

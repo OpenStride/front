@@ -3,7 +3,7 @@
     <!-- Tabs Navigation -->
     <nav class="profile-tabs" role="tablist" aria-label="Profile sections">
       <button
-        v-for="tab in tabs"
+        v-for="tab in allTabs"
         :key="tab.id"
         :class="['profile-tab', { active: activeTab === tab.id }]"
         :aria-selected="activeTab === tab.id"
@@ -19,7 +19,7 @@
     <!-- Content Area -->
     <div class="profile-content">
       <div
-        v-for="tab in tabs"
+        v-for="tab in allTabs"
         :key="tab.id"
         v-show="activeTab === tab.id"
         :id="`panel-${tab.id}`"
@@ -33,19 +33,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { getActiveAppPlugins } from '@/services/ExtensionPluginRegistry'
 import ProfileAthlete from '@/components/profile/ProfileAthlete.vue'
 import ProfilePreferences from '@/components/profile/ProfilePreferences.vue'
 import ProfileDataSources from '@/components/profile/ProfileDataSources.vue'
 import ProfileCloudBackup from '@/components/profile/ProfileCloudBackup.vue'
+import ProfileAppExtensions from '@/components/profile/ProfileAppExtensions.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-type TabId = 'profile' | 'preferences' | 'data-sources' | 'cloud-backup'
+// Allow dynamic tab IDs from plugins
+type TabId = string
 
 interface Tab {
   id: TabId
@@ -78,22 +81,59 @@ const tabs: Tab[] = [
     labelKey: 'profile.tabs.cloudBackup',
     icon: 'fas fa-cloud',
     component: ProfileCloudBackup
+  },
+  {
+    id: 'app-extensions',
+    labelKey: 'profile.tabs.appExtensions',
+    icon: 'fas fa-puzzle-piece',
+    component: ProfileAppExtensions
   }
 ]
 
+// Load dynamic tabs from plugins
+const dynamicTabs = ref<Tab[]>([])
+
+// Combine static and dynamic tabs
+const allTabs = computed(() => [...tabs, ...dynamicTabs.value])
+
 const activeTab = ref<TabId>('profile')
 
-// Initialize active tab from query param
-onMounted(() => {
+// Initialize active tab from query param and load dynamic tabs
+onMounted(async () => {
+  // Load plugins with profile.tabs slot
+  const plugins = await getActiveAppPlugins()
+
+  // Extract tabs from plugins that have tabMetadata
+  const pluginTabs = await Promise.all(
+    plugins
+      .filter(p => p.slots?.['profile.tabs'] && (p as any).tabMetadata)
+      .map(async (plugin: any) => {
+        const metadata = plugin.tabMetadata
+        const loaders = plugin.slots['profile.tabs']
+        const loader = Array.isArray(loaders) ? loaders[0] : loaders
+        const component = await loader()
+
+        return {
+          id: metadata.tabId,
+          labelKey: metadata.tabLabelKey,
+          icon: metadata.tabIcon,
+          component: component.default || component  // Extract component from ES module
+        }
+      })
+  )
+
+  dynamicTabs.value = pluginTabs.filter((tab: Tab) => tab.id && tab.labelKey && tab.icon)
+
+  // Initialize active tab from query param
   const tabParam = route.query.tab as TabId
-  if (tabParam && tabs.some(t => t.id === tabParam)) {
+  if (tabParam && allTabs.value.some(t => t.id === tabParam)) {
     activeTab.value = tabParam
   }
 })
 
 // Watch for route query changes
 watch(() => route.query.tab, (newTab) => {
-  if (newTab && tabs.some(t => t.id === newTab)) {
+  if (newTab && allTabs.value.some(t => t.id === newTab)) {
     activeTab.value = newTab as TabId
   }
 })
@@ -133,6 +173,7 @@ const selectTab = (tabId: TabId) => {
   .profile-tab {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.75rem;
     padding: 1rem 1.5rem;
     border: none;
@@ -143,6 +184,7 @@ const selectTab = (tabId: TabId) => {
     color: #6b7280;
     font-size: 0.95rem;
     border-left: 3px solid transparent;
+    width: 100%;
   }
 
   .profile-tab:hover {

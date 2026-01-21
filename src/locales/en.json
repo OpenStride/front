@@ -24,6 +24,7 @@
     "friends": "Friends",
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
+    "appExtensions": "App Extensions",
     "myActivities": "My Activities"
   },
   "profile": {
@@ -37,7 +38,9 @@
       "profile": "Profile",
       "preferences": "Preferences",
       "dataSources": "Data Sources",
-      "cloudBackup": "Cloud Backup"
+      "cloudBackup": "Cloud Backup",
+      "appExtensions": "App Extensions",
+      "sharing": "Share & Privacy"
     },
     "identity": {
       "section": "Identity"
@@ -132,6 +135,10 @@
     "available": "Available plugins",
     "noPlugins": "No File Plugin connected."
   },
+  "appExtensions": {
+    "title": "App Extensions",
+    "description": "Manage widgets and features displayed throughout the app"
+  },
   "onboarding": {
     "provider": {
       "title": "Add your first data source",
@@ -161,5 +168,15 @@
     "generic": "An error occurred. Please try again.",
     "network": "Network error. Please check your connection.",
     "notFound": "Not found."
+  },
+  "providers": {
+    "setup": {
+      "title": "{provider} – Connection",
+      "connected": "Connected to {provider}",
+      "notConnected": "Not connected",
+      "connect": "Connect {provider}",
+      "reconnect": "Reconnect {provider}",
+      "disconnect": "Disconnect"
+    }
   }
 }

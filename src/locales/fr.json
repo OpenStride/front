@@ -24,6 +24,7 @@
     "friends": "Amis",
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
+    "appExtensions": "Extensions",
     "myActivities": "Mes activités"
   },
   "profile": {
@@ -37,7 +38,9 @@
       "profile": "Profil",
       "preferences": "Préférences",
       "dataSources": "Sources de données",
-      "cloudBackup": "Sauvegarde cloud"
+      "cloudBackup": "Sauvegarde cloud",
+      "appExtensions": "Extensions",
+      "sharing": "Partage & Confidentialité"
     },
     "identity": {
       "section": "Identité"
@@ -132,6 +135,10 @@
     "available": "Plugins disponibles",
     "noPlugins": "Aucun plugin de stockage connecté."
   },
+  "appExtensions": {
+    "title": "Extensions d'application",
+    "description": "Gérez les widgets et fonctionnalités affichés dans l'application"
+  },
   "onboarding": {
     "provider": {
       "title": "Ajoutez votre première source de données",
@@ -161,5 +168,15 @@
     "generic": "Une erreur est survenue. Veuillez réessayer.",
     "network": "Erreur réseau. Veuillez vérifier votre connexion.",
     "notFound": "Non trouvé."
+  },
+  "providers": {
+    "setup": {
+      "title": "{provider} – Connexion",
+      "connected": "Connecté à {provider}",
+      "notConnected": "Non connecté",
+      "connect": "Connecter {provider}",
+      "reconnect": "Reconnecter {provider}",
+      "disconnect": "Déconnecter"
+    }
   }
 }

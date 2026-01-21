@@ -146,59 +146,15 @@
       </div>
     </div>
 
-    <!-- Section Partage / Confidentialité -->
-    <div v-if="isProfileSaved" class="bg-white shadow rounded-xl p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-700 mb-3">{{ t('profile.sharePrivacy') }}</h3>
-
-      <!-- Privacy Settings -->
-      <div class="space-y-2">
-        <label class="text-sm font-medium text-gray-700">{{ t('profile.defaultPrivacy') }}</label>
-        <select
-          v-model="defaultPrivacy"
-          @change="saveDefaultPrivacy"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-        >
-          <option value="private">{{ t('profile.private') }}</option>
-          <option value="public">{{ t('profile.public') }}</option>
-        </select>
-        <p class="text-xs text-gray-500">
-          {{ t('profile.privacyHint') }}
-        </p>
-      </div>
-
-      <!-- Publish Button -->
-      <button
-        @click="publishData"
-        :disabled="publishing"
-        class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400"
-      >
-        {{ publishing ? t('profile.publishing') : (publicUrl ? t('profile.updateData') : t('profile.publishData')) }}
-      </button>
-
-      <!-- QR Code Display -->
-      <div v-if="publicUrl" class="mt-4">
-        <p class="text-sm font-medium text-gray-700 text-center mb-2">
-          {{ t('profile.scanToFollow') }}
-        </p>
-        <QRCodeDisplay :url="publicUrl" />
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
-import { FriendService } from '@/services/FriendService'
-import { ToastService } from '@/services/ToastService'
-import { messaging } from '@/lib/firebase'
-import { getToken } from 'firebase/messaging'
-import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
-import type { FriendServiceEvent } from '@/types/friend'
 
 const { t } = useI18n()
-const friendService = FriendService.getInstance()
 
 // Identity data
 const isProfileSaved = ref(false)
@@ -224,24 +180,6 @@ const athleteData = ref<AthleteProfile>({
 const saveSuccess = ref(false)
 let dbService: IndexedDBService | null = null
 
-// Privacy & Sharing
-const defaultPrivacy = ref<'public' | 'private'>('private')
-const publicUrl = ref<string | null>(null)
-const publishing = ref(false)
-
-// Event listener for FriendService events
-const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { type, message, messageType } = customEvent.detail
-
-  if (message && messageType) {
-    ToastService.push(message, {
-      type: messageType,
-      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    })
-  }
-}
-
 onMounted(async () => {
   dbService = await IndexedDBService.getInstance()
 
@@ -257,21 +195,6 @@ onMounted(async () => {
   if (savedData) {
     athleteData.value = savedData as AthleteProfile
   }
-
-  // Load privacy settings
-  const privacySetting = await dbService.getData('defaultPrivacy')
-  defaultPrivacy.value = privacySetting || 'private'
-
-  // Load public URL if available
-  publicUrl.value = await friendService.getMyPublicUrl()
-
-  // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
-})
-
-onBeforeUnmount(() => {
-  // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
 })
 
 // Identity functions
@@ -311,22 +234,6 @@ const onFileChange = (event: Event) => {
   }
 }
 
-const requestNotificationPermission = async () => {
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: 'BD0btZI1W7WcbbfdHEZHh-IHLuKX6ZW9fZGpx0rEe_ye-Wjgy1OG3UTkBYQFzDRKgxZLbZ0hlyb0QaxXa_17cAE'
-    })
-    if (token) {
-      console.log('Token FCM récupéré :', token)
-      dbService?.saveData('fcm_token', token)
-    } else {
-      console.warn('❌ Permission refusée ou aucun token dispo.')
-    }
-  } catch (err) {
-    console.error('🚫 Erreur FCM :', err)
-  }
-}
-
 const saveProfile = async () => {
   if (!dbService) return
   await dbService.saveData('username', username.value)
@@ -336,7 +243,6 @@ const saveProfile = async () => {
   savedProfile.value.username = username.value
   savedProfile.value.photo = photoPreview.value!
   isProfileSaved.value = true
-  await requestNotificationPermission()
 }
 
 const editProfile = () => {
@@ -355,25 +261,5 @@ const saveAthleteProfile = async () => {
   setTimeout(() => {
     saveSuccess.value = false
   }, 3000)
-}
-
-// Privacy & Sharing functions
-const saveDefaultPrivacy = async () => {
-  if (!dbService) return
-  await dbService.saveData('defaultPrivacy', defaultPrivacy.value)
-}
-
-const publishData = async () => {
-  publishing.value = true
-  try {
-    const url = await friendService.publishPublicData()
-    if (url) {
-      publicUrl.value = url
-    }
-  } catch (error) {
-    console.error('[ProfileAthlete] Error publishing data:', error)
-  } finally {
-    publishing.value = false
-  }
 }
 </script>
