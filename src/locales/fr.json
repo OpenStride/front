@@ -39,7 +39,8 @@
       "preferences": "Préférences",
       "dataSources": "Sources de données",
       "cloudBackup": "Sauvegarde cloud",
-      "appExtensions": "Extensions"
+      "appExtensions": "Extensions",
+      "sharing": "Partage & Confidentialité"
     },
     "identity": {
       "section": "Identité"

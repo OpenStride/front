@@ -12,7 +12,7 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
 
     protected readonly storageKey = 'enabledAppExtensions';
     protected readonly allPlugins = allAppPlugins;
-    protected readonly defaultPlugins = ['standard-details', 'aggregated-details', 'aggregated-progress'];
+    protected readonly defaultPlugins = ['standard-details', 'aggregated-details', 'aggregated-progress', 'profile-sharing'];
 
     private constructor() {
         super();
