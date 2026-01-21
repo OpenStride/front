@@ -73,14 +73,73 @@ The application uses **`import.meta.glob`** to automatically discover and regist
 | Service | Purpose | Location |
 |---------|---------|----------|
 | **ActivityService** | 🆕 Unified CRUD with atomic transactions, versioning, soft delete. Emits events for reactive services. Replaces ActivityDBService. | src/services/ActivityService.ts |
-| **SyncService** | 🆕 Manual sync with conflict detection (version + timestamp), incremental sync (synced flag), LWW resolution. Replaces StorageService backup logic. | src/services/SyncService.ts |
+| **SyncService** | 🆕 Manual sync with conflict detection (version + timestamp), incremental sync (synced flag), LWW resolution. Emits events (no direct ToastService calls). | src/services/SyncService.ts |
+| **FriendService** | 🆕 Social features: friend management, activity sharing, friend activity sync. Event-driven notifications. | src/services/FriendService.ts |
 | **AggregationService** | 🔄 Event-driven O(1) aggregation. Listens to ActivityService events instead of O(n) scans. Supports deletions. | src/services/AggregationService.ts |
+| **StorageService** | ⚠️ Backup to remote storage plugins. Emits events for UI notifications (decoupled from ToastService). importFromRemote() still used for initial hydration. | src/services/StorageService.ts |
 | **IndexedDBService** | Singleton for IndexedDB access (v9). Stores: `settings`, `activities`, `activity_details`, `aggregatedData`, `notifLogs`, `friends`, `friend_activities` | src/services/IndexedDBService.ts |
 | **ActivityAnalyzer** | Analyzes activity samples: segmentation, best efforts, slope analysis, averages | src/services/ActivityAnalyzer.ts |
 | **DataProviderService** | Coordinates data provider plugins to import activities | src/services/DataProviderService.ts |
+| **ToastService** | UI-only service for displaying notifications. Should NEVER be called from business logic services. | src/services/ToastService.ts |
 | ~~**ActivityDBService**~~ | ❌ Deprecated. Replaced by ActivityService. | ~~src/services/ActivityDBService.ts~~ |
-| ~~**StorageService**~~ | ⚠️ Partially deprecated. importFromRemote() still used for initial hydration. Sync logic moved to SyncService. | src/services/StorageService.ts |
 | ~~**StorageListener**~~ | ❌ Removed. Automatic backup replaced by manual sync via SyncService. | ~~src/services/StorageListener.ts~~ |
+
+### Event-Driven Architecture
+
+**Pattern:** Services emit events via `EventTarget`, UI components listen and react.
+
+**Benefits:**
+- **Decoupling:** Business logic independent from UI layer
+- **Testability:** Services can be tested without Vue runtime
+- **Flexibility:** Multiple listeners can react to same event
+
+**Event Emitters:**
+
+| Service | Event Type | Detail | Listener |
+|---------|------------|--------|----------|
+| **ActivityService** | `activity-changed` | `{ type: 'saved'\|'updated'\|'deleted', activity, details }` | AggregationService |
+| **SyncService** | `sync-started` | `{ type: 'sync-started' }` | AppHeader.vue |
+| **SyncService** | `sync-completed` | `{ type: 'sync-completed', activitiesSynced, errors }` | AppHeader.vue |
+| **SyncService** | `sync-failed` | `{ type: 'sync-failed', errors }` | AppHeader.vue |
+| **SyncService** | `sync-conflict` | `{ type: 'sync-conflict', conflictActivity }` | AppHeader.vue |
+| **SyncService** | `sync-in-progress` | `{ type: 'sync-in-progress' }` | AppHeader.vue |
+| **SyncService** | `sync-no-plugins` | `{ type: 'sync-no-plugins' }` | AppHeader.vue |
+| **StorageService** | `backup-completed` | `{ type: 'backup-completed', changed }` | AppHeader.vue |
+| **StorageService** | `backup-failed` | `{ type: 'backup-failed', error }` | AppHeader.vue |
+| **IndexedDBService** | `dbChange` | `{ store, key }` | Legacy listeners (being phased out) |
+
+**Example - Emitting Events:**
+```typescript
+// In service
+this.emitter.dispatchEvent(new CustomEvent<SyncServiceEvent>('sync-completed', {
+    detail: { type: 'sync-completed', activitiesSynced: 5, errors: [] }
+}));
+```
+
+**Example - Listening to Events:**
+```typescript
+// In Vue component
+import { onMounted, onUnmounted } from 'vue';
+import { getSyncService } from '@/services/SyncService';
+import { ToastService } from '@/services/ToastService';
+
+const syncService = getSyncService();
+
+const handleSyncCompleted = (evt) => {
+    const { activitiesSynced } = evt.detail;
+    ToastService.push(`✅ ${activitiesSynced} activités synchronisées`, { type: 'success' });
+};
+
+onMounted(() => {
+    syncService.emitter.addEventListener('sync-completed', handleSyncCompleted);
+});
+
+onUnmounted(() => {
+    syncService.emitter.removeEventListener('sync-completed', handleSyncCompleted);
+});
+```
+
+**Rule:** Business logic services should NEVER call `ToastService.push()` directly. Instead, emit events and let UI components handle notifications.
 
 ### Data Flow (Post-Refactoring 2026)
 
@@ -214,6 +273,14 @@ const result = await syncService.syncNow();
 See full changelog: `docs/CHANGELOG_REFACTORING_2026.md`
 
 ## Plugin Development
+
+**⚠️ IMPORTANT:** Read [PLUGIN_GUIDELINES.md](./PLUGIN_GUIDELINES.md) for architectural best practices, forbidden patterns, and dependency injection guidelines.
+
+**Key principles:**
+- ✅ Use `PluginContext` for service access (dependency injection)
+- ❌ NEVER import services directly (`ActivityDBService`, `IndexedDBService`, `ToastService`)
+- ✅ Lazy initialization in `setupComponent()`
+- ✅ Return errors/status instead of showing UI notifications
 
 ### Adding a Data Provider
 
