@@ -38,7 +38,8 @@
       "profile": "Profil",
       "preferences": "Préférences",
       "dataSources": "Sources de données",
-      "cloudBackup": "Sauvegarde cloud"
+      "cloudBackup": "Sauvegarde cloud",
+      "appExtensions": "Extensions"
     },
     "identity": {
       "section": "Identité"
@@ -132,6 +133,10 @@
     "title": "Plugins de stockage connectés",
     "available": "Plugins disponibles",
     "noPlugins": "Aucun plugin de stockage connecté."
+  },
+  "appExtensions": {
+    "title": "Extensions d'application",
+    "description": "Gérez les widgets et fonctionnalités affichés dans l'application"
   },
   "onboarding": {
     "provider": {

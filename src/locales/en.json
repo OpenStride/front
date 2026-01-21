@@ -38,7 +38,8 @@
       "profile": "Profile",
       "preferences": "Preferences",
       "dataSources": "Data Sources",
-      "cloudBackup": "Cloud Backup"
+      "cloudBackup": "Cloud Backup",
+      "appExtensions": "App Extensions"
     },
     "identity": {
       "section": "Identity"
@@ -132,6 +133,10 @@
     "title": "Connected File Plugins",
     "available": "Available plugins",
     "noPlugins": "No File Plugin connected."
+  },
+  "appExtensions": {
+    "title": "App Extensions",
+    "description": "Manage widgets and features displayed throughout the app"
   },
   "onboarding": {
     "provider": {

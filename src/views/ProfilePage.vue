@@ -40,12 +40,13 @@ import ProfileAthlete from '@/components/profile/ProfileAthlete.vue'
 import ProfilePreferences from '@/components/profile/ProfilePreferences.vue'
 import ProfileDataSources from '@/components/profile/ProfileDataSources.vue'
 import ProfileCloudBackup from '@/components/profile/ProfileCloudBackup.vue'
+import ProfileAppExtensions from '@/components/profile/ProfileAppExtensions.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-type TabId = 'profile' | 'preferences' | 'data-sources' | 'cloud-backup'
+type TabId = 'profile' | 'preferences' | 'data-sources' | 'cloud-backup' | 'app-extensions'
 
 interface Tab {
   id: TabId
@@ -78,6 +79,12 @@ const tabs: Tab[] = [
     labelKey: 'profile.tabs.cloudBackup',
     icon: 'fas fa-cloud',
     component: ProfileCloudBackup
+  },
+  {
+    id: 'app-extensions',
+    labelKey: 'profile.tabs.appExtensions',
+    icon: 'fas fa-puzzle-piece',
+    component: ProfileAppExtensions
   }
 ]
 
