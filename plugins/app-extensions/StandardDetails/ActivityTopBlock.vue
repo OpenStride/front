@@ -54,11 +54,15 @@ const activity = computed(() => props.data.activity)
 const details = computed(() => props.data.details)
 
 const polyline = computed(() => {
-  if (!details.value || !details.value.samples || details.value.samples.length === 0) return []
+  // Build from samples (full local activities)
+  if (details.value?.samples?.length > 0) {
+    return details.value.samples
+      .filter(s => typeof s.lat === 'number' && typeof s.lng === 'number')
+      .map(s => [s.lat, s.lng] as [number, number])
+  }
 
-  return details.value.samples
-    .filter(s => typeof s.lat === 'number' && typeof s.lng === 'number')
-    .map(s => [s.lat, s.lng] as [number, number])
+  // Fallback to mapPolyline (friend activities or minimal data)
+  return activity.value?.mapPolyline ?? []
 })
 
 const formatDistance = (meters?: number) => `${((meters ?? 0) / 1000).toFixed(2)} km`

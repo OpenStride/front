@@ -134,14 +134,25 @@ const hasMap = computed(() =>
 );
 
 const showDetails = () => {
-  // Check if this is a friend activity (has friendId from FriendActivity interface)
-  const friendActivity = activity as any;
-  if (friendActivity.friendId) {
-    router.push({
-      name: 'ActivityDetails',
-      params: { activityId: friendActivity.activityId },
-      query: { source: 'friend', friendId: friendActivity.friendId }
-    });
+  // Check if this is a friend activity using the friendUsername prop
+  if (props.friendUsername) {
+    // Friend activity: extract friendId from provider (format: "friend_${friendId}")
+    // or use friendId property if available (FriendActivity interface)
+    const friendActivity = activity as any;
+    const friendId = friendActivity.friendId ||
+      (activity.provider?.startsWith('friend_') ? activity.provider.substring(7) : null);
+    // activityId is either explicit or falls back to id
+    const activityId = friendActivity.activityId || activity.id;
+
+    if (friendId && activityId) {
+      router.push({
+        name: 'ActivityDetails',
+        params: { activityId },
+        query: { source: 'friend', friendId }
+      });
+    } else {
+      console.error('[ActivityCard] Cannot navigate to friend activity: missing friendId or activityId', { friendId, activityId, activity });
+    }
   } else {
     router.push({ name: 'ActivityDetails', params: { activityId: activity.id } });
   }
