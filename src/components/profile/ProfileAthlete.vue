@@ -192,8 +192,6 @@ import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
-import { messaging } from '@/lib/firebase'
-import { getToken } from 'firebase/messaging'
 import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
 import type { FriendServiceEvent } from '@/types/friend'
 
@@ -311,22 +309,6 @@ const onFileChange = (event: Event) => {
   }
 }
 
-const requestNotificationPermission = async () => {
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: 'BD0btZI1W7WcbbfdHEZHh-IHLuKX6ZW9fZGpx0rEe_ye-Wjgy1OG3UTkBYQFzDRKgxZLbZ0hlyb0QaxXa_17cAE'
-    })
-    if (token) {
-      console.log('Token FCM récupéré :', token)
-      dbService?.saveData('fcm_token', token)
-    } else {
-      console.warn('❌ Permission refusée ou aucun token dispo.')
-    }
-  } catch (err) {
-    console.error('🚫 Erreur FCM :', err)
-  }
-}
-
 const saveProfile = async () => {
   if (!dbService) return
   await dbService.saveData('username', username.value)
@@ -336,7 +318,6 @@ const saveProfile = async () => {
   savedProfile.value.username = username.value
   savedProfile.value.photo = photoPreview.value!
   isProfileSaved.value = true
-  await requestNotificationPermission()
 }
 
 const editProfile = () => {
