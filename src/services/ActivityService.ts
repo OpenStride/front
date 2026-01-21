@@ -1,4 +1,5 @@
 import { Activity, ActivityDetails } from '@/types/activity';
+import { FriendActivity } from '@/types/friend';
 import { IndexedDBService } from './IndexedDBService';
 import type { IActivityService } from '@/types/plugin-context';
 
@@ -300,6 +301,16 @@ export class ActivityService implements IActivityService {
     public async getDetails(id: string): Promise<ActivityDetails | undefined> {
         const result = await (this.db as any).getDataFromStore('activity_details', id) as ActivityDetails | null;
         return result ?? undefined;
+    }
+
+    /**
+     * Get a friend's activity from friend_activities store
+     */
+    public async getFriendActivity(friendId: string, activityId: string): Promise<FriendActivity | undefined> {
+        const allFriendActivities = await (this.db as any).getAllData('friend_activities') as FriendActivity[];
+        return allFriendActivities.find(a =>
+            a.friendId === friendId && a.activityId === activityId
+        );
     }
 
     /**

@@ -2,6 +2,12 @@
   <div class="activity-details">
     <div v-if="loading">Chargement...</div>
     <div v-else-if="activity">
+      <!-- Friend activity banner -->
+      <div v-if="isFriendActivity" class="friend-banner">
+        <i class="fas fa-user-friends" aria-hidden="true"></i>
+        <span>Activité de <strong>{{ friendUsername }}</strong></span>
+      </div>
+
       <div class="top-container">
         <component v-for="(comp, i) in topSlotComponents" :is="comp?.default || comp" :key="`top-${i}`" :data="activityData" />
       </div>
@@ -45,14 +51,59 @@ const activity = ref<Activity | null>(null)
 const activityDetails = ref<ActivityDetails | null>(null)
 const samples = ref<Sample[]>([])
 const loading = ref(true)
+const isFriendActivity = ref(false)
+const friendUsername = ref('')
 
 onMounted(async () => {
   const id = route.params.activityId as string
+  const source = route.query.source as string
+  const friendId = route.query.friendId as string
   const activityService = await getActivityService();
-  activityDetails.value = await activityService.getDetails(id);
-  const analyzer = new ActivityAnalyzer(activityDetails.value?.samples ?? [])
-  activity.value = await activityService.getActivity(id);
-  samples.value = analyzer.sampleAverageByDistance(500);
+
+  if (source === 'friend' && friendId) {
+    // Load from friend_activities store
+    const friendActivity = await activityService.getFriendActivity(friendId, id);
+    if (friendActivity) {
+      // Adapt structure for display
+      activity.value = {
+        id: friendActivity.activityId,
+        startTime: friendActivity.startTime,
+        duration: friendActivity.duration,
+        distance: friendActivity.distance,
+        type: friendActivity.type,
+        title: friendActivity.title,
+        mapPolyline: friendActivity.mapPolyline,
+        provider: `friend_${friendActivity.friendId}`
+      } as Activity;
+
+      // No full details for friend activities (no samples available)
+      activityDetails.value = {
+        id: friendActivity.activityId,
+        startTime: friendActivity.startTime,
+        duration: friendActivity.duration,
+        distance: friendActivity.distance,
+        type: friendActivity.type,
+        title: friendActivity.title,
+        mapPolyline: friendActivity.mapPolyline,
+        samples: [],  // No samples for friends
+        laps: []
+      } as ActivityDetails;
+
+      isFriendActivity.value = true;
+      friendUsername.value = friendActivity.friendUsername;
+    }
+  } else {
+    // Load from my activities (current behavior)
+    activityDetails.value = await activityService.getDetails(id);
+    activity.value = await activityService.getActivity(id);
+  }
+
+  // Continue with analysis if samples are available
+  if (activityDetails.value?.samples?.length) {
+    const analyzer = new ActivityAnalyzer(activityDetails.value.samples);
+    samples.value = analyzer.sampleAverageByDistance(500);
+  }
+
   loading.value = false
 })
 
@@ -79,6 +130,20 @@ const hasCoords = computed(() =>
 <style scoped>
 .activity-details {
   padding: 0 0 1.5rem 0;
+}
+
+.friend-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--color-green-500) 0%, var(--color-green-600) 100%);
+  color: white;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.friend-banner i {
+  font-size: 1.1rem;
 }
 
 .map-preview {

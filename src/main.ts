@@ -31,7 +31,11 @@ async function bootstrap() {
     // User triggers sync via the Refresh button in AppHeader
     // await setupBackupListener(1000);
 
-    // Sync friends' activities on app start (non-blocking)
+    // NOTE: Friend sync disabled on app start to avoid Google API rate limiting
+    // User can manually trigger sync via the Refresh button in AppHeader
+    // If you want to re-enable auto-sync, add a time-based check to avoid too frequent syncs
+    // Example: only sync if last sync was > 5 minutes ago
+    /*
     try {
         const friendService = FriendService.getInstance();
         friendService.refreshAllFriends().catch(err => {
@@ -40,6 +44,7 @@ async function bootstrap() {
     } catch (err) {
         console.warn('[bootstrap] Friend service initialization failed:', err);
     }
+    */
 
     // NOTE: Old O(n) aggregation listener removed
     // AggregationService now listens to ActivityService events directly
