@@ -54,7 +54,9 @@ export class ActivityFeedService {
       mapPolyline: activity.mapPolyline,
       source: 'friend' as const,
       friendId: activity.friendId,
-      friendUsername: activity.friendUsername
+      friendUsername: activity.friendUsername,
+      version: 1,
+      lastModified: Date.now()
     }
   }
 

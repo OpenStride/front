@@ -20,8 +20,8 @@ describe('ActivityTopBlock.vue', () => {
   const mockDetails: ActivityDetails = {
     id: 'test-1',
     samples: [
-      { timeOffset: 0, lat: 48.8566, lng: 2.3522, speed: 3.5 },
-      { timeOffset: 60, lat: 48.8567, lng: 2.3523, speed: 3.6 }
+      { time: 0, lat: 48.8566, lng: 2.3522, speed: 3.5 },
+      { time: 60, lat: 48.8567, lng: 2.3523, speed: 3.6 }
     ],
     laps: [],
     stats: {

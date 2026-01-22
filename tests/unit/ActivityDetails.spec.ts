@@ -5,7 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // Mock IndexedDBService to avoid real IndexedDB access
 vi.mock('@/services/IndexedDBService', () => ({
   IndexedDBService: class {
-    static instance = null
+    static instance: any = null
     static async getInstance() {
       if (!this.instance) {
         this.instance = new this()
