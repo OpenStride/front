@@ -12,7 +12,7 @@ const props = defineProps<{
   lon?: number
   zoom?: number
   theme?: string
-  polyline?: [number, number][],
+  polyline?: [number, number][]
   canzoom?: boolean
 }>()
 
@@ -58,7 +58,8 @@ onMounted(() => {
   }).addTo(map)
 
   const defaultIcon = L.icon({
-    iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAC4jAAAuIwF4pT92AAABjUlEQVR4nJVSPUgDUQz+rAodBKGDoA7qICiC3Eu4UnC4TiKCIkURWwQHoaKom+BUF3uv6OTWSXHRSx11cXBw00UHwdHVn0HEQUHsyWkt1/O3H2R4Sb7ke0mAKqAdrGd3MVgNpwwtGNUCt2SnWtCI/8IuQGnBra+AmxUMVCRlMgjZBYxlBA1l3ybCWQczWvDgJ3uWE0xWFNAOFkrBJ9vBhRaca8FjkFhW4J9FPo9628GNFhzkBLM/kfxm76Bd5/ljDqt76PIGY/V3j5gmz9uCo4pkwVk6E4mm5lrjw6n24cRU2+Dadm9HbqvnCkqpFqXUOBFpZr5j5sdkurnvU77t4H56qSlGRNfM7JZs32ssMlb7rsAwjE5f0CWiA28mtoPi6g4SRHQYiKeCmwoFOrjRKE9oQZKIlv1+Zr60LKvuy66ZeSnQ5VopNURELz7/KzP3f3sszFzPzMeBbsXAe+XXi4vFYhEiOgmQPhVtAKj5tYAHy7LCpY14cj3yMxEt/kn85ktxZt41TdOomlwN3gCuUOhglxFREgAAAABJRU5ErkJggg==',
+    iconUrl:
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAC4jAAAuIwF4pT92AAABjUlEQVR4nJVSPUgDUQz+rAodBKGDoA7qICiC3Eu4UnC4TiKCIkURWwQHoaKom+BUF3uv6OTWSXHRSx11cXBw00UHwdHVn0HEQUHsyWkt1/O3H2R4Sb7ke0mAKqAdrGd3MVgNpwwtGNUCt2SnWtCI/8IuQGnBra+AmxUMVCRlMgjZBYxlBA1l3ybCWQczWvDgJ3uWE0xWFNAOFkrBJ9vBhRaca8FjkFhW4J9FPo9628GNFhzkBLM/kfxm76Bd5/ljDqt76PIGY/V3j5gmz9uCo4pkwVk6E4mm5lrjw6n24cRU2+Dadm9HbqvnCkqpFqXUOBFpZr5j5sdkurnvU77t4H56qSlGRNfM7JZs32ssMlb7rsAwjE5f0CWiA28mtoPi6g4SRHQYiKeCmwoFOrjRKE9oQZKIlv1+Zr60LKvuy66ZeSnQ5VopNURELz7/KzP3f3sszFzPzMeBbsXAe+XXi4vFYhEiOgmQPhVtAKj5tYAHy7LCpY14cj3yMxEt/kn85ktxZt41TdOomlwN3gCuUOhglxFREgAAAABJRU5ErkJggg==',
     iconSize: [16, 16],
     iconAnchor: [8, 16],
     popupAnchor: [1, -10]
@@ -68,7 +69,7 @@ onMounted(() => {
 
   if (props.polyline?.length) {
     const latlngs = props.polyline
-     
+
     if (latlngs.length > 1) {
       L.polyline(latlngs, {
         color: '#333333',
@@ -82,7 +83,6 @@ onMounted(() => {
   }
 })
 </script>
-
 
 <style scoped>
 .map-preview {

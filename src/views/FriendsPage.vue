@@ -48,63 +48,59 @@
     </div>
 
     <!-- QR Scanner Modal -->
-    <QRScanner
-      :is-open="scannerOpen"
-      @close="scannerOpen = false"
-      @friend-added="onFriendAdded"
-    />
+    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" @friend-added="onFriendAdded" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
-import ActivityCard from '@/components/ActivityCard.vue';
-import QRScanner from '@/components/QRScanner.vue';
-import { useFriendsFeed } from '@/composables/useFriendsFeed';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import ActivityCard from '@/components/ActivityCard.vue'
+import QRScanner from '@/components/QRScanner.vue'
+import { useFriendsFeed } from '@/composables/useFriendsFeed'
 
-const router = useRouter();
-const { t } = useI18n();
-const { activities, loading, hasMore, loadMore, reload, count } = useFriendsFeed();
+const router = useRouter()
+const { t } = useI18n()
+const { activities, loading, hasMore, loadMore, reload, count } = useFriendsFeed()
 
-const scrollArea = ref<HTMLElement | null>(null);
-const scannerOpen = ref(false);
+const scrollArea = ref<HTMLElement | null>(null)
+const scannerOpen = ref(false)
 
 onMounted(async () => {
-  loadMore();
+  loadMore()
 
-  window.addEventListener('scroll', handleScroll);
-  window.addEventListener('openstride:activities-refreshed', onRefresh);
-});
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('openstride:activities-refreshed', onRefresh)
+})
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll);
-  window.removeEventListener('openstride:activities-refreshed', onRefresh);
-});
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('openstride:activities-refreshed', onRefresh)
+})
 
 const handleScroll = () => {
-  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100
   if (bottom) {
-    loadMore();
+    loadMore()
   }
-};
+}
 
 const onRefresh = async () => {
-  await reload();
-};
+  await reload()
+}
 
 const openScanner = () => {
-  scannerOpen.value = true;
-};
+  scannerOpen.value = true
+}
 
 const onFriendAdded = async () => {
-  await reload();
-};
+  await reload()
+}
 
 const navigateToManageFriends = () => {
-  router.push('/profile?tab=friends');
-};
+  router.push('/profile?tab=friends')
+}
 </script>
 
 <style scoped>

@@ -5,17 +5,29 @@
       <!-- Friend activity banner -->
       <div v-if="isFriendActivity" class="friend-banner">
         <i class="fas fa-user-friends" aria-hidden="true"></i>
-        <span>Activité de <strong>{{ friendUsername }}</strong></span>
+        <span
+          >Activité de <strong>{{ friendUsername }}</strong></span
+        >
       </div>
 
       <div class="top-container">
-        <component v-for="(comp, i) in topSlotComponents" :is="comp?.default || comp" :key="`top-${i}`" :data="activityData" />
+        <component
+          v-for="(comp, i) in topSlotComponents"
+          :is="comp?.default || comp"
+          :key="`top-${i}`"
+          :data="activityData"
+        />
       </div>
 
       <!-- Widgets Section (full width) -->
       <div class="widgets-container">
-        <component v-for="(comp, i) in widgetSlotComponents" :is="comp?.default || comp" :key="`widget-${i}`" :data="activityData"
-          class="w-full" />
+        <component
+          v-for="(comp, i) in widgetSlotComponents"
+          :is="comp?.default || comp"
+          :key="`widget-${i}`"
+          :data="activityData"
+          class="w-full"
+        />
       </div>
       <!-- End of Widgets Section -->
     </div>
@@ -31,20 +43,24 @@ import { useRoute } from 'vue-router'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { getActivityService } from '@/services/ActivityService'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
-import { ActivityAnalyzer} from '@/services/ActivityAnalyzer'
+import { ActivityAnalyzer } from '@/services/ActivityAnalyzer'
 
 const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets')
 const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top')
 
 // Normalise modules dynamiques (module.default) → composant direct
-const widgetSlotComponents = computed(() => widgetSlotComponentsRaw.value.map(c => (c as any).default || c) )
-const topSlotComponents = computed(() => topSlotComponentsRaw.value.map(c => (c as any).default || c) )
+const widgetSlotComponents = computed(() =>
+  widgetSlotComponentsRaw.value.map(c => (c as any).default || c)
+)
+const topSlotComponents = computed(() =>
+  topSlotComponentsRaw.value.map(c => (c as any).default || c)
+)
 
 const activityData = computed(() => ({
   activity: activity.value,
   details: activityDetails.value,
   samples: samples.value
-}));
+}))
 
 const route = useRoute()
 const activity = ref<Activity | null>(null)
@@ -58,11 +74,11 @@ onMounted(async () => {
   const id = route.params.activityId as string
   const source = route.query.source as string
   const friendId = route.query.friendId as string
-  const activityService = await getActivityService();
+  const activityService = await getActivityService()
 
   if (source === 'friend' && friendId) {
     // Load from friend_activities store
-    const friendActivity = await activityService.getFriendActivity(friendId, id);
+    const friendActivity = await activityService.getFriendActivity(friendId, id)
     if (friendActivity) {
       // Adapt structure for display
       activity.value = {
@@ -74,7 +90,7 @@ onMounted(async () => {
         title: friendActivity.title,
         mapPolyline: friendActivity.mapPolyline,
         provider: `friend_${friendActivity.friendId}`
-      } as Activity;
+      } as Activity
 
       // No full details for friend activities (no samples available)
       activityDetails.value = {
@@ -85,23 +101,23 @@ onMounted(async () => {
         type: friendActivity.type,
         title: friendActivity.title,
         mapPolyline: friendActivity.mapPolyline,
-        samples: [],  // No samples for friends
+        samples: [], // No samples for friends
         laps: []
-      } as ActivityDetails;
+      } as ActivityDetails
 
-      isFriendActivity.value = true;
-      friendUsername.value = friendActivity.friendUsername;
+      isFriendActivity.value = true
+      friendUsername.value = friendActivity.friendUsername
     }
   } else {
     // Load from my activities (current behavior)
-    activityDetails.value = await activityService.getDetails(id);
-    activity.value = await activityService.getActivity(id);
+    activityDetails.value = await activityService.getDetails(id)
+    activity.value = await activityService.getActivity(id)
   }
 
   // Continue with analysis if samples are available
   if (activityDetails.value?.samples?.length) {
-    const analyzer = new ActivityAnalyzer(activityDetails.value.samples);
-    samples.value = analyzer.sampleAverageByDistance(500);
+    const analyzer = new ActivityAnalyzer(activityDetails.value.samples)
+    samples.value = analyzer.sampleAverageByDistance(500)
   }
 
   loading.value = false
@@ -122,8 +138,8 @@ const formatSport = (sport: string): string => {
   return map[sport] || 'Activité'
 }
 
-const hasCoords = computed(() =>
-  activity.value?.mapPolyline && activity.value.mapPolyline.length > 0
+const hasCoords = computed(
+  () => activity.value?.mapPolyline && activity.value.mapPolyline.length > 0
 )
 </script>
 
@@ -151,7 +167,6 @@ const hasCoords = computed(() =>
   height: 240px;
   margin-top: 1rem;
 }
-
 
 .top-container {
   display: flex;

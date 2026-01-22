@@ -25,7 +25,7 @@ const { locale, t } = useI18n()
 
 const currentLocale = ref<Locale>(locale.value as Locale)
 
-watch(locale, (newLocale) => {
+watch(locale, newLocale => {
   currentLocale.value = newLocale as Locale
 })
 

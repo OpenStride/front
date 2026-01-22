@@ -1,5 +1,10 @@
 # OpenStride – Front-end
 
+[![CI](https://github.com/OpenStride/front/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenStride/front/actions/workflows/ci.yml)
+[![Deploy](https://github.com/OpenStride/front/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/OpenStride/front/actions/workflows/deploy-production.yml)
+[![Code Quality](https://github.com/OpenStride/front/actions/workflows/code-quality.yml/badge.svg)](https://github.com/OpenStride/front/actions/workflows/code-quality.yml)
+[![Security Audit](https://github.com/OpenStride/front/actions/workflows/security-audit.yml/badge.svg)](https://github.com/OpenStride/front/actions/workflows/security-audit.yml)
+
 Privacy-focused Vue 3 / TypeScript application (local-first) for visualizing, analyzing and preserving sports activities (running, trail running, cycling...) via a plugin system (data providers, storage, UI extensions) + future AI assistant (ChatGPT OpenStride project).
 
 ---

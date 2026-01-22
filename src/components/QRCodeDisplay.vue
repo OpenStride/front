@@ -4,12 +4,7 @@
       <canvas ref="qrCanvas" class="qr-canvas"></canvas>
     </div>
     <div class="url-display">
-      <input
-        :value="url"
-        readonly
-        class="url-input"
-        @click="copyToClipboard"
-      />
+      <input :value="url" readonly class="url-input" @click="copyToClipboard" />
       <button @click="copyToClipboard" class="copy-btn">
         <i v-if="copied" class="fas fa-check" aria-hidden="true"></i>
         <i v-else class="fas fa-clipboard" aria-hidden="true"></i>
@@ -20,18 +15,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import QRCode from 'qrcode';
+import { ref, onMounted, watch } from 'vue'
+import QRCode from 'qrcode'
 
 const props = defineProps<{
-  url: string;
-}>();
+  url: string
+}>()
 
-const qrCanvas = ref<HTMLCanvasElement | null>(null);
-const copied = ref(false);
+const qrCanvas = ref<HTMLCanvasElement | null>(null)
+const copied = ref(false)
 
 const generateQR = async () => {
-  if (!qrCanvas.value || !props.url) return;
+  if (!qrCanvas.value || !props.url) return
 
   try {
     await QRCode.toCanvas(qrCanvas.value, props.url, {
@@ -41,31 +36,34 @@ const generateQR = async () => {
         dark: '#000000',
         light: '#FFFFFF'
       }
-    });
+    })
   } catch (error) {
-    console.error('[QRCodeDisplay] Error generating QR code:', error);
+    console.error('[QRCodeDisplay] Error generating QR code:', error)
   }
-};
+}
 
 const copyToClipboard = async () => {
   try {
-    await navigator.clipboard.writeText(props.url);
-    copied.value = true;
+    await navigator.clipboard.writeText(props.url)
+    copied.value = true
     setTimeout(() => {
-      copied.value = false;
-    }, 2000);
+      copied.value = false
+    }, 2000)
   } catch (error) {
-    console.error('[QRCodeDisplay] Failed to copy to clipboard:', error);
+    console.error('[QRCodeDisplay] Failed to copy to clipboard:', error)
   }
-};
+}
 
 onMounted(() => {
-  generateQR();
-});
+  generateQR()
+})
 
-watch(() => props.url, () => {
-  generateQR();
-});
+watch(
+  () => props.url,
+  () => {
+    generateQR()
+  }
+)
 </script>
 
 <style scoped>

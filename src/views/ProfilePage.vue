@@ -124,7 +124,7 @@ onMounted(async () => {
           id: metadata.tabId,
           labelKey: metadata.tabLabelKey,
           icon: metadata.tabIcon,
-          component: component.default || component  // Extract component from ES module
+          component: component.default || component // Extract component from ES module
         }
       })
   )
@@ -139,11 +139,14 @@ onMounted(async () => {
 })
 
 // Watch for route query changes
-watch(() => route.query.tab, (newTab) => {
-  if (newTab && allTabs.value.some(t => t.id === newTab)) {
-    activeTab.value = newTab as TabId
+watch(
+  () => route.query.tab,
+  newTab => {
+    if (newTab && allTabs.value.some(t => t.id === newTab)) {
+      activeTab.value = newTab as TabId
+    }
   }
-})
+)
 
 // Update URL when tab changes
 const selectTab = (tabId: TabId) => {

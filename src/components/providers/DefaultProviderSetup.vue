@@ -5,12 +5,16 @@
     </h2>
 
     <div class="text-center mt-4">
-      <p class="inline-flex items-center gap-2 text-sm font-medium"
-         :class="isConnected ? 'text-green-600' : 'text-red-600'">
+      <p
+        class="inline-flex items-center gap-2 text-sm font-medium"
+        :class="isConnected ? 'text-green-600' : 'text-red-600'"
+      >
         <i :class="isConnected ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
-        {{ isConnected 
-            ? $t('providers.setup.connected', { provider: providerName }) 
-            : $t('providers.setup.notConnected') }}
+        {{
+          isConnected
+            ? $t('providers.setup.connected', { provider: providerName })
+            : $t('providers.setup.notConnected')
+        }}
       </p>
     </div>
 
@@ -20,9 +24,11 @@
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition"
       >
         <i class="fas fa-plug"></i>
-        {{ isConnected 
-            ? $t('providers.setup.reconnect', { provider: providerName }) 
-            : $t('providers.setup.connect', { provider: providerName }) }}
+        {{
+          isConnected
+            ? $t('providers.setup.reconnect', { provider: providerName })
+            : $t('providers.setup.connect', { provider: providerName })
+        }}
       </button>
 
       <button

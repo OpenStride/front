@@ -19,7 +19,9 @@
             <i v-else class="fas fa-plug text-green-600 text-xl"></i>
             <div>
               <span class="font-semibold block">{{ provider.label }}</span>
-              <p v-if="provider.description" class="text-sm text-gray-500">{{ provider.description }}</p>
+              <p v-if="provider.description" class="text-sm text-gray-500">
+                {{ provider.description }}
+              </p>
             </div>
           </div>
           <button
@@ -41,15 +43,15 @@
       </button>
 
       <div class="bg-white p-6 rounded shadow">
-        <component
-          v-if="setupComponent"
-          :is="setupComponent"
-        />
+        <component v-if="setupComponent" :is="setupComponent" />
       </div>
     </div>
 
     <!-- Message de détection d'activités -->
-    <div v-if="hasActivities" class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded">
+    <div
+      v-if="hasActivities"
+      class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded"
+    >
       <i class="fas fa-check-circle text-2xl"></i>
       <p class="font-medium">{{ t('onboarding.provider.success') }}</p>
     </div>
@@ -57,87 +59,90 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { allProviderPlugins } from '@/services/ProviderPluginRegistry';
-import { DataProviderPluginManager } from '@/services/DataProviderPluginManager';
-import { getActivityDBService } from '@/services/ActivityDBService';
+import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { allProviderPlugins } from '@/services/ProviderPluginRegistry'
+import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
+import { getActivityDBService } from '@/services/ActivityDBService'
 
-const { t } = useI18n();
+const { t } = useI18n()
 
 const props = defineProps<{
   savedProviderId?: string | null
-}>();
+}>()
 
 const emit = defineEmits<{
   providerSelected: [providerId: string]
   activitiesDetected: []
-}>();
+}>()
 
-const manager = DataProviderPluginManager.getInstance();
-const selectedProviderId = ref(props.savedProviderId || null);
-const setupComponent = shallowRef<any>(null);
-const hasActivities = ref(false);
+const manager = DataProviderPluginManager.getInstance()
+const selectedProviderId = ref(props.savedProviderId || null)
+const setupComponent = shallowRef<any>(null)
+const hasActivities = ref(false)
 
 // Charger setup component quand provider sélectionné
-watch(selectedProviderId, async (id) => {
-  if (id) {
-    const plugin = allProviderPlugins.find(p => p.id === id);
-    if (plugin) {
-      setupComponent.value = await plugin.setupComponent();
-      await manager.enablePlugin(id);
-      emit('providerSelected', id);
+watch(
+  selectedProviderId,
+  async id => {
+    if (id) {
+      const plugin = allProviderPlugins.find(p => p.id === id)
+      if (plugin) {
+        setupComponent.value = await plugin.setupComponent()
+        await manager.enablePlugin(id)
+        emit('providerSelected', id)
+      }
+    } else {
+      setupComponent.value = null
     }
-  } else {
-    setupComponent.value = null;
-  }
-}, { immediate: true }); // ⬅️ Déclencher immédiatement si provider déjà sélectionné
+  },
+  { immediate: true }
+) // ⬅️ Déclencher immédiatement si provider déjà sélectionné
 
 // Poll pour détecter les activités importées
-let pollInterval: NodeJS.Timeout | null = null;
+let pollInterval: NodeJS.Timeout | null = null
 
 onMounted(() => {
   if (selectedProviderId.value) {
-    startPolling();
+    startPolling()
   }
-});
+})
 
 onUnmounted(() => {
-  stopPolling();
-});
+  stopPolling()
+})
 
-watch(selectedProviderId, (id) => {
+watch(selectedProviderId, id => {
   if (id) {
-    startPolling();
+    startPolling()
   } else {
-    stopPolling();
+    stopPolling()
   }
-});
+})
 
 function startPolling() {
-  if (pollInterval) return;
+  if (pollInterval) return
 
   pollInterval = setInterval(async () => {
-    const activityDb = await getActivityDBService();
-    const activities = await activityDb.getActivities({ limit: 1, offset: 0 });
+    const activityDb = await getActivityDBService()
+    const activities = await activityDb.getActivities({ limit: 1, offset: 0 })
 
     if (activities.length > 0 && !hasActivities.value) {
-      hasActivities.value = true;
-      emit('activitiesDetected');
-      stopPolling();
+      hasActivities.value = true
+      emit('activitiesDetected')
+      stopPolling()
     }
-  }, 2000);
+  }, 2000)
 }
 
 function stopPolling() {
   if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
+    clearInterval(pollInterval)
+    pollInterval = null
   }
 }
 
 function selectProvider(id: string) {
-  selectedProviderId.value = id;
+  selectedProviderId.value = id
 }
 </script>
-

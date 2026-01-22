@@ -11,79 +11,80 @@
         data-test="activity-card"
       />
       <p v-if="loading" data-test="loading-message">{{ t('activities.loading') }}</p>
-      <p v-if="!hasMore && !loading" data-test="all-loaded-message">{{ t('activities.allLoaded') }}</p>
+      <p v-if="!hasMore && !loading" data-test="all-loaded-message">
+        {{ t('activities.allLoaded') }}
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
-import { useI18n } from 'vue-i18n';
-import ActivityCard from "@/components/ActivityCard.vue";
-import { getActivityService } from "@/services/ActivityService";
-import { useSlotExtensions } from '@/composables/useSlotExtensions';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import ActivityCard from '@/components/ActivityCard.vue'
+import { getActivityService } from '@/services/ActivityService'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 
-const { t } = useI18n();
+const { t } = useI18n()
 // Refresh logic moved to global header refresh button; no per-view pull-to-refresh anymore.
 
 // Allow plugins to inject aggregated overview widgets
-const { components: topRaw } = useSlotExtensions('myactivities.top');
-const topSlotComponents = computed(() => topRaw.value.map(c => (c as any).default || c));
+const { components: topRaw } = useSlotExtensions('myactivities.top')
+const topSlotComponents = computed(() => topRaw.value.map(c => (c as any).default || c))
 
-
-const activities = ref<any[]>([]);
-const loading = ref(false);
-const page = ref(0);
-const pageSize = 10;
-const hasMore = ref(true);
+const activities = ref<any[]>([])
+const loading = ref(false)
+const page = ref(0)
+const pageSize = 10
+const hasMore = ref(true)
 
 onMounted(() => {
-  loadActivities();
-  window.addEventListener("scroll", handleScroll);
-  window.addEventListener('openstride:activities-refreshed', softReload);
-});
+  loadActivities()
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('openstride:activities-refreshed', softReload)
+})
 
 onBeforeUnmount(() => {
-  window.removeEventListener("scroll", handleScroll);
-  window.removeEventListener('openstride:activities-refreshed', softReload);
-});
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('openstride:activities-refreshed', softReload)
+})
 
 const handleScroll = () => {
-  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
-  if (bottom) loadActivities();
-};
+  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100
+  if (bottom) loadActivities()
+}
 
 const loadActivities = async () => {
-  if (loading.value || !hasMore.value) return;
-  const activityService = await getActivityService();
-  loading.value = true;
+  if (loading.value || !hasMore.value) return
+  const activityService = await getActivityService()
+  loading.value = true
 
   const newActivities = await activityService.getActivities({
     offset: page.value * pageSize,
-    limit: pageSize,
-  });
+    limit: pageSize
+  })
 
   if (newActivities.length < pageSize) {
-    hasMore.value = false;
+    hasMore.value = false
   }
 
-  activities.value.push(...newActivities);
-  page.value += 1;
-  loading.value = false;
-};
+  activities.value.push(...newActivities)
+  page.value += 1
+  loading.value = false
+}
 
 // Soft reload after a background refresh: reset pagination and refetch first pages
 const softReload = async () => {
-  const activityService = await getActivityService();
-  const prevLength = activities.value.length;
-  activities.value = [];
-  page.value = 0;
-  hasMore.value = true;
-  loading.value = false;
-  await loadActivities();
+  const activityService = await getActivityService()
+  const prevLength = activities.value.length
+  activities.value = []
+  page.value = 0
+  hasMore.value = true
+  loading.value = false
+  await loadActivities()
   // Optionally prefetch second page if previously user had many items
-  if (prevLength > pageSize) await loadActivities();
-};
+  if (prevLength > pageSize) await loadActivities()
+}
 
 // Legacy onRefresh (pull-to-refresh) removed. Header button handles refresh & sync.
 </script>
