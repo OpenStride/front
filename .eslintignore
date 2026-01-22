@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.firebase/
+*.log
+public/
+*.config.js
+*.config.ts
+vite.config.ts
+vitest.config.ts
