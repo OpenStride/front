@@ -1,15 +1,19 @@
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
+import UpdateBanner from '@/components/UpdateBanner.vue'
+import MigrationProgress from '@/components/MigrationProgress.vue'
 </script>
 
 <template>
   <div class="layout">
     <AppHeader />
+    <UpdateBanner />
     <main>
       <router-view />
     </main>
     <ToastContainer />
+    <MigrationProgress />
     <footer class="footer">
       <p>
         <a href="/legal">Privacy Policy</a> | <a href="/cgu">Terms of Service</a> |

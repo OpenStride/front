@@ -77,12 +77,12 @@ if (messaging) {
 // ========================================
 
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing...')
-  self.skipWaiting() // Activate immediately
+  console.log('[Service Worker] Installing version', __APP_VERSION__)
+  // Don't call skipWaiting() here - wait for user confirmation via SKIP_WAITING message
 })
 
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating...')
+  console.log('[Service Worker] Activating version', __APP_VERSION__)
   event.waitUntil(self.clients.claim()) // Take control immediately
 })
 

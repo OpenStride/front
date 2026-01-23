@@ -188,5 +188,19 @@
       "reconnect": "Reconnecter {provider}",
       "disconnect": "Déconnecter"
     }
+  },
+  "update": {
+    "newVersionAvailable": "Nouvelle version disponible",
+    "updateNow": "Mettre à jour",
+    "later": "Plus tard",
+    "whatsNew": "Nouveautés",
+    "installing": "Installation en cours...",
+    "checkingForUpdates": "Recherche de mises à jour..."
+  },
+  "migration": {
+    "updating": "Mise à jour d'OpenStride",
+    "pleaseWait": "Veuillez patienter, cela peut prendre quelques instants",
+    "success": "Mise à jour réussie",
+    "failed": "Échec de la mise à jour. Veuillez réessayer."
   }
 }
