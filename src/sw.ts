@@ -78,7 +78,8 @@ if (messaging) {
 
 self.addEventListener('install', event => {
   console.log('[Service Worker] Installing version', __APP_VERSION__)
-  // Don't call skipWaiting() here - wait for user confirmation via SKIP_WAITING message
+  // AutoUpdate mode: skip waiting immediately
+  self.skipWaiting()
 })
 
 self.addEventListener('activate', event => {

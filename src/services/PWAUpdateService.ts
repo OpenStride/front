@@ -62,19 +62,27 @@ export class PWAUpdateService {
         scope: '/'
       })
 
-      // New service worker waiting to activate
-      this.wb.addEventListener('waiting', (event) => {
-        console.log('[PWAUpdateService] New service worker waiting')
+      // New service worker installed (autoUpdate mode)
+      // The SW will call skipWaiting() automatically, then take control
+      this.wb.addEventListener('installed', (event) => {
+        console.log('[PWAUpdateService] New service worker installed')
+
+        if (!event.isUpdate) {
+          console.log('[PWAUpdateService] First install, no reload needed')
+          return
+        }
+
+        console.log('[PWAUpdateService] Update detected, reload will happen after activation')
         this.newWorker = event.sw || null
         this.updateAvailable = true
 
-        // Emit update-available event
+        // Emit update-installing event (notification before reload)
         this.emitter.dispatchEvent(
-          new CustomEvent<PWAUpdateEvent>('update-available', {
+          new CustomEvent<PWAUpdateEvent>('update-installing', {
             detail: {
-              type: 'update-available',
+              type: 'update-installing',
               currentVersion: this.getCurrentVersion(),
-              newVersion: this.getCurrentVersion() // TODO: fetch from SW if possible
+              newVersion: this.getCurrentVersion()
             }
           })
         )
@@ -93,12 +101,27 @@ export class PWAUpdateService {
         window.location.reload()
       })
 
-      // Service worker activated (after reload)
+      // Service worker activated
       this.wb.addEventListener('activated', (event) => {
         console.log('[PWAUpdateService] Service worker activated')
+
         if (!event.isUpdate) {
-          console.log('[PWAUpdateService] First install')
+          console.log('[PWAUpdateService] First install, no reload needed')
+          return
         }
+
+        // This is an update - reload the page
+        console.log('[PWAUpdateService] Update activated, reloading page...')
+        this.emitter.dispatchEvent(
+          new CustomEvent<PWAUpdateEvent>('update-ready', {
+            detail: { type: 'update-ready' }
+          })
+        )
+
+        // Small delay to let the toast appear
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
       })
 
       // Register the service worker

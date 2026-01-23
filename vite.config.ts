@@ -9,7 +9,7 @@ import pkg from './package.json'
 
 export default defineConfig({
     plugins: [vue(), tailwindcss(), VitePWA({
-        registerType: 'prompt',
+        registerType: 'autoUpdate',
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.ts',

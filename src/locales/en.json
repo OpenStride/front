@@ -195,7 +195,8 @@
     "later": "Later",
     "whatsNew": "What's New",
     "installing": "Installing update...",
-    "checkingForUpdates": "Checking for updates..."
+    "checkingForUpdates": "Checking for updates...",
+    "autoUpdating": "New version detected, updating automatically..."
   },
   "migration": {
     "updating": "Updating OpenStride",
