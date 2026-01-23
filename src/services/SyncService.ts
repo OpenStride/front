@@ -315,7 +315,6 @@ export class SyncService {
    */
   private resolveConflict(local: Activity, remote: Activity): Activity {
     const winner = local.lastModified > remote.lastModified ? local : remote
-    const loser = winner === local ? remote : local
 
     console.warn(
       `[SyncService] ⚠️ Conflict detected for activity "${local.title || local.id}"`,

@@ -3,7 +3,6 @@ import App from './App.vue'
 import router from './router'
 import { IndexedDBService } from './services/IndexedDBService'
 import { aggregationService } from '@/services/AggregationService'
-import { FriendService } from '@/services/FriendService'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 
 import '@/assets/styles/global.css'
