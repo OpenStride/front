@@ -80,6 +80,8 @@ The application uses **`import.meta.glob`** to automatically discover and regist
 | **IndexedDBService** | Singleton for IndexedDB access (v9). Stores: `settings`, `activities`, `activity_details`, `aggregatedData`, `notifLogs`, `friends`, `friend_activities` | src/services/IndexedDBService.ts |
 | **ActivityAnalyzer** | Analyzes activity samples: segmentation, best efforts, slope analysis, averages | src/services/ActivityAnalyzer.ts |
 | **DataProviderService** | Coordinates data provider plugins to import activities | src/services/DataProviderService.ts |
+| **PWAUpdateService** | 🆕 Manages PWA lifecycle, update detection, and user-prompted update flow. Event-driven, no automatic updates. | src/services/PWAUpdateService.ts |
+| **MigrationService** | 🆕 App-level data migrations on version upgrades. Event-driven with rollback support. | src/services/MigrationService.ts |
 | **ToastService** | UI-only service for displaying notifications. Should NEVER be called from business logic services. | src/services/ToastService.ts |
 | ~~**ActivityDBService**~~ | ❌ Deprecated. Replaced by ActivityService. | ~~src/services/ActivityDBService.ts~~ |
 | ~~**StorageListener**~~ | ❌ Removed. Automatic backup replaced by manual sync via SyncService. | ~~src/services/StorageListener.ts~~ |
@@ -106,6 +108,13 @@ The application uses **`import.meta.glob`** to automatically discover and regist
 | **SyncService** | `sync-no-plugins` | `{ type: 'sync-no-plugins' }` | AppHeader.vue |
 | **StorageService** | `backup-completed` | `{ type: 'backup-completed', changed }` | AppHeader.vue |
 | **StorageService** | `backup-failed` | `{ type: 'backup-failed', error }` | AppHeader.vue |
+| **PWAUpdateService** | `update-available` | `{ type: 'update-available', currentVersion, newVersion }` | UpdateBanner.vue |
+| **PWAUpdateService** | `update-installing` | `{ type: 'update-installing', currentVersion, newVersion }` | AutoUpdateNotification.vue |
+| **PWAUpdateService** | `update-ready` | `{ type: 'update-ready' }` | (Internal - triggers reload) |
+| **MigrationService** | `migration-started` | `{ type: 'migration-started', fromVersion, toVersion }` | MigrationProgress.vue |
+| **MigrationService** | `migration-progress` | `{ type: 'migration-progress', currentMigration, progress }` | MigrationProgress.vue |
+| **MigrationService** | `migration-completed` | `{ type: 'migration-completed', fromVersion, toVersion, progress: 100 }` | MigrationProgress.vue |
+| **MigrationService** | `migration-failed` | `{ type: 'migration-failed', error }` | MigrationProgress.vue |
 | **IndexedDBService** | `dbChange` | `{ store, key }` | Legacy listeners (being phased out) |
 
 **Example - Emitting Events:**
@@ -140,6 +149,174 @@ onUnmounted(() => {
 ```
 
 **Rule:** Business logic services should NEVER call `ToastService.push()` directly. Instead, emit events and let UI components handle notifications.
+
+### PWA Update Flow
+
+OpenStride uses a **prompt-based PWA update strategy** that gives users control over when updates are applied.
+
+**Update Flow:**
+
+1. **Detection**: When a new service worker is available, it enters "waiting" state
+2. **Notification**: PWAUpdateService detects waiting SW and emits 'update-available' event
+3. **User Prompt**: UpdateBanner.vue displays a toast with "Mettre à jour" / "Plus tard" buttons
+4. **User Choice**:
+   - **Mettre à jour**: Calls `messageSkipWaiting()` → SW activates → Page reloads with new version
+   - **Plus tard**: Toast dismissed, update deferred for 24 hours
+5. **Installation**: AutoUpdateNotification shows toast during installation (3 seconds before reload)
+
+**Event Flow:**
+
+```
+SW Install → waiting state → 'update-available' → UpdateBanner (toast)
+                                                       ↓
+                                           User clicks "Mettre à jour"
+                                                       ↓
+                                           messageSkipWaiting()
+                                                       ↓
+                              'update-installing' → AutoUpdateNotification (toast)
+                                                       ↓
+                                            'controlling' → reload
+```
+
+**Service Worker Configuration:**
+- `src/sw.ts`: Prompt mode - no automatic `skipWaiting()` on install
+- Message handler: Responds to SKIP_WAITING message from app when user accepts
+- `vite.config.ts`: Uses Workbox injectManifest strategy
+
+**Testing PWA Updates:**
+
+```bash
+# 1. Build production version
+npm run build
+
+# 2. Serve on localhost:4173
+npm run preview
+
+# 3. Modify package.json version (e.g., 0.1.0 → 0.2.0)
+
+# 4. Rebuild
+npm run build
+
+# 5. Refresh browser → Update toast should appear at bottom
+# 6. Click "Mettre à jour" → Installation toast → Reload with new version
+```
+
+**Troubleshooting:**
+
+- **Update toast doesn't show**: Check DevTools → Application → Service Workers → Should see "waiting to activate"
+- **Automatic reload without prompt**: Check `src/sw.ts` install listener - should NOT have `self.skipWaiting()`
+- **No update detected**: Hard refresh (Ctrl+Shift+R) to bypass SW cache
+
+**PWA Events:**
+
+| Event | Detail | When |
+|-------|--------|------|
+| `update-available` | `{ currentVersion, newVersion }` | SW waiting for user consent |
+| `update-installing` | `{ currentVersion, newVersion }` | User accepted, SW activating |
+| `update-ready` | `{}` | SW activated, page reloading |
+| `no-update-available` | `{}` | Manual check found no update |
+| `update-error` | `{ error }` | SW registration or check failed |
+
+### Migration System
+
+The MigrationService handles app-level data migrations on version upgrades, complementing IndexedDB schema migrations.
+
+**Architecture:**
+
+- **Registration**: Migrations registered at app bootstrap (`src/main.ts`)
+- **Execution**: Automatic on version change, atomic with rollback support
+- **Event-driven**: Emits progress events for UI feedback (`MigrationProgress.vue`)
+- **Graceful degradation**: Continues on failure, records errors
+
+**Migration Interface:**
+
+```typescript
+interface Migration {
+  version: string // Target version (e.g., "0.2.0")
+  description: string // Human-readable description
+  up: () => Promise<void> // Forward migration
+  down?: () => Promise<void> // Rollback (optional)
+}
+```
+
+**Example Migration:**
+
+```typescript
+// src/migrations/0.3.0.ts
+import type { Migration } from '@/services/MigrationService'
+import { IndexedDBService } from '@/services/IndexedDBService'
+
+export default {
+  version: '0.3.0',
+  description: 'Add default privacy setting',
+
+  up: async () => {
+    const db = await IndexedDBService.getInstance()
+    const settings = (await db.getData('privacy_settings')) || {}
+
+    if (!settings.defaultPrivacy) {
+      settings.defaultPrivacy = 'private'
+      await db.saveData('privacy_settings', settings)
+      console.log('[Migration 0.3.0] Default privacy setting added')
+    }
+  },
+
+  down: async () => {
+    const db = await IndexedDBService.getInstance()
+    const settings = (await db.getData('privacy_settings')) || {}
+    delete settings.defaultPrivacy
+    await db.saveData('privacy_settings', settings)
+    console.log('[Migration 0.3.0] Default privacy setting removed')
+  }
+} as Migration
+```
+
+**Registration in `src/migrations/index.ts`:**
+
+```typescript
+import migration_0_2_0 from './0.2.0'
+import migration_0_3_0 from './0.3.0'
+
+export const migrations: Migration[] = [
+  migration_0_2_0,
+  migration_0_3_0
+  // Add new migrations here in version order
+]
+```
+
+**Migration Events:**
+
+| Event | Detail | When |
+|-------|--------|------|
+| `migration-started` | `{ fromVersion, toVersion }` | Before migrations run |
+| `migration-progress` | `{ currentMigration, progress }` | Each migration starts (0-100%) |
+| `migration-completed` | `{ fromVersion, toVersion, progress: 100 }` | All migrations done |
+| `migration-failed` | `{ error }` | Migration error (after rollback attempt) |
+
+**Migration History:**
+
+Stored in IndexedDB (`settings` store, key: `migration_history`):
+
+```typescript
+interface MigrationRecord {
+  version: string
+  description: string
+  executedAt: number
+  success: boolean
+  error?: string
+}
+```
+
+**Best Practices:**
+
+- ✅ Always include `down()` for reversible migrations
+- ✅ Test migrations with production-sized datasets
+- ✅ Keep migrations idempotent (safe to re-run)
+- ✅ Log migration progress for debugging
+- ✅ Handle missing data gracefully (old installs may lack fields)
+- ✅ Use semantic versioning strictly (MAJOR.MINOR.PATCH)
+- ❌ Never modify existing migrations (create new ones instead)
+- ❌ Never delete migration files (breaks history tracking)
 
 ### Data Flow (Post-Refactoring 2026)
 

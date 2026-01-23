@@ -1,6 +1,7 @@
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
+import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
 import MigrationProgress from '@/components/MigrationProgress.vue'
 
@@ -11,6 +12,7 @@ const appVersion = __APP_VERSION__
 <template>
   <div class="layout">
     <AppHeader />
+    <UpdateBanner />
     <AutoUpdateNotification />
     <main>
       <router-view />

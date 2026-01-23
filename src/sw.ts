@@ -78,8 +78,8 @@ if (messaging) {
 
 self.addEventListener('install', event => {
   console.log('[Service Worker] Installing version', __APP_VERSION__)
-  // AutoUpdate mode: skip waiting immediately
-  self.skipWaiting()
+  // Prompt mode: wait for user consent via messageSkipWaiting()
+  // skipWaiting() will be called via message handler when user accepts update
 })
 
 self.addEventListener('activate', event => {

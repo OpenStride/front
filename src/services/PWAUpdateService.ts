@@ -62,25 +62,18 @@ export class PWAUpdateService {
         scope: '/'
       })
 
-      // New service worker installed (autoUpdate mode)
-      // The SW will call skipWaiting() automatically, then take control
-      this.wb.addEventListener('installed', (event) => {
-        console.log('[PWAUpdateService] New service worker installed')
+      // Listen for waiting service worker (prompt mode)
+      this.wb.addEventListener('waiting', (event) => {
+        console.log('[PWAUpdateService] New service worker waiting, showing prompt')
 
-        if (!event.isUpdate) {
-          console.log('[PWAUpdateService] First install, no reload needed')
-          return
-        }
-
-        console.log('[PWAUpdateService] Update detected, reload will happen after activation')
         this.newWorker = event.sw || null
         this.updateAvailable = true
 
-        // Emit update-installing event (notification before reload)
+        // Emit update-available event for UpdateBanner
         this.emitter.dispatchEvent(
-          new CustomEvent<PWAUpdateEvent>('update-installing', {
+          new CustomEvent<PWAUpdateEvent>('update-available', {
             detail: {
-              type: 'update-installing',
+              type: 'update-available',
               currentVersion: this.getCurrentVersion(),
               newVersion: this.getCurrentVersion()
             }
@@ -88,16 +81,30 @@ export class PWAUpdateService {
         )
       })
 
-      // New service worker has taken control
+      // New service worker installed (prompt mode)
+      this.wb.addEventListener('installed', (event) => {
+        console.log('[PWAUpdateService] Service worker installed')
+
+        if (!event.isUpdate) {
+          console.log('[PWAUpdateService] First install, no reload needed')
+          return
+        }
+
+        // Update installed, waiting for user consent
+        console.log('[PWAUpdateService] Update installed, waiting for user consent')
+      })
+
+      // New service worker has taken control (after user accepted)
       this.wb.addEventListener('controlling', () => {
-        console.log('[PWAUpdateService] New service worker controlling')
+        console.log('[PWAUpdateService] New service worker controlling, reloading...')
+
         this.emitter.dispatchEvent(
           new CustomEvent<PWAUpdateEvent>('update-ready', {
             detail: { type: 'update-ready' }
           })
         )
 
-        // Reload to activate new version
+        // Reload immediately (user already accepted)
         window.location.reload()
       })
 
@@ -106,22 +113,12 @@ export class PWAUpdateService {
         console.log('[PWAUpdateService] Service worker activated')
 
         if (!event.isUpdate) {
-          console.log('[PWAUpdateService] First install, no reload needed')
+          console.log('[PWAUpdateService] First install')
           return
         }
 
-        // This is an update - reload the page
-        console.log('[PWAUpdateService] Update activated, reloading page...')
-        this.emitter.dispatchEvent(
-          new CustomEvent<PWAUpdateEvent>('update-ready', {
-            detail: { type: 'update-ready' }
-          })
-        )
-
-        // Small delay to let the toast appear
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
+        // Update activated (user already accepted)
+        console.log('[PWAUpdateService] Update activated successfully')
       })
 
       // Register the service worker
@@ -193,15 +190,21 @@ export class PWAUpdateService {
       return
     }
 
-    console.log('[PWAUpdateService] Accepting update...')
+    console.log('[PWAUpdateService] User accepted update, activating...')
 
+    // Emit update-installing event (toast notification)
     this.emitter.dispatchEvent(
       new CustomEvent<PWAUpdateEvent>('update-installing', {
-        detail: { type: 'update-installing' }
+        detail: {
+          type: 'update-installing',
+          currentVersion: this.getCurrentVersion(),
+          newVersion: this.getNewVersion() || this.getCurrentVersion()
+        }
       })
     )
 
-    // Tell the waiting service worker to activate
+    // Tell the waiting service worker to skipWaiting and activate
+    // This will trigger the 'controlling' event → reload
     this.wb.messageSkipWaiting()
   }
 

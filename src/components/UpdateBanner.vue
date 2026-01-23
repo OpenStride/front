@@ -1,23 +1,24 @@
 <template>
-  <transition name="slide-down">
-    <div v-if="showBanner" class="update-banner">
-      <div class="banner-content">
-        <i class="fas fa-arrow-circle-up" aria-hidden="true"></i>
-        <div class="text">
-          <strong>{{ t('update.newVersionAvailable') }}</strong>
-          <span class="version">v{{ newVersion }}</span>
+  <div class="update-toast-container">
+    <transition name="fade-in">
+      <div v-if="showToast" class="update-toast">
+        <div class="toast-content">
+          <i class="fas fa-arrow-circle-up" aria-hidden="true"></i>
+          <div class="text">
+            <strong>{{ t('update.newVersionAvailable') }}</strong>
+          </div>
         </div>
-        <div class="actions">
-          <button class="btn-secondary" @click="defer">
+        <div class="toast-actions">
+          <button class="btn-later" @click="defer">
             {{ t('update.later') }}
           </button>
-          <button class="btn-primary" @click="accept">
+          <button class="btn-update" @click="accept">
             {{ t('update.updateNow') }}
           </button>
         </div>
       </div>
-    </div>
-  </transition>
+    </transition>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -29,22 +30,19 @@ import type { PWAUpdateEvent } from '@/services/PWAUpdateService'
 const { t } = useI18n()
 const updateService = getPWAUpdateService()
 
-const showBanner = ref(false)
-const newVersion = ref('')
+const showToast = ref(false)
 
 const handleUpdateAvailable = (evt: Event) => {
-  const customEvent = evt as CustomEvent<PWAUpdateEvent>
-  newVersion.value = customEvent.detail.newVersion || ''
-  showBanner.value = true
+  showToast.value = true
 }
 
 const accept = async () => {
-  showBanner.value = false
+  showToast.value = false
   await updateService.acceptUpdate()
 }
 
 const defer = () => {
-  showBanner.value = false
+  showToast.value = false
   updateService.deferUpdate()
 }
 
@@ -58,28 +56,39 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.update-banner {
+.update-toast-container {
   position: fixed;
-  top: 60px; /* Below AppHeader */
-  left: 0;
-  right: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 2000;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 3000;
+  pointer-events: none;
+  width: min(90vw, 420px);
 }
 
-.banner-content {
-  max-width: 1200px;
-  margin: 0 auto;
+.update-toast {
+  width: 100%;
+  background: color-mix(in srgb, var(--color-green-500) 95%, transparent);
+  color: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.toast-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.banner-content i {
+.toast-content i {
   font-size: 24px;
+  flex-shrink: 0;
 }
 
 .text {
@@ -89,59 +98,70 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-.version {
-  font-size: 0.9em;
-  opacity: 0.9;
+.text strong {
+  font-size: 15px;
+  font-weight: 600;
 }
 
-.actions {
+.toast-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
-.btn-primary,
-.btn-secondary {
+.btn-update,
+.btn-later {
   padding: 8px 16px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   transition: all 0.2s;
   font-family: inherit;
 }
 
-.btn-primary {
+.btn-update {
   background: white;
-  color: #667eea;
+  color: var(--color-green-700);
   font-weight: 600;
 }
 
-.btn-primary:hover {
-  transform: scale(1.05);
+.btn-update:hover {
+  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+  background: var(--color-green-50);
 }
 
-.btn-secondary {
+.btn-update:active {
+  transform: translateY(0);
+}
+
+.btn-later {
   background: rgba(255, 255, 255, 0.2);
   color: white;
 }
 
-.btn-secondary:hover {
+.btn-later:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.slide-down-enter-active,
-.slide-down-leave-active {
+.btn-later:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fade-in-enter-active,
+.fade-in-leave-active {
   transition: all 0.3s ease;
 }
 
-.slide-down-enter-from {
-  transform: translateY(-100%);
+.fade-in-enter-from {
   opacity: 0;
+  transform: translateY(12px) scale(0.95);
 }
 
-.slide-down-leave-to {
-  transform: translateY(-100%);
+.fade-in-leave-to {
   opacity: 0;
+  transform: translateY(12px) scale(0.95);
 }
 </style>
