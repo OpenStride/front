@@ -24,11 +24,11 @@ describe('Garmin provider refresh (mock UI flow)', () => {
   })
 
   it('active le provider Garmin, injecte les tokens via query et récupère une activité', () => {
-    // Setup clean test environment
-    cy.setupTest('/data-providers')
+    // Setup clean test environment (use direct profile URL instead of redirect)
+    cy.setupTest('/profile?tab=data-sources')
 
-    // Verify the page loaded correctly
-    cy.getByTestId('available-providers-section').should('be.visible')
+    // Wait for the data sources tab content to be visible
+    cy.getByTestId('available-providers-section', { timeout: 10000 }).should('be.visible')
     cy.getByTestId('available-providers-title').should('be.visible')
 
     // Find and enable the Garmin provider
