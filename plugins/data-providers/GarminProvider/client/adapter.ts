@@ -21,7 +21,9 @@ export function adaptGarminSummary(garminDetails: any): Activity {
         distance: garmin.distanceInMeters,
         type: garmin.activityType?.toLowerCase() || 'unknown',
         title: garmin.activityName,
-        mapPolyline: polyline
+        mapPolyline: polyline,
+        version: 1,
+        lastModified: Date.now()
     }
 }
 
@@ -56,6 +58,8 @@ export function adaptGarminDetails(garmin: any): ActivityDetails {
             averageCadence: garmin.summary?.averageRunCadenceInStepsPerMinute,
             totalAscent: garmin.summary?.totalElevationGainInMeters,
             calories: garmin.summary?.activeKilocalories
-        }
+        },
+        version: 1,
+        lastModified: Date.now()
     }
 }

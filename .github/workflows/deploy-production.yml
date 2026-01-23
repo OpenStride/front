@@ -1,0 +1,50 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual deployment
+
+# Only run one deployment at a time
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Firebase Hosting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production
+        run: npm run build:prod
+        env:
+          VITE_APP_BASE_URL: https://openstride.org
+
+      - name: Deploy to Firebase Hosting (Live Channel)
+        uses: FirebaseExtended/action-hosting-deploy@v0.10.0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+          channelId: live
+          projectId: openstrive-edd63
+
+      - name: Deployment summary
+        run: |
+          echo "Deployment completed successfully"
+          echo "Live URL: https://openstride.org"

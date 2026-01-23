@@ -1,9 +1,13 @@
 .DS_Store
 node_modules
 /dist
+/coverage
 
 /tests/e2e/videos/
 /tests/e2e/screenshots/
+
+# Cypress artifacts
+/cypress/
 
 .firebase/*.cache
 

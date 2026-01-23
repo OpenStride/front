@@ -24,11 +24,11 @@ describe('Garmin provider refresh (mock UI flow)', () => {
   })
 
   it('active le provider Garmin, injecte les tokens via query et récupère une activité', () => {
-    // Setup clean test environment
-    cy.setupTest('/data-providers')
+    // Setup clean test environment (use direct profile URL instead of redirect)
+    cy.setupTest('/profile?tab=data-sources')
 
-    // Verify the page loaded correctly
-    cy.getByTestId('available-providers-section').should('be.visible')
+    // Wait for the data sources tab content to be visible
+    cy.getByTestId('available-providers-section', { timeout: 10000 }).should('be.visible')
     cy.getByTestId('available-providers-title').should('be.visible')
 
     // Find and enable the Garmin provider
@@ -36,12 +36,27 @@ describe('Garmin provider refresh (mock UI flow)', () => {
       cy.getByTestId('add-provider-garmin').click()
     })
 
-    // Wait for the provider to be added
-    cy.getByTestId('connected-provider-garmin').should('be.visible')
+    // Wait for the provider to be moved from available to connected
+    // First, wait for it to disappear from available list
+    cy.getByTestId('available-provider-garmin').should('not.exist')
+
+    // Then wait for it to appear in connected list (longer timeout for IndexedDB operation)
+    cy.getByTestId('connected-provider-garmin', { timeout: 10000 }).should('be.visible')
+
+    // Wait a bit for Vue to finish rendering the router-link
+    cy.wait(500)
 
     // Click Configure to go to the Garmin setup page
-    cy.getByTestId('configure-provider-garmin').click()
-    cy.url().should('match', /data-provider\/garmin/)
+    // Use .within() to ensure we click on the correct element and scroll it into view
+    cy.getByTestId('connected-provider-garmin').within(() => {
+      cy.getByTestId('configure-provider-garmin')
+        .should('be.visible')
+        .scrollIntoView()
+        .click()
+    })
+
+    // Wait for navigation to complete
+    cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
     // Simule retour OAuth avec tokens
     cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')

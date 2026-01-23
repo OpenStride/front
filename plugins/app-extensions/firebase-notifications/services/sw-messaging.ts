@@ -6,6 +6,9 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getMessaging, onBackgroundMessage, type Messaging } from 'firebase/messaging/sw';
 
+// Type declaration for Service Worker global scope
+declare const self: ServiceWorkerGlobalScope;
+
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -73,7 +76,7 @@ export function setupBackgroundMessageHandler(messaging: Messaging): void {
  * Handle notification click
  */
 export function setupNotificationClickHandler(): void {
-    self.addEventListener('notificationclick', (event: NotificationEvent) => {
+    self.addEventListener('notificationclick', (event) => {
         console.log('[SW Firebase] Notification clicked:', event.notification.tag);
 
         event.notification.close();

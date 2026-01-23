@@ -1,16 +1,16 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import ProfilePage from "@/views/ProfilePage.vue";
-import MyActivities from '@/views/MyActivities.vue';
-import ActivityDetails from '@/views/ActivityDetails.vue';
-import HomePage from '@/views/HomePage.vue';
-import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue';
-import LegalPage from '@/views/LegalPage.vue';
-import CGUPage from '@/views/CGUPage.vue';
-import Callback from '@/views/Callback.vue';
-import FriendsPage from '@/views/FriendsPage.vue';
-import AddFriendPage from '@/views/AddFriendPage.vue';
-import { getActivityService } from '@/services/ActivityService';
-import { IndexedDBService } from '@/services/IndexedDBService';
+import { createRouter, createWebHistory } from 'vue-router'
+import ProfilePage from '@/views/ProfilePage.vue'
+import MyActivities from '@/views/MyActivities.vue'
+import ActivityDetails from '@/views/ActivityDetails.vue'
+import HomePage from '@/views/HomePage.vue'
+import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue'
+import LegalPage from '@/views/LegalPage.vue'
+import CGUPage from '@/views/CGUPage.vue'
+import Callback from '@/views/Callback.vue'
+import FriendsPage from '@/views/FriendsPage.vue'
+import AddFriendPage from '@/views/AddFriendPage.vue'
+import { getActivityService } from '@/services/ActivityService'
+import { IndexedDBService } from '@/services/IndexedDBService'
 
 const routes = [
   { path: '/', component: HomePage },
@@ -39,7 +39,7 @@ const routes = [
     component: ActivityDetails,
     name: 'ActivityDetails'
   },
-  { path: "/profile", component: ProfilePage },
+  { path: '/profile', component: ProfilePage },
   {
     path: '/data-provider/:id',
     name: 'ProviderSetup',
@@ -54,42 +54,42 @@ const routes = [
   { path: '/data-providers', redirect: '/profile?tab=data-sources' },
   { path: '/storage-providers', redirect: '/profile?tab=cloud-backup' },
   { path: '/app-extensions', redirect: '/profile?tab=app-extensions' }
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
-});
+})
 
 router.beforeEach(async (to, from, next) => {
   // Empêcher accès à /onboarding si déjà complété
   if (to.path === '/onboarding') {
-    const db = await IndexedDBService.getInstance();
-    const state = await db.getData('onboarding_state');
+    const db = await IndexedDBService.getInstance()
+    const state = await db.getData('onboarding_state')
     if (state?.completed) {
-      return next('/my-activities');
+      return next('/my-activities')
     }
   }
 
   // Rediriger home vers activities si l'utilisateur a des données
   if (to.path === '/') {
     // Check own activities
-    const activityService = await getActivityService();
-    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 });
+    const activityService = await getActivityService()
+    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 })
 
     // Check friend activities
-    const db = await IndexedDBService.getInstance();
-    const friendActivities = await db.getAllData('friend_activities');
+    const db = await IndexedDBService.getInstance()
+    const friendActivities = await db.getAllData('friend_activities')
 
     // If user has ANY activities (own or friends), stay on HomePage
     // HomePage will show the mixed feed via ActivityFeedService
     if (ownActivities.length > 0 || friendActivities.length > 0) {
       // Don't redirect, let HomePage show the activity feed
-      return next();
+      return next()
     }
   }
 
-  next(); // continue normalement
-});
+  next() // continue normalement
+})
 
-export default router;
+export default router

@@ -1,6 +1,6 @@
 <script setup>
-import AppHeader from "@/components/AppHeader.vue";
-import ToastContainer from "@/components/ToastContainer.vue";
+import AppHeader from '@/components/AppHeader.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
 </script>
 
 <template>
@@ -12,10 +12,14 @@ import ToastContainer from "@/components/ToastContainer.vue";
     <ToastContainer />
     <footer class="footer">
       <p>
-        <a href="/legal">Privacy Policy</a> |
-        <a href="/cgu">Terms of Service</a> |
-        <a href="https://discord.gg/V7HHvHC4t7" target="_blank" rel="noopener noreferrer">Discord</a> |
-        <a href="https://github.com/OpenStride/front" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="/legal">Privacy Policy</a> | <a href="/cgu">Terms of Service</a> |
+        <a href="https://discord.gg/V7HHvHC4t7" target="_blank" rel="noopener noreferrer"
+          >Discord</a
+        >
+        |
+        <a href="https://github.com/OpenStride/front" target="_blank" rel="noopener noreferrer"
+          >GitHub</a
+        >
       </p>
     </footer>
   </div>

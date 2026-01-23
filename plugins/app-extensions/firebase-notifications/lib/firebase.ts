@@ -35,6 +35,11 @@ export function initializeFirebase(): { app: FirebaseApp; messaging: Messaging }
             console.log('[Firebase Notifications] Initialized successfully');
         }
 
+        // At this point, both app and messaging are guaranteed to be non-null
+        if (!messaging) {
+            throw new Error('Messaging initialization failed');
+        }
+
         return { app, messaging };
     } catch (error) {
         console.error('[Firebase Notifications] Initialization failed:', error);

@@ -38,7 +38,11 @@
         </div>
 
         <div v-if="photoPreview" class="flex justify-center">
-          <img :src="photoPreview" :alt="t('profile.profilePhoto')" class="w-24 h-24 rounded-full object-cover border" />
+          <img
+            :src="photoPreview"
+            :alt="t('profile.profilePhoto')"
+            class="w-24 h-24 rounded-full object-cover border"
+          />
         </div>
 
         <button
@@ -62,10 +66,7 @@
 
         <p class="text-lg font-semibold">{{ savedProfile.username }}</p>
 
-        <button
-          @click="editProfile"
-          class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md"
-        >
+        <button @click="editProfile" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md">
           {{ t('profile.editProfile') }}
         </button>
       </div>
@@ -145,7 +146,6 @@
         {{ t('profile.athlete.saveSuccess') }}
       </div>
     </div>
-
   </div>
 </template>
 
@@ -199,11 +199,11 @@ onMounted(async () => {
 
 // Identity functions
 const cropImageToSquare = (file: File): Promise<string> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const img = new Image()
     const reader = new FileReader()
 
-    reader.onload = (e) => {
+    reader.onload = e => {
       img.src = e.target?.result as string
     }
 
@@ -228,7 +228,7 @@ const cropImageToSquare = (file: File): Promise<string> => {
 const onFileChange = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (file) {
-    cropImageToSquare(file).then((dataURL) => {
+    cropImageToSquare(file).then(dataURL => {
       photoPreview.value = dataURL
     })
   }

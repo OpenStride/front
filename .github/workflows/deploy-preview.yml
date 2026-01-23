@@ -1,0 +1,91 @@
+name: Deploy Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: deploy-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview to Firebase
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production
+        run: npm run build:prod
+        env:
+          VITE_APP_BASE_URL: https://openstride.org
+
+      - name: Deploy to Firebase Hosting Preview Channel
+        uses: FirebaseExtended/action-hosting-deploy@v0.10.0
+        id: deploy
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+          projectId: openstrive-edd63
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const previewUrl = '${{ steps.deploy.outputs.details_url }}';
+            const comment = `## Preview Deployment
+
+            Your preview deployment is ready!
+
+            **Preview URL:** ${previewUrl}
+            **Channel:** \`pr-${{ github.event.pull_request.number }}\`
+            **Expires:** 7 days
+
+            ---
+            *Preview deployments are automatically cleaned up when the PR is closed.*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  cleanup-preview:
+    name: Cleanup Preview Channel
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Delete preview channel
+        run: |
+          npx firebase-tools hosting:channel:delete pr-${{ github.event.pull_request.number }} \
+            --project openstrive-edd63 \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --force || echo "Channel may not exist or already deleted"

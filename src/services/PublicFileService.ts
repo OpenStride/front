@@ -10,8 +10,8 @@
  * pattern as StorageService for backup operations.
  */
 
-import { StoragePluginManager } from './StoragePluginManager';
-import type { StoragePlugin } from '@/types/storage';
+import { StoragePluginManager } from './StoragePluginManager'
+import type { StoragePlugin } from '@/types/storage'
 
 /**
  * PublicFileService - Main service for public file operations
@@ -20,19 +20,19 @@ import type { StoragePlugin } from '@/types/storage';
  * that supports public file sharing (supportsPublicFiles: true)
  */
 export class PublicFileService {
-  private static instance: PublicFileService;
-  private pluginManager: StoragePluginManager;
-  private cachedPlugin: StoragePlugin | null = null;
+  private static instance: PublicFileService
+  private pluginManager: StoragePluginManager
+  private cachedPlugin: StoragePlugin | null = null
 
   private constructor() {
-    this.pluginManager = StoragePluginManager.getInstance();
+    this.pluginManager = StoragePluginManager.getInstance()
   }
 
   public static getInstance(): PublicFileService {
     if (!PublicFileService.instance) {
-      PublicFileService.instance = new PublicFileService();
+      PublicFileService.instance = new PublicFileService()
     }
-    return PublicFileService.instance;
+    return PublicFileService.instance
   }
 
   /**
@@ -43,22 +43,22 @@ export class PublicFileService {
   private async getPublicFilePlugin(): Promise<StoragePlugin | null> {
     // Return cached plugin if available
     if (this.cachedPlugin) {
-      return this.cachedPlugin;
+      return this.cachedPlugin
     }
 
-    const enabledPlugins = await this.pluginManager.getMyStoragePlugins();
+    const enabledPlugins = await this.pluginManager.getMyStoragePlugins()
 
     // Find first plugin that supports public files
-    const plugin = enabledPlugins.find(p => p.supportsPublicFiles === true);
+    const plugin = enabledPlugins.find(p => p.supportsPublicFiles === true)
 
     if (!plugin) {
-      console.warn('[PublicFileService] No enabled storage plugin supports public files');
-      return null;
+      console.warn('[PublicFileService] No enabled storage plugin supports public files')
+      return null
     }
 
     // Cache the plugin
-    this.cachedPlugin = plugin;
-    return plugin;
+    this.cachedPlugin = plugin
+    return plugin
   }
 
   /**
@@ -66,39 +66,39 @@ export class PublicFileService {
    * Returns the public URL for accessing the file
    */
   public async writePublicFile(filename: string, content: any): Promise<string | null> {
-    const plugin = await this.getPublicFilePlugin();
+    const plugin = await this.getPublicFilePlugin()
     if (!plugin?.writePublicFile) {
-      console.error('[PublicFileService] No plugin available for writePublicFile');
-      return null;
+      console.error('[PublicFileService] No plugin available for writePublicFile')
+      return null
     }
 
-    return await plugin.writePublicFile(filename, content);
+    return await plugin.writePublicFile(filename, content)
   }
 
   /**
    * Delete a file from public storage by its ID
    */
   public async deleteFile(fileId: string): Promise<boolean> {
-    const plugin = await this.getPublicFilePlugin();
+    const plugin = await this.getPublicFilePlugin()
     if (!plugin?.deleteFile) {
-      console.error('[PublicFileService] No plugin available for deleteFile');
-      return false;
+      console.error('[PublicFileService] No plugin available for deleteFile')
+      return false
     }
 
-    return await plugin.deleteFile(fileId);
+    return await plugin.deleteFile(fileId)
   }
 
   /**
    * Get the public URL for an existing file
    */
   public async getPublicFileUrl(filename: string): Promise<string | null> {
-    const plugin = await this.getPublicFilePlugin();
+    const plugin = await this.getPublicFilePlugin()
     if (!plugin?.getPublicFileUrl) {
-      console.error('[PublicFileService] No plugin available for getPublicFileUrl');
-      return null;
+      console.error('[PublicFileService] No plugin available for getPublicFileUrl')
+      return null
     }
 
-    return await plugin.getPublicFileUrl(filename);
+    return await plugin.getPublicFileUrl(filename)
   }
 
   /**
@@ -108,20 +108,20 @@ export class PublicFileService {
   public extractFileIdFromUrl(url: string): string | null {
     // Try to use cached plugin's parser
     if (this.cachedPlugin?.extractFileIdFromUrl) {
-      return this.cachedPlugin.extractFileIdFromUrl(url);
+      return this.cachedPlugin.extractFileIdFromUrl(url)
     }
 
     // Fallback: Generic parser that works with Google Drive format
     // https://drive.google.com/uc?id={fileId}&export=download
-    const match = url.match(/[?&]id=([^&]+)/);
-    return match ? match[1] : null;
+    const match = url.match(/[?&]id=([^&]+)/)
+    return match ? match[1] : null
   }
 
   /**
    * Check if any enabled plugin supports public file sharing
    */
   public async hasPublicFileSupport(): Promise<boolean> {
-    const plugin = await this.getPublicFilePlugin();
-    return plugin !== null;
+    const plugin = await this.getPublicFilePlugin()
+    return plugin !== null
   }
 }
