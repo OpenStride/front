@@ -63,6 +63,7 @@ jobs:
 
       - name: Compare bundle sizes
         id: compare
+        continue-on-error: true
         run: |
           CURRENT=${{ steps.current.outputs.size }}
           BASE=${{ steps.base.outputs.size }}
@@ -80,6 +81,7 @@ jobs:
           # Alert if increase is more than 5%
           if (( $(echo "$PERCENT > 5" | bc -l) )); then
             echo "::warning::Bundle size increased by $PERCENT% (threshold: 5%)"
+            echo "exceeded=true" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -128,3 +130,7 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+      - name: Fail if threshold exceeded
+        if: steps.compare.outputs.exceeded == 'true'
+        run: exit 1

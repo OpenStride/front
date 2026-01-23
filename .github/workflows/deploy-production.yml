@@ -18,8 +18,6 @@ jobs:
   deploy:
     name: Deploy to Firebase Hosting
     runs-on: ubuntu-latest
-    # Only deploy if CI passed
-    needs: []
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.1
