@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Wait for deployment
         run: |
@@ -22,7 +22,7 @@ jobs:
           sleep 30
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12.1.0
+        uses: treosh/lighthouse-ci-action@v12.6.1
         with:
           urls: |
             https://openstride.org
@@ -84,10 +84,10 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
 
@@ -100,7 +100,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Lighthouse results
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: lighthouse-results

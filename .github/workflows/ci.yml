@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -34,10 +34,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -57,10 +57,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -72,7 +72,7 @@ jobs:
         run: npm run test:unit -- --coverage --run
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: coverage-report
@@ -90,10 +90,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -105,16 +105,15 @@ jobs:
         run: npx cypress install
 
       - name: Run Cypress E2E tests
-        uses: cypress-io/github-action@v6.7.6
+        uses: cypress-io/github-action@v7.0.0
         with:
           start: npm run dev
           wait-on: 'http://localhost:3000'
           wait-on-timeout: 120
           browser: chrome
-          headless: true
 
       - name: Upload Cypress screenshots
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v6.0.0
         if: failure()
         with:
           name: cypress-screenshots
@@ -122,7 +121,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Cypress videos
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v6.0.0
         if: always()
         with:
           name: cypress-videos
@@ -135,10 +134,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -152,7 +151,7 @@ jobs:
           VITE_APP_BASE_URL: https://openstride.org
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: dist
           path: dist/
