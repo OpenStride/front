@@ -28,14 +28,20 @@
           </router-link>
         </li>
       </ul>
-      <p v-else class="text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200" data-test="no-providers-message">
+      <p
+        v-else
+        class="text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200"
+        data-test="no-providers-message"
+      >
         {{ t('dataProviders.noProviders') }}
       </p>
     </section>
 
     <!-- Available Providers -->
     <section data-test="available-providers-section">
-      <h3 class="text-lg font-semibold mb-3" data-test="available-providers-title">{{ t('dataProviders.available') }}</h3>
+      <h3 class="text-lg font-semibold mb-3" data-test="available-providers-title">
+        {{ t('dataProviders.available') }}
+      </h3>
       <ul class="space-y-3" data-test="available-providers-list">
         <li
           v-for="provider in availableProviders"
