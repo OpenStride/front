@@ -72,7 +72,7 @@ export class MigrationService {
     }
 
     // Check for duplicate versions
-    const existing = this.migrations.find((m) => m.version === migration.version)
+    const existing = this.migrations.find(m => m.version === migration.version)
     if (existing) {
       console.warn(
         `[MigrationService] Migration for version ${migration.version} already registered`
@@ -81,7 +81,9 @@ export class MigrationService {
     }
 
     this.migrations.push(migration)
-    console.log(`[MigrationService] Registered migration: ${migration.version} - ${migration.description}`)
+    console.log(
+      `[MigrationService] Registered migration: ${migration.version} - ${migration.description}`
+    )
   }
 
   /**
@@ -92,7 +94,7 @@ export class MigrationService {
 
     // Get pending migrations
     const pending = this.migrations
-      .filter((m) => {
+      .filter(m => {
         const afterFrom = compareVersions(m.version, fromVersion) > 0
         const beforeOrEqualTo = compareVersions(m.version, toVersion) <= 0
         return afterFrom && beforeOrEqualTo
@@ -223,10 +225,12 @@ export class MigrationService {
     }
 
     const lastMigration = history[history.length - 1]
-    const migration = this.migrations.find((m) => m.version === lastMigration.version)
+    const migration = this.migrations.find(m => m.version === lastMigration.version)
 
     if (!migration || !migration.down) {
-      console.error(`[MigrationService] Cannot rollback ${lastMigration.version}: no down() defined`)
+      console.error(
+        `[MigrationService] Cannot rollback ${lastMigration.version}: no down() defined`
+      )
       return
     }
 

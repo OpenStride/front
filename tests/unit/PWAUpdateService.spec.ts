@@ -3,8 +3,8 @@ import { PWAUpdateService } from '@/services/PWAUpdateService'
 import { Workbox } from 'workbox-window'
 
 // Mock global constants
-global.__APP_VERSION__ = '0.1.0'
-global.__BUILD_TIME__ = '2026-01-23T00:00:00.000Z'
+;(global as any).__APP_VERSION__ = '0.1.0'
+;(global as any).__BUILD_TIME__ = '2026-01-23T00:00:00.000Z'
 
 // Mock Workbox
 vi.mock('workbox-window', () => ({
@@ -32,11 +32,11 @@ Object.defineProperty(global.navigator, 'serviceWorker', {
 describe('PWAUpdateService', () => {
   let service: PWAUpdateService
   let mockWb: any
-  let eventListeners: Map<string, Function>
+  let eventListeners: Map<string, (...args: any[]) => void>
 
   beforeEach(() => {
     // Reset singleton
-    // @ts-ignore - accessing private static property for testing
+    // @ts-expect-error - accessing private static property for testing
     PWAUpdateService.instance = null
 
     // Setup event listener tracking
@@ -44,14 +44,14 @@ describe('PWAUpdateService', () => {
 
     // Mock Workbox instance
     mockWb = {
-      addEventListener: vi.fn((event: string, handler: Function) => {
+      addEventListener: vi.fn((event: string, handler: (...args: any[]) => void) => {
         eventListeners.set(event, handler)
       }),
       register: vi.fn().mockResolvedValue(undefined),
       messageSkipWaiting: vi.fn()
     }
 
-    // @ts-ignore
+    // @ts-expect-error - Workbox is mocked via vi.mock
     Workbox.mockImplementation(function () {
       return mockWb
     })
@@ -76,9 +76,9 @@ describe('PWAUpdateService', () => {
   describe('Initialization', () => {
     it('should skip initialization if service worker not supported', async () => {
       const originalNavigator = global.navigator
-      // @ts-ignore
+      // @ts-expect-error - testing unsupported environment
       delete global.navigator
-      // @ts-ignore
+      // @ts-expect-error - testing unsupported environment
       global.navigator = {}
 
       await service.initialize()
@@ -293,7 +293,7 @@ describe('PWAUpdateService', () => {
 
     it('should not call messageSkipWaiting if no update available', async () => {
       // Reset singleton to clear update state
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       PWAUpdateService.instance = null
       service = PWAUpdateService.getInstance()
 
@@ -354,7 +354,7 @@ describe('PWAUpdateService', () => {
     })
 
     it('should return false if Workbox not initialized', async () => {
-      // @ts-ignore
+      // @ts-expect-error - accessing private property for testing
       service.wb = null
 
       const result = await service.checkForUpdate()

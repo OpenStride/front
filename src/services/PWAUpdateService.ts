@@ -63,7 +63,7 @@ export class PWAUpdateService {
       })
 
       // Listen for waiting service worker (prompt mode)
-      this.wb.addEventListener('waiting', (event) => {
+      this.wb.addEventListener('waiting', event => {
         console.log('[PWAUpdateService] New service worker waiting, showing prompt')
 
         this.newWorker = event.sw || null
@@ -82,7 +82,7 @@ export class PWAUpdateService {
       })
 
       // New service worker installed (prompt mode)
-      this.wb.addEventListener('installed', (event) => {
+      this.wb.addEventListener('installed', event => {
         console.log('[PWAUpdateService] Service worker installed')
 
         if (!event.isUpdate) {
@@ -109,7 +109,7 @@ export class PWAUpdateService {
       })
 
       // Service worker activated
-      this.wb.addEventListener('activated', (event) => {
+      this.wb.addEventListener('activated', event => {
         console.log('[PWAUpdateService] Service worker activated')
 
         if (!event.isUpdate) {

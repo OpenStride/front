@@ -26,7 +26,7 @@ async function bootstrap() {
     const migrationService = getMigrationService()
 
     // Register all migrations
-    migrations.forEach((m) => migrationService.register(m))
+    migrations.forEach(m => migrationService.register(m))
 
     try {
       // Run pending migrations

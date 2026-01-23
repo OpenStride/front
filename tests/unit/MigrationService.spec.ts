@@ -56,7 +56,7 @@ describe('MigrationService', () => {
 
   beforeEach(() => {
     // Reset singleton
-    // @ts-ignore
+    // @ts-expect-error - accessing private property for testing
     MigrationService.instance = null
     service = MigrationService.getInstance()
   })
@@ -64,7 +64,7 @@ describe('MigrationService', () => {
   afterEach(async () => {
     const { IndexedDBService } = await import('@/services/IndexedDBService')
     const db = await IndexedDBService.getInstance()
-    // @ts-ignore
+    // @ts-expect-error - clearData() is a test helper method
     db.clearData()
     vi.clearAllMocks()
   })
@@ -482,7 +482,7 @@ describe('MigrationService', () => {
         }
       ]
 
-      // @ts-ignore
+      // @ts-expect-error - setData() is a test helper method
       db.setData('migration_history', mockHistory)
 
       const history = await service.getHistory()
@@ -494,7 +494,7 @@ describe('MigrationService', () => {
       const db = await IndexedDBService.getInstance()
 
       // Pre-populate history
-      // @ts-ignore
+      // @ts-expect-error - setData() is a test helper method
       db.setData('migration_history', [
         {
           version: '0.1.0',

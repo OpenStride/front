@@ -1,5 +1,5 @@
 <template>
-  <!-- Pas de template visible, juste un listener -->
+  <div></div>
 </template>
 
 <script setup lang="ts">
