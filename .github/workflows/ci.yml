@@ -12,25 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  setup-and-cache:
-    name: Setup and Cache
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.2.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
   lint-and-typecheck:
     name: Lint and Type Check
-    needs: setup-and-cache
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -53,7 +36,6 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    needs: setup-and-cache
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -86,7 +68,6 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    needs: setup-and-cache
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -130,7 +111,6 @@ jobs:
 
   build-validation:
     name: Build Validation
-    needs: setup-and-cache
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

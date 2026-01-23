@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "VITE_APP_BASE_URL=https://openstride.org vite build",
+    "build:prod": "cross-env VITE_APP_BASE_URL=https://openstride.org vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.vue",
     "format": "prettier --write \"src/**/*.{ts,vue,js,json,md}\"",
@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21",
+    "cross-env": "^7.0.3",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
     "@vite-pwa/assets-generator": "^1.0.2",
