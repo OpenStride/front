@@ -36,8 +36,12 @@ describe('Garmin provider refresh (mock UI flow)', () => {
       cy.getByTestId('add-provider-garmin').click()
     })
 
-    // Wait for the provider to be added
-    cy.getByTestId('connected-provider-garmin').should('be.visible')
+    // Wait for the provider to be moved from available to connected
+    // First, wait for it to disappear from available list
+    cy.getByTestId('available-provider-garmin').should('not.exist')
+
+    // Then wait for it to appear in connected list (longer timeout for IndexedDB operation)
+    cy.getByTestId('connected-provider-garmin', { timeout: 10000 }).should('be.visible')
 
     // Click Configure to go to the Garmin setup page
     cy.getByTestId('configure-provider-garmin').click()
