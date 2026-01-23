@@ -1,5 +1,6 @@
 export interface Friend {
-  id: string;                    // unique friend ID (hash of their public URL)
+  id: string;                    // unique friend ID (hash of their public URL for backwards compat)
+  userId?: string;               // stable user ID from their manifest (new: user_xxx format)
   username: string;              // display name
   profilePhoto?: string;         // base64 encoded image
   bio?: string;                  // optional bio
@@ -10,6 +11,7 @@ export interface Friend {
   syncEnabled: boolean;         // allow pausing sync for specific friend
   lastSyncTime?: number | null; // last sync timestamp
   fullySynced?: boolean;        // true if all years have been synced
+  followsMe?: boolean;          // true if this friend has us in their "following" list (mutual friendship)
 }
 
 export interface FriendActivity {
@@ -34,6 +36,7 @@ export interface PublicManifest {
   version: 1;
   lastModified: number;         // timestamp of last update
   profile: {
+    userId?: string;            // stable user ID (user_xxx format) - new in v1.1
     username: string;
     profilePhoto?: string;      // base64 encoded
     bio?: string;
@@ -45,9 +48,20 @@ export interface PublicManifest {
   };
   availableYears: Array<{
     year: number;
-    fileUrl: string;            // Google Drive public URL for activities-YYYY.json
+    fileUrl: string;            // Public URL for activities-YYYY.json
     activityCount: number;
     lastModified: number;
+  }>;
+  // Interaction years (likes/comments)
+  availableInteractionYears?: Array<{
+    year: number;
+    fileUrl: string;            // Public URL for interactions-YYYY.json
+    lastModified: number;
+  }>;
+  // List of users this person follows (for mutual friendship detection)
+  following?: Array<{
+    userId: string;             // stable user ID of the person followed
+    since: number;              // timestamp when added
   }>;
 }
 
@@ -82,7 +96,8 @@ export interface FriendSyncResult {
  */
 export interface FriendServiceEvent {
   type: 'friend-added' | 'friend-removed' | 'sync-completed' | 'publish-completed' |
-        'publish-warning' | 'publish-error' | 'friend-error' | 'refresh-completed';
+        'publish-warning' | 'publish-error' | 'friend-error' | 'refresh-completed' |
+        'mutual-friendship-discovered';
   friend?: Friend;
   syncResult?: FriendSyncResult;
   publishUrl?: string;

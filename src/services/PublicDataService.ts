@@ -1,6 +1,7 @@
 import { IndexedDBService } from './IndexedDBService';
+import { getInteractionService } from './InteractionService';
 import type { Activity, ActivityDetails } from '@/types/activity';
-import type { PublicManifest, PublicActivity, YearActivities } from '@/types/friend';
+import type { PublicManifest, PublicActivity, YearActivities, Friend } from '@/types/friend';
 
 export class PublicDataService {
   private static instance: PublicDataService;
@@ -114,6 +115,10 @@ export class PublicDataService {
    */
   public async generateManifest(yearFiles: Map<number, YearActivities>): Promise<PublicManifest> {
     const db = await IndexedDBService.getInstance();
+    const interactionService = getInteractionService();
+
+    // Get or generate stable user ID (generated ONCE, stored permanently)
+    const userId = await interactionService.generateAndStoreUserId();
 
     // Get profile info from settings
     const username = await db.getData('username') || 'OpenStride User';
@@ -143,10 +148,20 @@ export class PublicDataService {
       }))
       .sort((a, b) => b.year - a.year); // Newest year first
 
+    // Build following list (for mutual friendship detection)
+    const friends = await db.getAllData('friends') as Friend[];
+    const following = friends
+      .filter(f => f.userId) // Only include friends with stable userId
+      .map(f => ({
+        userId: f.userId!,
+        since: f.addedAt
+      }));
+
     return {
       version: 1,
       lastModified: Date.now(),
       profile: {
+        userId,  // Stable user ID for interactions
         username,
         profilePhoto,
         bio
@@ -156,7 +171,8 @@ export class PublicDataService {
         totalDistance,
         totalDuration
       },
-      availableYears
+      availableYears,
+      following: following.length > 0 ? following : undefined
     };
   }
 
