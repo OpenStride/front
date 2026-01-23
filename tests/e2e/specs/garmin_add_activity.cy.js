@@ -43,9 +43,20 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Then wait for it to appear in connected list (longer timeout for IndexedDB operation)
     cy.getByTestId('connected-provider-garmin', { timeout: 10000 }).should('be.visible')
 
+    // Wait a bit for Vue to finish rendering the router-link
+    cy.wait(500)
+
     // Click Configure to go to the Garmin setup page
-    cy.getByTestId('configure-provider-garmin').click()
-    cy.url().should('match', /data-provider\/garmin/)
+    // Use .within() to ensure we click on the correct element and scroll it into view
+    cy.getByTestId('connected-provider-garmin').within(() => {
+      cy.getByTestId('configure-provider-garmin')
+        .should('be.visible')
+        .scrollIntoView()
+        .click()
+    })
+
+    // Wait for navigation to complete
+    cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
     // Simule retour OAuth avec tokens
     cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')
