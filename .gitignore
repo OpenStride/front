@@ -6,6 +6,9 @@ node_modules
 /tests/e2e/videos/
 /tests/e2e/screenshots/
 
+# Cypress artifacts
+/cypress/
+
 .firebase/*.cache
 
 /tmp
