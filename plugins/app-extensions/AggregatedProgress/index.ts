@@ -1,6 +1,6 @@
 import type { ExtensionPlugin } from '@/types/extension';
 
-const AggregatedProgressWidget = () => import('@plugins/app-extensions/AggregatedProgress/AggregatedProgressWidget.vue');
+const AggregatedProgressWidget = () => import('./AggregatedProgressWidget.vue');
 
 const plugin: ExtensionPlugin = {
   id: 'aggregated-progress',

@@ -37,7 +37,7 @@ export default {
     async setupComponent() {
         // Initialize service when user clicks to configure
         await ensureInitialized();
-        return import('@plugins/app-extensions/firebase-notifications/components/NotificationSettings.vue');
+        return import('./components/NotificationSettings.vue');
     },
 
     slots: {
@@ -45,7 +45,7 @@ export default {
             async () => {
                 // Also initialize when settings widget loads
                 await ensureInitialized();
-                return (await import('@plugins/app-extensions/firebase-notifications/components/NotificationSettings.vue')).default;
+                return (await import('./components/NotificationSettings.vue')).default;
             }
         ]
     }

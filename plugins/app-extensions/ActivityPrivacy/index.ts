@@ -5,7 +5,7 @@ export default {
   label: 'Activity Privacy Controls',
   slots: {
     'activity.top': [
-      () => import('@plugins/app-extensions/ActivityPrivacy/PrivacyToggle.vue')
+      () => import('./PrivacyToggle.vue')
     ]
   }
 } as ExtensionPlugin;
