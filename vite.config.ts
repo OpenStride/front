@@ -14,6 +14,7 @@ export default defineConfig({
         srcDir: 'src',
         filename: 'sw.ts',
         manifest: {
+            id: '/',
             name: 'OpenStride',
             short_name: 'OpenStride',
             description: 'Your activity companion that respects your privacy',
