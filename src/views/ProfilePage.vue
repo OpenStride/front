@@ -143,7 +143,7 @@ onMounted(async () => {
 // Watch for active tab changes and load component if needed
 watch(
   activeTab,
-  async (newTabId) => {
+  async newTabId => {
     const tab = allTabs.value.find(t => t.id === newTabId)
     if (tab && tab.loader && !loadedComponents.value[newTabId]) {
       try {
