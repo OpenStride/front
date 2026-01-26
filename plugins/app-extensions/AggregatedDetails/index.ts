@@ -7,7 +7,7 @@ const AggregatedDetailsPlugin: ExtensionPlugin = {
     icon: 'fas fa-trophy',
     slots: {
         'activity.widgets': [
-            async () => (await import('./ActivityBests.vue')).default
+            async () => (await import('@plugins/app-extensions/AggregatedDetails/ActivityBests.vue')).default
         ],
         'activity.top': [
 

@@ -6,12 +6,12 @@ const StandardDetailsPlugin: ExtensionPlugin = {
     description: 'Display heart rate, cadence, speed graphs and zones for each activity',
     icon: 'fas fa-heart-pulse',
     slots: {
-        'activity.top': [async () => (await import('./ActivityTopBlock.vue')).default],
+        'activity.top': [async () => (await import('@plugins/app-extensions/StandardDetails/ActivityTopBlock.vue')).default],
         'activity.widgets': [
-            async () => (await import('./HeartRateGraph.vue')).default,
-            async () => (await import('./HeartZoneGraph.vue')).default,
-            async () => (await import('./SpeedSampled.vue')).default,
-            async () => (await import('./CadenceGraph.vue')).default,
+            async () => (await import('@plugins/app-extensions/StandardDetails/HeartRateGraph.vue')).default,
+            async () => (await import('@plugins/app-extensions/StandardDetails/HeartZoneGraph.vue')).default,
+            async () => (await import('@plugins/app-extensions/StandardDetails/SpeedSampled.vue')).default,
+            async () => (await import('@plugins/app-extensions/StandardDetails/CadenceGraph.vue')).default,
             //async () => (await import('./SpeedPerKM.vue')).default
         ]
     }

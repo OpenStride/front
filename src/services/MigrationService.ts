@@ -34,12 +34,13 @@ export interface MigrationEvent {
     | 'migration-started' // Migration sequence started
     | 'migration-progress' // Individual migration running
     | 'migration-completed' // All migrations done
-    | 'migration-failed' // Migration error (rollback)
+    | 'migration-failed' // Migration error (stops process)
   fromVersion?: string
   toVersion?: string
   currentMigration?: string
   progress?: number // 0-100
   error?: string
+  failedMigration?: string // Version of migration that failed
 }
 
 export class MigrationService {
@@ -178,17 +179,27 @@ export class MigrationService {
         history.push(record)
         await db.saveData('migration_history', history)
 
+        // Enhanced error message with migration details
+        const errorMessage = `Migration ${migration.version} failed: ${String(error)}`
+
         this.emitter.dispatchEvent(
           new CustomEvent<MigrationEvent>('migration-failed', {
             detail: {
               type: 'migration-failed',
-              error: String(error)
+              error: errorMessage,
+              failedMigration: migration.version
             }
           })
         )
 
-        // Continue with remaining migrations (graceful degradation)
-        console.log('[MigrationService] Continuing with remaining migrations...')
+        // Stop on first failure to prevent cascade errors
+        // Rationale:
+        // - Subsequent migrations may depend on failed migration
+        // - Prevents data corruption from incomplete migration state
+        // - Easier to debug single failure vs cascade
+        // - Rollback already attempted, continuing makes no sense
+        console.error('[MigrationService] ⛔ Stopping migration process due to failure')
+        throw new Error(errorMessage)
       }
     }
 

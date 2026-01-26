@@ -7,7 +7,7 @@ export default {
   icon: 'fas fa-share-nodes',
   slots: {
     'profile.tabs': [
-      () => import('./ProfileSharingTab.vue')
+      () => import('@plugins/app-extensions/ProfileSharing/ProfileSharingTab.vue')
     ]
   },
   // Metadata for profile tab

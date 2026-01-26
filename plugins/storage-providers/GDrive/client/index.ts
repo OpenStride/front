@@ -8,7 +8,7 @@ import { IndexedDBService } from '@/services/IndexedDBService'
 const GDriveBackupPlugin: StoragePlugin = {
     id: 'gdrive',
     label: 'Google Drive',
-    setupComponent: async () => (await import('./GDriveSetup.vue')).default,
+    setupComponent: async () => (await import('@plugins/storage-providers/GDrive/client/GDriveSetup.vue')).default,
     //syncData: GoogleDriveSync,
     readRemote: readRemote,
     writeRemote: writeRemote,

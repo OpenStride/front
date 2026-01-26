@@ -5,7 +5,7 @@ import { GarminRefresh } from './GarminService'
 const GarminProvider: ProviderPlugin = {
     id: 'garmin',
     label: 'Garmin',
-    setupComponent: async () => (await import('./GarminSetup.vue')).default,
+    setupComponent: async () => (await import('@plugins/data-providers/GarminProvider/client/GarminSetup.vue')).default,
     icon: new URL('../assets/logo.png', import.meta.url).href,
     refreshData: GarminRefresh,
 }

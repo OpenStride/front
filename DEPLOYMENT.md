@@ -278,15 +278,6 @@ OpenStride utilise GitHub Actions pour automatiser les tests, le build et le dé
 
 **Expiration** : 7 jours
 
-#### 6. Bundle Size (.github/workflows/bundle-size.yml)
-
-**Déclencheur** : Pull requests
-
-**Actions** :
-- Compare la taille du bundle avec la branche de base
-- Alerte si augmentation >5%
-- Commentaire PR avec analyse détaillée
-
 #### 7. Lighthouse Performance (.github/workflows/lighthouse.yml)
 
 **Déclencheur** : Après déploiement production réussi

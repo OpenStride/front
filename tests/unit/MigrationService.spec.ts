@@ -253,7 +253,7 @@ describe('MigrationService', () => {
       expect(history[0].executedAt).toBeGreaterThan(0)
     })
 
-    it('should continue on migration failure (graceful degradation)', async () => {
+    it('should stop on migration failure', async () => {
       const m1: Migration = {
         version: '0.2.0',
         description: 'Failing migration',
@@ -264,22 +264,25 @@ describe('MigrationService', () => {
 
       const m2: Migration = {
         version: '0.3.0',
-        description: 'Should still run',
+        description: 'Should NOT run',
         up: vi.fn()
       }
 
       service.register(m1)
       service.register(m2)
 
-      await service.runMigrations('0.1.0', '0.3.0')
+      // Should throw error and stop
+      await expect(service.runMigrations('0.1.0', '0.3.0')).rejects.toThrow(
+        'Migration 0.2.0 failed: Error: Migration failed'
+      )
 
       expect(m1.up).toHaveBeenCalled()
-      expect(m2.up).toHaveBeenCalled() // Graceful degradation
+      expect(m2.up).not.toHaveBeenCalled() // Stopped after first failure
 
       const history = await service.getHistory()
+      expect(history.length).toBe(1)
       expect(history[0].success).toBe(false)
       expect(history[0].error).toContain('Migration failed')
-      expect(history[1].success).toBe(true)
     })
 
     it('should attempt rollback on failure if down() defined', async () => {
@@ -295,7 +298,11 @@ describe('MigrationService', () => {
       }
 
       service.register(migration)
-      await service.runMigrations('0.1.0', '0.2.0')
+
+      // Should throw error after attempting rollback
+      await expect(service.runMigrations('0.1.0', '0.2.0')).rejects.toThrow(
+        'Migration 0.2.0 failed: Error: Failed'
+      )
 
       expect(downFn).toHaveBeenCalled()
     })
@@ -315,7 +322,11 @@ describe('MigrationService', () => {
       }
 
       service.register(migration)
-      await service.runMigrations('0.1.0', '0.2.0')
+
+      // Should throw error even if rollback fails
+      await expect(service.runMigrations('0.1.0', '0.2.0')).rejects.toThrow(
+        'Migration 0.2.0 failed: Error: Up failed'
+      )
 
       expect(consoleError).toHaveBeenCalledWith(
         expect.stringContaining('Rollback failed'),
@@ -414,7 +425,7 @@ describe('MigrationService', () => {
     })
 
     it('should emit migration-failed on error', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>((resolve, reject) => {
         const migration: Migration = {
           version: '0.2.0',
           description: 'Failing',
@@ -429,10 +440,14 @@ describe('MigrationService', () => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('migration-failed')
           expect(customEvent.detail.error).toContain('Test error')
+          expect(customEvent.detail.failedMigration).toBe('0.2.0')
           resolve()
         })
 
-        service.runMigrations('0.1.0', '0.2.0')
+        // runMigrations will throw error after emitting event
+        service.runMigrations('0.1.0', '0.2.0').catch(() => {
+          // Expected to throw, already resolved by event listener
+        })
       })
     })
 
