@@ -4,22 +4,12 @@
  */
 describe('Garmin provider refresh (mock UI flow)', () => {
   beforeEach(() => {
-    cy.fixture('garmin_activity').as('garminData')
-
-    // Stub fetch avant navigation (pas de réseau réel, donc pas d'intercepts à attendre)
-    cy.on('window:before:load', (win) => {
-      const originalFetch = win.fetch.bind(win)
-      win.fetch = (input, init) => {
-        const url = typeof input === 'string' ? input : input.url
-        if (url.includes('/activities/fetch')) {
-          return new Promise((resolve) => {
-            cy.get('@garminData').then((data) => {
-              resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } }))
-            })
-          })
-        }
-        return originalFetch(input, init)
-      }
+    // Use cy.intercept to mock Garmin API calls
+    cy.fixture('garmin_activity').then((garminData) => {
+      cy.intercept('GET', '**/activities/fetch**', {
+        statusCode: 200,
+        body: garminData
+      }).as('garminFetch')
     })
   })
 
@@ -67,7 +57,10 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for the status section to appear (indicates connection is established)
     cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
 
-    // Wait for automatic import to complete - check for "Synchronisé" text or manual refresh button
+    // Wait for at least one Garmin API call to complete
+    cy.wait('@garminFetch', { timeout: 20000 })
+
+    // Wait for manual refresh button to appear (indicates sync state is idle)
     cy.getByTestId('manual-refresh-button', { timeout: 15000 }).should('be.visible')
 
     // Navigate to activities page and verify the activity was imported
