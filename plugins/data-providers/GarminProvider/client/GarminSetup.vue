@@ -7,77 +7,98 @@
       @disconnect="disconnectGarmin"
     />
 
-    <div v-if="isConnected" class="mt-6 text-center space-y-4" data-test="garmin-fetch-section">
-      <button
-        @click="fetchActivities(7)"
-        :disabled="isLoading"
-        data-test="fetch-activities-button"
-        :class="[
-          'inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg shadow-sm transition',
-          isLoading
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-green-600 text-white hover:bg-green-700'
-        ]"
-      >
-        <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }" aria-hidden="true"></i>
-        Fetch Past Activities
-      </button>
+    <!-- Status section (only when connected) -->
+    <div v-if="isConnected" class="mt-6 text-center" data-test="garmin-status-section">
+      <!-- Syncing state -->
+      <div v-if="syncState.status === 'syncing'" class="text-gray-600">
+        <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
+        <span v-if="syncProgress">
+          Import {{ syncProgress.month }} ({{ syncProgress.completed + 1 }}/{{ syncProgress.total }})
+        </span>
+        <span v-else>Import en cours...</span>
+      </div>
 
-      <div class="flex justify-center items-center gap-4 mt-4">
-        <select
-          v-model.number="selectedRange"
-          :disabled="isLoading"
-          data-test="range-selector"
-          class="border rounded px-3 py-2 text-sm"
-        >
-          <option :value="30">Dernier mois</option>
-          <option :value="60">3 derniers mois</option>
-          <option :value="365">Année dernière</option>
-        </select>
+      <!-- Error state -->
+      <div v-else-if="syncState.status === 'error'" class="text-red-600">
+        <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
+        <span>Erreur: {{ syncState.lastError }}</span>
         <button
-          @click="fetchActivities(selectedRange)"
-          :disabled="isLoading"
-          data-test="import-period-button"
-          :class="[
-            'inline-flex items-center gap-2 px-4 py-2 text-sm rounded transition',
-            isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          ]"
+          @click="retryImport"
+          class="ml-4 text-sm text-blue-600 hover:underline"
         >
-          <i class="fas fa-download" :class="{ 'fa-spin': isLoading }" aria-hidden="true"></i>
-          Importer période
+          Réessayer
         </button>
       </div>
 
-      <!-- Barre de progression dynamique -->
-      <div v-if="isLoading" class="h-2 mt-2 bg-gray-200 rounded overflow-hidden" data-test="progress-bar">
-        <div
-          class="h-full bg-green-600 rounded transition-all"
-          :style="{ width: progressPercent + '%' }"
-        ></div>
-      </div>
+      <!-- Idle state (normal) -->
+      <div v-else class="space-y-2">
+        <p class="text-gray-700">
+          <i class="fas fa-check-circle text-green-600 mr-2" aria-hidden="true"></i>
+          <span v-if="syncState.initialImportDone">
+            Synchronisé
+            <span v-if="syncState.lastSyncDate" class="text-gray-500">
+              · {{ formatLastSync(syncState.lastSyncDate) }}
+            </span>
+          </span>
+          <span v-else>
+            Connecté · Import initial en attente
+          </span>
+        </p>
 
-      <p class="text-sm text-gray-600" data-test="fetch-status">{{ fetchStatus }}</p>
+        <!-- Manual refresh button (discreet) -->
+        <button
+          @click="manualRefresh"
+          :disabled="isRefreshing"
+          class="text-sm text-gray-500 hover:text-gray-700 transition"
+          data-test="manual-refresh-button"
+        >
+          <i
+            class="fas fa-sync-alt mr-1"
+            :class="{ 'fa-spin': isRefreshing }"
+            aria-hidden="true"
+          ></i>
+          Actualiser
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { GarminRefresh } from './GarminService'
+import { ToastService } from '@/services/ToastService'
+import {
+  getTokens,
+  setTokens,
+  deleteTokens,
+  getSyncState,
+  updateSyncState,
+  type GarminSyncState
+} from './storage'
+import { getGarminSyncManager, syncEmitter, type SyncCompleteEvent, type SyncProgressEvent } from './GarminSyncManager'
 import pluginEnv from './env'
 
-const isConnected     = ref(false)
-const isLoading       = ref(false)
-const fetchStatus     = ref('')
-const progressPercent = ref(0)
-const selectedRange   = ref<number>(30)
+// TODO: migration db - migrate old garmin_token/garmin_token_secret to new format
+// This should be handled by a global migration system later
 
-let dbService: IndexedDBService
+const isConnected = ref(false)
+const isRefreshing = ref(false)
+const syncProgress = ref<{ month: string; completed: number; total: number } | null>(null)
+const syncState = reactive<GarminSyncState>({
+  status: 'idle',
+  initialImportDone: false,
+  backfillAskedMonths: [],
+  backfillSyncedMonths: [],
+  lastSyncDate: null,
+  lastError: null
+})
+
 const baseURL = pluginEnv.apiUrl
+
+// ============================================================================
+// OAuth Flow
+// ============================================================================
 
 function connectToGarmin() {
   const redirect = encodeURIComponent(window.location.href)
@@ -85,53 +106,145 @@ function connectToGarmin() {
 }
 
 async function disconnectGarmin() {
-  await dbService.deleteData('garmin_token')
-  await dbService.deleteData('garmin_token_secret')
+  await deleteTokens()
+  await updateSyncState({
+    status: 'idle',
+    initialImportDone: false,
+    backfillAskedMonths: [],
+    backfillSyncedMonths: [],
+    lastSyncDate: null,
+    lastError: null
+  })
   isConnected.value = false
+  Object.assign(syncState, await getSyncState())
 }
 
-async function fetchActivities(days: number) {
-  if (!dbService) return
-  isLoading.value = true
-  progressPercent.value = 0
-  fetchStatus.value = 'Chargement des activités...'
+// ============================================================================
+// Sync Actions
+// ============================================================================
 
+async function retryImport() {
+  // Reset error state but keep backfill progress (don't re-request already asked backfills)
+  await updateSyncState({ status: 'idle', lastError: null, initialImportDone: false })
+  Object.assign(syncState, await getSyncState())
+
+  const syncManager = getGarminSyncManager()
+  await syncManager.startInitialImportAsync()
+}
+
+async function manualRefresh() {
+  isRefreshing.value = true
   try {
-    // On suppose maintenant que GarminRefresh appelle callback(percent: number, msg: string)
-    await GarminRefresh(days, (percent: number, msg: string) => {
-      progressPercent.value = percent
-      fetchStatus.value = msg
-    })
-    fetchStatus.value ||= `✅ Activités récupérées sur ${days} jours.`
-    progressPercent.value = 100
+    const syncManager = getGarminSyncManager()
+    const count = await syncManager.dailyRefresh()
+    ToastService.push(`Garmin: ${count} activités synchronisées`, { type: 'success' })
   } catch (err: any) {
-    console.error(err)
-    fetchStatus.value = `❌ Échec : ${err.message || 'erreur inconnue'}.`
+    ToastService.push(`Garmin: ${err.message || 'Erreur'}`, { type: 'error' })
   } finally {
-    // petite pause pour laisser la barre finir
-    setTimeout(() => {
-      isLoading.value = false
-      progressPercent.value = 0
-    }, 300)
+    isRefreshing.value = false
+    Object.assign(syncState, await getSyncState())
   }
 }
 
+// ============================================================================
+// Event Handlers
+// ============================================================================
+
+function handleSyncComplete(event: Event) {
+  const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
+
+  if (success) {
+    ToastService.push(`Garmin: ${count} activités importées`, { type: 'success' })
+  } else {
+    ToastService.push(`Garmin: ${error || 'Erreur d\'import'}`, { type: 'error' })
+  }
+
+  // Clear progress and refresh state
+  syncProgress.value = null
+  getSyncState().then(state => Object.assign(syncState, state))
+}
+
+function handleSyncProgress(event: Event) {
+  const detail = (event as CustomEvent<SyncProgressEvent>).detail
+
+  if (detail.type === 'started') {
+    // Update state to show syncing
+    syncState.status = 'syncing'
+    syncProgress.value = null
+  } else if (detail.type === 'progress') {
+    syncProgress.value = {
+      month: detail.month || '',
+      completed: detail.completed || 0,
+      total: detail.total || 0
+    }
+  }
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function formatLastSync(timestamp: number): string {
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'il y a quelques secondes'
+  if (minutes < 60) return `il y a ${minutes} min`
+  if (hours < 24) return `il y a ${hours}h`
+  return `il y a ${days}j`
+}
+
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
 onMounted(async () => {
-  dbService = await IndexedDBService.getInstance()
+  // Listen for sync events
+  syncEmitter.addEventListener('sync-complete', handleSyncComplete)
+  syncEmitter.addEventListener('sync-progress', handleSyncProgress)
+
+  // Check URL params for OAuth callback
   const params = new URLSearchParams(window.location.search)
-  const token  = params.get('access_token')
+  const token = params.get('access_token')
   const secret = params.get('access_token_secret')
 
   if (token && secret) {
-    await dbService.saveData('garmin_token', token)
-    await dbService.saveData('garmin_token_secret', secret)
+    // Fresh OAuth return - save tokens
+    await setTokens({ accessToken: token, accessTokenSecret: secret })
     isConnected.value = true
+
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname)
+
+    // Start initial import in background
+    const syncManager = getGarminSyncManager()
+    await syncManager.startInitialImportAsync()
+
+    ToastService.push('Garmin connecté ! Import en cours...', { type: 'info' })
   } else {
-    const savedToken  = await dbService.getData('garmin_token')
-    const savedSecret = await dbService.getData('garmin_token_secret')
-    if (savedToken && savedSecret) {
+    // Check existing tokens
+    const tokens = await getTokens()
+    if (tokens) {
       isConnected.value = true
+
+      // Check if initial import needs to be resumed
+      const state = await getSyncState()
+      if (!state.initialImportDone && state.status !== 'syncing') {
+        const syncManager = getGarminSyncManager()
+        await syncManager.startInitialImportAsync()
+      }
     }
   }
+
+  // Load current sync state
+  Object.assign(syncState, await getSyncState())
+})
+
+onUnmounted(() => {
+  syncEmitter.removeEventListener('sync-complete', handleSyncComplete)
+  syncEmitter.removeEventListener('sync-progress', handleSyncProgress)
 })
 </script>

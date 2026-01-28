@@ -17,8 +17,8 @@ Cypress.on('uncaught:exception', (err) => {
  * Custom command to select elements by data-test attribute
  * Usage: cy.getByTestId('activity-card')
  */
-Cypress.Commands.add('getByTestId', (testId) => {
-  return cy.get(`[data-test="${testId}"]`)
+Cypress.Commands.add('getByTestId', (testId, options = {}) => {
+  return cy.get(`[data-test="${testId}"]`, options)
 })
 
 /**
