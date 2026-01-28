@@ -1,5 +1,8 @@
 .DS_Store
 node_modules
+
+# Windows/WSL metadata
+*:Zone.Identifier
 /dist
 /coverage
 
@@ -12,7 +15,6 @@ node_modules
 .firebase/*.cache
 
 /tmp
-/public
 
 # local env files
 .env

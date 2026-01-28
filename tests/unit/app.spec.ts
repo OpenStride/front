@@ -6,6 +6,10 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
 
+// Mock global constants
+;(global as any).__APP_VERSION__ = '0.1.0'
+;(global as any).__BUILD_TIME__ = '2026-01-23T00:00:00.000Z'
+
 // Create i18n instance for tests
 const i18n = createI18n({
     legacy: false,

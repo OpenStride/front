@@ -3,15 +3,53 @@ import App from './App.vue'
 import router from './router'
 import { IndexedDBService } from './services/IndexedDBService'
 import { aggregationService } from '@/services/AggregationService'
+import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { getMigrationService } from '@/services/MigrationService'
+import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 
 import '@/assets/styles/global.css'
 import 'leaflet/dist/leaflet.css'
 
 async function bootstrap() {
-  await IndexedDBService.getInstance()
+  // 1. Initialize IndexedDB
+  const db = await IndexedDBService.getInstance()
 
-  // Load user locale or detect from browser
+  // 2. Check and run migrations
+  const storedVersion = await db.getData('app_version')
+  const currentVersion = storedVersion?.version || '0.0.0'
+  const newVersion = __APP_VERSION__
+
+  if (currentVersion !== newVersion) {
+    console.log(`[Bootstrap] Version change: ${currentVersion} → ${newVersion}`)
+
+    const migrationService = getMigrationService()
+
+    // Register all migrations
+    migrations.forEach(m => migrationService.register(m))
+
+    try {
+      // Run pending migrations
+      await migrationService.runMigrations(currentVersion, newVersion)
+
+      // Update stored version
+      await db.saveData('app_version', {
+        version: newVersion,
+        buildTime: __BUILD_TIME__,
+        installedAt: storedVersion?.installedAt || Date.now(),
+        lastUpdateCheck: Date.now()
+      })
+
+      console.log(`[Bootstrap] ✅ Migrated to ${newVersion}`)
+    } catch (error) {
+      console.error('[Bootstrap] ❌ Migration failed:', error)
+      // Continue anyway (graceful degradation)
+    }
+  } else {
+    console.log(`[Bootstrap] Version ${currentVersion} - no migrations needed`)
+  }
+
+  // 3. Load user locale or detect from browser
   const locale = await getInitialLocale()
   i18n.global.locale.value = locale
   setHtmlLang(locale)
@@ -21,6 +59,11 @@ async function bootstrap() {
   // Start event-driven aggregation (no O(n) scans!)
   await aggregationService.startListening()
 
+  // 4. Initialize PWA update service
+  const pwaUpdateService = getPWAUpdateService()
+  await pwaUpdateService.initialize()
+
+  // 5. Create and mount Vue app
   const app = createApp(App)
   app.use(router)
   app.use(i18n)

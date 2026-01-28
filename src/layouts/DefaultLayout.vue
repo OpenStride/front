@@ -1,15 +1,24 @@
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
+import UpdateBanner from '@/components/UpdateBanner.vue'
+import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
+import MigrationProgress from '@/components/MigrationProgress.vue'
+
+// App version from build-time injection
+const appVersion = __APP_VERSION__
 </script>
 
 <template>
   <div class="layout">
     <AppHeader />
+    <UpdateBanner />
+    <AutoUpdateNotification />
     <main>
       <router-view />
     </main>
     <ToastContainer />
+    <MigrationProgress />
     <footer class="footer">
       <p>
         <a href="/legal">Privacy Policy</a> | <a href="/cgu">Terms of Service</a> |
@@ -21,6 +30,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
           >GitHub</a
         >
       </p>
+      <p class="version">OpenStride v{{ appVersion }}</p>
     </footer>
   </div>
 </template>
@@ -51,5 +61,11 @@ main {
 }
 .footer a:hover {
   text-decoration: underline;
+}
+.footer .version {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #999;
+  font-weight: 300;
 }
 </style>
