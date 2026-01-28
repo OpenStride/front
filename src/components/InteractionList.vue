@@ -12,12 +12,9 @@
         <span>{{ likes.length }} {{ likes.length === 1 ? 'like' : 'likes' }}</span>
       </div>
       <div class="likes-list">
-        <span
-          v-for="(like, index) in likes"
-          :key="like.id"
-          class="like-author"
-        >
-          {{ like.authorUsername || 'Utilisateur supprimé' }}{{ index < likes.length - 1 ? ', ' : '' }}
+        <span v-for="(like, index) in likes" :key="like.id" class="like-author">
+          {{ like.authorUsername || 'Utilisateur supprimé'
+          }}{{ index < likes.length - 1 ? ', ' : '' }}
         </span>
       </div>
     </div>
@@ -26,17 +23,17 @@
     <div v-if="comments.length > 0" class="comments-section">
       <div class="subsection-header">
         <i class="fas fa-comment" aria-hidden="true"></i>
-        <span>{{ comments.length }} {{ comments.length === 1 ? 'commentaire' : 'commentaires' }}</span>
+        <span
+          >{{ comments.length }} {{ comments.length === 1 ? 'commentaire' : 'commentaires' }}</span
+        >
       </div>
 
       <div class="comments-list">
-        <div
-          v-for="comment in comments"
-          :key="comment.id"
-          class="comment-item"
-        >
+        <div v-for="comment in comments" :key="comment.id" class="comment-item">
           <div class="comment-header">
-            <span class="comment-author">{{ comment.authorUsername || 'Utilisateur supprimé' }}</span>
+            <span class="comment-author">{{
+              comment.authorUsername || 'Utilisateur supprimé'
+            }}</span>
             <span class="comment-time">{{ formatRelativeTime(comment.timestamp) }}</span>
             <button
               v-if="comment.authorId === myUserId"
@@ -71,33 +68,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { getInteractionService } from '@/services/InteractionService';
-import InteractionBar from './InteractionBar.vue';
-import type { Interaction, InteractionServiceEvent } from '@/types/interaction';
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getInteractionService } from '@/services/InteractionService'
+import InteractionBar from './InteractionBar.vue'
+import type { Interaction, InteractionServiceEvent } from '@/types/interaction'
 
 const props = defineProps<{
-  activityId: string;
-  activityOwnerId: string;
-  isMutualFriend?: boolean;
-}>();
+  activityId: string
+  activityOwnerId: string
+  isMutualFriend?: boolean
+}>()
 
-const interactionService = getInteractionService();
+const interactionService = getInteractionService()
 
-const interactions = ref<Interaction[]>([]);
-const myUserId = ref<string | null>(null);
-const deleting = ref<string | null>(null);
+const interactions = ref<Interaction[]>([])
+const myUserId = ref<string | null>(null)
+const deleting = ref<string | null>(null)
 
 // Computed properties for filtering
-const likes = computed(() =>
-  interactions.value.filter(i => i.type === 'like')
-);
+const likes = computed(() => interactions.value.filter(i => i.type === 'like'))
 
 const comments = computed(() =>
-  interactions.value
-    .filter(i => i.type === 'comment')
-    .sort((a, b) => b.timestamp - a.timestamp)
-);
+  interactions.value.filter(i => i.type === 'comment').sort((a, b) => b.timestamp - a.timestamp)
+)
 
 // Load data
 const loadInteractions = async () => {
@@ -105,69 +98,69 @@ const loadInteractions = async () => {
     interactions.value = await interactionService.getInteractionsForActivity(
       props.activityId,
       props.activityOwnerId
-    );
+    )
   } catch (error) {
-    console.error('[InteractionList] Error loading interactions:', error);
+    console.error('[InteractionList] Error loading interactions:', error)
   }
-};
+}
 
 const loadMyUserId = async () => {
-  myUserId.value = await interactionService.getMyUserId();
-};
+  myUserId.value = await interactionService.getMyUserId()
+}
 
 // Actions
 const deleteComment = async (commentId: string) => {
-  if (deleting.value) return;
+  if (deleting.value) return
 
-  deleting.value = commentId;
+  deleting.value = commentId
   try {
-    await interactionService.deleteComment(commentId);
-    await loadInteractions();
+    await interactionService.deleteComment(commentId)
+    await loadInteractions()
   } catch (error) {
-    console.error('[InteractionList] Error deleting comment:', error);
+    console.error('[InteractionList] Error deleting comment:', error)
   } finally {
-    deleting.value = null;
+    deleting.value = null
   }
-};
+}
 
 // Helpers
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now();
-  const diff = now - timestamp;
+  const now = Date.now()
+  const diff = now - timestamp
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-  if (minutes < 1) return 'à l\'instant';
-  if (minutes < 60) return `il y a ${minutes} min`;
-  if (hours < 24) return `il y a ${hours}h`;
-  if (days === 1) return 'hier';
-  if (days < 7) return `il y a ${days} jours`;
+  if (minutes < 1) return "à l'instant"
+  if (minutes < 60) return `il y a ${minutes} min`
+  if (hours < 24) return `il y a ${hours}h`
+  if (days === 1) return 'hier'
+  if (days < 7) return `il y a ${days} jours`
 
   return new Date(timestamp).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'short'
-  });
-};
+  })
+}
 
 // Event listener for reactive updates
 const handleInteractionEvent = (event: Event) => {
-  const detail = (event as CustomEvent<InteractionServiceEvent>).detail;
+  const detail = (event as CustomEvent<InteractionServiceEvent>).detail
   if (detail.activityId === props.activityId) {
-    loadInteractions();
+    loadInteractions()
   }
-};
+}
 
 onMounted(async () => {
-  await loadMyUserId();
-  await loadInteractions();
-  interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent);
-});
+  await loadMyUserId()
+  await loadInteractions()
+  interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent)
+})
 
 onUnmounted(() => {
-  interactionService.emitter.removeEventListener('interaction-event', handleInteractionEvent);
-});
+  interactionService.emitter.removeEventListener('interaction-event', handleInteractionEvent)
+})
 </script>
 
 <style scoped>

@@ -21,7 +21,7 @@
         :title="summary.hasLiked ? 'Retirer le like' : 'J\'aime'"
       >
         <i :class="summary.hasLiked ? 'fas fa-heart' : 'far fa-heart'" aria-hidden="true"></i>
-        <span class="btn-label">{{ summary.hasLiked ? 'Aimé' : 'J\'aime' }}</span>
+        <span class="btn-label">{{ summary.hasLiked ? 'Aimé' : "J'aime" }}</span>
       </button>
 
       <button
@@ -90,58 +90,58 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { getInteractionService } from '@/services/InteractionService';
-import type { InteractionSummary, InteractionServiceEvent } from '@/types/interaction';
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { getInteractionService } from '@/services/InteractionService'
+import type { InteractionSummary, InteractionServiceEvent } from '@/types/interaction'
 
 const props = defineProps<{
-  activityId: string;
-  activityOwnerId: string;
-  showWarning?: boolean;
-  isMutualFriend?: boolean;  // true if friendship is mutual (required for interactions)
-}>();
+  activityId: string
+  activityOwnerId: string
+  showWarning?: boolean
+  isMutualFriend?: boolean // true if friendship is mutual (required for interactions)
+}>()
 
-const interactionService = getInteractionService();
+const interactionService = getInteractionService()
 
 const summary = ref<InteractionSummary>({
   activityId: props.activityId,
   likeCount: 0,
   commentCount: 0,
   hasLiked: false
-});
+})
 
-const loading = ref(false);
-const submitting = ref(false);
-const showCommentInput = ref(false);
-const commentText = ref('');
-const canInteract = ref(false);
-const myUserId = ref<string | null>(null);
+const loading = ref(false)
+const submitting = ref(false)
+const showCommentInput = ref(false)
+const commentText = ref('')
+const canInteract = ref(false)
+const myUserId = ref<string | null>(null)
 
 // Detect if this is the user's own activity (read-only mode)
-const isMyActivity = computed(() => myUserId.value !== null && myUserId.value === props.activityOwnerId);
+const isMyActivity = computed(
+  () => myUserId.value !== null && myUserId.value === props.activityOwnerId
+)
 
 // Detect if this is a friend activity that requires mutual friendship
 const needsMutualFriendship = computed(() => {
   // Not own activity, user is published, but not mutual friend
-  return !isMyActivity.value &&
-         myUserId.value !== null &&
-         props.isMutualFriend === false;
-});
+  return !isMyActivity.value && myUserId.value !== null && props.isMutualFriend === false
+})
 
 // Copy share URL to clipboard
 const copyShareUrl = async () => {
   try {
-    const db = (await import('@/services/IndexedDBService')).IndexedDBService;
-    const dbInstance = await db.getInstance();
-    const myPublicUrl = await dbInstance.getData('myPublicUrl');
+    const db = (await import('@/services/IndexedDBService')).IndexedDBService
+    const dbInstance = await db.getInstance()
+    const myPublicUrl = await dbInstance.getData('myPublicUrl')
     if (myPublicUrl) {
-      await navigator.clipboard.writeText(myPublicUrl);
-      console.log('[InteractionBar] Share URL copied to clipboard');
+      await navigator.clipboard.writeText(myPublicUrl)
+      console.log('[InteractionBar] Share URL copied to clipboard')
     }
   } catch (error) {
-    console.error('[InteractionBar] Error copying share URL:', error);
+    console.error('[InteractionBar] Error copying share URL:', error)
   }
-};
+}
 
 // Load initial data
 const loadSummary = async () => {
@@ -149,90 +149,90 @@ const loadSummary = async () => {
     summary.value = await interactionService.getInteractionSummary(
       props.activityId,
       props.activityOwnerId
-    );
+    )
   } catch (error) {
-    console.error('[InteractionBar] Error loading summary:', error);
+    console.error('[InteractionBar] Error loading summary:', error)
   }
-};
+}
 
 const checkCanInteract = async () => {
-  const userId = await interactionService.getMyUserId();
-  myUserId.value = userId;
+  const userId = await interactionService.getMyUserId()
+  myUserId.value = userId
   // Can interact only if:
   // 1. User is published (has userId)
   // 2. It's not their own activity
   // 3. Friendship is mutual (if viewing friend's activity)
-  const isPublished = userId !== null;
-  const isNotOwnActivity = userId !== props.activityOwnerId;
+  const isPublished = userId !== null
+  const isNotOwnActivity = userId !== props.activityOwnerId
   // For own activities, mutual friendship check doesn't apply
   // For friend activities, require mutual friendship
-  const mutualOk = isMyActivity.value || props.isMutualFriend === true;
-  canInteract.value = isPublished && isNotOwnActivity && mutualOk;
-};
+  const mutualOk = isMyActivity.value || props.isMutualFriend === true
+  canInteract.value = isPublished && isNotOwnActivity && mutualOk
+}
 
 // Actions
 const toggleLike = async () => {
-  if (loading.value || !canInteract.value) return;
+  if (loading.value || !canInteract.value) return
 
-  loading.value = true;
+  loading.value = true
   try {
     if (summary.value.hasLiked) {
-      await interactionService.removeLike(props.activityId, props.activityOwnerId);
+      await interactionService.removeLike(props.activityId, props.activityOwnerId)
     } else {
-      await interactionService.addLike(props.activityId, props.activityOwnerId);
+      await interactionService.addLike(props.activityId, props.activityOwnerId)
     }
-    await loadSummary();
+    await loadSummary()
   } catch (error) {
-    console.error('[InteractionBar] Error toggling like:', error);
+    console.error('[InteractionBar] Error toggling like:', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const submitComment = async () => {
-  const text = commentText.value.trim();
-  if (!text || submitting.value || !canInteract.value) return;
+  const text = commentText.value.trim()
+  if (!text || submitting.value || !canInteract.value) return
 
-  submitting.value = true;
+  submitting.value = true
   try {
-    await interactionService.addComment(props.activityId, props.activityOwnerId, text);
-    commentText.value = '';
-    showCommentInput.value = false;
-    await loadSummary();
+    await interactionService.addComment(props.activityId, props.activityOwnerId, text)
+    commentText.value = ''
+    showCommentInput.value = false
+    await loadSummary()
   } catch (error) {
-    console.error('[InteractionBar] Error submitting comment:', error);
+    console.error('[InteractionBar] Error submitting comment:', error)
   } finally {
-    submitting.value = false;
+    submitting.value = false
   }
-};
+}
 
 // Helpers
 const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
-};
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
 
 // Event listener for reactive updates
 const handleInteractionEvent = (event: Event) => {
-  const detail = (event as CustomEvent<InteractionServiceEvent>).detail;
+  const detail = (event as CustomEvent<InteractionServiceEvent>).detail
   if (detail.activityId === props.activityId) {
-    loadSummary();
+    loadSummary()
   }
-};
+}
 
 onMounted(async () => {
-  await checkCanInteract();
-  await loadSummary();
-  interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent);
+  await checkCanInteract()
+  await loadSummary()
+  interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent)
 
   // Debug logs for ID mismatch investigation
-  console.log('[InteractionBar] activityOwnerId:', props.activityOwnerId);
-  console.log('[InteractionBar] myUserId:', myUserId.value);
-});
+  console.log('[InteractionBar] activityOwnerId:', props.activityOwnerId)
+  console.log('[InteractionBar] myUserId:', myUserId.value)
+})
 
 onUnmounted(() => {
-  interactionService.emitter.removeEventListener('interaction-event', handleInteractionEvent);
-});
+  interactionService.emitter.removeEventListener('interaction-event', handleInteractionEvent)
+})
 </script>
 
 <style scoped>
