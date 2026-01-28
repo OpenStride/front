@@ -77,12 +77,13 @@ if (messaging) {
 // ========================================
 
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing...')
-  self.skipWaiting() // Activate immediately
+  console.log('[Service Worker] Installing version', __APP_VERSION__)
+  // Prompt mode: wait for user consent via messageSkipWaiting()
+  // skipWaiting() will be called via message handler when user accepts update
 })
 
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating...')
+  console.log('[Service Worker] Activating version', __APP_VERSION__)
   event.waitUntil(self.clients.claim()) // Take control immediately
 })
 
