@@ -10,15 +10,21 @@
     <div class="bg-gray-50 rounded-lg p-6 mb-8 max-w-md mx-auto">
       <div class="flex items-center justify-center gap-3 mb-4">
         <i class="fas fa-database text-green-600 text-2xl"></i>
-        <span class="text-lg font-medium">{{ t('onboarding.complete.activitiesImported', { count: activitiesCount }) }}</span>
+        <span class="text-lg font-medium">{{
+          t('onboarding.complete.activitiesImported', { count: activitiesCount })
+        }}</span>
       </div>
 
       <div class="flex items-center justify-center gap-3">
-        <i :class="hasStorage ? 'fas fa-cloud-check text-green-600' : 'fas fa-hdd text-gray-400'" class="text-2xl"></i>
+        <i
+          :class="hasStorage ? 'fas fa-cloud-check text-green-600' : 'fas fa-hdd text-gray-400'"
+          class="text-2xl"
+        ></i>
         <span class="text-lg">
-          {{ hasStorage
-            ? t('onboarding.complete.syncWith', { name: storageName })
-            : t('onboarding.complete.localOnly')
+          {{
+            hasStorage
+              ? t('onboarding.complete.syncWith', { name: storageName })
+              : t('onboarding.complete.localOnly')
           }}
         </span>
       </div>
@@ -70,4 +76,3 @@ onMounted(async () => {
   }
 })
 </script>
-

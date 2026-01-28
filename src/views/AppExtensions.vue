@@ -2,17 +2,22 @@
   <div class="max-w-3xl mx-auto py-10 px-4">
     <section>
       <h1 class="text-2xl font-bold mb-2">App Extensions</h1>
-      <p class="text-gray-600 mb-6">
-        Manage widgets and features displayed throughout the app
-      </p>
+      <p class="text-gray-600 mb-6">Manage widgets and features displayed throughout the app</p>
 
       <ul v-if="!loading" class="space-y-4">
-        <li v-for="plugin in allPlugins" :key="plugin.id"
-          class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition">
-
+        <li
+          v-for="plugin in allPlugins"
+          :key="plugin.id"
+          class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition"
+        >
           <div class="flex items-center space-x-4 flex-1">
             <!-- Icon -->
-            <i v-if="plugin.icon" :class="plugin.icon" class="text-2xl text-gray-700" aria-hidden="true"></i>
+            <i
+              v-if="plugin.icon"
+              :class="plugin.icon"
+              class="text-2xl text-gray-700"
+              aria-hidden="true"
+            ></i>
             <i v-else class="fas fa-puzzle-piece text-2xl text-gray-400" aria-hidden="true"></i>
 
             <!-- Label & Description -->
@@ -36,14 +41,9 @@
               :aria-checked="enabledPluginIds.includes(plugin.id)"
               :aria-label="`Toggle ${plugin.label}`"
             />
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4
-                        peer-focus:ring-green-300 rounded-full peer
-                        peer-checked:after:translate-x-full peer-checked:after:border-white
-                        after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                        after:bg-white after:border-gray-300 after:border after:rounded-full
-                        after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600
-                        peer-disabled:opacity-50 peer-disabled:cursor-not-allowed">
-            </div>
+            <div
+              class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
+            ></div>
           </label>
         </li>
       </ul>

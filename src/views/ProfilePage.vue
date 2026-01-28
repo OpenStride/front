@@ -56,6 +56,7 @@ interface Tab {
   labelKey: string
   icon: string
   component: any
+  loader?: () => Promise<any> // Lazy loader for dynamic tabs
 }
 
 const tabs: Tab[] = [
@@ -100,6 +101,9 @@ const tabs: Tab[] = [
 // Load dynamic tabs from plugins
 const dynamicTabs = ref<Tab[]>([])
 
+// Cache for loaded components
+const loadedComponents = ref<Record<TabId, any>>({})
+
 // Combine static and dynamic tabs
 const allTabs = computed(() => [...tabs, ...dynamicTabs.value])
 
@@ -110,24 +114,22 @@ onMounted(async () => {
   // Load plugins with profile.tabs slot
   const plugins = await getActiveAppPlugins()
 
-  // Extract tabs from plugins that have tabMetadata
-  const pluginTabs = await Promise.all(
-    plugins
-      .filter(p => p.slots?.['profile.tabs'] && (p as any).tabMetadata)
-      .map(async (plugin: any) => {
-        const metadata = plugin.tabMetadata
-        const loaders = plugin.slots['profile.tabs']
-        const loader = Array.isArray(loaders) ? loaders[0] : loaders
-        const component = await loader()
+  // Extract tabs from plugins that have tabMetadata (WITHOUT loading components yet)
+  const pluginTabs = plugins
+    .filter(p => p.slots?.['profile.tabs'] && (p as any).tabMetadata)
+    .map((plugin: any) => {
+      const metadata = plugin.tabMetadata
+      const loaders = plugin.slots['profile.tabs']
+      const loader = Array.isArray(loaders) ? loaders[0] : loaders
 
-        return {
-          id: metadata.tabId,
-          labelKey: metadata.tabLabelKey,
-          icon: metadata.tabIcon,
-          component: component.default || component  // Extract component from ES module
-        }
-      })
-  )
+      return {
+        id: metadata.tabId,
+        labelKey: metadata.tabLabelKey,
+        icon: metadata.tabIcon,
+        component: null, // Will be loaded on demand
+        loader // Store loader for lazy loading
+      }
+    })
 
   dynamicTabs.value = pluginTabs.filter((tab: Tab) => tab.id && tab.labelKey && tab.icon)
 
@@ -138,12 +140,33 @@ onMounted(async () => {
   }
 })
 
+// Watch for active tab changes and load component if needed
+watch(
+  activeTab,
+  async newTabId => {
+    const tab = allTabs.value.find(t => t.id === newTabId)
+    if (tab && tab.loader && !loadedComponents.value[newTabId]) {
+      try {
+        const component = await tab.loader()
+        loadedComponents.value[newTabId] = component.default || component
+        tab.component = loadedComponents.value[newTabId]
+      } catch (error) {
+        console.error(`[ProfilePage] Failed to load tab component for ${newTabId}:`, error)
+      }
+    }
+  },
+  { immediate: true } // Load initial tab component
+)
+
 // Watch for route query changes
-watch(() => route.query.tab, (newTab) => {
-  if (newTab && allTabs.value.some(t => t.id === newTab)) {
-    activeTab.value = newTab as TabId
+watch(
+  () => route.query.tab,
+  newTab => {
+    if (newTab && allTabs.value.some(t => t.id === newTab)) {
+      activeTab.value = newTab as TabId
+    }
   }
-})
+)
 
 // Update URL when tab changes
 const selectTab = (tabId: TabId) => {

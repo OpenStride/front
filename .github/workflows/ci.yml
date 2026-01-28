@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel in-progress runs when a new workflow with the same group name is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        run: npm run test:unit -- --coverage --run
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v6.0.0
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Check coverage thresholds
+        run: |
+          echo "Checking coverage thresholds (60% statements, 60% lines, 60% functions, 50% branches)"
+          # Coverage thresholds are configured in vitest.config.ts
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Cypress binary
+        run: npx cypress install
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v7.0.0
+        with:
+          start: npm run dev
+          wait-on: 'http://localhost:3000'
+          wait-on-timeout: 120
+          browser: chrome
+
+      - name: Upload Cypress screenshots
+        uses: actions/upload-artifact@v6.0.0
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots/
+          retention-days: 7
+
+      - name: Upload Cypress videos
+        uses: actions/upload-artifact@v6.0.0
+        if: always()
+        with:
+          name: cypress-videos
+          path: cypress/videos/
+          retention-days: 7
+
+  build-validation:
+    name: Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production
+        run: npm run build:prod
+        env:
+          VITE_APP_BASE_URL: https://openstride.org
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+      - name: Verify build output
+        run: |
+          echo "Checking build output..."
+          ls -lah dist/
+          if [ ! -f "dist/index.html" ]; then
+            echo "Error: index.html not found in dist/"
+            exit 1
+          fi
+          echo "Build validation successful"

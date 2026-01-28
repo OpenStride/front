@@ -1,41 +1,83 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import { IndexedDBService } from './services/IndexedDBService';
-import { aggregationService } from '@/services/AggregationService';
-import { FriendService } from '@/services/FriendService';
-import i18n, { getInitialLocale, setHtmlLang } from '@/locales';
+import { IndexedDBService } from './services/IndexedDBService'
+import { aggregationService } from '@/services/AggregationService'
+import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { getMigrationService } from '@/services/MigrationService'
+import { migrations } from '@/migrations'
+import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 
-import "@/assets/styles/global.css";
-import 'leaflet/dist/leaflet.css';
+import '@/assets/styles/global.css'
+import 'leaflet/dist/leaflet.css'
 
 async function bootstrap() {
-    await IndexedDBService.getInstance();
+  // 1. Initialize IndexedDB
+  const db = await IndexedDBService.getInstance()
 
-    // Load user locale or detect from browser
-    const locale = await getInitialLocale();
-    i18n.global.locale.value = locale;
-    setHtmlLang(locale);
+  // 2. Check and run migrations
+  const storedVersion = await db.getData('app_version')
+  const currentVersion = storedVersion?.version || '0.0.0'
+  const newVersion = __APP_VERSION__
 
-    await aggregationService.loadConfigFromSettings();
+  if (currentVersion !== newVersion) {
+    console.log(`[Bootstrap] Version change: ${currentVersion} → ${newVersion}`)
 
-    // Start event-driven aggregation (no O(n) scans!)
-    await aggregationService.startListening();
+    const migrationService = getMigrationService()
 
-    const app = createApp(App);
-    app.use(router);
-    app.use(i18n);
-    app.mount('#app');
+    // Register all migrations
+    migrations.forEach(m => migrationService.register(m))
 
-    // NOTE: Automatic backup removed - now using manual sync via SyncService
-    // User triggers sync via the Refresh button in AppHeader
-    // await setupBackupListener(1000);
+    try {
+      // Run pending migrations
+      await migrationService.runMigrations(currentVersion, newVersion)
 
-    // NOTE: Friend sync disabled on app start to avoid Google API rate limiting
-    // User can manually trigger sync via the Refresh button in AppHeader
-    // If you want to re-enable auto-sync, add a time-based check to avoid too frequent syncs
-    // Example: only sync if last sync was > 5 minutes ago
-    /*
+      // Update stored version
+      await db.saveData('app_version', {
+        version: newVersion,
+        buildTime: __BUILD_TIME__,
+        installedAt: storedVersion?.installedAt || Date.now(),
+        lastUpdateCheck: Date.now()
+      })
+
+      console.log(`[Bootstrap] ✅ Migrated to ${newVersion}`)
+    } catch (error) {
+      console.error('[Bootstrap] ❌ Migration failed:', error)
+      // Continue anyway (graceful degradation)
+    }
+  } else {
+    console.log(`[Bootstrap] Version ${currentVersion} - no migrations needed`)
+  }
+
+  // 3. Load user locale or detect from browser
+  const locale = await getInitialLocale()
+  i18n.global.locale.value = locale
+  setHtmlLang(locale)
+
+  await aggregationService.loadConfigFromSettings()
+
+  // Start event-driven aggregation (no O(n) scans!)
+  await aggregationService.startListening()
+
+  // 4. Initialize PWA update service
+  const pwaUpdateService = getPWAUpdateService()
+  await pwaUpdateService.initialize()
+
+  // 5. Create and mount Vue app
+  const app = createApp(App)
+  app.use(router)
+  app.use(i18n)
+  app.mount('#app')
+
+  // NOTE: Automatic backup removed - now using manual sync via SyncService
+  // User triggers sync via the Refresh button in AppHeader
+  // await setupBackupListener(1000);
+
+  // NOTE: Friend sync disabled on app start to avoid Google API rate limiting
+  // User can manually trigger sync via the Refresh button in AppHeader
+  // If you want to re-enable auto-sync, add a time-based check to avoid too frequent syncs
+  // Example: only sync if last sync was > 5 minutes ago
+  /*
     try {
         const friendService = FriendService.getInstance();
         friendService.refreshAllFriends().catch(err => {
@@ -46,9 +88,9 @@ async function bootstrap() {
     }
     */
 
-    // NOTE: Old O(n) aggregation listener removed
-    // AggregationService now listens to ActivityService events directly
-    // No more getAllData() scans on every activity_details change
+  // NOTE: Old O(n) aggregation listener removed
+  // AggregationService now listens to ActivityService events directly
+  // No more getAllData() scans on every activity_details change
 }
 
-bootstrap();
+bootstrap()

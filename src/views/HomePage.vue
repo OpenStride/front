@@ -61,71 +61,71 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
-import ActivityCard from '@/components/ActivityCard.vue';
-import WelcomeLanding from '@/components/WelcomeLanding.vue';
-import { useMixedFeed } from '@/composables/useMixedFeed';
-import { IndexedDBService } from '@/services/IndexedDBService';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import ActivityCard from '@/components/ActivityCard.vue'
+import WelcomeLanding from '@/components/WelcomeLanding.vue'
+import { useMixedFeed } from '@/composables/useMixedFeed'
+import { IndexedDBService } from '@/services/IndexedDBService'
 
-const router = useRouter();
-const { t } = useI18n();
-const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed();
+const router = useRouter()
+const { t } = useI18n()
+const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed()
 
-const scrollArea = ref<HTMLElement | null>(null);
-const hasHadActivities = ref(false);
+const scrollArea = ref<HTMLElement | null>(null)
+const hasHadActivities = ref(false)
 
 // Show welcome landing only for brand new users (never had any activities)
 const showWelcomeLanding = computed(() => {
-  return !loading.value && counts.value.total === 0 && !hasHadActivities.value;
-});
+  return !loading.value && counts.value.total === 0 && !hasHadActivities.value
+})
 
 onMounted(async () => {
   // Check if user has ever had activities
-  const db = await IndexedDBService.getInstance();
-  const hasSeenActivities = await db.getData('hasSeenActivities');
-  hasHadActivities.value = hasSeenActivities === true;
+  const db = await IndexedDBService.getInstance()
+  const hasSeenActivities = await db.getData('hasSeenActivities')
+  hasHadActivities.value = hasSeenActivities === true
 
-  loadMore();
+  loadMore()
 
   // If user now has activities, mark them as having seen activities
   if (counts.value.total > 0 && !hasHadActivities.value) {
-    await db.saveData('hasSeenActivities', true);
-    hasHadActivities.value = true;
+    await db.saveData('hasSeenActivities', true)
+    hasHadActivities.value = true
   }
 
-  window.addEventListener('scroll', handleScroll);
-  window.addEventListener('openstride:activities-refreshed', onRefresh);
-});
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('openstride:activities-refreshed', onRefresh)
+})
 
 onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll);
-  window.removeEventListener('openstride:activities-refreshed', onRefresh);
-});
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('openstride:activities-refreshed', onRefresh)
+})
 
 const handleScroll = () => {
-  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100
   if (bottom) {
-    loadMore();
+    loadMore()
   }
-};
+}
 
 const onRefresh = async () => {
-  await reload();
-};
+  await reload()
+}
 
 const navigateToDataProviders = () => {
-  router.push('/profile?tab=data-sources');
-};
+  router.push('/profile?tab=data-sources')
+}
 
 const navigateToBackupProviders = () => {
-  router.push('/profile?tab=cloud-backup');
-};
+  router.push('/profile?tab=cloud-backup')
+}
 
 const navigateToFriends = () => {
-  router.push('/friends');
-};
+  router.push('/friends')
+}
 </script>
 
 <style scoped>

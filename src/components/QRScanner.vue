@@ -14,9 +14,7 @@
             <i class="fas fa-camera permission-icon" aria-hidden="true"></i>
             L'accès à la caméra est nécessaire
           </p>
-          <button @click="startScanning" class="start-btn">
-            Activer la caméra
-          </button>
+          <button @click="startScanning" class="start-btn">Activer la caméra</button>
         </div>
 
         <div v-if="permissionDenied" class="permission-denied">
@@ -25,9 +23,7 @@
             Accès caméra refusé
           </p>
           <p class="text-sm">Veuillez autoriser l'accès dans les paramètres de votre navigateur</p>
-          <button @click="switchToManual" class="manual-btn">
-            Saisir l'URL manuellement
-          </button>
+          <button @click="switchToManual" class="manual-btn">Saisir l'URL manuellement</button>
         </div>
 
         <div v-if="scanning" class="scanner-viewport">
@@ -43,15 +39,11 @@
             placeholder="https://drive.google.com/..."
             class="url-input"
           />
-          <button @click="addManually" class="add-btn" :disabled="!manualUrl">
-            Ajouter
-          </button>
+          <button @click="addManually" class="add-btn" :disabled="!manualUrl">Ajouter</button>
         </div>
 
         <div v-if="scanning" class="scanner-actions">
-          <button @click="switchToManual" class="secondary-btn">
-            Saisir manuellement
-          </button>
+          <button @click="switchToManual" class="secondary-btn">Saisir manuellement</button>
         </div>
       </div>
     </div>
@@ -59,134 +51,132 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Html5Qrcode } from 'html5-qrcode';
-import { FriendService } from '@/services/FriendService';
-import { ToastService } from '@/services/ToastService';
-import type { FriendServiceEvent } from '@/types/friend';
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { Html5Qrcode } from 'html5-qrcode'
+import { FriendService } from '@/services/FriendService'
+import { ToastService } from '@/services/ToastService'
+import type { FriendServiceEvent } from '@/types/friend'
 
 const props = defineProps<{
-  isOpen: boolean;
-}>();
+  isOpen: boolean
+}>()
 
 const emit = defineEmits<{
-  close: [];
-  friendAdded: [friendId: string];
-}>();
+  close: []
+  friendAdded: [friendId: string]
+}>()
 
-const friendService = FriendService.getInstance();
+const friendService = FriendService.getInstance()
 
-const hasPermission = ref(false);
-const permissionDenied = ref(false);
-const scanning = ref(false);
-const showManualInput = ref(false);
-const manualUrl = ref('');
+const hasPermission = ref(false)
+const permissionDenied = ref(false)
+const scanning = ref(false)
+const showManualInput = ref(false)
+const manualUrl = ref('')
 
-let html5QrCode: Html5Qrcode | null = null;
+let html5QrCode: Html5Qrcode | null = null
 
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>;
-  const { type, message, messageType } = customEvent.detail;
+  const customEvent = event as CustomEvent<FriendServiceEvent>
+  const { type, message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
       type: messageType,
       timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    });
+    })
   }
-};
+}
 
 onMounted(() => {
   // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
-});
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
+})
 
 const startScanning = async () => {
   try {
-    html5QrCode = new Html5Qrcode('qr-reader');
+    html5QrCode = new Html5Qrcode('qr-reader')
 
     const qrCodeSuccessCallback = async (decodedText: string) => {
-      console.log('[QRScanner] Decoded:', decodedText);
+      console.log('[QRScanner] Decoded:', decodedText)
 
       // Stop scanning
-      await stopScanning();
+      await stopScanning()
 
       // Add friend
-      await addFriendByUrl(decodedText);
-    };
+      await addFriendByUrl(decodedText)
+    }
 
     const config = {
       fps: 10,
       qrbox: { width: 250, height: 250 }
-    };
+    }
 
-    await html5QrCode.start(
-      { facingMode: 'environment' },
-      config,
-      qrCodeSuccessCallback,
-      undefined
-    );
+    await html5QrCode.start({ facingMode: 'environment' }, config, qrCodeSuccessCallback, undefined)
 
-    hasPermission.value = true;
-    scanning.value = true;
-    permissionDenied.value = false;
+    hasPermission.value = true
+    scanning.value = true
+    permissionDenied.value = false
   } catch (error) {
-    console.error('[QRScanner] Error starting scanner:', error);
-    permissionDenied.value = true;
-    hasPermission.value = false;
-    ToastService.push('Impossible d\'accéder à la caméra', { type: 'error', timeout: 4000 });
+    console.error('[QRScanner] Error starting scanner:', error)
+    permissionDenied.value = true
+    hasPermission.value = false
+    ToastService.push("Impossible d'accéder à la caméra", { type: 'error', timeout: 4000 })
   }
-};
+}
 
 const stopScanning = async () => {
   if (html5QrCode && scanning.value) {
     try {
-      await html5QrCode.stop();
-      scanning.value = false;
+      await html5QrCode.stop()
+      scanning.value = false
     } catch (error) {
-      console.error('[QRScanner] Error stopping scanner:', error);
+      console.error('[QRScanner] Error stopping scanner:', error)
     }
   }
-};
+}
 
 const addFriendByUrl = async (url: string) => {
-  const friend = await friendService.addFriendByUrl(url);
+  const friend = await friendService.addFriendByUrl(url)
   if (friend) {
-    emit('friendAdded', friend.id);
-    close();
+    emit('friendAdded', friend.id)
+    close()
   }
-};
+}
 
 const switchToManual = () => {
-  stopScanning();
-  showManualInput.value = true;
-};
+  stopScanning()
+  showManualInput.value = true
+}
 
 const addManually = async () => {
-  if (!manualUrl.value) return;
-  await addFriendByUrl(manualUrl.value);
-};
+  if (!manualUrl.value) return
+  await addFriendByUrl(manualUrl.value)
+}
 
 const close = () => {
-  stopScanning();
-  showManualInput.value = false;
-  manualUrl.value = '';
-  emit('close');
-};
+  stopScanning()
+  showManualInput.value = false
+  manualUrl.value = ''
+  emit('close')
+}
 
-watch(() => props.isOpen, (newVal) => {
-  if (!newVal) {
-    stopScanning();
-    showManualInput.value = false;
+watch(
+  () => props.isOpen,
+  newVal => {
+    if (!newVal) {
+      stopScanning()
+      showManualInput.value = false
+    }
   }
-});
+)
 
 onUnmounted(() => {
-  stopScanning();
+  stopScanning()
   // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
-});
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
+})
 </script>
 
 <style scoped>

@@ -1,0 +1,97 @@
+name: Security Audit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Run daily at 9:00 UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual runs
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-audit:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          # Fail on high and critical vulnerabilities
+          npm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Generate audit report
+        if: always()
+        run: |
+          npm audit --json > audit-report.json || true
+          echo "Security audit completed"
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: npm-audit-report
+          path: audit-report.json
+          retention-days: 30
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3.27.9
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3.27.9
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3.27.9
+        with:
+          category: /language:${{ matrix.language }}
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.1
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4.5.0
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0

@@ -18,15 +18,15 @@ export class ShareUrlService {
    * @returns Base URL without trailing slash (e.g., https://openstride.org)
    */
   static getBaseUrl(): string {
-    const envBaseUrl = import.meta.env.VITE_APP_BASE_URL;
+    const envBaseUrl = import.meta.env.VITE_APP_BASE_URL
 
     // Use environment variable if set and not placeholder
     if (envBaseUrl && envBaseUrl !== 'undefined') {
-      return envBaseUrl.replace(/\/$/, ''); // Remove trailing slash
+      return envBaseUrl.replace(/\/$/, '') // Remove trailing slash
     }
 
     // Fallback to current origin (for localhost development)
-    return window.location.origin;
+    return window.location.origin
   }
 
   /**
@@ -40,9 +40,9 @@ export class ShareUrlService {
    * // Returns: 'https://openstride.org/add-friend?manifest=https%3A%2F%2Fdrive.google.com...'
    */
   static wrapManifestUrl(manifestUrl: string): string {
-    const base = this.getBaseUrl();
-    const encoded = encodeURIComponent(manifestUrl);
-    return `${base}/add-friend?manifest=${encoded}`;
+    const base = this.getBaseUrl()
+    const encoded = encodeURIComponent(manifestUrl)
+    return `${base}/add-friend?manifest=${encoded}`
   }
 
   /**
@@ -57,24 +57,24 @@ export class ShareUrlService {
    */
   static unwrapManifestUrl(shareUrl: string): string | null {
     try {
-      const parsed = new URL(shareUrl);
+      const parsed = new URL(shareUrl)
 
       // Check if this is an /add-friend route
       if (parsed.pathname !== '/add-friend') {
-        return null;
+        return null
       }
 
       // Extract manifest parameter
       // Note: searchParams.get() already decodes the value automatically
-      const manifestParam = parsed.searchParams.get('manifest');
+      const manifestParam = parsed.searchParams.get('manifest')
       if (!manifestParam) {
-        return null;
+        return null
       }
 
-      return manifestParam;
+      return manifestParam
     } catch (error) {
-      console.error('[ShareUrlService] Failed to unwrap URL:', error);
-      return null;
+      console.error('[ShareUrlService] Failed to unwrap URL:', error)
+      return null
     }
   }
 
@@ -90,11 +90,11 @@ export class ShareUrlService {
    */
   static isShareUrl(url: string): boolean {
     try {
-      const parsed = new URL(url);
-      return parsed.pathname === '/add-friend' && parsed.searchParams.has('manifest');
+      const parsed = new URL(url)
+      return parsed.pathname === '/add-friend' && parsed.searchParams.has('manifest')
     } catch (error) {
       // Invalid URL format, treat as not a share URL
-      return false;
+      return false
     }
   }
 
@@ -111,23 +111,20 @@ export class ShareUrlService {
    */
   static isValidManifestUrl(url: string): boolean {
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(url)
 
       // Allow Google Drive domains for production
-      const allowedHosts = [
-        'drive.google.com',
-        'docs.google.com'
-      ];
+      const allowedHosts = ['drive.google.com', 'docs.google.com']
 
       // In development, also allow localhost for testing
       if (import.meta.env.DEV) {
-        allowedHosts.push('localhost', '127.0.0.1');
+        allowedHosts.push('localhost', '127.0.0.1')
       }
 
-      return allowedHosts.includes(parsed.hostname);
+      return allowedHosts.includes(parsed.hostname)
     } catch (error) {
       // Invalid URL format
-      return false;
+      return false
     }
   }
 }

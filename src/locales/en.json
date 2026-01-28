@@ -188,5 +188,20 @@
       "reconnect": "Reconnect {provider}",
       "disconnect": "Disconnect"
     }
+  },
+  "update": {
+    "newVersionAvailable": "New version available",
+    "updateNow": "Update Now",
+    "later": "Later",
+    "whatsNew": "What's New",
+    "installing": "Installing update...",
+    "checkingForUpdates": "Checking for updates...",
+    "autoUpdating": "Update in progress..."
+  },
+  "migration": {
+    "updating": "Updating OpenStride",
+    "pleaseWait": "Please wait, this may take a few moments",
+    "success": "Update completed successfully",
+    "failed": "Update failed. Please try again."
   }
 }

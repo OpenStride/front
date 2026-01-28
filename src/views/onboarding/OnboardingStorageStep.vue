@@ -2,7 +2,8 @@
   <div class="onboarding-storage-step">
     <h2 class="text-2xl font-bold mb-2 text-center">{{ t('onboarding.storage.title') }}</h2>
     <p class="text-gray-600 mb-6 text-center leading-relaxed">
-      <strong>{{ t('onboarding.storage.subtitle') }}</strong><br>
+      <strong>{{ t('onboarding.storage.subtitle') }}</strong
+      ><br />
       {{ t('onboarding.storage.subtitleExtended') }}
     </p>
 
@@ -39,10 +40,14 @@
             <i v-else class="fas fa-cloud text-green-600 text-xl"></i>
             <div>
               <span class="font-semibold block">{{ storage.label }}</span>
-              <p v-if="storage.description" class="text-sm text-gray-500">{{ storage.description }}</p>
+              <p v-if="storage.description" class="text-sm text-gray-500">
+                {{ storage.description }}
+              </p>
             </div>
           </div>
-          <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+          <button
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+          >
             {{ t('common.select') }}
           </button>
         </li>
@@ -59,10 +64,7 @@
       </button>
 
       <div class="bg-white p-6 rounded shadow">
-        <component
-          v-if="setupComponent"
-          :is="setupComponent"
-        />
+        <component v-if="setupComponent" :is="setupComponent" />
       </div>
 
       <button
@@ -77,94 +79,93 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { allStoragePlugins } from '@/services/StoragePluginRegistry';
-import { StoragePluginManager } from '@/services/StoragePluginManager';
-import { IndexedDBService } from '@/services/IndexedDBService';
+import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { allStoragePlugins } from '@/services/StoragePluginRegistry'
+import { StoragePluginManager } from '@/services/StoragePluginManager'
+import { IndexedDBService } from '@/services/IndexedDBService'
 
-const { t } = useI18n();
+const { t } = useI18n()
 
 const props = defineProps<{
   savedStorageId?: string | null
-}>();
+}>()
 
 const emit = defineEmits<{
   next: []
   skip: []
   storageSelected: [storageId: string]
-}>();
+}>()
 
-const manager = StoragePluginManager.getInstance();
-const selectedStorageId = ref(props.savedStorageId || null);
-const setupComponent = shallowRef<any>(null);
-const isConnected = ref(false);
+const manager = StoragePluginManager.getInstance()
+const selectedStorageId = ref(props.savedStorageId || null)
+const setupComponent = shallowRef<any>(null)
+const isConnected = ref(false)
 
 // Charger setup component quand storage sélectionné
-watch(selectedStorageId, async (id) => {
+watch(selectedStorageId, async id => {
   if (id) {
-    const plugin = allStoragePlugins.find(p => p.id === id);
+    const plugin = allStoragePlugins.find(p => p.id === id)
     if (plugin) {
-      setupComponent.value = await plugin.setupComponent();
-      await manager.enablePlugin(id);
-      emit('storageSelected', id);
+      setupComponent.value = await plugin.setupComponent()
+      await manager.enablePlugin(id)
+      emit('storageSelected', id)
 
       // Vérifier si déjà connecté (tokens existants)
-      const db = await IndexedDBService.getInstance();
-      const token = await db.getData('gdrive_access_token');
+      const db = await IndexedDBService.getInstance()
+      const token = await db.getData('gdrive_access_token')
       if (token) {
-        isConnected.value = true;
+        isConnected.value = true
       }
     }
   } else {
-    setupComponent.value = null;
-    isConnected.value = false;
+    setupComponent.value = null
+    isConnected.value = false
   }
-});
+})
 
 // Polling pour détecter connexion après OAuth
-let checkInterval: NodeJS.Timeout | null = null;
+let checkInterval: NodeJS.Timeout | null = null
 
 onMounted(() => {
   if (selectedStorageId.value) {
-    startConnectionPolling();
+    startConnectionPolling()
   }
-});
+})
 
 onUnmounted(() => {
-  stopConnectionPolling();
-});
+  stopConnectionPolling()
+})
 
-watch(selectedStorageId, (id) => {
+watch(selectedStorageId, id => {
   if (id && !isConnected.value) {
-    startConnectionPolling();
+    startConnectionPolling()
   } else if (!id) {
-    stopConnectionPolling();
+    stopConnectionPolling()
   }
-});
+})
 
 function startConnectionPolling() {
-  if (checkInterval) return;
+  if (checkInterval) return
 
   checkInterval = setInterval(async () => {
-    const db = await IndexedDBService.getInstance();
-    const token = await db.getData('gdrive_access_token');
+    const db = await IndexedDBService.getInstance()
+    const token = await db.getData('gdrive_access_token')
     if (token) {
-      isConnected.value = true;
-      stopConnectionPolling();
+      isConnected.value = true
+      stopConnectionPolling()
     }
-  }, 1000);
+  }, 1000)
 }
 
 function stopConnectionPolling() {
   if (checkInterval) {
-    clearInterval(checkInterval);
-    checkInterval = null;
+    clearInterval(checkInterval)
+    checkInterval = null
   }
 }
 
 function selectStorage(id: string) {
-  selectedStorageId.value = id;
+  selectedStorageId.value = id
 }
 </script>
-

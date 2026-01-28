@@ -7,7 +7,13 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    setupFiles: ['./tests/setup.ts'],
     include: ['tests/unit/**/*.{spec,test}.ts'],
+    css: {
+      modules: {
+        classNameStrategy: 'non-scoped'
+      }
+    },
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@plugins': path.resolve(__dirname, './plugins')

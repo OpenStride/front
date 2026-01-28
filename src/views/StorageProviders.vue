@@ -3,14 +3,19 @@
     <section>
       <h1 class="text-2xl font-bold mb-4">{{ t('storageProviders.title') }}</h1>
       <ul v-if="userStoragePlugins.length" class="space-y-4">
-        <li v-for="plugin in userStoragePlugins" :key="plugin.id"
-          class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition">
+        <li
+          v-for="plugin in userStoragePlugins"
+          :key="plugin.id"
+          class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition"
+        >
           <div class="flex items-center space-x-4">
             <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
             <span class="font-semibold">{{ plugin.label }}</span>
           </div>
-          <router-link :to="`/storage-provider/${plugin.id}`"
-            class="inline-flex items-center gap-2 px-4 py-1.5 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-600 hover:text-white transition-colors duration-200">
+          <router-link
+            :to="`/storage-provider/${plugin.id}`"
+            class="inline-flex items-center gap-2 px-4 py-1.5 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-600 hover:text-white transition-colors duration-200"
+          >
             <i class="fas fa-cog"></i>
             {{ t('common.configure') }}
           </router-link>
@@ -22,14 +27,19 @@
     <section>
       <h2 class="text-xl font-semibold mb-4">{{ t('storageProviders.available') }}</h2>
       <ul class="space-y-4">
-        <li v-for="plugin in availableBackups" :key="plugin.id"
-          class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200">
+        <li
+          v-for="plugin in availableBackups"
+          :key="plugin.id"
+          class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200"
+        >
           <div class="flex items-center space-x-4">
             <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
             <span>{{ plugin.label }}</span>
           </div>
-          <button @click="installBackup(plugin.id)"
-            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+          <button
+            @click="installBackup(plugin.id)"
+            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+          >
             {{ t('common.add') }}
           </button>
         </li>
@@ -63,7 +73,7 @@ onMounted(async () => {
 
 async function installBackup(id: string) {
   // ici tu ajoutes l'id dans tes settings via le manager
-  await manager.enablePlugin(id)         // <-- méthode à implémenter
+  await manager.enablePlugin(id) // <-- méthode à implémenter
   userStoragePlugins.value = await manager.getMyStoragePlugins()
 }
 </script>

@@ -12,6 +12,9 @@
     "useDefineForClassFields": true,
     "sourceMap": true,
     "baseUrl": ".",
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": [
         "src/*"
@@ -32,9 +35,12 @@
     "plugins/**/*.ts",
     "src/**/*.ts",
     "src/**/*.vue",
-    "tests/**/*.ts",
+    "tests/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist",
+    "coverage",
+    ".firebase"
   ]
 }

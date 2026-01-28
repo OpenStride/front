@@ -1,6 +1,19 @@
 // Support file: place for custom commands or global before/after hooks
 
 /**
+ * Ignore Service Worker registration errors in tests
+ * Cypress doesn't play well with Service Workers
+ */
+Cypress.on('uncaught:exception', (err) => {
+  // Ignore Service Worker registration failures
+  if (err.message.includes('ServiceWorker') || err.message.includes('dev-sw.js')) {
+    return false
+  }
+  // Let other errors fail the test
+  return true
+})
+
+/**
  * Custom command to select elements by data-test attribute
  * Usage: cy.getByTestId('activity-card')
  */

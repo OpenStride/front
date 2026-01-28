@@ -215,34 +215,175 @@ npm run deploy:firebase
 - Lighthouse score : https://pagespeed.web.dev/
 - Core Web Vitals dans Firebase Console
 
-## CI/CD (Optionnel)
+## CI/CD Pipeline
 
-Pour automatiser les déploiements, ajouter GitHub Actions :
+OpenStride utilise GitHub Actions pour automatiser les tests, le build et le déploiement.
 
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Firebase
-on:
-  push:
-    branches: [ main ]
+### Workflows Automatiques
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm run test:unit
-      - run: npm run lint
-      - run: VITE_APP_BASE_URL=https://openstride.org npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          channelId: live
-          projectId: openstrive-edd63
+#### 1. CI Pipeline (.github/workflows/ci.yml)
+
+**Déclencheurs** : Pull requests + push sur main
+
+**Jobs parallèles** :
+- Lint & TypeCheck : Validation ESLint + TypeScript strict
+- Unit Tests : Tests Vitest avec coverage (minimum 60%)
+- E2E Tests : Tests Cypress (Chrome)
+- Build Validation : Vérification du build production
+
+**Durée** : 3-5 minutes
+
+#### 2. Code Quality (.github/workflows/code-quality.yml)
+
+**Déclencheurs** : Pull requests + push sur main
+
+**Vérifications** :
+- Prettier : Formatage du code
+- ESLint : Qualité du code
+- TypeScript : Type checking strict
+
+#### 3. Security Audit (.github/workflows/security-audit.yml)
+
+**Déclencheurs** : Daily (9h UTC) + pull requests + push sur main
+
+**Audits** :
+- npm audit : Vulnérabilités des dépendances (fail sur high/critical)
+- CodeQL : Analyse de sécurité statique (SAST)
+- Dependency Review : Revue des nouvelles dépendances (PRs uniquement)
+
+#### 4. Deploy Production (.github/workflows/deploy-production.yml)
+
+**Déclencheur** : Push sur main (automatique après CI)
+
+**Actions** :
+- Build production avec VITE_APP_BASE_URL=https://openstride.org
+- Déploiement vers Firebase Hosting (live channel)
+- Vérification post-déploiement
+
+**URL** : https://openstride.org
+
+**Durée** : 2-3 minutes
+
+#### 5. Deploy Preview (.github/workflows/deploy-preview.yml)
+
+**Déclencheurs** : Pull requests (opened, synchronize, reopened)
+
+**Actions** :
+- Build production
+- Déploiement vers Firebase preview channel (pr-{NUMBER})
+- Commentaire PR avec URL de preview
+- Cleanup automatique à la fermeture PR
+
+**Format URL** : https://openstrive-edd63--pr-{NUMBER}-{HASH}.web.app
+
+**Expiration** : 7 jours
+
+#### 7. Lighthouse Performance (.github/workflows/lighthouse.yml)
+
+**Déclencheur** : Après déploiement production réussi
+
+**Budgets** :
+- Performance : ≥90
+- PWA : ≥100
+- Accessibility : ≥90
+- Best Practices : ≥90
+- SEO : ≥90
+
+### Déploiement Manuel (Fallback)
+
+Si GitHub Actions est down ou pour un déploiement urgent :
+
+#### Via GitHub Actions UI
+
+1. Aller sur Actions → Deploy Production
+2. Cliquer "Run workflow"
+3. Sélectionner la branche main
+4. Cliquer "Run workflow"
+
+#### Via CLI Local
+
+```bash
+# 1. Build production
+npm run build:prod
+
+# 2. Déployer sur Firebase
+firebase deploy --only hosting
+
+# Ou utiliser le script complet
+npm run deploy
 ```
+
+### Secrets GitHub Requis
+
+Ces secrets doivent être configurés dans **GitHub Repository Settings → Secrets and variables → Actions** :
+
+| Secret | Description | Obtention |
+|--------|-------------|-----------|
+| `FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE` | Service account JSON Firebase | Firebase Console → Project Settings → Service Accounts → Generate new private key |
+| `VITE_GOOGLE_DRIVE_API_KEY` | API key Google Drive | Voir [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md) |
+| `FIREBASE_TOKEN` (optionnel) | Token CLI Firebase pour cleanup preview | `firebase login:ci` |
+
+### Procédure de Rollback
+
+#### Option 1 : Via Firebase Console (Recommandé)
+
+1. Aller sur [Firebase Console](https://console.firebase.google.com/project/openstrive-edd63/hosting)
+2. Section "Hosting" → "Release history"
+3. Sélectionner la version stable précédente
+4. Cliquer "Rollback"
+
+**Durée** : <1 minute
+
+#### Option 2 : Via Firebase CLI
+
+```bash
+# Voir l'historique des releases
+firebase hosting:releases:list
+
+# Rollback à la version précédente
+firebase hosting:rollback
+```
+
+**Durée** : <1 minute
+
+#### Option 3 : Via GitHub (Revert + Redéploiement)
+
+```bash
+# 1. Identifier le commit problématique
+git log --oneline
+
+# 2. Revert le commit
+git revert <commit-sha>
+
+# 3. Push vers main
+git push origin main
+
+# 4. CI/CD redéploie automatiquement la version précédente
+```
+
+**Durée** : ~5 minutes (temps de CI/CD inclus)
+
+### Monitoring Post-Déploiement
+
+**GitHub Actions** :
+- Workflow runs : https://github.com/OpenStride/front/actions
+- Success rates, durée moyenne, artifacts
+
+**Firebase Console** :
+- Hosting metrics : https://console.firebase.google.com/project/openstrive-edd63/hosting
+- Performance monitoring
+- Release history
+
+**Dependabot** :
+- Security alerts : https://github.com/OpenStride/front/security/dependabot
+- Mises à jour automatiques (hebdomadaires, lundi 9h)
+
+### Optimisations de Coût
+
+- Node modules cachés (gain ~30-40% temps)
+- Jobs annulés si nouveau push (concurrency)
+- Skip E2E sur changes docs uniquement
+- **Coût estimé** : $0/mois (GitHub Actions free tier : 2000 min/mois pour repos publics)
 
 ## Support
 

@@ -50,7 +50,9 @@ export function adaptZipSummary(zipDetails: any): Activity {
     distance: Number(zipDetails['Distance_1'] || zipDetails['Distance'] || zipDetails.activity?.total_distance || zipDetails.sessions?.[0]?.total_distance),
     type: (zipDetails['Activity Type'] || zipDetails.activity?.type || zipDetails.sessions?.[0]?.sport || 'unknown').toLowerCase(),
     title: zipDetails['Activity Name'] || zipDetails.activity?.name || zipDetails.sessions?.[0]?.sport || '',
-    mapPolyline: polyline
+    mapPolyline: polyline,
+    version: 1,
+    lastModified: Date.now()
   }
 }
 
@@ -95,6 +97,8 @@ export function adaptZipDetails(zip: any): ActivityDetails {
       averageCadence: Number(zip['Average Cadence'] ?? zip.sessions?.[0]?.avg_cadence ?? null),
       totalAscent: Number(zip['Elevation Gain'] ?? zip.sessions?.[0]?.total_ascent ?? null),
       calories: Number(zip['Calories'] ?? zip.sessions?.[0]?.total_calories ?? null)
-    }
+    },
+    version: 1,
+    lastModified: Date.now()
   }
 }

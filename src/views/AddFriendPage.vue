@@ -34,9 +34,7 @@
     <div v-else-if="invalidLink" class="invalid-container">
       <i class="fas fa-link-slash error-icon" aria-hidden="true"></i>
       <h2>Lien invalide</h2>
-      <p class="invalid-text">
-        Ce lien de partage n'est pas valide ou a expiré.
-      </p>
+      <p class="invalid-text">Ce lien de partage n'est pas valide ou a expiré.</p>
       <button @click="goToFriends" class="back-btn">
         <i class="fas fa-users" aria-hidden="true"></i>
         Retour aux amis
@@ -46,107 +44,107 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { FriendService } from '@/services/FriendService';
-import { ToastService } from '@/services/ToastService';
-import { ShareUrlService } from '@/services/ShareUrlService';
-import type { FriendServiceEvent } from '@/types/friend';
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { FriendService } from '@/services/FriendService'
+import { ToastService } from '@/services/ToastService'
+import { ShareUrlService } from '@/services/ShareUrlService'
+import type { FriendServiceEvent } from '@/types/friend'
 
-const route = useRoute();
-const router = useRouter();
-const friendService = FriendService.getInstance();
+const route = useRoute()
+const router = useRouter()
+const friendService = FriendService.getInstance()
 
-const loading = ref(true);
-const success = ref(false);
-const error = ref(false);
-const invalidLink = ref(false);
-const friendName = ref('');
-const errorMessage = ref('');
-const manifestUrl = ref<string | null>(null);
+const loading = ref(true)
+const success = ref(false)
+const error = ref(false)
+const invalidLink = ref(false)
+const friendName = ref('')
+const errorMessage = ref('')
+const manifestUrl = ref<string | null>(null)
 
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>;
-  const { type, message, messageType } = customEvent.detail;
+  const customEvent = event as CustomEvent<FriendServiceEvent>
+  const { type, message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
       type: messageType,
       timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    });
+    })
   }
-};
+}
 
 onMounted(async () => {
   // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
 
-  await processDeepLink();
-});
+  await processDeepLink()
+})
 
 onUnmounted(() => {
   // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
-});
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
+})
 
 async function processDeepLink() {
   try {
     // Extract manifest parameter from query string
-    const manifestParam = route.query.manifest as string | undefined;
+    const manifestParam = route.query.manifest as string | undefined
 
     if (!manifestParam) {
-      console.warn('[AddFriendPage] Missing manifest parameter');
-      invalidLink.value = true;
-      loading.value = false;
-      return;
+      console.warn('[AddFriendPage] Missing manifest parameter')
+      invalidLink.value = true
+      loading.value = false
+      return
     }
 
     // Decode manifest URL
-    manifestUrl.value = decodeURIComponent(manifestParam);
-    console.log('[AddFriendPage] Processing manifest URL:', manifestUrl.value);
+    manifestUrl.value = decodeURIComponent(manifestParam)
+    console.log('[AddFriendPage] Processing manifest URL:', manifestUrl.value)
 
     // Validate manifest URL
     if (!ShareUrlService.isValidManifestUrl(manifestUrl.value)) {
-      console.error('[AddFriendPage] Invalid manifest URL domain');
-      invalidLink.value = true;
-      loading.value = false;
-      return;
+      console.error('[AddFriendPage] Invalid manifest URL domain')
+      invalidLink.value = true
+      loading.value = false
+      return
     }
 
     // Add friend using FriendService
-    const friend = await friendService.addFriendByUrl(manifestUrl.value);
+    const friend = await friendService.addFriendByUrl(manifestUrl.value)
 
     if (friend) {
-      console.log('[AddFriendPage] Friend added successfully:', friend.username);
-      success.value = true;
-      friendName.value = friend.username;
-      loading.value = false;
+      console.log('[AddFriendPage] Friend added successfully:', friend.username)
+      success.value = true
+      friendName.value = friend.username
+      loading.value = false
 
       // Redirect to friends page after 2 seconds
       setTimeout(() => {
-        router.push('/friends');
-      }, 2000);
+        router.push('/friends')
+      }, 2000)
     } else {
-      throw new Error('Échec ajout ami');
+      throw new Error('Échec ajout ami')
     }
   } catch (err) {
-    console.error('[AddFriendPage] Error processing deep link:', err);
-    error.value = true;
-    errorMessage.value = err instanceof Error ? err.message : 'Erreur inconnue';
-    loading.value = false;
+    console.error('[AddFriendPage] Error processing deep link:', err)
+    error.value = true
+    errorMessage.value = err instanceof Error ? err.message : 'Erreur inconnue'
+    loading.value = false
   }
 }
 
 async function retry() {
-  error.value = false;
-  success.value = false;
-  loading.value = true;
-  await processDeepLink();
+  error.value = false
+  success.value = false
+  loading.value = true
+  await processDeepLink()
 }
 
 function goToFriends() {
-  router.push('/friends');
+  router.push('/friends')
 }
 </script>
 

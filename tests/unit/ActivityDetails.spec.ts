@@ -2,10 +2,19 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
+// Mock MapPreview component to prevent Leaflet/CSS fetch errors
+vi.mock('@/components/MapPreview.vue', () => ({
+  default: {
+    name: 'MapPreview',
+    template: '<div class="map-preview-mock"></div>',
+    props: ['samples']
+  }
+}))
+
 // Mock IndexedDBService to avoid real IndexedDB access
 vi.mock('@/services/IndexedDBService', () => ({
   IndexedDBService: class {
-    static instance = null
+    static instance: any = null
     static async getInstance() {
       if (!this.instance) {
         this.instance = new this()

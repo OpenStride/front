@@ -49,9 +49,7 @@
           <h3 class="friend-name">{{ friend.username }}</h3>
           <p v-if="friend.bio" class="friend-bio">{{ friend.bio }}</p>
           <div class="friend-meta">
-            <span class="meta-item">
-              Ajouté le {{ formatDate(friend.addedAt) }}
-            </span>
+            <span class="meta-item"> Ajouté le {{ formatDate(friend.addedAt) }} </span>
             <span v-if="friend.lastFetched" class="meta-item">
               Sync: {{ formatRelativeTime(friend.lastFetched) }}
             </span>
@@ -65,7 +63,10 @@
             class="action-btn refresh"
             title="Synchroniser"
           >
-            <i :class="['fas fa-sync icon-sm', { spinning: refreshingFriend === friend.id }]" aria-hidden="true"></i>
+            <i
+              :class="['fas fa-sync icon-sm', { spinning: refreshingFriend === friend.id }]"
+              aria-hidden="true"
+            ></i>
           </button>
 
           <!-- Sync All button -->
@@ -81,15 +82,15 @@
           </button>
 
           <!-- Show badge if fully synced -->
-          <span v-if="friend.fullySynced" class="fully-synced-badge" title="Historique complet synchronisé">
+          <span
+            v-if="friend.fullySynced"
+            class="fully-synced-badge"
+            title="Historique complet synchronisé"
+          >
             <i class="fas fa-check-circle"></i>
           </span>
 
-          <button
-            @click="confirmRemove(friend)"
-            class="action-btn remove"
-            title="Supprimer"
-          >
+          <button @click="confirmRemove(friend)" class="action-btn remove" title="Supprimer">
             <i class="fas fa-trash-alt" aria-hidden="true"></i>
           </button>
         </div>
@@ -97,11 +98,7 @@
     </div>
 
     <!-- QR Scanner Modal -->
-    <QRScanner
-      :is-open="scannerOpen"
-      @close="scannerOpen = false"
-      @friend-added="onFriendAdded"
-    />
+    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" @friend-added="onFriendAdded" />
 
     <!-- Remove Confirmation Modal -->
     <div v-if="friendToRemove" class="modal-overlay" @click.self="friendToRemove = null">
@@ -118,143 +115,145 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { FriendService } from '@/services/FriendService';
-import { ToastService } from '@/services/ToastService';
-import QRScanner from '@/components/QRScanner.vue';
-import type { Friend, FriendServiceEvent } from '@/types/friend';
+import { ref, onMounted, onUnmounted } from 'vue'
+import { FriendService } from '@/services/FriendService'
+import { ToastService } from '@/services/ToastService'
+import QRScanner from '@/components/QRScanner.vue'
+import type { Friend, FriendServiceEvent } from '@/types/friend'
 
-const friendService = FriendService.getInstance();
+const friendService = FriendService.getInstance()
 
-const friends = ref<Friend[]>([]);
-const loading = ref(true);
-const refreshing = ref(false);
-const refreshingFriend = ref<string | null>(null);
-const syncingFriendId = ref<string | null>(null);
-const scannerOpen = ref(false);
-const friendToRemove = ref<Friend | null>(null);
+const friends = ref<Friend[]>([])
+const loading = ref(true)
+const refreshing = ref(false)
+const refreshingFriend = ref<string | null>(null)
+const syncingFriendId = ref<string | null>(null)
+const scannerOpen = ref(false)
+const friendToRemove = ref<Friend | null>(null)
 
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>;
-  const { type, message, messageType } = customEvent.detail;
+  const customEvent = event as CustomEvent<FriendServiceEvent>
+  const { type, message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
       type: messageType,
       timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    });
+    })
   }
-};
+}
 
 onMounted(async () => {
-  await loadFriends();
+  await loadFriends()
 
   // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
-});
+  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
+})
 
 onUnmounted(() => {
   // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
-});
+  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
+})
 
 const loadFriends = async () => {
-  loading.value = true;
+  loading.value = true
   try {
-    friends.value = await friendService.getAllFriends();
+    friends.value = await friendService.getAllFriends()
     // Sort by most recently added
-    friends.value.sort((a, b) => b.addedAt - a.addedAt);
+    friends.value.sort((a, b) => b.addedAt - a.addedAt)
   } catch (error) {
-    console.error('[ProfileFriends] Error loading friends:', error);
+    console.error('[ProfileFriends] Error loading friends:', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const openScanner = () => {
-  scannerOpen.value = true;
-};
+  scannerOpen.value = true
+}
 
 const onFriendAdded = async () => {
-  await loadFriends();
-};
+  await loadFriends()
+}
 
 const refreshAll = async () => {
-  refreshing.value = true;
+  refreshing.value = true
   try {
-    await friendService.refreshAllFriends();
-    await loadFriends();
+    await friendService.refreshAllFriends()
+    await loadFriends()
   } catch (error) {
-    console.error('[ProfileFriends] Error refreshing friends:', error);
+    console.error('[ProfileFriends] Error refreshing friends:', error)
   } finally {
-    refreshing.value = false;
+    refreshing.value = false
   }
-};
+}
 
 const refreshFriend = async (friendId: string) => {
-  refreshingFriend.value = friendId;
+  refreshingFriend.value = friendId
   try {
-    await friendService.syncFriendActivitiesQuick(friendId, 30);
-    await loadFriends();
+    await friendService.syncFriendActivitiesQuick(friendId, 30)
+    await loadFriends()
   } catch (error) {
-    console.error('[ProfileFriends] Error refreshing friend:', error);
+    console.error('[ProfileFriends] Error refreshing friend:', error)
   } finally {
-    refreshingFriend.value = null;
+    refreshingFriend.value = null
   }
-};
+}
 
 const syncAllActivities = async (friendId: string) => {
-  syncingFriendId.value = friendId;
+  syncingFriendId.value = friendId
   try {
-    const result = await friendService.syncFriendActivitiesAll(friendId);
+    const result = await friendService.syncFriendActivitiesAll(friendId)
 
     if (result.success) {
-      console.log(`[ProfileFriends] Full sync completed: ${result.activitiesAdded} new, ${result.totalActivities} total`);
+      console.log(
+        `[ProfileFriends] Full sync completed: ${result.activitiesAdded} new, ${result.totalActivities} total`
+      )
     } else {
-      console.error('[ProfileFriends] Full sync failed:', result.error);
+      console.error('[ProfileFriends] Full sync failed:', result.error)
     }
 
-    await loadFriends();
+    await loadFriends()
   } catch (error) {
-    console.error('[ProfileFriends] Error syncing all activities:', error);
+    console.error('[ProfileFriends] Error syncing all activities:', error)
   } finally {
-    syncingFriendId.value = null;
+    syncingFriendId.value = null
   }
-};
+}
 
 const confirmRemove = (friend: Friend) => {
-  friendToRemove.value = friend;
-};
+  friendToRemove.value = friend
+}
 
 const removeFriend = async () => {
-  if (!friendToRemove.value) return;
+  if (!friendToRemove.value) return
 
-  await friendService.removeFriend(friendToRemove.value.id);
-  friendToRemove.value = null;
-  await loadFriends();
-};
+  await friendService.removeFriend(friendToRemove.value.id)
+  friendToRemove.value = null
+  await loadFriends()
+}
 
 const formatDate = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
-  });
-};
+  })
+}
 
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return 'À l\'instant';
-  if (minutes < 60) return `Il y a ${minutes} min`;
-  if (hours < 24) return `Il y a ${hours}h`;
-  return `Il y a ${days}j`;
-};
+  if (minutes < 1) return "À l'instant"
+  if (minutes < 60) return `Il y a ${minutes} min`
+  if (hours < 24) return `Il y a ${hours}h`
+  return `Il y a ${days}j`
+}
 </script>
 
 <style scoped>
@@ -323,8 +322,12 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading {

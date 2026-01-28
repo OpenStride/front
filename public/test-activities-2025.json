@@ -1,0 +1,28 @@
+[
+  {
+    "id": "test-activity-1",
+    "startTime": 1737000000,
+    "duration": 3600,
+    "distance": 10000,
+    "type": "RUNNING",
+    "title": "Morning Run",
+    "mapPolyline": [
+      [48.8566, 2.3522],
+      [48.8576, 2.3532],
+      [48.8586, 2.3542]
+    ]
+  },
+  {
+    "id": "test-activity-2",
+    "startTime": 1736900000,
+    "duration": 5400,
+    "distance": 15000,
+    "type": "CYCLING",
+    "title": "Evening Ride",
+    "mapPolyline": [
+      [48.8566, 2.3522],
+      [48.8600, 2.3600],
+      [48.8650, 2.3700]
+    ]
+  }
+]
