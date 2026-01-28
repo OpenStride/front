@@ -43,6 +43,16 @@
         </div>
       </div>
 
+      <!-- Interactions (friend and own activities) -->
+      <InteractionBar
+        v-if="canShowInteractions"
+        :activity-id="interactionActivityId"
+        :activity-owner-id="interactionOwnerId!"
+        :show-warning="!!friendUsername"
+        :is-mutual-friend="isMutualFriend"
+        class="card-interactions"
+      />
+
       <!-- footer inchangé -->
       <div class="footer">
         <button @click="showDetails" class="details-button">Voir détails →</button>
@@ -52,10 +62,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import MapPreview from './MapPreview.vue'
+import InteractionBar from './InteractionBar.vue'
 import router from '@/router'
 import { Activity } from '@/types/activity'
+import { getInteractionService } from '@/services/InteractionService'
+import { IndexedDBService } from '@/services/IndexedDBService'
+import type { Friend } from '@/types/friend'
 
 const props = defineProps<{
   activity: Activity
@@ -118,6 +132,65 @@ const faIcons: Record<string, string> = {
 const iconClass = computed(
   () => faIcons[props.activity.type?.toUpperCase() as string] ?? 'fas fa-medal'
 )
+
+// Extract friendId for interactions
+const friendId = computed(() => {
+  if (!props.friendUsername) return null
+  const friendActivity = activity as any
+  return (
+    friendActivity.friendId ||
+    (activity.provider?.startsWith('friend_') ? activity.provider.substring(7) : null)
+  )
+})
+
+// Get original activity ID (for friend activities)
+const originalActivityId = computed(() => {
+  const friendActivity = activity as any
+  return friendActivity.activityId || activity.id
+})
+
+// ========== InteractionBar support for both friend and own activities ==========
+const myUserId = ref<string | null>(null)
+const friendStableUserId = ref<string | null>(null)
+const isMutualFriend = ref<boolean>(false)
+
+onMounted(async () => {
+  const interactionService = getInteractionService()
+  myUserId.value = await interactionService.getMyUserId()
+
+  // Load friend's stable userId and mutual friendship status if this is a friend activity
+  if (props.friendUsername && friendId.value) {
+    const db = await IndexedDBService.getInstance()
+    const friend = (await db.getDataFromStore('friends', friendId.value)) as Friend | null
+    if (friend?.userId) {
+      friendStableUserId.value = friend.userId
+    }
+    // Set mutual friendship status
+    isMutualFriend.value = friend?.followsMe === true
+  }
+})
+
+// Activity ID for interactions
+const interactionActivityId = computed(() => {
+  if (props.friendUsername) {
+    return originalActivityId.value
+  }
+  return props.activity.id
+})
+
+// Owner of the activity (prefer stable userId, fallback to URL-based friendId)
+const interactionOwnerId = computed(() => {
+  if (props.friendUsername) {
+    // Use stable userId if available, fallback to URL-based friendId for backwards compat
+    return friendStableUserId.value || friendId.value
+  }
+  return myUserId.value // My own activity
+})
+
+// Show InteractionBar only if we have a valid owner
+const canShowInteractions = computed(() => {
+  return interactionOwnerId.value !== null
+})
 
 // présence de carte
 const hasMap = computed(
@@ -273,7 +346,11 @@ const toggleMenu = () => {
   background: #e1e1e1;
 }
 
-/* 💡 Full-width sur mobile */
+.card-interactions {
+  margin-top: 0.75rem;
+}
+
+/* Full-width sur mobile */
 @media (max-width: 640px) {
   .activity-card {
     border-radius: 0;

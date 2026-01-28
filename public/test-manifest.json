@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "lastModified": 1737000000000,
+  "profile": {
+    "username": "TestUser",
+    "profilePhoto": "",
+    "bio": "Test user for local development"
+  },
+  "stats": {
+    "totalActivities": 5,
+    "totalDistance": 50000,
+    "totalDuration": 18000
+  },
+  "availableYears": [
+    {
+      "year": 2025,
+      "fileUrl": "http://localhost:3000/test-activities-2025.json",
+      "activityCount": 5,
+      "lastModified": 1737000000000
+    }
+  ]
+}

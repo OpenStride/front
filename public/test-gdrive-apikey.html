@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Drive API Key Access</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1e1e2e;
+            color: #cdd6f4;
+        }
+        h1 { color: #89b4fa; }
+        .test-section {
+            background: #313244;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border: 1px solid #45475a;
+            border-radius: 4px;
+        }
+        button {
+            background: #89b4fa;
+            color: #1e1e2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #74c7ec; }
+        .result {
+            background: #1e1e2e;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success { color: #a6e3a1; }
+        .error { color: #f38ba8; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Google Drive API Key Access</h1>
+    <p>Test if Google Drive API with API key can bypass CORS</p>
+
+    <!-- Test 1: REST API with API key -->
+    <div class="test-section">
+        <h2>Test 1: REST API + API Key</h2>
+        <p>Format: <code>https://www.googleapis.com/drive/v3/files/{fileId}?alt=media&key={API_KEY}</code></p>
+
+        <input type="text" id="apiKey" placeholder="Your Google Drive API Key" value="">
+        <input type="text" id="fileId" placeholder="File ID (from Google Drive URL)" value="">
+
+        <button onclick="testRestAPI()">Test REST API</button>
+        <div id="restResult" class="result"></div>
+    </div>
+
+    <!-- Test 2: gapi.client with API key -->
+    <div class="test-section">
+        <h2>Test 2: gapi.client + API Key</h2>
+        <p>Using Google's official JavaScript client library</p>
+
+        <button onclick="testGapiClient()">Test gapi.client</button>
+        <div id="gapiResult" class="result"></div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="test-section">
+        <h2>📋 How to get an API Key</h2>
+        <ol>
+            <li>Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+            <li>Create or select a project</li>
+            <li>Enable "Google Drive API"</li>
+            <li>Go to "Credentials" → "Create Credentials" → "API Key"</li>
+            <li>Copy the API key and paste above</li>
+        </ol>
+
+        <h2>📋 How to get a File ID</h2>
+        <ol>
+            <li>Upload a file to Google Drive</li>
+            <li>Right-click → "Get link" → "Anyone with the link"</li>
+            <li>URL format: <code>https://drive.google.com/file/d/<strong>FILE_ID</strong>/view?usp=sharing</code></li>
+            <li>Copy the FILE_ID part</li>
+        </ol>
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        // Test 1: REST API with API key
+        async function testRestAPI() {
+            const apiKey = document.getElementById('apiKey').value;
+            const fileId = document.getElementById('fileId').value;
+            const resultDiv = document.getElementById('restResult');
+
+            if (!apiKey || !fileId) {
+                resultDiv.innerHTML = '<span class="error">❌ Please enter both API Key and File ID</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '⏳ Testing REST API...';
+
+            try {
+                const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+                console.log('Fetching:', url);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                if (response.ok) {
+                    const data = await response.text();
+                    resultDiv.innerHTML = `<span class="success">✅ SUCCESS! CORS bypassed with API key!</span>\n\nResponse:\n${data.substring(0, 500)}...`;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<span class="error">❌ HTTP ${response.status}</span>\n\n${errorText}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ CORS Error (or network error)</span>\n\n${error.message}\n\nCheck browser console for details.`;
+                console.error('Full error:', error);
+            }
+        }
+
+        // Test 2: gapi.client with API key
+        async function testGapiClient() {
+            const apiKey = document.getElementById('apiKey').value;
+            const fileId = document.getElementById('fileId').value;
+            const resultDiv = document.getElementById('gapiResult');
+
+            if (!apiKey || !fileId) {
+                resultDiv.innerHTML = '<span class="error">❌ Please enter both API Key and File ID</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '⏳ Loading gapi.client...';
+
+            try {
+                // Load gapi.client
+                await new Promise((resolve, reject) => {
+                    gapi.load('client', { callback: resolve, onerror: reject });
+                });
+
+                resultDiv.innerHTML = '⏳ Initializing with API key...';
+
+                // Initialize with API key only (no OAuth)
+                await gapi.client.init({
+                    apiKey: apiKey,
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                });
+
+                resultDiv.innerHTML = '⏳ Fetching file...';
+
+                // Try to fetch file
+                const response = await gapi.client.drive.files.get({
+                    fileId: fileId,
+                    alt: 'media'
+                });
+
+                resultDiv.innerHTML = `<span class="success">✅ SUCCESS! gapi.client works with API key!</span>\n\nResponse:\n${JSON.stringify(response, null, 2).substring(0, 500)}...`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Error with gapi.client</span>\n\n${error.message || JSON.stringify(error, null, 2)}`;
+                console.error('gapi.client error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -71,13 +71,13 @@ export class IndexedDBService implements IStorageService {
 
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('OpenStrideDB', 9)
+      const request = indexedDB.open('OpenStrideDB', 10)
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v9`)
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v10`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -95,7 +95,7 @@ export class IndexedDBService implements IStorageService {
           }
         }
 
-        // Create missing stores (for fresh install)
+        // Create missing stores (for fresh install or migration)
         const objectStores: {
           name: string
           options?: IDBObjectStoreParameters
@@ -119,7 +119,17 @@ export class IndexedDBService implements IStorageService {
           { name: 'notifLogs', options: { autoIncrement: true } },
           { name: 'aggregatedData', options: { keyPath: 'id' } },
           { name: 'friends', options: { keyPath: 'id' } },
-          { name: 'friend_activities', options: { keyPath: 'id' } }
+          { name: 'friend_activities', options: { keyPath: 'id' } },
+          {
+            name: 'interactions',
+            options: { keyPath: 'id' },
+            indices: [
+              { name: 'activityId', keyPath: 'activityId', unique: false },
+              { name: 'activityOwnerId', keyPath: 'activityOwnerId', unique: false },
+              { name: 'authorId', keyPath: 'authorId', unique: false },
+              { name: 'timestamp', keyPath: 'timestamp', unique: false }
+            ]
+          }
         ]
 
         for (const { name, options, indices } of objectStores) {
