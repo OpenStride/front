@@ -58,20 +58,17 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for navigation to complete
     cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
-    // Simule retour OAuth avec tokens
+    // Simule retour OAuth avec tokens - l'import démarre automatiquement
     cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')
 
     // Wait for the app to be ready
     cy.waitForApp()
 
-    // Verify the fetch button is visible and click it
-    cy.getByTestId('fetch-activities-button')
-      .should('be.visible')
-      .and('not.be.disabled')
-      .click()
+    // Wait for the status section to appear (indicates connection is established)
+    cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
 
-    // Wait for the fetch to complete (7 iterations * ~200ms + processing)
-    cy.wait(2500)
+    // Wait for automatic import to complete - check for "Synchronisé" text or manual refresh button
+    cy.getByTestId('manual-refresh-button', { timeout: 15000 }).should('be.visible')
 
     // Navigate to activities page and verify the activity was imported
     cy.visit('/my-activities')
