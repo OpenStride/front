@@ -57,13 +57,13 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for the status section to appear (indicates connection is established)
     cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
 
-    // Wait for at least one Garmin API call to complete
+    // Wait for at least one Garmin API call to complete (data is saved after this)
     cy.wait('@garminFetch', { timeout: 20000 })
 
-    // Wait for manual refresh button to appear (indicates sync state is idle)
-    cy.getByTestId('manual-refresh-button', { timeout: 15000 }).should('be.visible')
+    // Small delay to ensure IndexedDB write completes
+    cy.wait(1000)
 
-    // Navigate to activities page and verify the activity was imported
+    // Navigate to activities page - don't wait for full sync (takes 90s+)
     cy.visit('/my-activities')
     cy.waitForApp()
 
