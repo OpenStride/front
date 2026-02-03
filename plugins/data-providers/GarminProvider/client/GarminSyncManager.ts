@@ -210,7 +210,7 @@ export class GarminSyncManager {
         detail: {
           success: errors.length === 0,
           count: totalCount,
-          error: errors.length > 0 ? `Erreurs sur ${errors.length} mois` : undefined
+          error: errors.length > 0 ? `Errors on ${errors.length} months` : undefined
         }
       }))
 
