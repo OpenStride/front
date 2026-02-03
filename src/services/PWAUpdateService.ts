@@ -259,6 +259,31 @@ export class PWAUpdateService {
   public clearDeferredFlag(): void {
     localStorage.removeItem('pwa_update_deferred')
   }
+
+  /**
+   * Force cache clear and reload
+   * Used when user clicks on version in footer
+   */
+  public async forceUpdateAndClearCache(): Promise<void> {
+    console.log('[PWAUpdateService] Force update and cache clear requested')
+
+    // 1. Clear all caches
+    if ('caches' in window) {
+      const cacheNames = await caches.keys()
+      await Promise.all(cacheNames.map(name => caches.delete(name)))
+      console.log(`[PWAUpdateService] Cleared ${cacheNames.length} caches`)
+    }
+
+    // 2. Unregister service workers
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registrations.map(r => r.unregister()))
+      console.log(`[PWAUpdateService] Unregistered ${registrations.length} service workers`)
+    }
+
+    // 3. Force reload (bypass cache)
+    window.location.reload()
+  }
 }
 
 // Export singleton getter
