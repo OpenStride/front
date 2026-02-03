@@ -4,9 +4,15 @@ import ToastContainer from '@/components/ToastContainer.vue'
 import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
 import MigrationProgress from '@/components/MigrationProgress.vue'
+import { getPWAUpdateService } from '@/services/PWAUpdateService'
 
 // App version from build-time injection
 const appVersion = __APP_VERSION__
+
+const forceRefresh = async () => {
+  const updateService = getPWAUpdateService()
+  await updateService.forceUpdateAndClearCache()
+}
 </script>
 
 <template>
@@ -30,7 +36,9 @@ const appVersion = __APP_VERSION__
           >GitHub</a
         >
       </p>
-      <p class="version">OpenStride v{{ appVersion }}</p>
+      <p class="version" @click="forceRefresh" title="Cliquer pour forcer la mise à jour">
+        OpenStride v{{ appVersion }}
+      </p>
     </footer>
   </div>
 </template>
@@ -67,5 +75,9 @@ main {
   font-size: 0.75rem;
   color: #999;
   font-weight: 300;
+  cursor: pointer;
+}
+.footer .version:hover {
+  text-decoration: underline;
 }
 </style>
