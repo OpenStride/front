@@ -4,22 +4,12 @@
  */
 describe('Garmin provider refresh (mock UI flow)', () => {
   beforeEach(() => {
-    cy.fixture('garmin_activity').as('garminData')
-
-    // Stub fetch avant navigation (pas de réseau réel, donc pas d'intercepts à attendre)
-    cy.on('window:before:load', (win) => {
-      const originalFetch = win.fetch.bind(win)
-      win.fetch = (input, init) => {
-        const url = typeof input === 'string' ? input : input.url
-        if (url.includes('/activities/fetch')) {
-          return new Promise((resolve) => {
-            cy.get('@garminData').then((data) => {
-              resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } }))
-            })
-          })
-        }
-        return originalFetch(input, init)
-      }
+    // Use cy.intercept to mock Garmin API calls
+    cy.fixture('garmin_activity').then((garminData) => {
+      cy.intercept('GET', '**/activities/fetch**', {
+        statusCode: 200,
+        body: garminData
+      }).as('garminFetch')
     })
   })
 
@@ -58,22 +48,22 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for navigation to complete
     cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
-    // Simule retour OAuth avec tokens
+    // Simule retour OAuth avec tokens - l'import démarre automatiquement
     cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')
 
     // Wait for the app to be ready
     cy.waitForApp()
 
-    // Verify the fetch button is visible and click it
-    cy.getByTestId('fetch-activities-button')
-      .should('be.visible')
-      .and('not.be.disabled')
-      .click()
+    // Wait for the status section to appear (indicates connection is established)
+    cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
 
-    // Wait for the fetch to complete (7 iterations * ~200ms + processing)
-    cy.wait(2500)
+    // Wait for at least one Garmin API call to complete (data is saved after this)
+    cy.wait('@garminFetch', { timeout: 20000 })
 
-    // Navigate to activities page and verify the activity was imported
+    // Small delay to ensure IndexedDB write completes
+    cy.wait(1000)
+
+    // Navigate to activities page - don't wait for full sync (takes 90s+)
     cy.visit('/my-activities')
     cy.waitForApp()
 
