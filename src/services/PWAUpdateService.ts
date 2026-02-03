@@ -96,7 +96,14 @@ export class PWAUpdateService {
 
       // New service worker has taken control (after user accepted)
       this.wb.addEventListener('controlling', () => {
-        console.log('[PWAUpdateService] New service worker controlling, reloading...')
+        console.log('[PWAUpdateService] New service worker controlling')
+
+        // Skip reload if we just did a force refresh (avoids infinite loop)
+        if (sessionStorage.getItem('pwa_force_refresh')) {
+          sessionStorage.removeItem('pwa_force_refresh')
+          console.log('[PWAUpdateService] Skipping reload (force refresh already done)')
+          return
+        }
 
         this.emitter.dispatchEvent(
           new CustomEvent<PWAUpdateEvent>('update-ready', {
@@ -105,6 +112,7 @@ export class PWAUpdateService {
         )
 
         // Reload immediately (user already accepted)
+        console.log('[PWAUpdateService] Reloading...')
         window.location.reload()
       })
 
@@ -266,6 +274,9 @@ export class PWAUpdateService {
    */
   public async forceUpdateAndClearCache(): Promise<void> {
     console.log('[PWAUpdateService] Force update and cache clear requested')
+
+    // Set flag to prevent reload loop when SW takes control after refresh
+    sessionStorage.setItem('pwa_force_refresh', '1')
 
     // 1. Clear all caches
     if ('caches' in window) {
