@@ -4,6 +4,8 @@ import { PublicFileService } from './PublicFileService'
 import type { Friend, PublicManifest, FriendSyncResult, FriendServiceEvent } from '@/types/friend'
 import { ShareUrlService } from './ShareUrlService'
 import { GoogleDriveApiService } from './GoogleDriveApiService'
+import { getInteractionSyncService } from './InteractionSyncService'
+import { getInteractionService } from './InteractionService'
 
 export class FriendService {
   private static instance: FriendService
@@ -45,14 +47,8 @@ export class FriendService {
       // Generate all public data
       const { manifest, yearFiles } = await publicDataService.generateAllPublicData()
 
-      if (yearFiles.size === 0) {
-        this.emitEvent({
-          type: 'publish-warning',
-          message: 'Aucune activité publique à partager',
-          messageType: 'warning'
-        })
-        return null
-      }
+      // Note: We allow publishing even without activities (yearFiles.size === 0)
+      // This creates the user's identity (publicUrl) so they can interact with friends
 
       // Upload year files and collect their URLs
       const yearUrls = new Map<number, string>()
@@ -93,6 +89,21 @@ export class FriendService {
         const url = yearUrls.get(yearEntry.year)
         if (url) {
           yearEntry.fileUrl = url
+        }
+      }
+
+      // Publish interactions and add to manifest
+      const interactionSyncService = getInteractionSyncService()
+      const interactionResult = await interactionSyncService.publishInteractions()
+
+      if (interactionResult.success && interactionResult.interactionsSynced > 0) {
+        // Get interaction years for manifest
+        const interactionYears = await interactionSyncService.getInteractionYearsForManifest()
+        if (interactionYears.length > 0) {
+          manifest.availableInteractionYears = interactionYears
+          console.log(
+            `[FriendService] Added ${interactionYears.length} interaction years to manifest`
+          )
         }
       }
 
@@ -223,6 +234,46 @@ export class FriendService {
   }
 
   /**
+   * Check if a friend has us in their "following" list (mutual friendship)
+   * Updates the friend's followsMe status if changed
+   */
+  private async checkMutualFriendship(friend: Friend, manifest: PublicManifest): Promise<boolean> {
+    const interactionService = getInteractionService()
+    const myUserId = await interactionService.getMyUserId()
+
+    if (!myUserId || !manifest.following) {
+      return false
+    }
+
+    const followsMe = manifest.following.some(f => f.userId === myUserId)
+
+    // Update friend if status changed
+    if (followsMe !== friend.followsMe) {
+      const db = await IndexedDBService.getInstance()
+      friend.followsMe = followsMe
+      await db.addItemsToStore('friends', [friend], f => f.id)
+
+      if (followsMe) {
+        console.log(
+          `[FriendService] Mutual friendship discovered: ${friend.username} follows me back!`
+        )
+        this.emitEvent({
+          type: 'mutual-friendship-discovered',
+          friend,
+          message: `${friend.username} vous suit maintenant !`,
+          messageType: 'success'
+        })
+      } else {
+        console.log(
+          `[FriendService] Mutual friendship ended: ${friend.username} no longer follows me`
+        )
+      }
+    }
+
+    return followsMe
+  }
+
+  /**
    * Fetch the most recent N activities from a friend across all years
    * @param manifest Friend's public manifest
    * @param limit Number of recent activities to fetch (default: 30)
@@ -319,7 +370,10 @@ export class FriendService {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
     // Take first 12 characters for a short but collision-resistant ID
-    return 'friend_' + hashHex.substring(0, 12)
+    const friendId = 'friend_' + hashHex.substring(0, 12)
+    console.log('[FriendService] generateFriendId - publicUrl used for hash:', publicUrl)
+    console.log('[FriendService] generateFriendId - generated friendId:', friendId)
+    return friendId
   }
 
   /**
@@ -407,6 +461,7 @@ export class FriendService {
       // Store the original publicUrl (could be share URL or direct URL)
       const friend: Friend = {
         id: friendId,
+        userId: manifest.profile.userId, // Stable user ID from their manifest (new)
         username: customUsername || manifest.profile.username,
         profilePhoto: manifest.profile.profilePhoto,
         bio: manifest.profile.bio,
@@ -537,6 +592,18 @@ export class FriendService {
         }
       }
 
+      // Update friend's userId if it's now available in manifest but missing locally
+      if (manifest.profile.userId && !friend.userId) {
+        friend.userId = manifest.profile.userId
+        await db.addItemsToStore('friends', [friend], f => f.id)
+        console.log(
+          `[FriendService] Updated friend ${friendId} with stable userId: ${friend.userId}`
+        )
+      }
+
+      // Check mutual friendship status
+      await this.checkMutualFriendship(friend, manifest)
+
       // Fetch recent activities (NEW METHOD)
       const recentActivities = await this.fetchRecentActivities(manifest, limit)
 
@@ -643,6 +710,18 @@ export class FriendService {
         }
       }
 
+      // Update friend's userId if it's now available in manifest but missing locally
+      if (manifest.profile.userId && !friend.userId) {
+        friend.userId = manifest.profile.userId
+        await db.addItemsToStore('friends', [friend], f => f.id)
+        console.log(
+          `[FriendService] Updated friend ${friendId} with stable userId: ${friend.userId}`
+        )
+      }
+
+      // Check mutual friendship status
+      await this.checkMutualFriendship(friend, manifest)
+
       // Fetch ALL activities (NEW METHOD)
       const allActivities = await this.fetchAllActivities(manifest)
 
@@ -714,7 +793,7 @@ export class FriendService {
   }
 
   /**
-   * Refresh all friends' activities
+   * Refresh all friends' activities and interactions
    */
   public async refreshAllFriends(): Promise<FriendSyncResult[]> {
     const friends = await this.getAllFriends()
@@ -728,13 +807,26 @@ export class FriendService {
       }
     }
 
+    // Sync interactions from all friends
+    const interactionSyncService = getInteractionSyncService()
+    const interactionResults = await interactionSyncService.syncAllFriendsInteractions()
+    const totalInteractions = interactionResults.reduce((sum, r) => sum + r.interactionsSynced, 0)
+
     const successCount = results.filter(r => r.success).length
     const totalActivities = results.reduce((sum, r) => sum + r.activitiesAdded, 0)
 
-    if (successCount > 0) {
+    if (successCount > 0 || totalInteractions > 0) {
+      let message = `${successCount} ami(s) synchronisé(s)`
+      if (totalActivities > 0) {
+        message += `, ${totalActivities} activité(s)`
+      }
+      if (totalInteractions > 0) {
+        message += `, ${totalInteractions} interaction(s)`
+      }
+
       this.emitEvent({
         type: 'refresh-completed',
-        message: `${successCount} ami(s) synchronisé(s), ${totalActivities} activité(s)`,
+        message,
         messageType: 'success'
       })
     }

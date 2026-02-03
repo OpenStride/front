@@ -57,7 +57,9 @@
       "Bash(fi:*)",
       "Bash(git restore:*)",
       "Bash(curl:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(npm version:*)",
+      "Bash(npx prettier --write \"src/**/*.{ts,vue,js,json,md}\")"
     ]
   }
 }

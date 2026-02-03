@@ -4,6 +4,7 @@ import router from './router'
 import { IndexedDBService } from './services/IndexedDBService'
 import { aggregationService } from '@/services/AggregationService'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { getPublicDataListener } from '@/services/PublicDataListener'
 import { getMigrationService } from '@/services/MigrationService'
 import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
@@ -58,6 +59,10 @@ async function bootstrap() {
 
   // Start event-driven aggregation (no O(n) scans!)
   await aggregationService.startListening()
+
+  // Start public data auto-publish listener (if enabled)
+  const publicDataListener = getPublicDataListener()
+  await publicDataListener.startListening()
 
   // 4. Initialize PWA update service
   const pwaUpdateService = getPWAUpdateService()
