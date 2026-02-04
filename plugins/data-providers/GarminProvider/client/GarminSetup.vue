@@ -68,6 +68,7 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
 import { ToastService } from '@/services/ToastService'
+import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 import {
   getTokens,
   setTokens,
@@ -216,6 +217,10 @@ onMounted(async () => {
     await setTokens({ accessToken: token, accessTokenSecret: secret })
     isConnected.value = true
 
+    // Enable the plugin so triggerRefresh() includes it
+    const pluginManager = DataProviderPluginManager.getInstance()
+    await pluginManager.enablePlugin('garmin')
+
     // Clean URL
     window.history.replaceState({}, '', window.location.pathname)
 
@@ -229,6 +234,10 @@ onMounted(async () => {
     const tokens = await getTokens()
     if (tokens) {
       isConnected.value = true
+
+      // Ensure plugin is enabled (migrates old setups)
+      const pluginManager = DataProviderPluginManager.getInstance()
+      await pluginManager.enablePlugin('garmin')
 
       // Check if initial import needs to be resumed
       const state = await getSyncState()
