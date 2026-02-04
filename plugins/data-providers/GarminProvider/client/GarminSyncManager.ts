@@ -233,7 +233,7 @@ export class GarminSyncManager {
   }
 
   /**
-   * Daily refresh: fetch last 7 days
+   * Daily refresh: fetch last 7 days (one day at a time due to API 24h limit)
    * Called by DataProviderService.triggerRefresh() via plugin.refreshData()
    */
   async dailyRefresh(): Promise<number> {
@@ -243,18 +243,35 @@ export class GarminSyncManager {
       return 0
     }
 
-    console.log('[GarminSync] Daily refresh: fetching last 7 days')
+    console.log('[GarminSync] Daily refresh: fetching last 7 days (day by day)')
 
-    const end = new Date()
-    const start = new Date()
-    start.setDate(start.getDate() - 7)
+    let totalCount = 0
+    const now = new Date()
 
-    const count = await this.fetchAndSaveActivities(start, end, false)
+    // Fetch each day separately (Garmin API has 24h max range)
+    for (let daysAgo = 0; daysAgo < 7; daysAgo++) {
+      const end = new Date(now)
+      end.setDate(end.getDate() - daysAgo)
+
+      const start = new Date(end)
+      start.setDate(start.getDate() - 1)
+
+      try {
+        const count = await this.fetchAndSaveActivities(start, end, false)
+        totalCount += count
+        if (count > 0) {
+          console.log(`[GarminSync] Day ${daysAgo + 1}/7: ${count} activities`)
+        }
+      } catch (err: any) {
+        // Log but continue with other days
+        console.warn(`[GarminSync] Day ${daysAgo + 1}/7 failed:`, err.message)
+      }
+    }
 
     await updateSyncState({ lastSyncDate: Date.now() })
 
-    console.log(`[GarminSync] Daily refresh complete: ${count} activities`)
-    return count
+    console.log(`[GarminSync] Daily refresh complete: ${totalCount} activities`)
+    return totalCount
   }
 
   /**
