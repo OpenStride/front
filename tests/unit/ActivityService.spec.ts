@@ -295,7 +295,7 @@ describe('ActivityService', () => {
 
       // Manually mark as synced
       await service.markAsSynced(['test-1'])
-      let synced = await service.getActivity('test-1')
+      const synced = await service.getActivity('test-1')
       expect(synced!.synced).toBe(true)
 
       await service.updateActivity('test-1', { title: 'Updated' })
