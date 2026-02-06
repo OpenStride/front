@@ -12,7 +12,7 @@ const BASE_TIME = new Date('2026-01-15T08:00:00Z').getTime()
 /**
  * Sample GPS points simulating a 5km run in Paris
  */
-export const createSampleGPSTrack = (numPoints: number = 100): Sample[] => {
+export const createSampleGPSTrack = (numPoints = 100): Sample[] => {
   const samples: Sample[] = []
   const startLat = 48.8566 // Paris center
   const startLng = 2.3522
@@ -63,8 +63,8 @@ export const createActivity = (overrides?: Partial<Activity>): Activity => ({
  * Create activity details with samples
  */
 export const createActivityDetails = (
-  activityId: string = 'activity-1',
-  numSamples: number = 100,
+  activityId = 'activity-1',
+  numSamples = 100,
   overrides?: Partial<ActivityDetails>
 ): ActivityDetails => ({
   id: activityId,
@@ -199,8 +199,8 @@ export const createPrivateActivity = (overrides?: Partial<Activity>): Activity =
  * Create a friend's public activity (FriendActivity type)
  */
 export const createFriendActivity = (
-  friendId: string = 'friend-1',
-  activityId: string = 'activity-1',
+  friendId = 'friend-1',
+  activityId = 'activity-1',
   overrides?: Partial<FriendActivity>
 ): FriendActivity => ({
   id: `${friendId}_${activityId}_2026`,
@@ -274,7 +274,7 @@ export const createPublicActivity = (overrides?: Partial<PublicActivity>): Publi
 /**
  * Create year activities collection
  */
-export const createYearActivities = (year: number = 2026, count: number = 10): YearActivities => ({
+export const createYearActivities = (year = 2026, count = 10): YearActivities => ({
   year,
   activities: Array.from({ length: count }, (_, i) =>
     createPublicActivity({

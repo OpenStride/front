@@ -169,7 +169,7 @@ function drawCanvas() {
   let minSpeed = Math.min(...speeds)
   let maxSpeed = Math.max(...speeds)
 
-  let treshold = 0.1 * (maxSpeed - minSpeed || 1);
+  const treshold = 0.1 * (maxSpeed - minSpeed || 1);
   minSpeed = Math.max(minSpeed - treshold, 0);
   maxSpeed = Math.max(maxSpeed + treshold, minSpeed + 0.1);
 
