@@ -7,7 +7,7 @@ import type {
 } from '@/types/aggregation'
 
 // Basic ISO week helper (simplified; can refine later)
-function getISOWeekKey(date: Date): string {
+export function getISOWeekKey(date: Date): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
   const dayNum = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() + 4 - dayNum)
@@ -16,7 +16,7 @@ function getISOWeekKey(date: Date): string {
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
-function getMonthKey(date: Date): string {
+export function getMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
