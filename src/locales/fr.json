@@ -203,5 +203,52 @@
     "pleaseWait": "Veuillez patienter, cela peut prendre quelques instants",
     "success": "Mise à jour réussie",
     "failed": "Échec de la mise à jour. Veuillez réessayer."
+  },
+  "goals": {
+    "title": "Objectifs",
+    "addGoal": "Ajouter un objectif",
+    "noGoals": "Aucun objectif défini",
+    "noGoalsHint": "Ajoutez un objectif pour suivre votre progression !",
+    "allSports": "Tous les sports",
+    "today": "Aujourd'hui",
+    "deleteConfirm": "Supprimer cet objectif ?",
+    "types": {
+      "distance": "Distance",
+      "count": "Activités",
+      "duration": "Durée"
+    },
+    "periods": {
+      "week": "Semaine",
+      "month": "Mois"
+    },
+    "periodLabels": {
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel"
+    },
+    "units": {
+      "km": "km",
+      "activities": "activités",
+      "hours": "h"
+    },
+    "form": {
+      "distanceKm": "Distance (km)",
+      "activityCount": "Nombre d'activités",
+      "durationHours": "Durée (heures)",
+      "target": "Objectif"
+    },
+    "monthNames": {
+      "0": "Janvier",
+      "1": "Février",
+      "2": "Mars",
+      "3": "Avril",
+      "4": "Mai",
+      "5": "Juin",
+      "6": "Juillet",
+      "7": "Août",
+      "8": "Septembre",
+      "9": "Octobre",
+      "10": "Novembre",
+      "11": "Décembre"
+    }
   }
 }
