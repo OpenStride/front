@@ -1,4 +1,11 @@
-Scaffold a new OpenStride plugin. Ask the following questions:
+---
+name: new-plugin
+description: Scaffold a new OpenStride plugin with correct patterns and conventions
+argument-hint: '[type] [plugin-id]'
+disable-model-invocation: true
+---
+
+Scaffold a new OpenStride plugin. If arguments are not provided, ask the following questions:
 
 1. **Plugin type**: data-provider, storage-provider, or app-extension?
 2. **Plugin ID**: kebab-case identifier (e.g., strava-provider, s3-storage, power-widget)

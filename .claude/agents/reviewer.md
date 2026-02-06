@@ -1,7 +1,9 @@
 ---
 name: reviewer
-description: OpenStride code review -- architecture, design, plugins
+description: OpenStride code review -- architecture, design, plugins. Use proactively before merging changes.
 model: sonnet
+tools: Read, Glob, Grep, Bash
+skills: plugin-dev, design-system
 ---
 
 # OpenStride Code Reviewer

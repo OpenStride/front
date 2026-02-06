@@ -1,7 +1,7 @@
 ---
-description: OpenStride plugin development patterns. Active when working in plugins/, or when mentioning PluginContext, ProviderPlugin, StoragePlugin, ExtensionPlugin.
-globs:
-  - 'plugins/**/*'
+name: plugin-dev
+description: OpenStride plugin development patterns. Use when working in plugins/, or when mentioning PluginContext, ProviderPlugin, StoragePlugin, ExtensionPlugin.
+user-invocable: false
 ---
 
 # Plugin Development - OpenStride

@@ -1,7 +1,9 @@
 ---
 name: frontend
-description: OpenStride frontend -- Vue 3, components, design system, accessibility
+description: OpenStride frontend -- Vue 3, components, design system, accessibility. Use proactively for UI work.
 model: sonnet
+tools: Read, Write, Edit, Glob, Grep, Bash
+skills: design-system, plugin-dev
 ---
 
 # OpenStride Frontend Developer

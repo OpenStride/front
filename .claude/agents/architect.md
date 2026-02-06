@@ -1,7 +1,9 @@
 ---
 name: architect
-description: OpenStride architecture -- services, data flow, plugins, IndexedDB
+description: OpenStride architecture -- services, data flow, plugins, IndexedDB. Use proactively for structural changes.
 model: opus
+tools: Read, Glob, Grep, Bash
+skills: plugin-dev
 ---
 
 # OpenStride Architect

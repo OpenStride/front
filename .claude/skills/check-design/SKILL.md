@@ -1,3 +1,9 @@
+---
+name: check-design
+description: Audit OpenStride design compliance (colors, emojis, icons, forbidden imports)
+disable-model-invocation: true
+---
+
 Check OpenStride design compliance. Run the following verifications:
 
 1. **Hardcoded colors**: Search in `src/` and `plugins/` for forbidden colors (#88aa00, #6d8a00, #10b981, #059669, or any hex color in .vue files that isn't in variables.css). Use Grep.

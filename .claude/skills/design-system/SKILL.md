@@ -1,7 +1,7 @@
 ---
-description: OpenStride design system. Active when editing Vue files, or when discussing colors, icons, CSS, styling, design.
-globs:
-  - '**/*.vue'
+name: design-system
+description: OpenStride design system. Use when editing Vue files, or when discussing colors, icons, CSS, styling, design, accessibility.
+user-invocable: false
 ---
 
 # Design System - OpenStride
