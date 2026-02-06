@@ -75,6 +75,7 @@ import { DataProviderService } from '@/services/DataProviderService'
 import { getSyncService } from '@/services/SyncService'
 import { StorageService } from '@/services/StorageService'
 import { FriendService } from '@/services/FriendService'
+import { PublicFileService } from '@/services/PublicFileService'
 import { ToastService } from '@/services/ToastService'
 
 const { t } = useI18n()
@@ -184,8 +185,9 @@ onUnmounted(() => {
  * Manual refresh flow:
  * 1. Refresh data providers (fetch new activities from Garmin, Coros, etc.)
  * 2. Sync to remote storage (incremental sync with conflict detection)
- * 3. Sync friends' activities
- * 4. Notify views to reload
+ * 3. Publish public data (manifest + activities + interactions + following list)
+ * 4. Sync friends' activities (they will see our updated manifest)
+ * 5. Notify views to reload
  */
 const onRefresh = async () => {
   if (refreshing.value) return
@@ -194,13 +196,24 @@ const onRefresh = async () => {
     // 1. Refresh data providers (fetch new activities)
     await dataProviderService.triggerRefresh()
 
-    // 2. Sync to remote storage (NEW: uses version-based incremental sync)
+    // 2. Sync to remote storage (incremental sync with conflict detection)
     await syncService.syncNow()
 
-    // 3. Sync friends' activities
+    // 3. Publish public data (manifest with following list + interactions)
+    // This ensures friends see us in their following list for mutual friendship
+    try {
+      const publicFileService = PublicFileService.getInstance()
+      if (await publicFileService.hasPublicFileSupport()) {
+        await friendService.publishPublicData()
+      }
+    } catch (e) {
+      console.warn('[AppHeader] Public data publish failed (non-blocking):', e)
+    }
+
+    // 4. Sync friends' activities (they will see our updated manifest)
     await friendService.refreshAllFriends()
 
-    // 4. Emit event for views to reload
+    // 5. Emit event for views to reload
     window.dispatchEvent(new CustomEvent('openstride:activities-refreshed'))
   } catch (e) {
     console.error('Refresh error', e)
