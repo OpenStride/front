@@ -123,9 +123,12 @@ export class FriendService {
         return null
       }
 
-      // Wrap manifest URL in app share URL for better UX (deep linking)
+      // Store raw manifest URL - share URL will be generated dynamically at read time
+      // This ensures the share URL always uses the current environment's hostname
+      await db.saveData('myPublicUrl', manifestUrl)
+
+      // Generate share URL dynamically for the event (uses current hostname)
       const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl)
-      await db.saveData('myPublicUrl', shareUrl)
 
       this.emitEvent({
         type: 'publish-completed',
@@ -170,11 +173,48 @@ export class FriendService {
   }
 
   /**
-   * Get current user's public manifest URL
+   * Get current user's share URL (dynamically wrapped with current hostname)
+   * Handles legacy data where full share URLs were stored instead of raw manifest URLs
    */
   public async getMyPublicUrl(): Promise<string | null> {
     const db = await IndexedDBService.getInstance()
-    return await db.getData('myPublicUrl')
+    const storedUrl = await db.getData('myPublicUrl')
+
+    if (!storedUrl) return null
+
+    // Handle legacy: if it's already a share URL, unwrap it first
+    if (ShareUrlService.isShareUrl(storedUrl)) {
+      const manifestUrl = ShareUrlService.unwrapManifestUrl(storedUrl)
+      if (manifestUrl) {
+        // Migrate: save raw manifest URL for future reads
+        await db.saveData('myPublicUrl', manifestUrl)
+        // Return dynamically wrapped URL with current hostname
+        return ShareUrlService.wrapManifestUrl(manifestUrl)
+      }
+      // Invalid share URL stored, return null
+      return null
+    }
+
+    // Normal case: wrap manifest URL dynamically with current hostname
+    return ShareUrlService.wrapManifestUrl(storedUrl)
+  }
+
+  /**
+   * Get the raw manifest URL (without share wrapper)
+   * Useful for internal operations that need the actual manifest location
+   */
+  public async getMyManifestUrl(): Promise<string | null> {
+    const db = await IndexedDBService.getInstance()
+    const storedUrl = await db.getData('myPublicUrl')
+
+    if (!storedUrl) return null
+
+    // Handle legacy share URLs
+    if (ShareUrlService.isShareUrl(storedUrl)) {
+      return ShareUrlService.unwrapManifestUrl(storedUrl)
+    }
+
+    return storedUrl
   }
 
   /**
