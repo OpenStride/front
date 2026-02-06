@@ -30,7 +30,7 @@ Three types -- all auto-discovered, no manual registration:
 | Storage Provider | `plugins/storage-providers/*/client/index.ts` | `StoragePlugin`   |
 | App Extension    | `plugins/app-extensions/*/index.ts`           | `ExtensionPlugin` |
 
-**Plugin rules:** See PLUGIN_GUIDELINES.md. Key: use `PluginContext` for DI, NEVER import services directly, NEVER call ToastService from plugins.
+**Plugin rules:** See `docs/PLUGIN_GUIDELINES.md`. Key: use `PluginContext` for DI, NEVER import services directly, NEVER call ToastService from plugins.
 
 ### Core Services
 
@@ -59,7 +59,7 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 ## Rules -- MUST FOLLOW
 
-### Design (see DESIGN_GUIDELINES.md)
+### Design (see docs/DESIGN_GUIDELINES.md)
 
 - **ALWAYS** use CSS variables from `src/assets/styles/variables.css` -- NEVER hardcode colors
 - **ALWAYS** use Font Awesome 6 (Free) -- NEVER use emojis in production code
@@ -85,7 +85,7 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 ## Related Documentation
 
-- Design rules: `DESIGN_GUIDELINES.md`
-- Plugin architecture: `PLUGIN_GUIDELINES.md`
+- Design rules: `docs/DESIGN_GUIDELINES.md`
+- Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
 - Migration guide: `docs/MIGRATION_REFACTORING_2026.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`

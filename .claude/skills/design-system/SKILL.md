@@ -67,4 +67,4 @@ FORBIDDEN: emojis in production code
 <input data-test="search-input" aria-label="Search activities" />
 ```
 
-Full documentation: `DESIGN_GUIDELINES.md`
+Full documentation: `docs/DESIGN_GUIDELINES.md`

@@ -127,7 +127,7 @@ onUnmounted(() => {
 
 ## References
 
-- Full design system: `DESIGN_GUIDELINES.md`
+- Full design system: `docs/DESIGN_GUIDELINES.md`
 - CSS variables: `src/assets/styles/variables.css`
 - Existing components: `src/components/`
 - Views: `src/views/`

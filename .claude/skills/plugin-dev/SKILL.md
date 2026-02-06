@@ -100,4 +100,4 @@ Widget props: `{ activity: Activity, details: ActivityDetails }`
 - [ ] Return `{ success, error? }` instead of calling ToastService
 - [ ] Handle missing data in widgets (v-if)
 
-Full documentation: `PLUGIN_GUIDELINES.md`
+Full documentation: `docs/PLUGIN_GUIDELINES.md`

@@ -21,7 +21,7 @@ For each violation found:
 
 - Show the file, line number, and content
 - Explain why it's forbidden
-- Suggest the fix (reference DESIGN_GUIDELINES.md or PLUGIN_GUIDELINES.md)
+- Suggest the fix (reference docs/DESIGN_GUIDELINES.md or docs/PLUGIN_GUIDELINES.md)
 
 At the end, show a summary: X violations found (Y colors, Z emojis, W icons, V imports).
 If 0 violations: "Design check passed"

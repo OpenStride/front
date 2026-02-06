@@ -37,7 +37,7 @@ plugins/app-extensions/{id}/Widget.vue         <- Widget with props { activity, 
 
 **Rules for generated code:**
 
-- Use `PluginContext` for all service access (see PLUGIN_GUIDELINES.md)
+- Use `PluginContext` for all service access (see docs/PLUGIN_GUIDELINES.md)
 - `export default` required
 - No direct imports of core services
 - No ToastService -- return a status object instead
