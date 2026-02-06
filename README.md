@@ -10,6 +10,7 @@ Privacy-focused Vue 3 / TypeScript application (local-first) for visualizing, an
 ---
 
 ## Table of Contents
+
 1. Product Vision (Current State v0.1)
 2. Value Proposition & Personas
 3. Principles & Indicators
@@ -35,10 +36,12 @@ Privacy-focused Vue 3 / TypeScript application (local-first) for visualizing, an
 ---
 
 ## 1. Product Vision
+
 Make every athlete sovereign over their training data: collection, analysis, preservation and enrichment without depending on a closed platform.
 Three pillars: Local-first / Extensible / Privacy-focused.
 
 ### Current State: v0.1 (POC)
+
 - ✅ Functional local-first architecture (IndexedDB)
 - ✅ Garmin plugin operational (OAuth + activity import)
 - ✅ ZipImport plugin (FIT/GPX files)
@@ -49,6 +52,7 @@ Three pillars: Local-first / Extensible / Privacy-focused.
 - 📊 Test coverage: ~15-20% (target 70%+)
 
 ### Problems Addressed
+
 - Fragmentation (Garmin, Coros, scattered FIT/GPX files).
 - Opaque calculations (segments, estimated VO2...).
 - Export & preservation difficulty (vendor lock-in).
@@ -58,15 +62,16 @@ Three pillars: Local-first / Extensible / Privacy-focused.
 
 ## 2. Value Proposition & Personas
 
-| Axis | Value |
-|------|-------|
-| Sovereignty | Data stored locally (IndexedDB) + simple export. |
-| Transparency | Open code & algorithms (`ActivityAnalyzer`). |
-| Extensibility | Auto-discovered plugins (data, storage, UI). |
-| Sustainability | Optional backups (e.g., Google Drive). |
-| Customization | Modular activity dashboard with widgets. |
+| Axis           | Value                                            |
+| -------------- | ------------------------------------------------ |
+| Sovereignty    | Data stored locally (IndexedDB) + simple export. |
+| Transparency   | Open code & algorithms (`ActivityAnalyzer`).     |
+| Extensibility  | Auto-discovered plugins (data, storage, UI).     |
+| Sustainability | Optional backups (e.g., Google Drive).           |
+| Customization  | Modular activity dashboard with widgets.         |
 
 Personas:
+
 - Data-curious amateur runner (splits & best distances).
 - Trail runner / cyclist (altitude, slope, segmentation).
 - Open-source developer (adds provider / widget).
@@ -77,6 +82,7 @@ Personas:
 ## 3. Principles & Indicators
 
 Principles:
+
 1. Local-first (works offline).
 2. Explicit opt-in for any remote synchronization.
 3. Simple plugin API → stability before 1.0.
@@ -84,6 +90,7 @@ Principles:
 5. Progressive enhancement (non-critical plugins are non-blocking).
 
 Indicators (examples):
+
 - % activities analyzed without errors.
 - Time to first visualization after import.
 - Average number of active plugins / user.
@@ -92,15 +99,18 @@ Indicators (examples):
 ---
 
 ## 4. AI Assistant / ChatGPT Project
+
 Goal: Local conversational exploitation of metrics (pacing, HR variability, estimated fatigue) without raw data leakage.
 
 Proposed phases:
+
 1. Static Q&A on derived data (summaries).
 2. Post-session synthesis generation (client only).
 3. Multi-session aggregation (trends).
 4. AI Coach (contextual advice) – disableable plugin.
 
 Assistant principles:
+
 - No raw sample sending by default.
 - Anonymization / reduction (derived features).
 - Explicit opt-in.
@@ -130,13 +140,14 @@ tests/
   unit/                # Vitest
 ```
 
-Aliases: `@ -> src`, `@plugins -> plugins` (see `AGENTS.md`).
+Aliases: `@ -> src`, `@plugins -> plugins` (see `CLAUDE.md`).
 
 ---
 
 ## 6. Data Model
 
 Types (`src/types/activity.ts`):
+
 - Activity: id, date, distance, type, providerId.
 - Sample: timeOffset, speed, heartRate, cadence, elevation...
 - ActivityDetails: samples + laps + derived stats.
@@ -147,6 +158,7 @@ Types (`src/types/activity.ts`):
 
 Service: `ActivityAnalyzer`
 Functions:
+
 - `sampleAverageByDistance`
 - Laps & grouping
 - Best segments (multiple distances)
@@ -154,6 +166,7 @@ Functions:
 - Aggregated stats (min/max/avg)
 
 Widgets:
+
 - Summary
 - Segmented speed
 - Pace / km + altitude
@@ -166,12 +179,14 @@ Widgets:
 ## 8. Plugin System
 
 Auto-discovery (`import.meta.glob`):
+
 - Data: `ProviderPluginRegistry`
 - Storage: `StoragePluginRegistry`
 - UI: `ExtensionPluginRegistry`
 
 Interfaces: `ProviderPlugin`, `StoragePlugin`, `ExtensionPlugin`.
 UI Slots:
+
 - `activity.top`
 - `activity.widgets`
 
@@ -181,14 +196,17 @@ UI injection: `useSlotExtensions` + `ActivityDetails.vue`.
 ### Available Plugins
 
 **Data Providers (Data sources):**
+
 - ✅ **GarminProvider**: OAuth import from Garmin Connect (active)
 - ✅ **ZipImportProvider**: Import local FIT/GPX files (active)
 - ⚠️ **CorosProvider**: Incomplete stub (to finalize or remove)
 
 **Storage Providers (Backup):**
+
 - ✅ **GDrive**: Google Drive backup with OAuth PKCE (active)
 
 **App Extensions (UI Widgets):**
+
 - ✅ **StandardDetails**: Summary block + speed, cadence, HR, altitude charts
 - ✅ **AggregatedDetails**: Best segments (target distances)
 - ✅ **AggregatedProgress**: Statistics and progression
@@ -236,15 +254,15 @@ Merge: simple timestamp logic (improvements planned).
 
 ## 12. Roadmap (suggestion)
 
-| Phase | Content | Goal |
-|-------|---------|------|
-| 0.1 | Local-first base, Garmin, GDrive, essential widgets | POC |
-| 0.2 | FIT/GPX import, Coros provider, bundle export | Sources |
-| 0.3 | Local assistant (summaries), robust offline | Insight |
-| 0.4 | Encrypted sharing / multi-profiles | Collaboration |
-| 0.5 | Plugin catalog UI + dark theme | Personalization |
-| 0.6 | AI Coach, sensor anomalies | Advanced value |
-| 1.0 | Stable plugin API + docs + perf/tests | Release |
+| Phase | Content                                             | Goal            |
+| ----- | --------------------------------------------------- | --------------- |
+| 0.1   | Local-first base, Garmin, GDrive, essential widgets | POC             |
+| 0.2   | FIT/GPX import, Coros provider, bundle export       | Sources         |
+| 0.3   | Local assistant (summaries), robust offline         | Insight         |
+| 0.4   | Encrypted sharing / multi-profiles                  | Collaboration   |
+| 0.5   | Plugin catalog UI + dark theme                      | Personalization |
+| 0.6   | AI Coach, sensor anomalies                          | Advanced value  |
+| 1.0   | Stable plugin API + docs + perf/tests               | Release         |
 
 ---
 
@@ -257,6 +275,7 @@ Merge: simple timestamp logic (improvements planned).
 - **Benchmarks**: Performance tests for ActivityAnalyzer (5k+ samples)
 
 Priority tests:
+
 - ActivityAnalyzer: segmentation, best efforts, slope analysis
 - StorageService: merge logic, conflict resolution
 - Plugin discovery & activation
@@ -275,6 +294,7 @@ Expected CI: build, lint, tests OK.
 ## 15. Adding a Plugin
 
 Data Provider:
+
 ```ts
 export default {
   id: 'garmin',
@@ -284,25 +304,28 @@ export default {
 ```
 
 Storage Provider:
+
 ```ts
 export default {
   id: 'gdrive',
   label: 'Google Drive',
-  async readRemote(ctx) { /* ... */ },
-  async writeRemote(ctx, payload) { /* ... */ }
+  async readRemote(ctx) {
+    /* ... */
+  },
+  async writeRemote(ctx, payload) {
+    /* ... */
+  }
 }
 ```
 
 App Extension:
+
 ```ts
 export default {
   id: 'standard-details',
   slots: {
-    'activity.top': [ () => import('./ActivityTopBlock.vue') ],
-    'activity.widgets': [
-      () => import('./SpeedSampled.vue'),
-      () => import('./CadenceGraph.vue')
-    ]
+    'activity.top': [() => import('./ActivityTopBlock.vue')],
+    'activity.widgets': [() => import('./SpeedSampled.vue'), () => import('./CadenceGraph.vue')]
   }
 }
 ```
@@ -326,19 +349,19 @@ No manual registry.
 
 ## 17. Key Files / Services
 
-| Domain | File |
-|--------|------|
-| Bootstrap | `src/main.ts` |
-| Routing | `src/router/index.ts` |
-| Analysis | `src/services/ActivityAnalyzer.ts` |
-| IndexedDB | `src/services/IndexedDBService.ts` |
-| Sync | `src/services/StorageService.ts` |
-| Plugin scan | `src/services/*PluginRegistry.ts` |
-| Activity view | `src/views/ActivityDetails.vue` |
-| Slots composable | `src/composables/useSlotExtensions.ts` |
-| Google Drive | `plugins/storage-providers/GDrive/client/` |
-| Standard widgets | `plugins/app-extensions/StandardDetails/` |
-| Best segments | `plugins/app-extensions/AggregatedDetails/` |
+| Domain           | File                                        |
+| ---------------- | ------------------------------------------- |
+| Bootstrap        | `src/main.ts`                               |
+| Routing          | `src/router/index.ts`                       |
+| Analysis         | `src/services/ActivityAnalyzer.ts`          |
+| IndexedDB        | `src/services/IndexedDBService.ts`          |
+| Sync             | `src/services/StorageService.ts`            |
+| Plugin scan      | `src/services/*PluginRegistry.ts`           |
+| Activity view    | `src/views/ActivityDetails.vue`             |
+| Slots composable | `src/composables/useSlotExtensions.ts`      |
+| Google Drive     | `plugins/storage-providers/GDrive/client/`  |
+| Standard widgets | `plugins/app-extensions/StandardDetails/`   |
+| Best segments    | `plugins/app-extensions/AggregatedDetails/` |
 
 ---
 
@@ -371,15 +394,15 @@ npm run test:unit  # Vitest
 
 Detailed documentation available in the `docs/` folder:
 
-| File | Description |
-|------|-------------|
-| **ROADMAP_TECHNIQUE.md** | Detailed technical roadmap (12 weeks): security, quality, tests, performance |
-| **ANALYSE_COMPLETE.md** | In-depth code analysis: quality, architecture, identified issues, recommendations |
-| **TEST_GOOGLE_OAUTH.md** | Test guide for Google Drive OAuth implementation with PKCE |
-| **GOOGLE_OAUTH_DESKTOP_SETUP.md** | Documentation on OAuth configuration (Desktop vs Web app) |
-| **MIGRATION_DESKTOP_APP.md** | Desktop app OAuth migration attempt (not viable) |
-| **ROLLBACK_TO_CLIENT_SECRET.md** | Justification for client_secret rollback (serverless architecture) |
-| **garmin_callbacks_traces.md** | Garmin callback traces for debug/reference |
+| File                          | Description                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| **ROADMAP_TECHNIQUE.md**      | Technical roadmap: security, quality, tests, performance     |
+| **DEPLOYMENT.md**             | Deployment guide: Firebase Hosting, CI/CD, rollback          |
+| **DESIGN_GUIDELINES.md**      | Design system rules: colors, icons, accessibility            |
+| **PLUGIN_GUIDELINES.md**      | Plugin development: DI patterns, forbidden imports, examples |
+| **GOOGLE_DRIVE_SETUP.md**     | Google Drive API key setup for friend sharing                |
+| **E2E_TESTING_GUIDE.md**      | Cypress E2E testing guide                                    |
+| **TESTING_BEST_PRACTICES.md** | Defensive coding patterns and testing conventions            |
 
 **For Claude Code developers**: Read `CLAUDE.md` (project root) first.
 
@@ -387,7 +410,7 @@ Detailed documentation available in the `docs/` folder:
 
 ## 21. License
 
-To be defined (MIT / Apache-2.0). Add `LICENSE`.
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 

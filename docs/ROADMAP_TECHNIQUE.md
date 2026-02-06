@@ -512,4 +512,3 @@ Semaine 11-12 : Phase 5 + Polish (Architecture + finitions)
 
 **Dernière mise à jour:** 2026-02-06
 **Status:** Le refactoring architectural (Phases 1-3 du refactoring data/sync/aggregation) est terminé.
-Voir `docs/REFACTORING_STATUS.md` pour le détail des phases complétées.

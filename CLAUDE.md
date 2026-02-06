@@ -87,5 +87,5 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 - Design rules: `docs/DESIGN_GUIDELINES.md`
 - Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
-- Migration guide: `docs/MIGRATION_REFACTORING_2026.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
+- Deployment: `docs/DEPLOYMENT.md`

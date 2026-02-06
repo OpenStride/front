@@ -75,4 +75,4 @@ Any IndexedDB schema change requires:
 - Existing services: `src/services/`
 - Types: `src/types/activity.ts`, `src/types/plugin-context.ts`
 - Migrations: `src/migrations/`
-- Detailed architecture: `docs/MIGRATION_REFACTORING_2026.md`
+- Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
