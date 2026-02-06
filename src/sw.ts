@@ -16,6 +16,10 @@ import {
 
 declare const self: ServiceWorkerGlobalScope
 
+// Version is injected by Vite define, fallback for dev mode
+declare const __APP_VERSION__: string | undefined
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+
 // ========================================
 // 1. Workbox Setup (PWA Caching)
 // ========================================
@@ -77,13 +81,13 @@ if (messaging) {
 // ========================================
 
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing version', __APP_VERSION__)
+  console.log('[Service Worker] Installing version', APP_VERSION)
   // Prompt mode: wait for user consent via messageSkipWaiting()
   // skipWaiting() will be called via message handler when user accepts update
 })
 
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating version', __APP_VERSION__)
+  console.log('[Service Worker] Activating version', APP_VERSION)
   event.waitUntil(self.clients.claim()) // Take control immediately
 })
 

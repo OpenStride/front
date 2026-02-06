@@ -16,7 +16,7 @@ declare global {
 
 export class GoogleDriveApiService {
   private static instance: GoogleDriveApiService
-  private initialized: boolean = false
+  private initialized = false
   private initPromise: Promise<void> | null = null
   private apiKey: string
 

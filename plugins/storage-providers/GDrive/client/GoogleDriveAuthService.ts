@@ -122,17 +122,17 @@ export class GoogleDriveAuthService {
     }
 
     async getOauthSignInUri(): Promise<string | null> {
-        var state = generateRandomString();
+        const state = generateRandomString();
         localStorage.setItem("pkce_state", state);
 
         // Create and store a new PKCE code_verifier (the plaintext random secret)
-        var code_verifier = generateRandomString();
+        const code_verifier = generateRandomString();
         localStorage.setItem("pkce_code_verifier", code_verifier);
 
         // Hash and base64-urlencode the secret to use as the challenge
-        var code_challenge = await generateCodeChallenge(code_verifier);
+        const code_challenge = await generateCodeChallenge(code_verifier);
         console.log("redirect_uri", `${window.location.origin}${window.location.pathname}`);
-        var url = AUTHORIZATION_ENDPOINT
+        const url = AUTHORIZATION_ENDPOINT
             + "?response_type=code"
             + "&client_id=" + encodeURIComponent(CLIENT_ID)
             + "&state=" + encodeURIComponent(state)

@@ -6,7 +6,7 @@ function buildSegment(startDist: number, length: number, slopePct: number, start
   const out: Sample[] = []
   const metersPerSample = step
   const elevPerMeter = slopePct / 100
-  let timeOffset = startDist / speed
+  const timeOffset = startDist / speed
   for (let d = 0; d <= length; d += metersPerSample) {
     const distance = startDist + d
     const elevation = startElev + d * elevPerMeter

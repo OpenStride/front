@@ -281,7 +281,7 @@ export class FriendService {
    */
   private async fetchRecentActivities(
     manifest: PublicManifest,
-    limit: number = 30
+    limit = 30
   ): Promise<any[]> {
     console.log(`[FriendService] Fetching ${limit} most recent activities`)
 
@@ -558,7 +558,7 @@ export class FriendService {
    */
   public async syncFriendActivitiesQuick(
     friendId: string,
-    limit: number = 30
+    limit = 30
   ): Promise<FriendSyncResult> {
     const startTime = performance.now()
     console.log(`[FriendService] Quick sync for friend ${friendId} (${limit} activities)`)
