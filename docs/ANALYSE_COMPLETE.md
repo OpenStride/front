@@ -1,5 +1,9 @@
 # Analyse Approfondie du Codebase OpenStride
 
+> **Note (Février 2026):** Cette analyse date du 2 janvier 2026, **avant** le refactoring architectural majeur.
+> De nombreux problèmes listés ici (versioning, sync, aggregation O(n), découplage ToastService, DI plugins)
+> ont été résolus. Voir `docs/REFACTORING_STATUS.md` et `docs/MIGRATION_REFACTORING_2026.md` pour l'état actuel.
+
 **Date:** 2026-01-02
 **Agent ID:** ac8daae (pour reprendre l'analyse si besoin)
 
@@ -26,6 +30,7 @@
 **Verdict: BONNE architecture modulaire, mais avec des incohérences**
 
 Le système de plugins est bien structuré en trois catégories:
+
 - **Data Providers** (Garmin, Coros, ZIP Import)
 - **Storage Plugins** (Google Drive, extensible)
 - **App Extensions** (StandardDetails, AggregatedDetails, AggregatedProgress)
@@ -40,13 +45,14 @@ const modules = import.meta.glob('../../plugins/app-extensions/**/index.ts', { e
 
 // ❌ MAIS: Mock hardcoded d'extensions activées
 export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
-    const enabledIds = ['standard-details', 'aggregated-details', 'aggregated-progress']; // ❌ HARDCODÉ
-    return allAppPlugins.filter(p => enabledIds.includes(p.id))
+  const enabledIds = ['standard-details', 'aggregated-details', 'aggregated-progress'] // ❌ HARDCODÉ
+  return allAppPlugins.filter(p => enabledIds.includes(p.id))
 }
 // Devrait être récupéré de IndexedDB comme pour les autres plugins
 ```
 
 **Architecture des registres:**
+
 - ProviderPluginRegistry.ts: ✅ Correct (eager import.meta.glob)
 - StoragePluginRegistry.ts: ✅ Correct (eager import.meta.glob)
 - ExtensionPluginRegistry.ts: ⚠️ Hardcoding des extensions activées (ligne 13)
@@ -54,6 +60,7 @@ export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
 ### 1.2 Organisation des Services et Couplage
 
 **Structure:**
+
 ```
 Services (src/services/):
 ├── IndexedDBService          - Base de données locale (singleton)
@@ -87,6 +94,7 @@ public static getInstance(): ServiceClass { ... }
 ### 1.3 Gestion d'État et Flux de Données
 
 **État distribué entre:**
+
 - IndexedDB (storage principal)
 - EventTarget/CustomEvent (événements dbChange)
 - Reactive refs Vue (composants locaux)
@@ -115,14 +123,14 @@ for (const det of recent) {
 
 **Patterns identifiés:**
 
-| Pattern | Utilisation | Consistance |
-|---------|------------|-------------|
-| Singleton | Tous services | ✅ Parfait |
-| Plugin System | Data/Storage/Extensions | ✅ Bon (avec variance) |
-| Event Emitter | StorageListener dbChange | ✅ Bon |
-| Debounce | StorageListener | ✅ Bon |
-| Custom Events | AppHeader refresh | ⚠️ Sous-optimal (window events) |
-| Lazy loading | Vue router | ✅ Bon |
+| Pattern       | Utilisation              | Consistance                     |
+| ------------- | ------------------------ | ------------------------------- |
+| Singleton     | Tous services            | ✅ Parfait                      |
+| Plugin System | Data/Storage/Extensions  | ✅ Bon (avec variance)          |
+| Event Emitter | StorageListener dbChange | ✅ Bon                          |
+| Debounce      | StorageListener          | ✅ Bon                          |
+| Custom Events | AppHeader refresh        | ⚠️ Sous-optimal (window events) |
+| Lazy loading  | Vue router               | ✅ Bon                          |
 
 ---
 
@@ -164,6 +172,7 @@ const topSlotComponents = computed(() => topRaw.value.map(c => (c as any).defaul
 **Impact:** Perte de type-checking compile-time. Bugs potentiels non-détectés.
 
 **Recommandation:** Créer des types stricts pour:
+
 ```typescript
 // Manquant:
 interface PluginLoaded<T> { default: T; ... }
@@ -199,11 +208,13 @@ try { ... } catch { return requestedStores; } // ❌ Erreur silencieuse
 ```
 
 **Impact:**
+
 - Bugs cachés en production
 - Difficulté à diagnostiquer problèmes de sync
 - Utilisateurs sans feedback sur les erreurs
 
 **Exemple critique:**
+
 ```typescript
 // src/services/IndexedDBService.ts:67-76
 async exportDB(table: string): Promise<any> {
@@ -335,17 +346,19 @@ public bestSegments(targets: number[] = [1000, 2000, ..., 42195]): Record<number
 ### 3.2 Chargements et Rendering Optimisés
 
 **Lazy Loading:**
+
 - ✅ Vue Router utilise `() => import()` pour ProviderSetupView et StorageSetupView
 - ✅ Plugin components chargés via async dans useSlotExtensions
 
 **Rendering:**
+
 ```typescript
 // ⚠️ PROBLÈME: Infinite scroll sans virtualization
 // src/views/MyActivities.vue:36-69
 const handleScroll = () => {
-  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
-  if (bottom) loadActivities(); // ❌ Charge TOUTES les activités en mémoire!
-};
+  const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100
+  if (bottom) loadActivities() // ❌ Charge TOUTES les activités en mémoire!
+}
 
 // Problème: Avec 1000 activités, 100 pages * 10 activités = 100 ActivityCard DOM nodes
 // Sans virtualization = MAUVAISE performance
@@ -353,14 +366,15 @@ const handleScroll = () => {
 // 🔴 CRITIQUE: MyActivities recharge entièrement après refresh
 // src/views/MyActivities.vue:72-79
 const softReload = async () => {
-  activities.value = []; // ❌ Déstruit tous les components!
-  page.value = 0;
-  hasMore.value = true;
+  activities.value = [] // ❌ Déstruit tous les components!
+  page.value = 0
+  hasMore.value = true
   // Devrait faire un merge/update au lieu de reset complet
-};
+}
 ```
 
 **Bootstrap:** ⚠️ INEFFICACE
+
 ```typescript
 // src/main.ts:21-42
 // Événement dbChange déclenche asyncrone sur CHAQUE changement
@@ -368,11 +382,11 @@ const softReload = async () => {
 // Pour une hydration de 100 activités = 100+ transactions IDB!
 
 db.emitter.addEventListener('dbChange', async (evt: Event) => {
-    if (e.detail.store === 'activity_details') {
-        const allActs = await db.getAllData('activities'); // ❌ A chaque fois!
-        const lastDetails = await db.getAllData('activity_details'); // ❌ A chaque fois!
-    }
-});
+  if (e.detail.store === 'activity_details') {
+    const allActs = await db.getAllData('activities') // ❌ A chaque fois!
+    const lastDetails = await db.getAllData('activity_details') // ❌ A chaque fois!
+  }
+})
 ```
 
 ### 3.3 Fuites Mémoire Potentielles
@@ -420,11 +434,13 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 ### 3.4 Lazy Loading et Code Splitting
 
 **Bon:**
+
 - ✅ Plugins chargés via dynamic import
 - ✅ Route handlers utilisent lazy load
 - ✅ Vite PWA auto-split par entry point
 
 **Mauvais:**
+
 - ❌ All service singletons loaded eagerly au bootstrap
 - ❌ Tous les plugins data-providers importés eagerly
 - ❌ Pas de code-splitting par feature (data-providers vs storage)
@@ -436,11 +452,13 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 ### 4.1 Couverture Actuelle
 
 **Statistiques:**
+
 - 14 fichiers spec.ts
 - 567 lignes de tests total
 - **Couverture estimée: ~15-20%** (très faible)
 
 **Fichiers testés:**
+
 ```
 ✅ ActivityAnalyzer (extensive)
 ✅ StorageService (basic sync test)
@@ -493,6 +511,7 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 ### 4.3 Qualité des Tests Existants
 
 **Bon:**
+
 ```typescript
 // tests/unit/ActivityAnalyzer.spec.ts - EXCELLENT
 // - Factory pour données complètes
@@ -505,6 +524,7 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 ```
 
 **Mauvais:**
+
 ```typescript
 // tests/unit/ActivityDetails.spec.ts
 // - Trop de mocking
@@ -516,6 +536,7 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 ```
 
 **Manquant:**
+
 - ❌ Tests E2E (Cypress config existe, 0 tests)
 - ❌ Tests d'intégration de bout en bout
 - ❌ Tests de performance/benchmarks
@@ -531,26 +552,28 @@ subscribe(cb) { this.subscribers.add(cb); return () => this.subscribers.delete(c
 
 ```typescript
 // plugins/storage-providers/GDrive/client/GoogleDriveAuthService.ts:6-7
-const CLIENT_ID = '9754076900-qh6339oncr1ha10l50jme66ogpod9atm.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
+const CLIENT_ID = '9754076900-qh6339oncr1ha10l50jme66ogpod9atm.apps.googleusercontent.com'
+const CLIENT_SECRET = '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'
 // ❌ CRITIQUE: CLIENT_SECRET exposé en clair dans le code source!
 // ❌ CRITIQUE: Visible en clair dans le bundle JavaScript envoyé au client!
 // ❌ CRITIQUE: Dans le repo Git (public ou private, risque de leak)
 ```
 
 **Impact:** N'importe qui peut:
+
 1. Utiliser le CLIENT_SECRET pour obtenir des tokens Google
 2. Accéder aux Google Drive de tous les utilisateurs
 3. Modifier/supprimer des données
 
 **Recommandation immédiate:**
+
 ```typescript
 // ❌ MAUVAIS: Actuellement
-const CLIENT_ID = '...';
-const CLIENT_SECRET = '...'; // Doit venir du serveur!
+const CLIENT_ID = '...'
+const CLIENT_SECRET = '...' // Doit venir du serveur!
 
 // ✅ BON:
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 // CLIENT_SECRET doit JAMAIS être côté client - utiliser backend proxy
 
 // Flux sécurisé:
@@ -560,6 +583,7 @@ const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 ```
 
 **Variables d'environnement détectées:**
+
 ```bash
 ✅ VITE_MAPTILER_KEY         - Public key (OK)
 ✅ VITE_FIREBASE_*          - Client config (OK)
@@ -619,20 +643,21 @@ const formatDate = (ts: number) =>
 ```
 
 **Recommandation:**
+
 ```typescript
 // Créer validateurs:
 export function validateActivity(obj: any): Activity | null {
-    if (!isActivityLike(obj)) return null;
-    return {
-        id: String(obj.id).trim(),
-        provider: String(obj.provider).trim(),
-        startTime: Number(obj.startTime) || 0,
-        duration: Math.max(0, Number(obj.duration) || 0),
-        distance: Math.max(0, Number(obj.distance) || 0),
-        type: String(obj.type).toLowerCase().trim(),
-        title: String(obj.title).trim(),
-        mapPolyline: validatePolyline(obj.mapPolyline) || []
-    };
+  if (!isActivityLike(obj)) return null
+  return {
+    id: String(obj.id).trim(),
+    provider: String(obj.provider).trim(),
+    startTime: Number(obj.startTime) || 0,
+    duration: Math.max(0, Number(obj.duration) || 0),
+    distance: Math.max(0, Number(obj.distance) || 0),
+    type: String(obj.type).toLowerCase().trim(),
+    title: String(obj.title).trim(),
+    mapPolyline: validatePolyline(obj.mapPolyline) || []
+  }
 }
 ```
 
@@ -660,18 +685,18 @@ const code_verifier = localStorage.getItem("pkce_code_verifier");
 
 ### 5.4 Points d'Attention OWASP
 
-| Vulnerability | Détail | Sévérité |
-|---------------|--------|----------|
-| **A01:2021 - Broken Access Control** | CLIENT_SECRET exposé | 🔴 CRITIQUE |
-| **A02:2021 - Cryptographic Failures** | Tokens en localStorage | 🔴 CRITIQUE |
-| **A03:2021 - Injection** | Pas de validation input Garmin | 🟡 ÉLEVÉ |
-| **A04:2021 - Insecure Design** | PKCE tokens stockés plaintext | 🔴 CRITIQUE |
-| **A05:2021 - Broken Auth** | Token refresh déclenché par GDrive | 🟡 MODÉRÉ |
-| **A06:2021 - Sensitive Data Exposure** | Pas d'HTTPS enforcement | ⚠️ À valider |
-| **A07:2021 - XML External Entities** | Pas de XML parsing = ✅ OK |
-| **A08:2021 - Software & Data Integrity** | Pas de vérification SRI | 🟡 MODÉRÉ |
-| **A09:2021 - Logging & Monitoring** | console.log partout | 🟡 MODÉRÉ |
-| **A10:2021 - SSRF** | Fetch vers Garmin/GDrive | ⚠️ À valider |
+| Vulnerability                            | Détail                             | Sévérité     |
+| ---------------------------------------- | ---------------------------------- | ------------ |
+| **A01:2021 - Broken Access Control**     | CLIENT_SECRET exposé               | 🔴 CRITIQUE  |
+| **A02:2021 - Cryptographic Failures**    | Tokens en localStorage             | 🔴 CRITIQUE  |
+| **A03:2021 - Injection**                 | Pas de validation input Garmin     | 🟡 ÉLEVÉ     |
+| **A04:2021 - Insecure Design**           | PKCE tokens stockés plaintext      | 🔴 CRITIQUE  |
+| **A05:2021 - Broken Auth**               | Token refresh déclenché par GDrive | 🟡 MODÉRÉ    |
+| **A06:2021 - Sensitive Data Exposure**   | Pas d'HTTPS enforcement            | ⚠️ À valider |
+| **A07:2021 - XML External Entities**     | Pas de XML parsing = ✅ OK         |
+| **A08:2021 - Software & Data Integrity** | Pas de vérification SRI            | 🟡 MODÉRÉ    |
+| **A09:2021 - Logging & Monitoring**      | console.log partout                | 🟡 MODÉRÉ    |
+| **A10:2021 - SSRF**                      | Fetch vers Garmin/GDrive           | ⚠️ À valider |
 
 **Recommandations critiques:**
 
@@ -807,6 +832,7 @@ ToastService.push('Sauvegarde terminée', { type: 'success', timeout: 3000 });
 ```
 
 **Audit WCAG manquant:**
+
 - [ ] Color contrast ratios
 - [ ] Keyboard navigation
 - [ ] Screen reader support
@@ -833,6 +859,7 @@ export default defineConfig({
 ```
 
 **Problèmes:**
+
 - ⚠️ Pas de analyse de bundle size
 - ⚠️ Pas de source maps en prod (utiles pour debug)
 - ⚠️ Pas de env-specific configs visibles
@@ -844,24 +871,25 @@ export default defineConfig({
 ```json
 {
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.7.2",  // ✅ Icons
-    "@tailwindcss/vite": "^4.1.4",             // ✅ CSS
-    "chart.js": "^4.5.1",                       // ✅ Charts
-    "firebase": "^11.6.0",                      // ⚠️ Non utilisé dans le code scanné
-    "fit-file-parser": "^1.21.0",              // ⚠️ Non trouvé
-    "fit-parser": "^0.10.1",                    // ⚠️ Pourquoi 2 parsers?
-    "jszip": "^3.10.1",                        // ✅ ZIP import
-    "leaflet": "^1.9.4",                       // ✅ Maps
-    "pako": "^2.1.0",                          // ✅ Compression
-    "papaparse": "^5.5.3",                      // ⚠️ Non trouvé
-    "register-service-worker": "^1.7.2",       // ✅ PWA
-    "vue": "^3.2.13",                          // ✅ Framework
-    "vue-router": "^4.0.3"                     // ✅ Routing
+    "@fortawesome/fontawesome-free": "^6.7.2", // ✅ Icons
+    "@tailwindcss/vite": "^4.1.4", // ✅ CSS
+    "chart.js": "^4.5.1", // ✅ Charts
+    "firebase": "^11.6.0", // ⚠️ Non utilisé dans le code scanné
+    "fit-file-parser": "^1.21.0", // ⚠️ Non trouvé
+    "fit-parser": "^0.10.1", // ⚠️ Pourquoi 2 parsers?
+    "jszip": "^3.10.1", // ✅ ZIP import
+    "leaflet": "^1.9.4", // ✅ Maps
+    "pako": "^2.1.0", // ✅ Compression
+    "papaparse": "^5.5.3", // ⚠️ Non trouvé
+    "register-service-worker": "^1.7.2", // ✅ PWA
+    "vue": "^3.2.13", // ✅ Framework
+    "vue-router": "^4.0.3" // ✅ Routing
   }
 }
 ```
 
 **Problèmes:**
+
 1. **Firebase** importé mais pas utilisé
 2. **FIT file parsers** duplicata - à clarifier (fit-file-parser vs fit-parser)
 3. **Dépendances non utilisées:** papaparse, ???
@@ -875,16 +903,18 @@ export default defineConfig({
 ```typescript
 // vite.config.ts
 VitePWA({
-    registerType: 'autoUpdate',
-    workbox: { cleanupOutdatedCaches: true }
+  registerType: 'autoUpdate',
+  workbox: { cleanupOutdatedCaches: true }
 })
 ```
 
 **Bonnes pratiques:**
+
 - ✅ registerType: 'autoUpdate' = mise à jour silencieuse
 - ✅ cleanupOutdatedCaches = nettoyage auto
 
 **Manquant:**
+
 - ❌ Pas de manifest.json visible
 - ❌ Pas d'icons PWA
 - ❌ Pas de offline strategy définie
@@ -897,12 +927,12 @@ VitePWA({
 ```typescript
 // src/services/IndexedDBService.ts:37-43
 const objectStores = [
-    { name: "settings", options: { keyPath: "key" } },
-    { name: "activities" },  // ❌ Pas de keyPath!
-    { name: "activity_details" },  // ❌ Pas de keyPath!
-    { name: "notifLogs", options: { autoIncrement: true } },
-    { name: "aggregatedData", options: { keyPath: "id" } }
-];
+  { name: 'settings', options: { keyPath: 'key' } },
+  { name: 'activities' }, // ❌ Pas de keyPath!
+  { name: 'activity_details' }, // ❌ Pas de keyPath!
+  { name: 'notifLogs', options: { autoIncrement: true } },
+  { name: 'aggregatedData', options: { keyPath: 'id' } }
+]
 ```
 
 **Problèmes majeurs:**
@@ -927,37 +957,36 @@ const objectStores = [
 ```
 
 **Recommandations:**
+
 ```typescript
 // Ajouter indices:
 const objectStores = [
-    {
-        name: "activities",
-        options: { keyPath: "id" },
-        indexes: [
-            { name: "provider", keyPath: "provider" },
-            { name: "startTime", keyPath: "startTime" },
-            { name: "type", keyPath: "type" }
-        ]
-    },
-    {
-        name: "activity_details",
-        options: { keyPath: "id" },
-        indexes: [
-            { name: "activityId", keyPath: "activityId" }
-        ]
-    }
-    // ...
-];
+  {
+    name: 'activities',
+    options: { keyPath: 'id' },
+    indexes: [
+      { name: 'provider', keyPath: 'provider' },
+      { name: 'startTime', keyPath: 'startTime' },
+      { name: 'type', keyPath: 'type' }
+    ]
+  },
+  {
+    name: 'activity_details',
+    options: { keyPath: 'id' },
+    indexes: [{ name: 'activityId', keyPath: 'activityId' }]
+  }
+  // ...
+]
 
 // Ajouter migration logic:
-request.onupgradeneeded = (event) => {
-    const db = event.target.result;
-    const oldVersion = event.oldVersion;
+request.onupgradeneeded = event => {
+  const db = event.target.result
+  const oldVersion = event.oldVersion
 
-    if (oldVersion < 8) {
-        // Migration 7 -> 8
-    }
-};
+  if (oldVersion < 8) {
+    // Migration 7 -> 8
+  }
+}
 ```
 
 ---
@@ -990,22 +1019,23 @@ request.onupgradeneeded = (event) => {
 
 ### EFFORT ESTIMÉ (Homme-jours)
 
-| Tâche | Effort |
-|-------|--------|
-| Fixer secrets (CLIENT_SECRET vers backend) | 3j |
-| Implémenter validation complète | 5j |
-| Ajouter error handling/toasts | 3j |
-| Tests (80% couverture) | 10j |
-| Accessibilité (WCAG AA) | 5j |
-| Optimisation perf (Web Workers, virtualization) | 5j |
-| Audit de sécurité + fixes | 5j |
-| **TOTAL** | **36 jours** |
+| Tâche                                           | Effort       |
+| ----------------------------------------------- | ------------ |
+| Fixer secrets (CLIENT_SECRET vers backend)      | 3j           |
+| Implémenter validation complète                 | 5j           |
+| Ajouter error handling/toasts                   | 3j           |
+| Tests (80% couverture)                          | 10j          |
+| Accessibilité (WCAG AA)                         | 5j           |
+| Optimisation perf (Web Workers, virtualization) | 5j           |
+| Audit de sécurité + fixes                       | 5j           |
+| **TOTAL**                                       | **36 jours** |
 
 ---
 
 ## 9. RECOMMANDATIONS PRIORITAIRES
 
 ### Phase 1 (Urgent - 2 semaines)
+
 ```
 1. [ ] Déplacer CLIENT_SECRET Google vers backend
 2. [ ] Implémenter validation de tous les inputs
@@ -1014,6 +1044,7 @@ request.onupgradeneeded = (event) => {
 ```
 
 ### Phase 2 (Important - 4 semaines)
+
 ```
 1. [ ] Tests unitaires pour Services critiques
 2. [ ] Accessibilité minimale (WCAG A)
@@ -1022,6 +1053,7 @@ request.onupgradeneeded = (event) => {
 ```
 
 ### Phase 3 (Souhaitable - 4+ semaines)
+
 ```
 1. [ ] Virtualization infinite scroll
 2. [ ] E2E tests critiques
@@ -1032,6 +1064,7 @@ request.onupgradeneeded = (event) => {
 ---
 
 **Fichiers créés suite à cette analyse:**
+
 - `CLAUDE.md` - Guide pour futures instances de Claude Code
 - `ROADMAP_TECHNIQUE.md` - Plan d'action détaillé sur 12 semaines
 - `ANALYSE_COMPLETE.md` - Ce fichier (rapport d'analyse complet)
