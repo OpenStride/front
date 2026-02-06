@@ -2,21 +2,20 @@
   <div class="goals-widget">
     <div class="header-row">
       <h3 class="title">{{ t('goals.title') }}</h3>
+      <div v-if="goals.length > 0" class="period-nav">
+        <button class="nav-btn" @click="shiftPeriod(-1)">
+          <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <span class="period-label">{{ viewPeriodLabel }}</span>
+        <button class="nav-btn" :disabled="periodOffset >= 0" @click="shiftPeriod(1)">
+          <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </button>
+        <button v-if="periodOffset !== 0" class="today-btn" @click="goToToday">
+          {{ t('goals.today') }}
+        </button>
+      </div>
       <button class="add-btn" :title="t('goals.addGoal')" @click="showForm = !showForm">
         <i class="fas fa-plus" aria-hidden="true"></i>
-      </button>
-    </div>
-
-    <div v-if="goals.length > 0" class="period-nav">
-      <button class="nav-btn" @click="shiftPeriod(-1)">
-        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-      </button>
-      <span class="period-label">{{ viewPeriodLabel }}</span>
-      <button class="nav-btn" :disabled="periodOffset >= 0" @click="shiftPeriod(1)">
-        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-      </button>
-      <button v-if="periodOffset !== 0" class="today-btn" @click="goToToday">
-        {{ t('goals.today') }}
       </button>
     </div>
 
@@ -52,6 +51,7 @@ import GoalProgressBar from './GoalProgressBar.vue'
 import GoalEditForm from './GoalEditForm.vue'
 import type { Goal, GoalsConfig, GoalProgress } from './types'
 import type { Activity } from '@/types/activity'
+import { COMMON_SPORT_TYPES } from './sportLabels'
 
 const { t } = useI18n()
 
@@ -114,7 +114,7 @@ function getActivityPeriodKey(period: 'week' | 'month', startTime: number): stri
 async function loadSportTypes() {
   const db = await IndexedDBService.getInstance()
   const activities = (await db.getAllData('activities')) as Activity[]
-  const types = new Set<string>()
+  const types = new Set<string>(COMMON_SPORT_TYPES)
   for (const act of activities) {
     if (act.type && !act.deleted) types.add(act.type)
   }
@@ -249,10 +249,7 @@ onUnmounted(() => {
 .period-nav {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  margin-bottom: 0.7rem;
-  padding: 0.4rem 0;
+  gap: 0.4rem;
 }
 
 .nav-btn {
@@ -276,11 +273,11 @@ onUnmounted(() => {
 }
 
 .period-label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-color);
-  min-width: 160px;
   text-align: center;
+  white-space: nowrap;
 }
 
 .today-btn {
