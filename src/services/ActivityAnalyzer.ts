@@ -71,8 +71,8 @@ export class ActivityAnalyzer {
   private classifyByAccumulatedSlope(samples: Sample[]): 'up' | 'down' | 'flat' {
     let gain = 0
     let loss = 0
-    let startDist = samples[0]?.distance ?? 0
-    let endDist = samples.at(-1)?.distance ?? startDist
+    const startDist = samples[0]?.distance ?? 0
+    const endDist = samples.at(-1)?.distance ?? startDist
     for (let i = 1; i < samples.length; i++) {
       const prev = samples[i - 1].elevation
       const curr = samples[i].elevation

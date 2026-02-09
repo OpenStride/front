@@ -120,7 +120,7 @@ export class MigrationService {
     )
 
     // Get or initialize migration history
-    let history: MigrationRecord[] = (await db.getData('migration_history')) || []
+    const history: MigrationRecord[] = (await db.getData('migration_history')) || []
 
     for (let i = 0; i < pending.length; i++) {
       const migration = pending[i]

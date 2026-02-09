@@ -22,8 +22,9 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
-import { getActivityService } from '@/services/ActivityService'
+import { getActivityService, type ActivityServiceEvent } from '@/services/ActivityService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
+import { debounce } from '@/utils/debounce'
 
 const { t } = useI18n()
 // Refresh logic moved to global header refresh button; no per-view pull-to-refresh anymore.
@@ -38,13 +39,38 @@ const page = ref(0)
 const pageSize = 10
 const hasMore = ref(true)
 
-onMounted(() => {
+// Store ActivityService instance for cleanup
+let activityServiceInstance: Awaited<ReturnType<typeof getActivityService>> | null = null
+
+// Debounced reload to avoid multiple refreshes when batch importing activities
+const debouncedSoftReload = debounce(() => softReload(), 500)
+
+// Handle activity-changed events from ActivityService
+const handleActivityChanged = (event: Event) => {
+  const customEvent = event as CustomEvent<ActivityServiceEvent>
+  const { type } = customEvent.detail
+  // Reload view when new activities are saved (imported from providers)
+  if (type === 'saved') {
+    debouncedSoftReload()
+  }
+}
+
+onMounted(async () => {
+  // Get ActivityService instance and listen for activity-changed events
+  activityServiceInstance = await getActivityService()
+  activityServiceInstance.emitter.addEventListener('activity-changed', handleActivityChanged)
+
   loadActivities()
   window.addEventListener('scroll', handleScroll)
   window.addEventListener('openstride:activities-refreshed', softReload)
 })
 
 onBeforeUnmount(() => {
+  // Cleanup ActivityService event listener
+  if (activityServiceInstance) {
+    activityServiceInstance.emitter.removeEventListener('activity-changed', handleActivityChanged)
+  }
+
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('openstride:activities-refreshed', softReload)
 })
