@@ -4,13 +4,16 @@
  * Subscribes to ActivityService events and automatically publishes
  * the user's public data when activities are saved/updated/deleted.
  *
+ * Delegates to FriendService.publishPublicData() for a single publish path
+ * that includes activities, interactions, and the following list.
+ *
  * Uses debouncing to avoid excessive publishes when importing many activities.
  */
 
 import { getActivityService, type ActivityServiceEvent } from './ActivityService'
-import { PublicDataService } from './PublicDataService'
 import { PublicFileService } from './PublicFileService'
 import { IndexedDBService } from './IndexedDBService'
+import { FriendService } from './FriendService'
 import { debounce } from '@/utils/debounce'
 
 export class PublicDataListener {
@@ -91,6 +94,8 @@ export class PublicDataListener {
 
   /**
    * Publish public data now (called by debounced function or manually)
+   * Delegates to FriendService.publishPublicData() for a single publish path
+   * that includes activities, interactions, and the following list.
    */
   async publishNow(): Promise<{ success: boolean; error?: string }> {
     if (this.isPublishing) {
@@ -102,47 +107,19 @@ export class PublicDataListener {
     this.emitter.dispatchEvent(new CustomEvent('publish-started'))
 
     try {
-      const publicDataService = PublicDataService.getInstance()
-      const publicFileService = PublicFileService.getInstance()
-      const db = await IndexedDBService.getInstance()
+      const friendService = FriendService.getInstance()
+      const result = await friendService.publishPublicData()
 
-      // Generate all public data
-      const { manifest, yearFiles } = await publicDataService.generateAllPublicData()
-
-      // Upload year files and get URLs
-      for (const [year, yearData] of yearFiles.entries()) {
-        const filename = `openstride-activities-${year}.json`
-        const url = await publicFileService.writePublicFile(filename, yearData)
-
-        if (url) {
-          // Update manifest with file URL
-          const yearEntry = manifest.availableYears.find(y => y.year === year)
-          if (yearEntry) {
-            yearEntry.fileUrl = url
-          }
-        }
-      }
-
-      // Upload manifest
-      const manifestUrl = await publicFileService.writePublicFile(
-        'openstride-manifest.json',
-        manifest
-      )
-
-      if (manifestUrl) {
-        // Save manifest URL for sharing
-        await db.saveData('publicManifestUrl', manifestUrl)
-
-        console.log('[PublicDataListener] Published successfully:', manifestUrl)
+      if (result) {
+        console.log('[PublicDataListener] Published successfully via FriendService')
         this.emitter.dispatchEvent(
           new CustomEvent('publish-completed', {
-            detail: { manifestUrl, activitiesCount: manifest.stats.totalActivities }
+            detail: { manifestUrl: result }
           })
         )
-
         return { success: true }
       } else {
-        throw new Error('Failed to upload manifest')
+        throw new Error('FriendService.publishPublicData() returned null')
       }
     } catch (err: any) {
       console.error('[PublicDataListener] Publish failed:', err)
