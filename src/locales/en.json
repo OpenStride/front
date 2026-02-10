@@ -186,7 +186,8 @@
       "notConnected": "Not connected",
       "connect": "Connect {provider}",
       "reconnect": "Reconnect {provider}",
-      "disconnect": "Disconnect"
+      "disconnect": "Disconnect",
+      "connecting": "Connecting..."
     }
   },
   "update": {
