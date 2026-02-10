@@ -68,7 +68,17 @@ async function bootstrap() {
   const pwaUpdateService = getPWAUpdateService()
   await pwaUpdateService.initialize()
 
-  // 5. Create and mount Vue app
+  // 5. Register plugin routes
+  const { allAppPlugins } = await import('@/services/ExtensionPluginRegistry')
+  for (const plugin of allAppPlugins) {
+    if (plugin.routes) {
+      for (const route of plugin.routes) {
+        router.addRoute(route)
+      }
+    }
+  }
+
+  // 6. Create and mount Vue app
   const app = createApp(App)
   app.use(router)
   app.use(i18n)

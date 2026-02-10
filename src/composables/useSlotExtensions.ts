@@ -7,7 +7,11 @@ export function useSlotExtensions(slotName: string) {
   const components = shallowRef<Component[]>([])
 
   onMounted(async () => {
-    components.value = await getPluginViewsForSlot(slotName)
+    try {
+      components.value = await getPluginViewsForSlot(slotName)
+    } catch {
+      // IndexedDB may not be available (e.g. in test environment)
+    }
   })
 
   return { components }

@@ -25,7 +25,8 @@
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
-    "myActivities": "Mes activités"
+    "myActivities": "Mes activités",
+    "statistics": "Statistiques"
   },
   "profile": {
     "createProfile": "Créer un Profil",
@@ -203,6 +204,48 @@
     "pleaseWait": "Veuillez patienter, cela peut prendre quelques instants",
     "success": "Mise à jour réussie",
     "failed": "Échec de la mise à jour. Veuillez réessayer."
+  },
+  "statistics": {
+    "title": "Statistiques",
+    "allSports": "Tous les sports",
+    "noData": "Aucune donnee disponible",
+    "noDataHint": "Importez des activites pour voir vos statistiques",
+    "trends": {
+      "title": "Tendances",
+      "distance": "Distance (km)",
+      "activities": "Activites",
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Annee"
+    },
+    "distribution": {
+      "title": "Repartition",
+      "bySport": "Par sport",
+      "byMonth": "Par mois",
+      "activitiesCount": "Nombre d'activites",
+      "distanceKm": "Distance (km)",
+      "durationH": "Duree (h)"
+    },
+    "records": {
+      "title": "Records personnels",
+      "distance": "Distance",
+      "time": "Temps",
+      "pace": "Allure",
+      "speed": "Vitesse",
+      "date": "Date",
+      "activity": "Activite",
+      "computing": "Calcul des records en cours...",
+      "noRecords": "Aucun record trouve",
+      "noRecordsHint": "Les records sont calcules a partir des donnees GPS de vos activites"
+    },
+    "heatmap": {
+      "title": "Calendrier d'activite",
+      "less": "Moins",
+      "more": "Plus",
+      "distance": "Distance",
+      "duration": "Duree",
+      "count": "Activites"
+    }
   },
   "goals": {
     "title": "Objectifs",
