@@ -16,7 +16,8 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
     'standard-details',
     'aggregated-details',
     'profile-sharing',
-    'goals'
+    'goals',
+    'statistics'
   ]
 
   private constructor() {
