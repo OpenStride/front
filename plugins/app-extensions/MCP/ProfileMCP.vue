@@ -265,7 +265,7 @@ const configCode = computed(() => {
   "mcpServers": {
     "openstride": {
       "command": "npx",
-      "args": ["-y", "openstride-mcp-server"],
+      "args": ["-y", "@openstride/mcp-server"],
       "env": {
         "OPENSTRIDE_MANIFEST_URL": "${url}"
       }
