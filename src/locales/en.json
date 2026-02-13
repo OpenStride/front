@@ -41,7 +41,8 @@
       "cloudBackup": "Cloud Backup",
       "appExtensions": "App Extensions",
       "sharing": "Share & Privacy",
-      "friends": "Friends"
+      "friends": "Friends",
+      "mcp": "AI Assistant (MCP)"
     },
     "identity": {
       "section": "Identity"
@@ -75,7 +76,34 @@
     "publishing": "Publishing...",
     "updateData": "Update",
     "publishData": "Publish my data",
-    "scanToFollow": "Scan this code to follow me"
+    "scanToFollow": "Scan this code to follow me",
+    "mcp": {
+      "title": "AI Assistant (MCP)",
+      "description": "Connect your training data to AI assistants like Claude, ChatGPT, and more using the Model Context Protocol (MCP).",
+      "gdriveRequired": "Google Drive connection required",
+      "gdriveRequiredHelp": "You need to connect Google Drive to use MCP. This allows your data to be published publicly and accessed by AI assistants.",
+      "goToCloudBackup": "Go to Cloud Backup",
+      "step1Title": "Publish Your Data",
+      "step1Help": "Click the button to sync your activities to Google Drive and make them available to AI assistants.",
+      "publishData": "Publish Data",
+      "publishing": "Publishing...",
+      "lastSync": "Last sync",
+      "step2Title": "Copy Manifest URL",
+      "step2Help": "This URL points to your public data manifest. You'll need it to configure your AI assistant.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "step3Title": "Configure Your AI Assistant",
+      "showConfig": "Show configuration guide",
+      "configIntro": "Add this configuration to your AI assistant's MCP settings:",
+      "copyConfig": "Copy Configuration",
+      "configStep1": "Open your AI assistant's configuration file",
+      "configStep2": "Add the configuration shown above",
+      "configStep3": "Restart your AI assistant to load the OpenStride MCP server",
+      "statsTitle": "Published Data",
+      "totalActivities": "Activities",
+      "totalDistance": "Total Distance",
+      "totalDuration": "Total Time"
+    }
   },
   "home": {
     "hero": {
