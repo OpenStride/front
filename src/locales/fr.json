@@ -41,7 +41,8 @@
       "cloudBackup": "Sauvegarde cloud",
       "appExtensions": "Extensions",
       "sharing": "Partage & Confidentialité",
-      "friends": "Amis"
+      "friends": "Amis",
+      "mcp": "Assistant IA (MCP)"
     },
     "identity": {
       "section": "Identité"
@@ -75,7 +76,34 @@
     "publishing": "Publication...",
     "updateData": "Mettre à jour",
     "publishData": "Publier mes données",
-    "scanToFollow": "Scannez ce code pour me suivre"
+    "scanToFollow": "Scannez ce code pour me suivre",
+    "mcp": {
+      "title": "Assistant IA (MCP)",
+      "description": "Connectez vos données d'entraînement aux assistants IA comme Claude, ChatGPT, et plus encore en utilisant le Model Context Protocol (MCP).",
+      "gdriveRequired": "Connexion Google Drive requise",
+      "gdriveRequiredHelp": "Vous devez connecter Google Drive pour utiliser MCP. Cela permet de publier vos données publiquement et de les rendre accessibles aux assistants IA.",
+      "goToCloudBackup": "Aller à Sauvegarde Cloud",
+      "step1Title": "Publier vos données",
+      "step1Help": "Cliquez sur le bouton pour synchroniser vos activités vers Google Drive et les rendre disponibles aux assistants IA.",
+      "publishData": "Publier les données",
+      "publishing": "Publication en cours...",
+      "lastSync": "Dernière synchronisation",
+      "step2Title": "Copier l'URL du manifest",
+      "step2Help": "Cette URL pointe vers le manifest de vos données publiques. Vous en aurez besoin pour configurer votre assistant IA.",
+      "copy": "Copier",
+      "copied": "Copié !",
+      "step3Title": "Configurer votre assistant IA",
+      "showConfig": "Afficher le guide de configuration",
+      "configIntro": "Ajoutez cette configuration aux paramètres MCP de votre assistant IA :",
+      "copyConfig": "Copier la configuration",
+      "configStep1": "Ouvrez le fichier de configuration de votre assistant IA",
+      "configStep2": "Ajoutez la configuration affichée ci-dessus",
+      "configStep3": "Redémarrez votre assistant IA pour charger le serveur MCP OpenStride",
+      "statsTitle": "Données publiées",
+      "totalActivities": "Activités",
+      "totalDistance": "Distance totale",
+      "totalDuration": "Temps total"
+    }
   },
   "home": {
     "hero": {
