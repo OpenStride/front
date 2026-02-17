@@ -21,14 +21,20 @@
     <div class="flex flex-wrap justify-center gap-3 mt-6">
       <button
         @click="$emit('connect')"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition"
+        :disabled="isLoading"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <i class="fas fa-plug"></i>
-        {{
-          isConnected
-            ? $t('providers.setup.reconnect', { provider: providerName })
-            : $t('providers.setup.connect', { provider: providerName })
-        }}
+        <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-plug'"></i>
+        <template v-if="isLoading">
+          {{ $t('providers.setup.connecting') }}
+        </template>
+        <template v-else>
+          {{
+            isConnected
+              ? $t('providers.setup.reconnect', { provider: providerName })
+              : $t('providers.setup.connect', { provider: providerName })
+          }}
+        </template>
       </button>
 
       <button
@@ -44,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ providerName: string; isConnected: boolean }>()
+defineProps<{ providerName: string; isConnected: boolean; isLoading?: boolean }>()
 
 defineEmits<{
   connect: []

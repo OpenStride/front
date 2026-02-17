@@ -3,9 +3,26 @@
     <DefaultProviderSetupView
       provider-name="Garmin"
       :is-connected="isConnected"
+      :is-loading="isWaitingForOAuth"
       @connect="connectToGarmin"
       @disconnect="disconnectGarmin"
     />
+
+    <!-- Fallback for popup blocked -->
+    <div v-if="showFallbackRedirect" class="fallback-section">
+      <p class="fallback-text">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        La fenêtre popup a été bloquée. Vous pouvez autoriser les popups ou utiliser la méthode alternative.
+      </p>
+      <button @click="connectWithRedirect" class="fallback-button">
+        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+        Connexion via redirection
+      </button>
+      <p class="fallback-warning">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        Sur Samsung Android, la redirection peut ouvrir un autre navigateur.
+      </p>
+    </div>
 
     <!-- Status section (only when connected) -->
     <div v-if="isConnected" class="mt-6 text-center" data-test="garmin-status-section">
@@ -85,6 +102,9 @@ import pluginEnv from './env'
 
 const isConnected = ref(false)
 const isRefreshing = ref(false)
+const isWaitingForOAuth = ref(false)
+const showFallbackRedirect = ref(false)
+const oauthPopup = ref<Window | null>(null)
 const syncProgress = ref<{ month: string; completed: number; total: number } | null>(null)
 const syncState = reactive<GarminSyncState>({
   status: 'idle',
@@ -98,10 +118,106 @@ const syncState = reactive<GarminSyncState>({
 const baseURL = pluginEnv.apiUrl
 
 // ============================================================================
-// OAuth Flow
+// OAuth Flow (Popup-based to fix Samsung Android browser switching issue)
 // ============================================================================
 
 function connectToGarmin() {
+  // Generate CSRF state token
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('garmin_oauth_state', state)
+
+  const callbackUrl = `${window.location.origin}/oauth/garmin/callback`
+  const authUrl = `${baseURL}/auth/login?redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}`
+
+  // Open centered popup
+  const width = 600
+  const height = 700
+  const left = window.screenX + (window.outerWidth - width) / 2
+  const top = window.screenY + (window.outerHeight - height) / 2
+
+  oauthPopup.value = window.open(
+    authUrl,
+    'GarminOAuth',
+    `width=${width},height=${height},left=${left},top=${top},popup=yes`
+  )
+
+  // Check if popup was blocked
+  if (!oauthPopup.value || oauthPopup.value.closed) {
+    handlePopupBlocked()
+    return
+  }
+
+  isWaitingForOAuth.value = true
+  showFallbackRedirect.value = false
+  window.addEventListener('message', handleOAuthMessage)
+
+  // Poll to detect if popup closes without completing OAuth
+  const pollInterval = setInterval(() => {
+    if (oauthPopup.value?.closed) {
+      clearInterval(pollInterval)
+      if (isWaitingForOAuth.value) {
+        handleOAuthCancelled()
+      }
+    }
+  }, 500)
+}
+
+async function handleOAuthMessage(event: MessageEvent) {
+  // Security: only accept messages from same origin
+  if (event.origin !== window.location.origin) return
+  if (event.data?.type !== 'garmin-oauth-callback') return
+
+  // Cleanup
+  window.removeEventListener('message', handleOAuthMessage)
+  isWaitingForOAuth.value = false
+  oauthPopup.value?.close()
+
+  // Validate state (CSRF protection)
+  const expectedState = sessionStorage.getItem('garmin_oauth_state')
+  if (event.data.state !== expectedState) {
+    ToastService.push('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
+    return
+  }
+  sessionStorage.removeItem('garmin_oauth_state')
+
+  // Handle error from OAuth provider
+  if (event.data.error) {
+    ToastService.push(`Garmin: ${event.data.error}`, { type: 'error' })
+    return
+  }
+
+  // Save tokens and start import
+  const { access_token, access_token_secret } = event.data
+  if (access_token && access_token_secret) {
+    await setTokens({ accessToken: access_token, accessTokenSecret: access_token_secret })
+    isConnected.value = true
+
+    // Enable the plugin so triggerRefresh() includes it
+    const pluginManager = DataProviderPluginManager.getInstance()
+    await pluginManager.enablePlugin('garmin')
+
+    // Start initial import in background
+    const syncManager = getGarminSyncManager()
+    await syncManager.startInitialImportAsync()
+
+    ToastService.push('Garmin connecté ! Import en cours...', { type: 'info' })
+  }
+}
+
+function handlePopupBlocked() {
+  isWaitingForOAuth.value = false
+  showFallbackRedirect.value = true
+  ToastService.push('Popup bloquée. Autorisez les popups ou utilisez le fallback.', { type: 'warning' })
+}
+
+function handleOAuthCancelled() {
+  window.removeEventListener('message', handleOAuthMessage)
+  isWaitingForOAuth.value = false
+  sessionStorage.removeItem('garmin_oauth_state')
+}
+
+function connectWithRedirect() {
+  // Fallback: classic redirect method (may open in different browser on Samsung)
   const redirect = encodeURIComponent(window.location.href)
   window.location.href = `${baseURL}/auth/login?redirect_uri=${redirect}`
 }
@@ -257,3 +373,52 @@ onUnmounted(() => {
   syncEmitter.removeEventListener('sync-progress', handleSyncProgress)
 })
 </script>
+
+<style scoped>
+.fallback-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--color-gray-50, #f9fafb);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.fallback-text {
+  color: var(--color-gray-600, #4b5563);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.fallback-text i {
+  margin-right: 0.5rem;
+  color: var(--color-blue-500, #3b82f6);
+}
+
+.fallback-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-green-500, #88aa00);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.fallback-button:hover {
+  background: var(--color-green-600, #6d8a00);
+}
+
+.fallback-warning {
+  margin-top: 0.75rem;
+  color: var(--color-yellow-600, #d97706);
+  font-size: 0.75rem;
+}
+
+.fallback-warning i {
+  margin-right: 0.25rem;
+}
+</style>
