@@ -74,14 +74,15 @@ import { onMounted, ref } from 'vue';
 import { GoogleDriveAuthService } from './GoogleDriveAuthService';
 import { GoogleDriveFileService } from './GoogleDriveFileService';
 import { getSyncService } from '@/services/SyncService';
-import { IndexedDBService } from '@/services/IndexedDBService';
+import { usePluginContext } from '@/composables/usePluginContext';
 
 const isRefreshing = ref(false)
 const isRefreshed = ref(false)
 
+const { storage } = usePluginContext()
+
 let googleDriveAuthService: GoogleDriveAuthService | null = null;
 let googleDriveFileService: GoogleDriveFileService | null = null;
-let dbService: IndexedDBService | null = null;
 const isConnected = ref(0); // 0 = pending, 1 = connected, -1 = disconnected
 const backupFilePresent = ref(0); // 0 = pending, 1 = present, -1 = not present
 
@@ -121,15 +122,13 @@ const refreshFromGoogleDrive = async () => {
 };
 
 const disconnectGoogleDrive = async () => {
-  if (!dbService) return;
-  await dbService.deleteData('gdrive_access_token');
-  await dbService.deleteData('gdrive_refresh_token');
-  await dbService.deleteData('gdrive_access_token_expire_timestamp');
+  await storage.deleteData('gdrive_access_token');
+  await storage.deleteData('gdrive_refresh_token');
+  await storage.deleteData('gdrive_access_token_expire_timestamp');
   isConnected.value = -1;
 };
 
 onMounted(async () => {
-  dbService = await IndexedDBService.getInstance();
   googleDriveAuthService = await GoogleDriveAuthService.getInstance();
 
   let accessToken = await googleDriveAuthService.getAccessToken();

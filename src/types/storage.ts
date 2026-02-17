@@ -1,3 +1,5 @@
+import type { PluginContext } from './plugin-context'
+
 export interface StoragePlugin {
   id: string
   label: string
@@ -57,4 +59,5 @@ export interface StoragePlugin {
    * Provider-specific URL parsing
    */
   extractFileIdFromUrl?(url: string): string | null
+  context?: PluginContext
 }

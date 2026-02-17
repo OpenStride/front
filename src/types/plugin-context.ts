@@ -1,4 +1,9 @@
-import type { Activity, ActivityDetails } from './activity'
+import type { Activity, ActivityDetails, Sample } from './activity'
+import type {
+  AggregationPeriod,
+  AggregatedRecord,
+  AggregationMetricDefinition
+} from './aggregation'
 
 /**
  * Plugin Context Interfaces for Dependency Injection
@@ -116,34 +121,75 @@ export interface IStorageService {
 }
 
 /**
+ * Notification interface for plugins
+ *
+ * Replaces direct ToastService calls. Plugins emit notifications,
+ * the core UI layer handles rendering.
+ */
+export interface INotificationService {
+  notify(
+    message: string,
+    opts?: { type?: 'success' | 'error' | 'info' | 'warning'; timeout?: number }
+  ): void
+}
+
+/**
+ * Plugin manager interface for plugins
+ *
+ * Allows plugins to check or enable other plugins without
+ * importing concrete PluginManager classes.
+ */
+export interface IPluginManager {
+  isPluginActive(pluginId: string): Promise<boolean>
+  enablePlugin(pluginId: string): Promise<void>
+}
+
+/**
+ * Read-only aggregation interface for plugins
+ *
+ * Provides access to pre-computed aggregated data.
+ */
+export interface IAggregationService {
+  getAggregated(metricId: string, periodType: AggregationPeriod): Promise<AggregatedRecord[]>
+  listMetrics(): AggregationMetricDefinition[]
+}
+
+/**
+ * Friend / public data interface for plugins
+ *
+ * Allows plugins to publish public data and query friend info
+ * without importing FriendService directly.
+ */
+export interface IFriendService {
+  publishPublicData(): Promise<string | null>
+  getMyManifestUrl(): Promise<string | null>
+}
+
+/**
+ * Activity analyzer factory for plugins
+ *
+ * Wraps ActivityAnalyzer creation so plugins don't import the class directly.
+ */
+export interface IAnalyzerFactory {
+  create(samples: Sample[]): {
+    bestSegments(targets: number[]): Record<number, { duration: number } | undefined>
+  }
+}
+
+/**
  * Plugin Context - Injected into plugins
  *
  * This is the main dependency injection container for plugins.
  * Plugins receive this context and use it to interact with core services.
- *
- * Example usage in a plugin:
- *
- * ```typescript
- * export default {
- *   id: 'my-plugin',
- *   async refreshData(context: PluginContext) {
- *     const activities = await context.activity.getAllActivities();
- *     // ... process activities
- *     await context.activity.saveActivityWithDetails(activity, details);
- *   }
- * } as ProviderPlugin;
- * ```
  */
 export interface PluginContext {
-  /**
-   * Activity service for CRUD operations on activities
-   */
   activity: IActivityService
-
-  /**
-   * Storage service for settings and plugin-specific data
-   */
   storage: IStorageService
+  notifications: INotificationService
+  plugins: IPluginManager
+  aggregation: IAggregationService
+  friends: IFriendService
+  analyzer: IAnalyzerFactory
 }
 
 /**

@@ -1,5 +1,6 @@
-// services/GoogleDriveAuthService.ts
-import { IndexedDBService } from '@/services/IndexedDBService';
+// plugins/storage-providers/GDrive/client/GoogleDriveAuthService.ts
+import { getPluginContext } from '@/services/PluginContextFactory';
+import type { IStorageService } from '@/types/plugin-context';
 import { StorageService } from '@/services/StorageService';
 import { generateCodeChallenge, generateRandomString } from './pkceUtils';
 
@@ -18,7 +19,7 @@ const SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 export class GoogleDriveAuthService {
     private static instance: GoogleDriveAuthService;
-    private dbService: IndexedDBService | null = null;
+    private dbService: IStorageService | null = null;
 
     private constructor() { }
 
@@ -31,7 +32,8 @@ export class GoogleDriveAuthService {
     }
 
     private async initialize() {
-        this.dbService = await IndexedDBService.getInstance();
+        const ctx = await getPluginContext();
+        this.dbService = ctx.storage;
     }
 
     async getAccessToken(): Promise<string | null> {

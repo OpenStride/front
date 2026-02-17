@@ -160,7 +160,7 @@ async function toggleNotifications(event: Event) {
 
 <style scoped>
 .notification-settings {
-  background-color: #ffffff;
+  background-color: white;
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -183,7 +183,7 @@ async function toggleNotifications(event: Event) {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-gray-800);
 }
 
 .warning-message {
@@ -191,15 +191,15 @@ async function toggleNotifications(event: Event) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background-color: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background-color: var(--color-yellow-100);
+  border-left: 4px solid var(--color-yellow-500);
   border-radius: 4px;
-  color: #92400e;
+  color: var(--color-yellow-800);
   font-size: 0.875rem;
 }
 
 .warning-message i {
-  color: #f59e0b;
+  color: var(--color-yellow-500);
 }
 
 .setting-controls {
@@ -222,14 +222,14 @@ async function toggleNotifications(event: Event) {
 .setting-info label {
   display: block;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-gray-800);
   margin-bottom: 0.25rem;
 }
 
 .setting-description {
   margin: 0;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 /* Toggle Switch */
@@ -253,7 +253,7 @@ async function toggleNotifications(event: Event) {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
+  background-color: var(--color-gray-300);
   transition: 0.3s;
   border-radius: 24px;
 }
@@ -286,7 +286,7 @@ input:disabled + .slider {
 /* Status Info */
 .status-info {
   padding: 1rem;
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -302,7 +302,7 @@ input:disabled + .slider {
 
 .status-label {
   font-weight: 500;
-  color: #4b5563;
+  color: var(--color-gray-600);
 }
 
 .status-badge {
@@ -313,18 +313,18 @@ input:disabled + .slider {
 }
 
 .status-granted {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--color-emerald-100);
+  color: var(--color-emerald-800);
 }
 
 .status-denied {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--color-red-100);
+  color: var(--color-red-800);
 }
 
 .status-default {
-  background-color: #e5e7eb;
-  color: #374151;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-700);
 }
 
 .token-info {
@@ -333,13 +333,13 @@ input:disabled + .slider {
 }
 
 .token-display {
-  background-color: #ffffff;
+  background-color: white;
   padding: 0.5rem;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 0.75rem;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-200);
   word-break: break-all;
 }
 
@@ -355,19 +355,19 @@ input:disabled + .slider {
 }
 
 .error-message {
-  background-color: #fee2e2;
-  border-left: 4px solid #dc2626;
-  color: #991b1b;
+  background-color: var(--color-red-100);
+  border-left: 4px solid var(--color-red-600);
+  color: var(--color-red-800);
 }
 
 .error-message i {
-  color: #dc2626;
+  color: var(--color-red-600);
 }
 
 .success-message {
-  background-color: #d1fae5;
+  background-color: var(--color-emerald-100);
   border-left: 4px solid var(--color-green-600, #6d8a00);
-  color: #065f46;
+  color: var(--color-emerald-800);
 }
 
 .success-message i {

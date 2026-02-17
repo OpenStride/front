@@ -39,6 +39,11 @@ export class ActivityService implements IActivityService {
     return ActivityService.instance
   }
 
+  private ensureDB(): IndexedDBService {
+    if (!this.db) throw new Error('IndexedDB not initialized')
+    return this.db
+  }
+
   /**
    * Save activity and details in a single atomic transaction
    * This ensures data consistency - both succeed or both fail
@@ -47,9 +52,8 @@ export class ActivityService implements IActivityService {
     activity: Activity,
     details: ActivityDetails
   ): Promise<void> {
-    if (!this.db || !(this.db as any).db) {
-      throw new Error('IndexedDB not initialized')
-    }
+    const db = this.ensureDB()
+    const idb = db.getIDB()
 
     // Ensure metadata fields are set
     const now = Date.now()
@@ -70,7 +74,6 @@ export class ActivityService implements IActivityService {
     }
 
     return new Promise((resolve, reject) => {
-      const idb = (this.db as any).db as IDBDatabase
       const tx = idb.transaction(['activities', 'activity_details'], 'readwrite')
 
       tx.objectStore('activities').put(activityToSave)
@@ -78,12 +81,12 @@ export class ActivityService implements IActivityService {
 
       tx.oncomplete = () => {
         // Emit dbChange events for both stores (backward compatibility)
-        ;(this.db as any).emitter.dispatchEvent(
+        db.emitter.dispatchEvent(
           new CustomEvent('dbChange', {
             detail: { store: 'activities', key: activity.id }
           })
         )
-        ;(this.db as any).emitter.dispatchEvent(
+        db.emitter.dispatchEvent(
           new CustomEvent('dbChange', {
             detail: { store: 'activity_details', key: details.id }
           })
@@ -122,14 +125,11 @@ export class ActivityService implements IActivityService {
       throw new Error('Activities and details arrays must have same length')
     }
 
-    if (!this.db || !(this.db as any).db) {
-      throw new Error('IndexedDB not initialized')
-    }
-
+    const db = this.ensureDB()
+    const idb = db.getIDB()
     const now = Date.now()
 
     return new Promise((resolve, reject) => {
-      const idb = (this.db as any).db as IDBDatabase
       const tx = idb.transaction(['activities', 'activity_details'], 'readwrite')
 
       for (let i = 0; i < activities.length; i++) {
@@ -155,7 +155,7 @@ export class ActivityService implements IActivityService {
 
       tx.oncomplete = () => {
         // Emit batch change event (backward compatibility)
-        ;(this.db as any).emitter.dispatchEvent(
+        db.emitter.dispatchEvent(
           new CustomEvent('dbChange', {
             detail: { store: 'activities', key: '' }
           })
@@ -201,6 +201,7 @@ export class ActivityService implements IActivityService {
    * Update activity fields (increments version, updates timestamp)
    */
   public async updateActivity(id: string, updates: Partial<Activity>): Promise<void> {
+    const db = this.ensureDB()
     const activity = await this.getActivity(id)
     if (!activity) {
       throw new Error(`Activity ${id} not found`)
@@ -215,10 +216,10 @@ export class ActivityService implements IActivityService {
       synced: false
     }
 
-    await (this.db as any).addItemsToStore('activities', [updatedActivity], (a: Activity) => a.id)
+    await db.addItemsToStore('activities', [updatedActivity], (a: Activity) => a.id)
 
     // Emit dbChange event (backward compatibility)
-    ;(this.db as any).emitter.dispatchEvent(
+    db.emitter.dispatchEvent(
       new CustomEvent('dbChange', {
         detail: { store: 'activities', key: id }
       })
@@ -243,6 +244,7 @@ export class ActivityService implements IActivityService {
    * Soft delete activity (sets deleted flag instead of removing)
    */
   public async deleteActivity(id: string): Promise<void> {
+    const db = this.ensureDB()
     const activity = await this.getActivity(id)
     if (!activity) {
       throw new Error(`Activity ${id} not found`)
@@ -256,10 +258,10 @@ export class ActivityService implements IActivityService {
       synced: false
     }
 
-    await (this.db as any).addItemsToStore('activities', [deletedActivity], (a: Activity) => a.id)
+    await db.addItemsToStore('activities', [deletedActivity], (a: Activity) => a.id)
 
     // Emit dbChange event (backward compatibility)
-    ;(this.db as any).emitter.dispatchEvent(
+    db.emitter.dispatchEvent(
       new CustomEvent('dbChange', {
         detail: { store: 'activities', key: id }
       })
@@ -290,9 +292,10 @@ export class ActivityService implements IActivityService {
       includeDeleted?: boolean
     } = {}
   ): Promise<Activity[]> {
+    const db = this.ensureDB()
     const { offset = 0, limit = 10, includeDeleted = false } = params
 
-    const all = (await (this.db as any).getAllData('activities')) as Activity[]
+    const all = (await db.getAllData('activities')) as Activity[]
 
     let filtered = all
     if (!includeDeleted) {
@@ -306,7 +309,8 @@ export class ActivityService implements IActivityService {
    * Get single activity by ID
    */
   public async getActivity(id: string): Promise<Activity | undefined> {
-    const result = (await (this.db as any).getDataFromStore('activities', id)) as Activity | null
+    const db = this.ensureDB()
+    const result = (await db.getDataFromStore('activities', id)) as Activity | null
     return result ?? undefined
   }
 
@@ -315,7 +319,8 @@ export class ActivityService implements IActivityService {
    * Used by plugins via IActivityService interface
    */
   public async getAllActivities(): Promise<Activity[]> {
-    const all = (await (this.db as any).getAllData('activities')) as Activity[]
+    const db = this.ensureDB()
+    const all = (await db.getAllData('activities')) as Activity[]
     return all.filter(a => !a.deleted).sort((a, b) => b.startTime - a.startTime)
   }
 
@@ -323,10 +328,8 @@ export class ActivityService implements IActivityService {
    * Get activity details by ID
    */
   public async getDetails(id: string): Promise<ActivityDetails | undefined> {
-    const result = (await (this.db as any).getDataFromStore(
-      'activity_details',
-      id
-    )) as ActivityDetails | null
+    const db = this.ensureDB()
+    const result = (await db.getDataFromStore('activity_details', id)) as ActivityDetails | null
     return result ?? undefined
   }
 
@@ -337,9 +340,8 @@ export class ActivityService implements IActivityService {
     friendId: string,
     activityId: string
   ): Promise<FriendActivity | undefined> {
-    const allFriendActivities = (await (this.db as any).getAllData(
-      'friend_activities'
-    )) as FriendActivity[]
+    const db = this.ensureDB()
+    const allFriendActivities = (await db.getAllData('friend_activities')) as FriendActivity[]
     return allFriendActivities.find(a => a.friendId === friendId && a.activityId === activityId)
   }
 
@@ -347,12 +349,10 @@ export class ActivityService implements IActivityService {
    * Mark activities as synced
    */
   public async markAsSynced(activityIds: string[]): Promise<void> {
-    if (!this.db || !(this.db as any).db) {
-      throw new Error('IndexedDB not initialized')
-    }
+    const db = this.ensureDB()
+    const idb = db.getIDB()
 
     return new Promise((resolve, reject) => {
-      const idb = (this.db as any).db as IDBDatabase
       const tx = idb.transaction(['activities', 'activity_details'], 'readwrite')
 
       for (const id of activityIds) {
@@ -388,7 +388,8 @@ export class ActivityService implements IActivityService {
    * Get unsynced activities (for incremental sync)
    */
   public async getUnsyncedActivities(): Promise<Activity[]> {
-    const all = (await (this.db as any).getAllData('activities')) as Activity[]
+    const db = this.ensureDB()
+    const all = (await db.getAllData('activities')) as Activity[]
     return all.filter(a => !a.synced && !a.deleted)
   }
 }

@@ -1,7 +1,8 @@
 // plugins/data-providers/GarminProvider/client/GarminSyncManager.ts
 import { getTokens, getSyncState, updateSyncState } from './storage'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
-import { getActivityService } from '@/services/ActivityService'
+import { getPluginContext } from '@/services/PluginContextFactory'
+import type { IActivityService } from '@/types/plugin-context'
 import pluginEnv from './env'
 
 const baseURL = pluginEnv.apiUrl
@@ -289,7 +290,7 @@ export class GarminSyncManager {
     const tokens = await getTokens()
     if (!tokens) throw new Error('No Garmin tokens')
 
-    const activityService = await getActivityService()
+    const ctx = await getPluginContext()
 
     const startTime = startDate.toISOString()
     const endTime = endDate.toISOString()
@@ -345,7 +346,7 @@ export class GarminSyncManager {
     const details = raw.map(adaptGarminDetails)
 
     // Atomic transaction: both succeed or both fail
-    await activityService.saveActivitiesWithDetails(summaries, details)
+    await ctx.activity.saveActivitiesWithDetails(summaries, details)
 
     return summaries.length
   }
@@ -359,7 +360,7 @@ export class GarminSyncManager {
     const tokens = await getTokens()
     if (!tokens) throw new Error('No Garmin tokens')
 
-    const activityService = await getActivityService()
+    const ctx = await getPluginContext()
 
     // Use a small interval around the backfill timestamp (1 second before to 1 second after)
     const backfillDate = new Date(backfillTimestamp)
@@ -390,7 +391,7 @@ export class GarminSyncManager {
     const details = raw.map(adaptGarminDetails)
 
     // Atomic transaction: both succeed or both fail
-    await activityService.saveActivitiesWithDetails(summaries, details)
+    await ctx.activity.saveActivitiesWithDetails(summaries, details)
 
     console.log(`[GarminSync] Fetched ${summaries.length} activities from backfill timestamp`)
     return summaries.length

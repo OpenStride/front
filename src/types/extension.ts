@@ -1,5 +1,6 @@
 // types/extensionPlugin.ts
 import type { Component } from 'vue'
+import type { PluginContext } from './plugin-context'
 
 export interface ExtensionPlugin {
   id: string
@@ -19,4 +20,6 @@ export interface ExtensionPlugin {
     name?: string
     component: () => Promise<Component>
   }>
+
+  context?: PluginContext
 }

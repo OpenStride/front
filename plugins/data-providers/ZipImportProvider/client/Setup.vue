@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { getIndexedDBService } from '@/services/IndexedDBService';
+import { getPluginContext } from '@/services/PluginContextFactory';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
@@ -115,10 +115,10 @@ function onFileChange(e: Event) {
             return acc;
           }, {} as Record<string, any>)
         );
-        // Insertion en base avec vérification des doublons par date de début
-        const db = await getIndexedDBService();
+        // Insertion via PluginContext (atomic, versioned, event-emitting)
+        const ctx = await getPluginContext();
         // Récupérer toutes les activités existantes pour comparer les startTime
-        const existingActivities = await db.getAllData('activities');
+        const existingActivities = await ctx.activity.getAllActivities();
         const existingStartTimes = new Set(existingActivities.map((a: any) => a.startTime));
         for (let i = 0; i < uniqueActivities.length; i++) {
           const act = uniqueActivities[i];
@@ -127,11 +127,10 @@ function onFileChange(e: Event) {
             continue;
           }
           try {
-            await db.addItemsToStore('activities', [act], (a) => a.id);
-            await db.addItemsToStore('activity_details', [uniqueDetails[i]], (d) => d.id);
+            await ctx.activity.saveActivityWithDetails(act, uniqueDetails[i]);
             importedCount.value = importedCount.value + 1;
           } catch (err) {
-            console.error('Erreur lors de l’insertion en base:', err);
+            console.error('Erreur lors de l\'insertion en base:', err);
           }
         }
       }
@@ -154,6 +153,6 @@ function onFileChange(e: Event) {
 .zip-import-provider {
   padding: 1.2rem;
 }
-.error { color: #c00; margin-top: 1rem; }
-.success { color: #18794e; margin-top: 1rem; }
+.error { color: var(--color-red-600); margin-top: 1rem; }
+.success { color: var(--color-emerald-800); margin-top: 1rem; }
 </style>

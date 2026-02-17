@@ -37,7 +37,7 @@ import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
 import { toMs } from '../types'
 import type { PeriodGranularity, PeriodData } from '../types'
-import { getISOWeekKey, getMonthKey } from '@/services/AggregationService'
+import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
 
 const { t } = useI18n()
 
@@ -244,7 +244,7 @@ onUnmounted(() => {
 
 .toggle-btn.active {
   background: var(--color-green-500);
-  color: #fff;
+  color: white;
   border-color: var(--color-green-500);
 }
 

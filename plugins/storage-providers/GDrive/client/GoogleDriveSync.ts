@@ -1,6 +1,5 @@
-// plugins/providers/GarminProvider/client/gdriveSync.ts
+// plugins/storage-providers/GDrive/client/GoogleDriveSync.ts
 import { GoogleDriveFileService } from './GoogleDriveFileService'
-import { IndexedDBService } from '@/services/IndexedDBService'
 
 export async function readRemote(store: string): Promise<any[]> {
     const fileService = await GoogleDriveFileService.getInstance();

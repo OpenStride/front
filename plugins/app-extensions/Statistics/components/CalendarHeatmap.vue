@@ -286,7 +286,7 @@ const cells = computed(() => {
 
 .toggle-btn.active {
   background: var(--color-green-500);
-  color: #fff;
+  color: white;
   border-color: var(--color-green-500);
 }
 
@@ -360,7 +360,7 @@ const cells = computed(() => {
 }
 
 .level-0 {
-  background: #ebedf0;
+  background: var(--color-gray-200);
 }
 .level-1 {
   background: var(--color-green-100);

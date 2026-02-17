@@ -22,6 +22,15 @@ export class IndexedDBService implements IStorageService {
     return IndexedDBService.instance
   }
 
+  /**
+   * Get the raw IDBDatabase handle for advanced multi-store transactions.
+   * Used by ActivityService for atomic writes across stores.
+   */
+  public getIDB(): IDBDatabase {
+    if (!this.db) throw new Error('DB not initialized')
+    return this.db
+  }
+
   private async getStore(storeName: string, mode: IDBTransactionMode): Promise<IDBObjectStore> {
     if (!this.db) {
       console.warn(`[IndexedDBService] DB fermée, tentative de réouverture...`)

@@ -3,7 +3,6 @@ import type { StoragePlugin } from '@/types/storage'
 import { readRemote, writeRemote } from './GoogleDriveSync'
 import { GoogleDriveFileService } from './GoogleDriveFileService'
 import { sha256Hex, stableStoreString } from '@/utils/hash'
-import { IndexedDBService } from '@/services/IndexedDBService'
 
 const GDriveBackupPlugin: StoragePlugin = {
     id: 'gdrive',

@@ -172,7 +172,7 @@ const republishInBackground = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: var(--color-gray-100);
   border-radius: 50%;
   color: var(--color-green-600);
 }
@@ -189,13 +189,13 @@ const republishInBackground = () => {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .privacy-description {
   margin: 0.25rem 0 0;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 .privacy-toggle {
@@ -208,7 +208,7 @@ const republishInBackground = () => {
   position: relative;
   width: 3rem;
   height: 1.75rem;
-  background: #d1d5db;
+  background: var(--color-gray-300);
   border: none;
   border-radius: 1rem;
   cursor: pointer;
@@ -244,7 +244,7 @@ const republishInBackground = () => {
 .toggle-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   min-width: 3.5rem;
 }
 
