@@ -64,7 +64,10 @@ onMounted(() => {
   justify-content: center;
   min-height: 100vh;
   background: var(--color-gray-50, #f9fafb);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .status {
