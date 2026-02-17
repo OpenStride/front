@@ -44,6 +44,12 @@
       <router-link to="/my-activities" @click="closeMenu">{{
         t('navigation.myActivities')
       }}</router-link>
+      <component
+        v-for="(comp, i) in navSlotComponents"
+        :is="comp"
+        :key="`nav-${i}`"
+        @navigate="closeMenu"
+      />
       <router-link to="/friends" @click="closeMenu">{{ t('navigation.friends') }}</router-link>
       <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
@@ -69,15 +75,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DataProviderService } from '@/services/DataProviderService'
 import { getSyncService } from '@/services/SyncService'
 import { StorageService } from '@/services/StorageService'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 
 const { t } = useI18n()
+
+const { components: navRaw } = useSlotExtensions('navigation.main')
+const navSlotComponents = computed(() => navRaw.value.map(c => c.default || c))
 
 const isMenuOpen = ref(false)
 const refreshing = ref(false)

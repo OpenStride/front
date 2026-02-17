@@ -12,4 +12,11 @@ export interface ExtensionPlugin {
   slots?: {
     [slotName: string]: Array<() => Promise<Component>>
   }
+
+  // Routes à injecter dynamiquement dans le routeur
+  routes?: Array<{
+    path: string
+    name?: string
+    component: () => Promise<Component>
+  }>
 }

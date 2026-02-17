@@ -25,7 +25,8 @@
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
-    "myActivities": "My Activities"
+    "myActivities": "My Activities",
+    "statistics": "Statistics"
   },
   "profile": {
     "createProfile": "Create a Profile",
@@ -203,6 +204,48 @@
     "pleaseWait": "Please wait, this may take a few moments",
     "success": "Update completed successfully",
     "failed": "Update failed. Please try again."
+  },
+  "statistics": {
+    "title": "Statistics",
+    "allSports": "All sports",
+    "noData": "No data available",
+    "noDataHint": "Import activities to see your statistics",
+    "trends": {
+      "title": "Trends",
+      "distance": "Distance (km)",
+      "activities": "Activities",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "distribution": {
+      "title": "Distribution",
+      "bySport": "By sport",
+      "byMonth": "By month",
+      "activitiesCount": "Activity count",
+      "distanceKm": "Distance (km)",
+      "durationH": "Duration (h)"
+    },
+    "records": {
+      "title": "Personal Records",
+      "distance": "Distance",
+      "time": "Time",
+      "pace": "Pace",
+      "speed": "Speed",
+      "date": "Date",
+      "activity": "Activity",
+      "computing": "Computing records...",
+      "noRecords": "No records found",
+      "noRecordsHint": "Records are computed from GPS data in your activities"
+    },
+    "heatmap": {
+      "title": "Activity Calendar",
+      "less": "Less",
+      "more": "More",
+      "distance": "Distance",
+      "duration": "Duration",
+      "count": "Activities"
+    }
   },
   "goals": {
     "title": "Goals",
