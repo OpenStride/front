@@ -46,11 +46,24 @@ OpenStride follows a **plugin-based architecture** with strict separation of con
 All plugins receive a `PluginContext` object that provides access to core services:
 
 ```typescript
-import type { PluginContext } from '@/types/plugin-context';
+// In Vue components:
+import { usePluginContext } from '@/composables/usePluginContext'
+const ctx = usePluginContext()
 
+// In non-Vue code (services, managers):
+import { getPluginContext } from '@/services/PluginContextFactory'
+const ctx = await getPluginContext()
+```
+
+```typescript
 export interface PluginContext {
-    activity: IActivityService;  // CRUD operations on activities
-    storage: IStorageService;    // Settings and plugin-specific data
+    activity: IActivityService        // CRUD operations on activities
+    storage: IStorageService          // Settings and plugin-specific data
+    notifications: INotificationService // User-facing notifications
+    plugins: IPluginManager           // Check/enable other plugins
+    aggregation: IAggregationService  // Read aggregated stats
+    friends: IFriendService           // Public data & friend management
+    analyzer: IAnalyzerFactory        // Activity analysis (best segments)
 }
 ```
 
@@ -60,26 +73,16 @@ export interface PluginContext {
 
 **Purpose:** Manage activities (create, read, update, delete)
 
-**Methods:**
 ```typescript
 interface IActivityService {
-    // Save single activity with details atomically
-    saveActivityWithDetails(activity: Activity, details: ActivityDetails): Promise<void>;
-
-    // Batch save (faster for multiple activities)
-    saveActivitiesWithDetails(activities: Activity[], details: ActivityDetails[]): Promise<void>;
-
-    // Read operations
-    getActivity(id: string): Promise<Activity | undefined>;
-    getAllActivities(): Promise<Activity[]>;
-    getDetails(id: string): Promise<ActivityDetails | undefined>;
-
-    // Delete (soft delete - sets deleted flag)
-    deleteActivity(id: string): Promise<void>;
-
-    // Sync helpers (for storage plugins)
-    getUnsyncedActivities(): Promise<Activity[]>;
-    markAsSynced(activityIds: string[]): Promise<void>;
+    saveActivityWithDetails(activity: Activity, details: ActivityDetails): Promise<void>
+    saveActivitiesWithDetails(activities: Activity[], details: ActivityDetails[]): Promise<void>
+    getActivity(id: string): Promise<Activity | undefined>
+    getAllActivities(): Promise<Activity[]>
+    getDetails(id: string): Promise<ActivityDetails | undefined>
+    deleteActivity(id: string): Promise<void>
+    getUnsyncedActivities(): Promise<Activity[]>
+    markAsSynced(activityIds: string[]): Promise<void>
 }
 ```
 
@@ -87,17 +90,71 @@ interface IActivityService {
 
 **Purpose:** Store plugin-specific settings and configuration
 
-**Methods:**
 ```typescript
 interface IStorageService {
-    // Settings store (key-value)
-    getData<T>(key: string): Promise<T | undefined>;
-    saveData<T>(key: string, data: T): Promise<void>;
-    deleteData(key: string): Promise<void>;
+    getData<T>(key: string): Promise<T | undefined>
+    saveData<T>(key: string, data: T): Promise<void>
+    deleteData(key: string): Promise<void>
+    exportDB(storeName: string): Promise<any[]>
+    addItemsToStore<T>(storeName: string, items: T[], keyFn: (item: T) => any): Promise<void>
+}
+```
 
-    // Advanced: Direct store access (use with caution)
-    exportDB(storeName: string): Promise<any[]>;
-    addItemsToStore<T>(storeName: string, items: T[], keyFn: (item: T) => any): Promise<void>;
+#### INotificationService
+
+**Purpose:** Show user-facing notifications (replaces direct ToastService calls)
+
+```typescript
+interface INotificationService {
+    notify(message: string, opts?: {
+        type?: 'success' | 'error' | 'info' | 'warning'
+        timeout?: number
+    }): void
+}
+```
+
+#### IPluginManager
+
+**Purpose:** Check or enable other plugins
+
+```typescript
+interface IPluginManager {
+    isPluginActive(pluginId: string): Promise<boolean>
+    enablePlugin(pluginId: string): Promise<void>
+}
+```
+
+#### IAggregationService
+
+**Purpose:** Read pre-computed aggregated data (weekly/monthly stats)
+
+```typescript
+interface IAggregationService {
+    getAggregated(metricId: string, periodType: AggregationPeriod): Promise<AggregatedRecord[]>
+    listMetrics(): AggregationMetricDefinition[]
+}
+```
+
+#### IFriendService
+
+**Purpose:** Publish public data and manage friend relationships
+
+```typescript
+interface IFriendService {
+    publishPublicData(): Promise<string | null>
+    getMyManifestUrl(): Promise<string | null>
+}
+```
+
+#### IAnalyzerFactory
+
+**Purpose:** Create activity analyzers for computing best segments
+
+```typescript
+interface IAnalyzerFactory {
+    create(samples: Sample[]): {
+        bestSegments(targets: number[]): Record<number, { duration: number } | undefined>
+    }
 }
 ```
 
@@ -107,26 +164,26 @@ interface IStorageService {
 
 ### ✅ Use PluginContext for Service Access
 
-**Good:**
+**In Vue components (composable):**
 ```typescript
-// plugins/data-providers/MyProvider/client/index.ts
-import type { ProviderPlugin } from '@/types/provider';
-import type { PluginContext } from '@/types/plugin-context';
+// plugins/data-providers/MyProvider/client/Setup.vue
+import { usePluginContext } from '@/composables/usePluginContext'
 
-export default {
-    id: 'my-provider',
-    label: 'My Provider',
+const ctx = usePluginContext()
+const config = await ctx.storage.getData('myProviderConfig')
+ctx.notifications.notify('Connected!', { type: 'success' })
+```
 
-    async refreshData(context: PluginContext) {
-        // Use injected context
-        const activities = await context.activity.getAllActivities();
-        const config = await context.storage.getData('myProviderConfig');
+**In non-Vue code (factory):**
+```typescript
+// plugins/data-providers/MyProvider/client/MyService.ts
+import { getPluginContext } from '@/services/PluginContextFactory'
 
-        // ... fetch from external API ...
-
-        await context.activity.saveActivitiesWithDetails(newActivities, newDetails);
-    }
-} as ProviderPlugin;
+async function syncActivities() {
+    const ctx = await getPluginContext()
+    const activities = await ctx.activity.getAllActivities()
+    await ctx.activity.saveActivitiesWithDetails(newActivities, newDetails)
+}
 ```
 
 ### ✅ Store Plugin Configuration in Settings
@@ -212,9 +269,13 @@ ToastService.push('Import completed', { type: 'success' });  // WRONG!
 - Can't test without Vue runtime
 - Violates separation of concerns
 
-**Fix:** Return status/errors, let the app show toasts
+**Fix:** Use `ctx.notifications.notify()` or return status
 ```typescript
-// ✅ CORRECT
+// ✅ CORRECT — use PluginContext notifications
+const ctx = usePluginContext()
+ctx.notifications.notify('Import completed', { type: 'success' })
+
+// ✅ ALSO CORRECT — return status, let parent handle UI
 async refreshData(context: PluginContext) {
     // ... do work ...
     return { success: true, activitiesImported: 42 };
@@ -361,7 +422,7 @@ export default {
 } as StoragePlugin;
 ```
 
-**Note:** Storage plugins currently use direct IndexedDB access for sync operations. This is a known limitation being addressed in Phase 2.
+**Note:** Storage plugins should use `PluginContext` for all service access, same as other plugin types.
 
 ### App Extension Plugin
 
@@ -547,9 +608,10 @@ import MyProvider from '@plugins/data-providers/MyProvider/client/index';
 
 describe('MyProvider Plugin', () => {
     it('should save activities via context', async () => {
-        // Mock PluginContext
+        // Mock PluginContext — all 7 interfaces
         const mockContext: PluginContext = {
             activity: {
+                saveActivityWithDetails: vi.fn().mockResolvedValue(undefined),
                 saveActivitiesWithDetails: vi.fn().mockResolvedValue(undefined),
                 getAllActivities: vi.fn().mockResolvedValue([]),
                 getActivity: vi.fn().mockResolvedValue(undefined),
@@ -564,6 +626,26 @@ describe('MyProvider Plugin', () => {
                 deleteData: vi.fn().mockResolvedValue(undefined),
                 exportDB: vi.fn().mockResolvedValue([]),
                 addItemsToStore: vi.fn().mockResolvedValue(undefined)
+            },
+            notifications: {
+                notify: vi.fn()
+            },
+            plugins: {
+                isPluginActive: vi.fn().mockResolvedValue(false),
+                enablePlugin: vi.fn().mockResolvedValue(undefined)
+            },
+            aggregation: {
+                getAggregated: vi.fn().mockResolvedValue([]),
+                listMetrics: vi.fn().mockReturnValue([])
+            },
+            friends: {
+                publishPublicData: vi.fn().mockResolvedValue(null),
+                getMyManifestUrl: vi.fn().mockResolvedValue(null)
+            },
+            analyzer: {
+                create: vi.fn().mockReturnValue({
+                    bestSegments: vi.fn().mockReturnValue({})
+                })
             }
         };
 
@@ -590,81 +672,78 @@ describe('MyProvider Plugin', () => {
 
 If your plugin currently uses direct service imports, follow these steps:
 
-#### Step 1: Update Plugin Signature
+#### Step 1: Choose the right access pattern
 
-**Before:**
+**In Vue components** -- use the composable:
 ```typescript
-export default {
-    id: 'my-plugin',
-    async refreshData() {
-        const activityDB = await getActivityDBService();
-        // ...
-    }
-}
+import { usePluginContext } from '@/composables/usePluginContext'
+
+// In setup()
+const ctx = usePluginContext()
 ```
 
-**After:**
+**In non-Vue code** (services, managers) -- use the factory:
 ```typescript
-import type { PluginContext } from '@/types/plugin-context';
+import { getPluginContext } from '@/services/PluginContextFactory'
 
-export default {
-    id: 'my-plugin',
-    async refreshData(context: PluginContext) {
-        // Use context instead
-    }
-}
+const ctx = await getPluginContext()
 ```
 
 #### Step 2: Replace Service Calls
 
 **Before:**
 ```typescript
-import { getActivityDBService } from '@/services/ActivityDBService';
-import { IndexedDBService } from '@/services/IndexedDBService';
+import { getActivityService } from '@/services/ActivityService'
+import { IndexedDBService } from '@/services/IndexedDBService'
 
-const activityDB = await getActivityDBService();
-await activityDB.saveActivities(activities);
-await activityDB.saveDetails(details);
+const activityService = await getActivityService()
+await activityService.saveActivityWithDetails(activity, details)
+const db = await IndexedDBService.getInstance()
+const config = await db.getData('myPlugin_config')
 ```
 
 **After:**
 ```typescript
-await context.activity.saveActivitiesWithDetails(activities, details);
+const ctx = await getPluginContext()
+await ctx.activity.saveActivityWithDetails(activity, details)
+const config = await ctx.storage.getData('myPlugin_config')
 ```
 
-#### Step 3: Replace Settings Access
+#### Step 3: Replace ToastService Calls
 
 **Before:**
 ```typescript
-const db = await IndexedDBService.getInstance();
-const config = await db.getData('myPlugin_config');
-await db.saveData('myPlugin_config', newConfig);
+import { ToastService } from '@/services/ToastService'
+ToastService.push('Import done!', { type: 'success' })
 ```
 
 **After:**
 ```typescript
-const config = await context.storage.getData('myPlugin_config');
-await context.storage.saveData('myPlugin_config', newConfig);
+ctx.notifications.notify('Import done!', { type: 'success' })
 ```
 
-#### Step 4: Remove Direct Imports
+#### Step 4: Remove All Direct Service Imports
 
 **Before:**
 ```typescript
-import { getActivityDBService } from '@/services/ActivityDBService';
-import { IndexedDBService } from '@/services/IndexedDBService';
-import { ToastService } from '@/services/ToastService';
+import { getActivityService } from '@/services/ActivityService'
+import { IndexedDBService } from '@/services/IndexedDBService'
+import { ToastService } from '@/services/ToastService'
+import { DataProviderPluginManager } from '@/services/DataProviderService'
+import { FriendService } from '@/services/FriendService'
 ```
 
 **After:**
 ```typescript
-import type { PluginContext } from '@/types/plugin-context';
-// Only import types, not services
+// In Vue components:
+import { usePluginContext } from '@/composables/usePluginContext'
+
+// In non-Vue code:
+import { getPluginContext } from '@/services/PluginContextFactory'
+
+// Only import TYPES, never service implementations
+import type { Activity, ActivityDetails } from '@/types/activity'
 ```
-
-#### Step 5: Update Plugin Manager (if needed)
-
-Plugin managers will be updated to inject `PluginContext` automatically. No changes needed in plugin code.
 
 ---
 
@@ -697,4 +776,4 @@ Questions or issues? Check:
 
 ---
 
-**Last updated:** 2026-01-21 (Refactoring Phase 1)
+**Last updated:** 2026-02-17 (PluginContext DI complete -- 7 interfaces)

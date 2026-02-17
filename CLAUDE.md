@@ -32,6 +32,36 @@ Three types -- all auto-discovered, no manual registration:
 
 **Plugin rules:** See `docs/PLUGIN_GUIDELINES.md`. Key: use `PluginContext` for DI, NEVER import services directly, NEVER call ToastService from plugins.
 
+### PluginContext (Dependency Injection)
+
+Plugins access core services exclusively through `PluginContext` -- never via direct imports. The context is available two ways:
+
+- **In Vue components:** `const ctx = usePluginContext()` (composable from `@/composables/usePluginContext`)
+- **In non-Vue code:** `const ctx = await getPluginContext()` (factory from `@/services/PluginContextFactory`)
+
+Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts`):
+
+| Interface              | Key methods                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `ctx.activity`         | `saveActivityWithDetails()`, `getAllActivities()`, `getDetails()`, `deleteActivity()` |
+| `ctx.storage`          | `getData()`, `saveData()`, `deleteData()`, `exportDB()`                  |
+| `ctx.notifications`    | `notify(message, { type, timeout })`                                     |
+| `ctx.plugins`          | `isPluginActive(id)`, `enablePlugin(id)`                                 |
+| `ctx.aggregation`      | `getAggregated(metric, period)`, `listMetrics()`                         |
+| `ctx.friends`          | `publishPublicData()`, `getMyManifestUrl()`                              |
+| `ctx.analyzer`         | `create(samples)` returns `{ bestSegments() }`                           |
+
+### Creating a New Plugin
+
+1. Create folder matching the type's path pattern (e.g. `plugins/data-providers/MyProvider/client/`)
+2. Create `index.ts` with `export default { ... } as ProviderPlugin`
+3. Access services via `PluginContext` only -- NEVER import from `@/services/`
+4. For notifications, use `ctx.notifications.notify()` -- NEVER import ToastService
+5. Use CSS variables from `src/assets/styles/variables.css` -- NEVER hardcode colors
+6. Handle missing data gracefully (not all activities have HR, power, etc.)
+
+See `docs/PLUGIN_GUIDELINES.md` for complete guide with examples.
+
 ### Core Services
 
 | Service                | Purpose                                                                                                                                |
