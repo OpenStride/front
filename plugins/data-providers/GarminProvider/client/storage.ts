@@ -8,7 +8,7 @@ const PLUGIN_PREFIX = 'plugin:garmin'
  */
 export async function getPluginData<T>(key: string): Promise<T | null> {
   const ctx = await getPluginContext()
-  return ctx.storage.getData(`${PLUGIN_PREFIX}:${key}`)
+  return (await ctx.storage.getData<T>(`${PLUGIN_PREFIX}:${key}`)) ?? null
 }
 
 /**

@@ -87,7 +87,7 @@ export interface IStorageService {
    *
    * Example: await storage.getData('myPluginConfig')
    */
-  getData<T = any>(key: string): Promise<T | undefined>
+  getData<T = any>(key: string): Promise<T | null | undefined>
 
   /**
    * Save a value to settings store
@@ -172,7 +172,9 @@ export interface IFriendService {
  */
 export interface IAnalyzerFactory {
   create(samples: Sample[]): {
-    bestSegments(targets: number[]): Record<number, { duration: number } | undefined>
+    bestSegments(
+      targets: number[]
+    ): Record<number, { duration: number } | null | undefined>
   }
 }
 
