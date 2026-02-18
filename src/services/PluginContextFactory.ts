@@ -34,9 +34,7 @@ export async function createPluginContext(): Promise<PluginContext> {
         const spManager = StoragePluginManager.getInstance()
         const dpPlugins = await dpManager.getEnabledPlugins()
         const spPlugins = await spManager.getEnabledPlugins()
-        return (
-          dpPlugins.some(p => p.id === pluginId) || spPlugins.some(p => p.id === pluginId)
-        )
+        return dpPlugins.some(p => p.id === pluginId) || spPlugins.some(p => p.id === pluginId)
       },
       async enablePlugin(pluginId: string) {
         const dpManager = DataProviderPluginManager.getInstance()
