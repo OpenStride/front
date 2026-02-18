@@ -172,7 +172,7 @@ function formatDate(timestamp: number): string {
 
 .records-table td {
   padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-gray-200);
   color: var(--text-color);
   white-space: nowrap;
 }

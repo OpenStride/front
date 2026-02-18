@@ -1,30 +1,30 @@
 // plugins/data-providers/GarminProvider/client/storage.ts
-import { getIndexedDBService } from '@/services/IndexedDBService'
+import { getPluginContext } from '@/services/PluginContextFactory'
 
 const PLUGIN_PREFIX = 'plugin:garmin'
 
 /**
- * Get plugin-specific data from IndexedDB
+ * Get plugin-specific data from IndexedDB via PluginContext
  */
 export async function getPluginData<T>(key: string): Promise<T | null> {
-  const db = await getIndexedDBService()
-  return db.getData(`${PLUGIN_PREFIX}:${key}`)
+  const ctx = await getPluginContext()
+  return (await ctx.storage.getData<T>(`${PLUGIN_PREFIX}:${key}`)) ?? null
 }
 
 /**
- * Save plugin-specific data to IndexedDB
+ * Save plugin-specific data to IndexedDB via PluginContext
  */
 export async function setPluginData<T>(key: string, value: T): Promise<void> {
-  const db = await getIndexedDBService()
-  await db.saveData(`${PLUGIN_PREFIX}:${key}`, value)
+  const ctx = await getPluginContext()
+  await ctx.storage.saveData(`${PLUGIN_PREFIX}:${key}`, value)
 }
 
 /**
- * Delete plugin-specific data from IndexedDB
+ * Delete plugin-specific data from IndexedDB via PluginContext
  */
 export async function deletePluginData(key: string): Promise<void> {
-  const db = await getIndexedDBService()
-  await db.deleteData(`${PLUGIN_PREFIX}:${key}`)
+  const ctx = await getPluginContext()
+  await ctx.storage.deleteData(`${PLUGIN_PREFIX}:${key}`)
 }
 
 // ============================================================================

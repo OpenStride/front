@@ -8,8 +8,7 @@
 
 <script setup lang="ts">
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
-import {  ref } from 'vue'
-import { IndexedDBService } from "@/services/IndexedDBService";
+import { ref } from 'vue'
 import pluginEnv from './env'
 
 const isConnected = ref(false)

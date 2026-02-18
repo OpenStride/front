@@ -8,6 +8,8 @@ import { getPublicDataListener } from '@/services/PublicDataListener'
 import { getMigrationService } from '@/services/MigrationService'
 import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
+import { createPluginContext } from '@/services/PluginContextFactory'
+import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
 
 import '@/assets/styles/global.css'
 import 'leaflet/dist/leaflet.css'
@@ -78,10 +80,14 @@ async function bootstrap() {
     }
   }
 
-  // 6. Create and mount Vue app
+  // 6. Create PluginContext for dependency injection
+  const pluginContext = await createPluginContext()
+
+  // 7. Create and mount Vue app
   const app = createApp(App)
   app.use(router)
   app.use(i18n)
+  app.provide(PLUGIN_CONTEXT_KEY, pluginContext)
   app.mount('#app')
 
   // NOTE: Automatic backup removed - now using manual sync via SyncService

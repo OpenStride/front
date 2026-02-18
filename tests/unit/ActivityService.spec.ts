@@ -22,6 +22,10 @@ vi.mock('@/services/IndexedDBService', () => {
       }
     }
 
+    getIDB() {
+      return this.db
+    }
+
     static instance: FakeDB | null = null
 
     static async getInstance() {

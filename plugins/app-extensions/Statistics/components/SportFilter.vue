@@ -60,7 +60,7 @@ defineEmits<{
 
 .filter-btn.active {
   background: var(--color-green-500);
-  color: #fff;
+  color: white;
   border-color: var(--color-green-500);
 }
 </style>

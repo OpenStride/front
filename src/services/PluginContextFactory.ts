@@ -1,18 +1,18 @@
 import type { PluginContext } from '@/types/plugin-context'
 import { getActivityService } from './ActivityService'
 import { IndexedDBService } from './IndexedDBService'
+import { ToastService } from './ToastService'
+import { aggregationService } from './AggregationService'
+import { FriendService } from './FriendService'
+import { ActivityAnalyzer } from './ActivityAnalyzer'
+import { DataProviderPluginManager } from './DataProviderPluginManager'
+import { StoragePluginManager } from './StoragePluginManager'
 
 /**
  * Factory function to create a PluginContext for dependency injection
  *
  * This is the main entry point for plugins to access core services.
  * Instead of importing services directly, plugins receive this context.
- *
- * Usage in plugin managers:
- * ```typescript
- * const context = await createPluginContext();
- * await plugin.refreshData(context);
- * ```
  */
 export async function createPluginContext(): Promise<PluginContext> {
   const activityService = await getActivityService()
@@ -20,7 +20,50 @@ export async function createPluginContext(): Promise<PluginContext> {
 
   return {
     activity: activityService,
-    storage: storageService
+    storage: storageService,
+
+    notifications: {
+      notify(message, opts) {
+        ToastService.push(message, opts)
+      }
+    },
+
+    plugins: {
+      async isPluginActive(pluginId: string) {
+        const dpManager = DataProviderPluginManager.getInstance()
+        const spManager = StoragePluginManager.getInstance()
+        const dpPlugins = await dpManager.getEnabledPlugins()
+        const spPlugins = await spManager.getEnabledPlugins()
+        return dpPlugins.some(p => p.id === pluginId) || spPlugins.some(p => p.id === pluginId)
+      },
+      async enablePlugin(pluginId: string) {
+        const dpManager = DataProviderPluginManager.getInstance()
+        const spManager = StoragePluginManager.getInstance()
+        // Try data provider first, then storage
+        try {
+          await dpManager.enablePlugin(pluginId)
+        } catch {
+          await spManager.enablePlugin(pluginId)
+        }
+      }
+    },
+
+    aggregation: {
+      getAggregated: (metricId, periodType) =>
+        aggregationService.getAggregated(metricId, periodType),
+      listMetrics: () => aggregationService.listMetrics()
+    },
+
+    friends: {
+      publishPublicData: () => FriendService.getInstance().publishPublicData(),
+      getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl()
+    },
+
+    analyzer: {
+      create(samples) {
+        return new ActivityAnalyzer(samples)
+      }
+    }
   }
 }
 

@@ -1,7 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { ActivityAnalyzer } from '@/services/ActivityAnalyzer'
+import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PersonalRecord, PRCache } from '../types'
 
 const PR_TARGETS = [1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 21_097, 42_195]
@@ -44,8 +43,8 @@ export function usePersonalRecords(activities: Ref<Activity[]>, selectedSport: R
     const maxLastModified = Math.max(...acts.map(a => a.lastModified || 0))
 
     // Check cache
-    const db = await IndexedDBService.getInstance()
-    const cached = (await db.getData(cacheKey(sport))) as PRCache | undefined
+    const ctx = await getPluginContext()
+    const cached = (await ctx.storage.getData(cacheKey(sport))) as PRCache | undefined
     if (
       cached &&
       (cached as any).cacheVersion === CACHE_VERSION &&
@@ -61,7 +60,7 @@ export function usePersonalRecords(activities: Ref<Activity[]>, selectedSport: R
     progress.value = 0
 
     // Load all activity_details in one batch
-    const allDetails = (await db.getAllData('activity_details')) as ActivityDetails[]
+    const allDetails = (await ctx.storage.exportDB('activity_details')) as ActivityDetails[]
     const detailsMap = new Map<string, ActivityDetails>()
     for (const d of allDetails) {
       detailsMap.set(d.id, d)
@@ -82,7 +81,7 @@ export function usePersonalRecords(activities: Ref<Activity[]>, selectedSport: R
         if (!hasDistance) continue
 
         try {
-          const analyzer = new ActivityAnalyzer(details.samples)
+          const analyzer = ctx.analyzer.create(details.samples)
           const segments = analyzer.bestSegments(PR_TARGETS)
 
           for (const target of PR_TARGETS) {
@@ -123,7 +122,7 @@ export function usePersonalRecords(activities: Ref<Activity[]>, selectedSport: R
     records.value = result
 
     // Save to cache
-    await db.saveData(cacheKey(sport), {
+    await ctx.storage.saveData(cacheKey(sport), {
       cacheVersion: CACHE_VERSION,
       activityCount,
       maxLastModified,

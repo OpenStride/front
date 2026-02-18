@@ -37,7 +37,7 @@ import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
 import { formatSportType } from '@plugins/app-extensions/Goals/sportLabels'
-import { getMonthKey } from '@/services/AggregationService'
+import { getMonthKey } from '@/utils/dateKeys'
 import { toMs } from '../types'
 
 const { t } = useI18n()

@@ -236,12 +236,12 @@ const weeklyDistanceMetric = computed(() => {
   margin-bottom: 0.7rem;
 }
 .refresh-btn {
-  background: #f4f4f4;
+  background: var(--color-gray-100);
   border: none;
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 1.1em;
-  color: #18794e;
+  color: var(--color-emerald-800);
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -273,18 +273,18 @@ const weeklyDistanceMetric = computed(() => {
   font-size: 1.05rem;
 }
 .label {
-  color: #555;
+  color: var(--color-gray-600);
   font-size: 0.98em;
   margin-bottom: 2px;
 }
 .value {
   font-weight: 700;
   font-size: 1.18em;
-  color: #18794e;
+  color: var(--color-emerald-800);
 }
 .unit {
   font-size: 0.95em;
-  color: #888;
+  color: var(--color-gray-400);
   margin-left: 2px;
 }
 </style>

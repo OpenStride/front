@@ -215,12 +215,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { FriendService } from '@/services/FriendService'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { StoragePluginManager } from '@/services/StoragePluginManager'
+import { usePluginContext } from '@/composables/usePluginContext'
 
 const { t } = useI18n()
 const router = useRouter()
+const { friends, storage, plugins } = usePluginContext()
 
 const manifestUrl = ref('')
 const copied = ref(false)
@@ -281,28 +280,23 @@ onMounted(async () => {
 async function loadMCPSettings() {
   try {
     // Check if Google Drive is connected
-    const storageManager = StoragePluginManager.getInstance()
-    const enabledPlugins = await storageManager.getMyStoragePlugins()
-    const gdrivePlugin = enabledPlugins.find((p) => p.id === 'gdrive')
-    isGDriveConnected.value = !!gdrivePlugin
+    isGDriveConnected.value = await plugins.isPluginActive('gdrive')
 
     if (isGDriveConnected.value) {
       // Load manifest URL (use raw manifest URL, not wrapped share URL)
-      const friendService = FriendService.getInstance()
-      const url = await friendService.getMyManifestUrl()
+      const url = await friends.getMyManifestUrl()
       if (url) {
         manifestUrl.value = url
       }
 
-      // Load stats from IndexedDB
-      const db = await IndexedDBService.getInstance()
-      const savedStats = await db.getData('publicDataStats')
+      // Load stats from storage
+      const savedStats = await storage.getData('publicDataStats')
       if (savedStats) {
         stats.value = savedStats
       }
 
       // Load last sync time
-      const savedLastSync = await db.getData('lastPublicDataSync')
+      const savedLastSync = await storage.getData('lastPublicDataSync')
       if (savedLastSync) {
         lastSyncTime.value = savedLastSync
       }
@@ -318,20 +312,18 @@ async function handlePublish() {
   publishing.value = true
 
   try {
-    const friendService = FriendService.getInstance()
-    const url = await friendService.publishPublicData()
+    const url = await friends.publishPublicData()
 
     if (url) {
       // Get the raw manifest URL instead of the share URL
-      const rawUrl = await friendService.getMyManifestUrl()
+      const rawUrl = await friends.getMyManifestUrl()
       if (rawUrl) {
         manifestUrl.value = rawUrl
       }
       lastSyncTime.value = Date.now()
 
       // Save last sync time
-      const db = await IndexedDBService.getInstance()
-      await db.saveData('lastPublicDataSync', lastSyncTime.value)
+      await storage.saveData('lastPublicDataSync', lastSyncTime.value)
 
       // Reload stats
       await loadMCPSettings()

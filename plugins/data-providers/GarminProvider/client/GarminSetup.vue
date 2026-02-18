@@ -84,8 +84,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
-import { ToastService } from '@/services/ToastService'
-import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
+import { usePluginContext } from '@/composables/usePluginContext'
 import {
   getTokens,
   setTokens,
@@ -114,6 +113,8 @@ const syncState = reactive<GarminSyncState>({
   lastSyncDate: null,
   lastError: null
 })
+
+const { notifications, plugins } = usePluginContext()
 
 const baseURL = pluginEnv.apiUrl
 
@@ -175,14 +176,14 @@ async function handleOAuthMessage(event: MessageEvent) {
   // Validate state (CSRF protection)
   const expectedState = sessionStorage.getItem('garmin_oauth_state')
   if (event.data.state !== expectedState) {
-    ToastService.push('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
+    notifications.notify('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
     return
   }
   sessionStorage.removeItem('garmin_oauth_state')
 
   // Handle error from OAuth provider
   if (event.data.error) {
-    ToastService.push(`Garmin: ${event.data.error}`, { type: 'error' })
+    notifications.notify(`Garmin: ${event.data.error}`, { type: 'error' })
     return
   }
 
@@ -193,21 +194,20 @@ async function handleOAuthMessage(event: MessageEvent) {
     isConnected.value = true
 
     // Enable the plugin so triggerRefresh() includes it
-    const pluginManager = DataProviderPluginManager.getInstance()
-    await pluginManager.enablePlugin('garmin')
+    await plugins.enablePlugin('garmin')
 
     // Start initial import in background
     const syncManager = getGarminSyncManager()
     await syncManager.startInitialImportAsync()
 
-    ToastService.push('Garmin connecté ! Import en cours...', { type: 'info' })
+    notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
   }
 }
 
 function handlePopupBlocked() {
   isWaitingForOAuth.value = false
   showFallbackRedirect.value = true
-  ToastService.push('Popup bloquée. Autorisez les popups ou utilisez le fallback.', { type: 'warning' })
+  notifications.notify('Popup bloquée. Autorisez les popups ou utilisez le fallback.', { type: 'warning' })
 }
 
 function handleOAuthCancelled() {
@@ -254,9 +254,9 @@ async function manualRefresh() {
   try {
     const syncManager = getGarminSyncManager()
     const count = await syncManager.dailyRefresh()
-    ToastService.push(`Garmin: ${count} activités synchronisées`, { type: 'success' })
+    notifications.notify(`Garmin: ${count} activités synchronisées`, { type: 'success' })
   } catch (err: any) {
-    ToastService.push(`Garmin: ${err.message || 'Erreur'}`, { type: 'error' })
+    notifications.notify(`Garmin: ${err.message || 'Erreur'}`, { type: 'error' })
   } finally {
     isRefreshing.value = false
     Object.assign(syncState, await getSyncState())
@@ -271,9 +271,9 @@ function handleSyncComplete(event: Event) {
   const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
 
   if (success) {
-    ToastService.push(`Garmin: ${count} activités importées`, { type: 'success' })
+    notifications.notify(`Garmin: ${count} activités importées`, { type: 'success' })
   } else {
-    ToastService.push(`Garmin: ${error || 'Erreur d\'import'}`, { type: 'error' })
+    notifications.notify(`Garmin: ${error || 'Erreur d\'import'}`, { type: 'error' })
   }
 
   // Clear progress and refresh state
@@ -334,8 +334,7 @@ onMounted(async () => {
     isConnected.value = true
 
     // Enable the plugin so triggerRefresh() includes it
-    const pluginManager = DataProviderPluginManager.getInstance()
-    await pluginManager.enablePlugin('garmin')
+    await plugins.enablePlugin('garmin')
 
     // Clean URL
     window.history.replaceState({}, '', window.location.pathname)
@@ -344,7 +343,7 @@ onMounted(async () => {
     const syncManager = getGarminSyncManager()
     await syncManager.startInitialImportAsync()
 
-    ToastService.push('Garmin connecté ! Import en cours...', { type: 'info' })
+    notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
   } else {
     // Check existing tokens
     const tokens = await getTokens()

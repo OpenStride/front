@@ -1,13 +1,14 @@
 import { ref, computed, onUnmounted } from 'vue'
 import type { Activity } from '@/types/activity'
-import { getActivityService } from '@/services/ActivityService'
+import { getPluginContext } from '@/services/PluginContextFactory'
+import type { IActivityService } from '@/types/plugin-context'
 import { formatSportType } from '@plugins/app-extensions/Goals/sportLabels'
 
 const allActivities = ref<Activity[]>([])
 const selectedSport = ref<string>('')
 const loading = ref(false)
 let initialized = false
-let activityService: Awaited<ReturnType<typeof getActivityService>> | null = null
+let activityService: IActivityService | null = null
 
 const filteredActivities = computed(() => {
   if (!selectedSport.value) return allActivities.value
@@ -35,7 +36,8 @@ async function loadActivities() {
   loading.value = true
   try {
     if (!activityService) {
-      activityService = await getActivityService()
+      const ctx = await getPluginContext()
+      activityService = ctx.activity
     }
     allActivities.value = await activityService.getAllActivities()
   } finally {
@@ -51,16 +53,11 @@ async function init() {
   if (initialized) return
   initialized = true
   await loadActivities()
-  if (activityService) {
-    activityService.emitter.addEventListener('activity-changed', handleActivityChanged)
-  }
+  // Listen for activity changes via global events (no direct emitter access needed)
   window.addEventListener('openstride:activities-refreshed', handleActivityChanged)
 }
 
 function cleanup() {
-  if (activityService) {
-    activityService.emitter.removeEventListener('activity-changed', handleActivityChanged)
-  }
   window.removeEventListener('openstride:activities-refreshed', handleActivityChanged)
   initialized = false
   activityService = null
