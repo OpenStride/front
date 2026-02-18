@@ -172,9 +172,7 @@ export interface IFriendService {
  */
 export interface IAnalyzerFactory {
   create(samples: Sample[]): {
-    bestSegments(
-      targets: number[]
-    ): Record<number, { duration: number } | null | undefined>
+    bestSegments(targets: number[]): Record<number, { duration: number } | null | undefined>
   }
 }
 
