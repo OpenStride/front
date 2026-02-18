@@ -33,15 +33,17 @@ export async function deletePluginData(key: string): Promise<void> {
 
 export interface GarminTokens {
   accessToken: string
-  accessTokenSecret: string
+  refreshToken: string
+  expiresAt: number
+  refreshTokenExpiresAt: number
 }
 
 export interface GarminSyncState {
   status: 'idle' | 'syncing' | 'error'
   initialImportDone: boolean
-  backfillAskedMonths: string[]   // Months where backfill was requested (webhooks triggered)
-  backfillSyncedMonths: string[]  // Months where data was actually fetched and saved
-  lastSyncDate: number | null     // timestamp ms
+  backfillAskedMonths: string[] // Months where backfill was requested (webhooks triggered)
+  backfillSyncedMonths: string[] // Months where data was actually fetched and saved
+  lastSyncDate: number | null // timestamp ms
   lastError: string | null
 }
 
@@ -63,14 +65,16 @@ export async function deleteTokens(): Promise<void> {
 
 export async function getSyncState(): Promise<GarminSyncState> {
   const state = await getPluginData<GarminSyncState>('sync_state')
-  return state ?? {
-    status: 'idle',
-    initialImportDone: false,
-    backfillAskedMonths: [],
-    backfillSyncedMonths: [],
-    lastSyncDate: null,
-    lastError: null
-  }
+  return (
+    state ?? {
+      status: 'idle',
+      initialImportDone: false,
+      backfillAskedMonths: [],
+      backfillSyncedMonths: [],
+      lastSyncDate: null,
+      lastError: null
+    }
+  )
 }
 
 export async function updateSyncState(partial: Partial<GarminSyncState>): Promise<void> {

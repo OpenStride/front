@@ -1,0 +1,8 @@
+name = "garmin-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Both credentials are injected as secrets (never committed to source control).
+# Set via:
+#   npx wrangler secret put GARMIN_CLIENT_ID
+#   npx wrangler secret put GARMIN_CLIENT_SECRET

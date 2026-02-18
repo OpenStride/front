@@ -27,8 +27,7 @@ const status = ref<'processing' | 'success' | 'error' | 'no-opener'>('processing
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
-  const accessToken = params.get('access_token')
-  const accessTokenSecret = params.get('access_token_secret')
+  const code = params.get('code')
   const state = params.get('state')
   const error = params.get('error')
 
@@ -38,14 +37,13 @@ onMounted(() => {
     return
   }
 
-  // Send tokens (or error) to the main window via postMessage
+  // Send authorization code (or error) to the main window via postMessage
   window.opener.postMessage(
     {
       type: 'garmin-oauth-callback',
-      access_token: accessToken,
-      access_token_secret: accessTokenSecret,
-      state: state,
-      error: error
+      code,
+      state,
+      error
     },
     window.location.origin
   )

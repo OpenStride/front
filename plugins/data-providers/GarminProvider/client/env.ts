@@ -1,7 +1,7 @@
 const pluginEnv = {
-    apiUrl: import.meta.env.MODE === 'production'
-        ? 'https://garmin-jo37qzxfka-uc.a.run.app'
-        : 'https://garmin-jo37qzxfka-uc.a.run.app'
+  proxyUrl: import.meta.env.VITE_GARMIN_PROXY_URL || 'https://garmin-proxy.openstride.workers.dev',
+  clientId: import.meta.env.VITE_GARMIN_CLIENT_ID || '',
+  garminAuthUrl: 'https://connect.garmin.com/oauth2Confirm'
 }
 
 export default pluginEnv
