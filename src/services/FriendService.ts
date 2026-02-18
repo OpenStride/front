@@ -588,6 +588,56 @@ export class FriendService {
   }
 
   /**
+   * Get existing friend activity keys for deduplication
+   * Returns both composite IDs and startTimes for a given friend
+   */
+  private async getExistingFriendActivityKeys(
+    friendId: string
+  ): Promise<{ ids: Set<string>; startTimes: Set<string> }> {
+    const db = await IndexedDBService.getInstance()
+    const allActivities = await db.getAllData('friend_activities')
+    const forFriend = allActivities.filter((a: any) => a.friendId === friendId)
+    return {
+      ids: new Set(forFriend.map((a: any) => a.id)),
+      startTimes: new Set(forFriend.map((a: any) => a.startTime))
+    }
+  }
+
+  /**
+   * Remove duplicate friend activities from the store
+   * Groups by friendId + startTime, keeps the most recent fetchedAt
+   * @returns Number of duplicates removed
+   */
+  public async deduplicateFriendActivities(): Promise<number> {
+    const db = await IndexedDBService.getInstance()
+    const all = await db.getAllData('friend_activities')
+
+    const seen = new Map<string, any>()
+    const toDelete: string[] = []
+
+    for (const activity of all) {
+      const key = `${activity.friendId}_${activity.startTime}`
+      const existing = seen.get(key)
+      if (existing) {
+        // Keep the one with the most recent fetchedAt
+        if (activity.fetchedAt > existing.fetchedAt) {
+          toDelete.push(existing.id)
+          seen.set(key, activity)
+        } else {
+          toDelete.push(activity.id)
+        }
+      } else {
+        seen.set(key, activity)
+      }
+    }
+
+    if (toDelete.length > 0) {
+      await db.deleteMultipleFromStore('friend_activities', toDelete)
+    }
+    return toDelete.length
+  }
+
+  /**
    * Quick sync: Fetch recent activities from a friend (default: last 30)
    * @param friendId Friend's ID
    * @param limit Number of recent activities to sync (default: 30)
@@ -641,11 +691,8 @@ export class FriendService {
       // Fetch recent activities (NEW METHOD)
       const recentActivities = await this.fetchRecentActivities(manifest, limit)
 
-      // Get existing activities for deduplication
-      const existingActivities = await db.getAllData('friend_activities')
-      const existingIds = new Set(
-        existingActivities.filter((a: any) => a.friendId === friendId).map((a: any) => a.id)
-      )
+      // Get existing activity keys for deduplication (ID + startTime)
+      const existing = await this.getExistingFriendActivityKeys(friendId)
 
       // Transform to FriendActivity format
       const friendActivities = recentActivities.map((activity: any) => ({
@@ -664,9 +711,10 @@ export class FriendService {
         lastModified: Date.now()
       }))
 
-      // Filter new activities
+      // Filter new activities using both ID and startTime dedup
       const newActivities = friendActivities.filter(
-        (activity: any) => !existingIds.has(activity.id)
+        (activity: any) =>
+          !existing.ids.has(activity.id) && !existing.startTimes.has(activity.startTime)
       )
 
       // Store new activities
@@ -759,11 +807,8 @@ export class FriendService {
       // Fetch ALL activities (NEW METHOD)
       const allActivities = await this.fetchAllActivities(manifest)
 
-      // Get existing activities for deduplication
-      const existingActivities = await db.getAllData('friend_activities')
-      const existingIds = new Set(
-        existingActivities.filter((a: any) => a.friendId === friendId).map((a: any) => a.id)
-      )
+      // Get existing activity keys for deduplication (ID + startTime)
+      const existing = await this.getExistingFriendActivityKeys(friendId)
 
       // Transform to FriendActivity format
       const friendActivities = allActivities.map((activity: any) => ({
@@ -782,9 +827,10 @@ export class FriendService {
         lastModified: Date.now()
       }))
 
-      // Filter new activities
+      // Filter new activities using both ID and startTime dedup
       const newActivities = friendActivities.filter(
-        (activity: any) => !existingIds.has(activity.id)
+        (activity: any) =>
+          !existing.ids.has(activity.id) && !existing.startTimes.has(activity.startTime)
       )
 
       // Store new activities
@@ -830,6 +876,12 @@ export class FriendService {
    * Refresh all friends' activities and interactions
    */
   public async refreshAllFriends(): Promise<FriendSyncResult[]> {
+    // Clean up any existing duplicates before syncing
+    const removed = await this.deduplicateFriendActivities()
+    if (removed > 0) {
+      console.log(`[FriendService] Cleaned up ${removed} duplicate friend activities`)
+    }
+
     const friends = await this.getAllFriends()
     const results: FriendSyncResult[] = []
 
