@@ -1,0 +1,9 @@
+{
+  "appId": "app.openstride",
+  "appName": "OpenStride",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {}
+}
