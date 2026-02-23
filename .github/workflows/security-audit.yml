@@ -33,8 +33,9 @@ jobs:
 
       - name: Run npm audit
         run: |
+          # Audit production dependencies only (devDeps like eslint are not deployed)
           # Fail on high and critical vulnerabilities
-          npm audit --audit-level=high
+          npm audit --omit=dev --audit-level=high
         continue-on-error: false
 
       - name: Generate audit report
