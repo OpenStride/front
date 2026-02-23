@@ -2,7 +2,7 @@ name: Lighthouse Performance
 
 on:
   workflow_run:
-    workflows: ['Deploy Production']
+    workflows: ['Version Bump & Deploy']
     types: [completed]
     branches: [main]
   workflow_dispatch: # Allow manual runs

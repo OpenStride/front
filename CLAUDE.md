@@ -106,6 +106,16 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - Unit: Vitest + Vue Test Utils + happy-dom. Coverage target: 60%+
 - E2E: Cypress. Use `data-test` attributes for selectors.
 
+### Versioning & Releases (auto-bump)
+
+**La version est gérée automatiquement.** Ne JAMAIS bumper manuellement `package.json`.
+
+- Chaque merge sur `main` déclenche `.github/workflows/version-bump.yml` (patch par défaut)
+- Labels PR : `release:major`, `release:minor` pour override le type de bump
+- Le workflow commit `chore(release): vX.Y.Z`, crée le tag, et déploie en prod
+- `deploy-production.yml` reste dispo en `workflow_dispatch` pour redeploy manuel sans bump
+- **Ne JAMAIS** modifier `version` dans `package.json`, créer de commits `chore: bump version`, ou créer de tags `v*` manuellement
+
 ### Common Pitfalls
 
 - Plugin exports must use `export default` (not named exports)

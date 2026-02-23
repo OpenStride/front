@@ -1,9 +1,7 @@
 name: Deploy Production
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: # Allow manual deployment
+  workflow_dispatch: # Deploy manuel uniquement (le bump workflow gère les merges)
 
 # Only run one deployment at a time
 concurrency:
