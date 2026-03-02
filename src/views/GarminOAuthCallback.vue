@@ -59,7 +59,11 @@ onMounted(() => {
     channel.postMessage(payload)
     channel.close()
     status.value = error ? 'error' : 'broadcast'
-    setTimeout(() => window.close(), 2000)
+    // Redirect back to the app instead of window.close() — on PWA Android,
+    // window.close() kills the entire app since there's no opener context
+    setTimeout(() => {
+      window.location.href = window.location.origin + '/profile'
+    }, 1500)
   } catch {
     // BroadcastChannel not supported — true no-opener fallback
     status.value = 'no-opener'
