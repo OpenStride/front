@@ -17,13 +17,17 @@
       <p>Cette page s'est ouverte dans un autre navigateur.</p>
       <p class="hint">Retournez dans votre navigateur principal (Chrome) et réessayez.</p>
     </div>
+    <div v-else-if="status === 'broadcast'" class="status success">
+      <i class="fas fa-check-circle" aria-hidden="true"></i>
+      <span>Connecté ! Retournez sur l'application.</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const status = ref<'processing' | 'success' | 'error' | 'no-opener'>('processing')
+const status = ref<'processing' | 'success' | 'error' | 'no-opener' | 'broadcast'>('processing')
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
@@ -32,28 +36,34 @@ onMounted(() => {
   const state = params.get('state')
   const error = params.get('error')
 
-  // No opener = opened in a different browser (Samsung Internet issue)
-  if (!window.opener) {
-    status.value = 'no-opener'
+  const payload = {
+    type: 'garmin-oauth-callback',
+    access_token: accessToken,
+    access_token_secret: accessTokenSecret,
+    state: state,
+    error: error
+  }
+
+  // Strategy 1: postMessage via window.opener (works if opener ref survived)
+  if (window.opener) {
+    window.opener.postMessage(payload, window.location.origin)
+    status.value = error ? 'error' : 'success'
+    setTimeout(() => window.close(), 1500)
     return
   }
 
-  // Send tokens (or error) to the main window via postMessage
-  window.opener.postMessage(
-    {
-      type: 'garmin-oauth-callback',
-      access_token: accessToken,
-      access_token_secret: accessTokenSecret,
-      state: state,
-      error: error
-    },
-    window.location.origin
-  )
-
-  status.value = error ? 'error' : 'success'
-
-  // Auto-close popup after brief delay
-  setTimeout(() => window.close(), 1500)
+  // Strategy 2: BroadcastChannel (works same-origin even without opener ref)
+  // Handles the case where cross-origin navigation (Garmin OAuth) nullifies window.opener
+  try {
+    const channel = new BroadcastChannel('garmin-oauth')
+    channel.postMessage(payload)
+    channel.close()
+    status.value = error ? 'error' : 'broadcast'
+    setTimeout(() => window.close(), 2000)
+  } catch {
+    // BroadcastChannel not supported — true no-opener fallback
+    status.value = 'no-opener'
+  }
 })
 </script>
 
