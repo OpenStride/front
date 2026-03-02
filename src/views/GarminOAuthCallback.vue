@@ -19,7 +19,7 @@
     </div>
     <div v-else-if="status === 'broadcast'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
-      <span>Connecté ! Retournez sur l'application.</span>
+      <span>Connecté ! Redirection...</span>
     </div>
   </div>
 </template>
@@ -59,10 +59,14 @@ onMounted(() => {
     channel.postMessage(payload)
     channel.close()
     status.value = error ? 'error' : 'broadcast'
-    // Redirect back to the app instead of window.close() — on PWA Android,
-    // window.close() kills the entire app since there's no opener context
+    // Redirect to Garmin setup page with tokens so it can start the import,
+    // just like the old redirect flow. Don't use window.close() — on PWA
+    // Android it kills the entire app since there's no opener context.
     setTimeout(() => {
-      window.location.href = window.location.origin + '/profile'
+      const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+      if (accessToken) setupUrl.searchParams.set('access_token', accessToken)
+      if (accessTokenSecret) setupUrl.searchParams.set('access_token_secret', accessTokenSecret)
+      window.location.href = setupUrl.toString()
     }, 1500)
   } catch {
     // BroadcastChannel not supported — true no-opener fallback
