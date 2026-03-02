@@ -117,6 +117,7 @@ const syncState = reactive<GarminSyncState>({
 const { notifications, plugins } = usePluginContext()
 
 const baseURL = pluginEnv.apiUrl
+let oauthChannel: BroadcastChannel | null = null
 
 // ============================================================================
 // OAuth Flow (Popup-based to fix Samsung Android browser switching issue)
@@ -150,7 +151,15 @@ function connectToGarmin() {
 
   isWaitingForOAuth.value = true
   showFallbackRedirect.value = false
+
+  // Listen via postMessage (works if opener ref survives cross-origin navigation)
   window.addEventListener('message', handleOAuthMessage)
+
+  // Listen via BroadcastChannel (fallback when opener ref is nullified by COOP)
+  oauthChannel = new BroadcastChannel('garmin-oauth')
+  oauthChannel.onmessage = (event: MessageEvent) => {
+    handleOAuthMessage({ ...event, origin: window.location.origin } as MessageEvent)
+  }
 
   // Poll to detect if popup closes without completing OAuth
   const pollInterval = setInterval(() => {
@@ -168,8 +177,9 @@ async function handleOAuthMessage(event: MessageEvent) {
   if (event.origin !== window.location.origin) return
   if (event.data?.type !== 'garmin-oauth-callback') return
 
-  // Cleanup
+  // Cleanup both listeners
   window.removeEventListener('message', handleOAuthMessage)
+  cleanupOAuthChannel()
   isWaitingForOAuth.value = false
   oauthPopup.value?.close()
 
@@ -212,8 +222,16 @@ function handlePopupBlocked() {
 
 function handleOAuthCancelled() {
   window.removeEventListener('message', handleOAuthMessage)
+  cleanupOAuthChannel()
   isWaitingForOAuth.value = false
   sessionStorage.removeItem('garmin_oauth_state')
+}
+
+function cleanupOAuthChannel() {
+  if (oauthChannel) {
+    oauthChannel.close()
+    oauthChannel = null
+  }
 }
 
 function connectWithRedirect() {
@@ -351,8 +369,7 @@ onMounted(async () => {
       isConnected.value = true
 
       // Ensure plugin is enabled (migrates old setups)
-      const pluginManager = DataProviderPluginManager.getInstance()
-      await pluginManager.enablePlugin('garmin')
+      await plugins.enablePlugin('garmin')
 
       // Check if initial import needs to be resumed
       const state = await getSyncState()
@@ -370,6 +387,7 @@ onMounted(async () => {
 onUnmounted(() => {
   syncEmitter.removeEventListener('sync-complete', handleSyncComplete)
   syncEmitter.removeEventListener('sync-progress', handleSyncProgress)
+  cleanupOAuthChannel()
 })
 </script>
 
