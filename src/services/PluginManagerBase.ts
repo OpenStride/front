@@ -85,19 +85,16 @@ export abstract class PluginManagerBase<T> {
 
   /**
    * Get list of enabled plugin IDs from IndexedDB
-   * Returns default plugins if no data exists (first run)
+   * Returns default plugins if no data exists yet (first run or data lost)
+   * Does NOT write defaults on read — avoids overwriting user preferences
+   * if IndexedDB temporarily returns null (tab sleep, storage pressure, etc.)
    */
   public async getEnabledPluginIds(): Promise<string[]> {
     const db = await IndexedDBService.getInstance()
     const ids = await db.getData(this.storageKey)
 
-    // Initialize with defaults on first run
     if (!Array.isArray(ids)) {
-      if (this.defaultPlugins.length > 0) {
-        await db.saveData(this.storageKey, this.defaultPlugins)
-        return this.defaultPlugins
-      }
-      return []
+      return [...this.defaultPlugins]
     }
 
     return ids

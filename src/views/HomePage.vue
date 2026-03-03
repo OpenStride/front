@@ -2,55 +2,55 @@
   <div class="home-page">
     <!-- Stats Summary -->
     <div v-if="!loading && counts.total > 0" class="stats-bar">
-        <div class="stat-item">
-          <span class="stat-label">{{ t('activities.myActivities') }}</span>
-          <span class="stat-value">{{ counts.own }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-label">{{ t('activities.friends') }}</span>
-          <span class="stat-value">{{ counts.friends }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-label">{{ t('activities.total') }}</span>
-          <span class="stat-value">{{ counts.total }}</span>
-        </div>
+      <div class="stat-item">
+        <span class="stat-label">{{ t('activities.myActivities') }}</span>
+        <span class="stat-value">{{ counts.own }}</span>
       </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-label">{{ t('activities.friends') }}</span>
+        <span class="stat-value">{{ counts.friends }}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-label">{{ t('activities.total') }}</span>
+        <span class="stat-value">{{ counts.total }}</span>
+      </div>
+    </div>
 
-      <!-- Activities Feed -->
-      <div ref="scrollArea" class="feed-container">
-        <ActivityCard
-          v-for="activity in activities"
-          :key="activity.id"
-          :activity="activity"
-          :friend-username="activity.source === 'friend' ? activity.friendUsername : undefined"
-        />
+    <!-- Activities Feed -->
+    <div ref="scrollArea" class="feed-container">
+      <ActivityCard
+        v-for="activity in activities"
+        :key="activity.id"
+        :activity="activity"
+        :friend-username="activity.source === 'friend' ? activity.friendUsername : undefined"
+      />
 
-        <p v-if="loading" class="loading-text">{{ t('activities.loading') }}</p>
-        <p v-if="!hasMore && !loading && activities.length > 0" class="end-text">
-          {{ t('activities.allLoaded') }}
+      <p v-if="loading" class="loading-text">{{ t('activities.loading') }}</p>
+      <p v-if="!hasMore && !loading && activities.length > 0" class="end-text">
+        {{ t('activities.allLoaded') }}
+      </p>
+
+      <!-- Empty State -->
+      <div v-if="!loading && activities.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-person-running" aria-hidden="true"></i>
+        </div>
+        <h3 class="empty-title">{{ t('activities.noActivity') }}</h3>
+        <p class="empty-description">
+          {{ t('activities.noActivityDescription') }}
         </p>
-
-        <!-- Empty State -->
-        <div v-if="!loading && activities.length === 0" class="empty-state">
-          <div class="empty-icon">
-            <i class="fas fa-person-running" aria-hidden="true"></i>
-          </div>
-          <h3 class="empty-title">{{ t('activities.noActivity') }}</h3>
-          <p class="empty-description">
-            {{ t('activities.noActivityDescription') }}
-          </p>
-          <div class="empty-actions">
-            <button @click="navigateToDataProviders" class="action-btn primary">
-              {{ t('activities.configureData') }}
-            </button>
-            <button @click="navigateToFriends" class="action-btn secondary">
-              {{ t('activities.addFriends') }}
-            </button>
-          </div>
+        <div class="empty-actions">
+          <button @click="navigateToDataProviders" class="action-btn primary">
+            {{ t('activities.configureData') }}
+          </button>
+          <button @click="navigateToFriends" class="action-btn secondary">
+            {{ t('activities.addFriends') }}
+          </button>
         </div>
       </div>
+    </div>
   </div>
 </template>
 
