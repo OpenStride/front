@@ -12,22 +12,6 @@ vi.mock('@/lib/firebase', () => ({
   messaging: {}
 }))
 
-// Mock IndexedDBService to avoid real IndexedDB access
-vi.mock('@/services/IndexedDBService', () => ({
-  IndexedDBService: class {
-    static instance: any = null
-    static async getInstance() {
-      if (!this.instance) {
-        this.instance = new this()
-      }
-      return this.instance
-    }
-    async getData() { return null }
-    async saveData() { }
-    async getAllData() { return [] }
-  }
-}))
-
 // Mock du useRouter avec imports partiels pour éviter les erreurs de router
 vi.mock('vue-router', async (importOriginal) => {
   const actual = await importOriginal() as any
@@ -56,8 +40,8 @@ describe.skip('HomePage - Tests need to be updated for new feed-based version', 
     // TODO: Test new activity feed functionality
   })
 
-  it('should show WelcomeLanding for new users', () => {
-    // TODO: Test WelcomeLanding component rendering
+  it('should show empty state when no activities', () => {
+    // TODO: Test empty state rendering
   })
 
   it('should display stats bar with counts', () => {
