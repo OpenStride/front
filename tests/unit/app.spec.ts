@@ -1,10 +1,19 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '@/App.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
+
+// Mock IndexedDBService to avoid indexedDB not defined in test environment
+vi.mock('@/services/IndexedDBService', () => ({
+  IndexedDBService: {
+    async getInstance() {
+      return { getData: vi.fn(), saveData: vi.fn(), getAllData: vi.fn(() => []) }
+    }
+  }
+}))
 
 // Mock global constants
 ;(global as any).__APP_VERSION__ = '0.1.0'

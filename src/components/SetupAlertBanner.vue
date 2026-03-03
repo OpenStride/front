@@ -17,9 +17,7 @@
       <div class="setup-banner-actions">
         <router-link
           :to="
-            bannerType === 'provider'
-              ? '/profile?tab=data-sources'
-              : '/profile?tab=cloud-backup'
+            bannerType === 'provider' ? '/profile?tab=data-sources' : '/profile?tab=cloud-backup'
           "
           class="setup-banner-cta"
         >
@@ -29,7 +27,11 @@
               : t('setupBanner.configureCloudBackup')
           }}
         </router-link>
-        <button class="setup-banner-dismiss" @click="dismiss" :aria-label="t('setupBanner.dismiss')">
+        <button
+          class="setup-banner-dismiss"
+          @click="dismiss"
+          :aria-label="t('setupBanner.dismiss')"
+        >
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       </div>
@@ -52,7 +54,7 @@ const DISMISS_KEY_PROVIDER = 'setup_banner_dismissed_provider'
 const DISMISS_KEY_STORAGE = 'setup_banner_dismissed_storage'
 
 async function checkStatus() {
-  const db = IndexedDBService.getInstance()
+  const db = await IndexedDBService.getInstance()
 
   const dataProviders = await DataProviderPluginManager.getInstance().getEnabledPlugins()
   const hasDataSource = dataProviders.length > 0
@@ -77,7 +79,7 @@ async function checkStatus() {
 
 async function dismiss() {
   if (!bannerType.value) return
-  const db = IndexedDBService.getInstance()
+  const db = await IndexedDBService.getInstance()
   const key = bannerType.value === 'provider' ? DISMISS_KEY_PROVIDER : DISMISS_KEY_STORAGE
   await db.saveData(key, true)
   bannerType.value = null
