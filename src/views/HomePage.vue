@@ -1,12 +1,7 @@
 <template>
   <div class="home-page">
-    <!-- Welcome Landing for new users -->
-    <WelcomeLanding v-if="showWelcomeLanding" />
-
-    <!-- Activity Feed for existing users -->
-    <template v-else>
-      <!-- Stats Summary -->
-      <div v-if="!loading && counts.total > 0" class="stats-bar">
+    <!-- Stats Summary -->
+    <div v-if="!loading && counts.total > 0" class="stats-bar">
         <div class="stat-item">
           <span class="stat-label">{{ t('activities.myActivities') }}</span>
           <span class="stat-value">{{ counts.own }}</span>
@@ -37,8 +32,8 @@
           {{ t('activities.allLoaded') }}
         </p>
 
-        <!-- Empty State for users who had activities before -->
-        <div v-if="!loading && activities.length === 0 && hasHadActivities" class="empty-state">
+        <!-- Empty State -->
+        <div v-if="!loading && activities.length === 0" class="empty-state">
           <div class="empty-icon">
             <i class="fas fa-person-running" aria-hidden="true"></i>
           </div>
@@ -56,45 +51,24 @@
           </div>
         </div>
       </div>
-    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
-import WelcomeLanding from '@/components/WelcomeLanding.vue'
 import { useMixedFeed } from '@/composables/useMixedFeed'
-import { IndexedDBService } from '@/services/IndexedDBService'
 
 const router = useRouter()
 const { t } = useI18n()
 const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed()
 
 const scrollArea = ref<HTMLElement | null>(null)
-const hasHadActivities = ref(false)
 
-// Show welcome landing only for brand new users (never had any activities)
-const showWelcomeLanding = computed(() => {
-  return !loading.value && counts.value.total === 0 && !hasHadActivities.value
-})
-
-onMounted(async () => {
-  // Check if user has ever had activities
-  const db = await IndexedDBService.getInstance()
-  const hasSeenActivities = await db.getData('hasSeenActivities')
-  hasHadActivities.value = hasSeenActivities === true
-
+onMounted(() => {
   loadMore()
-
-  // If user now has activities, mark them as having seen activities
-  if (counts.value.total > 0 && !hasHadActivities.value) {
-    await db.saveData('hasSeenActivities', true)
-    hasHadActivities.value = true
-  }
-
   window.addEventListener('scroll', handleScroll)
   window.addEventListener('openstride:activities-refreshed', onRefresh)
 })
@@ -117,10 +91,6 @@ const onRefresh = async () => {
 
 const navigateToDataProviders = () => {
   router.push('/profile?tab=data-sources')
-}
-
-const navigateToBackupProviders = () => {
-  router.push('/profile?tab=cloud-backup')
 }
 
 const navigateToFriends = () => {

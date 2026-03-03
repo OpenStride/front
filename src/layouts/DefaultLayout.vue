@@ -1,5 +1,6 @@
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
+import SetupAlertBanner from '@/components/SetupAlertBanner.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
@@ -18,6 +19,7 @@ const forceRefresh = async () => {
 <template>
   <div class="layout">
     <AppHeader />
+    <SetupAlertBanner />
     <UpdateBanner />
     <AutoUpdateNotification />
     <main>

@@ -276,6 +276,13 @@
       "count": "Activites"
     }
   },
+  "setupBanner": {
+    "noDataSource": "Connectez une source de données pour importer vos activités sportives.",
+    "noCloudBackup": "Activez la sauvegarde cloud pour sécuriser vos données.",
+    "configureDataSource": "Configurer",
+    "configureCloudBackup": "Configurer",
+    "dismiss": "Fermer"
+  },
   "goals": {
     "title": "Objectifs",
     "addGoal": "Ajouter un objectif",
