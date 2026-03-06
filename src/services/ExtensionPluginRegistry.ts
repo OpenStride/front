@@ -15,7 +15,7 @@ export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
   return allAppPlugins.filter(p => enabledIds.includes(p.id))
 }
 
-export async function getPluginViewsForSlot(slotName: string): Promise<any[]> {
+export async function getPluginViewsForSlot(slotName: string): Promise<unknown[]> {
   const plugins = await getActiveAppPlugins()
   const views = []
 

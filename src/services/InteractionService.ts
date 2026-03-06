@@ -24,7 +24,9 @@ export class InteractionService {
   public emitter = new EventTarget()
   private publishDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): InteractionService {
     if (!InteractionService.instance) {

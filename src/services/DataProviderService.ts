@@ -6,7 +6,9 @@ export class DataProviderService {
   private pluginManager = DataProviderPluginManager.getInstance()
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): DataProviderService {
     if (!DataProviderService.instance) {

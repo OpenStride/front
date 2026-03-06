@@ -8,9 +8,21 @@
  * which properly handles CORS headers.
  */
 
+interface GapiClient {
+  load(api: string, callbacks: { callback: () => void; onerror: () => void }): void
+  client: {
+    init(config: { apiKey: string; discoveryDocs: string[] }): Promise<void>
+    drive: {
+      files: {
+        get(params: { fileId: string; alt: string }): Promise<{ body: string }>
+      }
+    }
+  }
+}
+
 declare global {
   interface Window {
-    gapi: any
+    gapi: GapiClient
   }
 }
 
@@ -149,6 +161,33 @@ export class GoogleDriveApiService {
   }
 
   /**
+   * Retry a request on transient 5xx errors with exponential backoff.
+   * Retries up to maxRetries times (delays: 1s, 2s).
+   * Does not retry on 4xx or other client errors.
+   */
+  private async fetchWithRetry<T>(
+    request: () => Promise<T>,
+    maxRetries = 2
+  ): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await request()
+      } catch (error: unknown) {
+        const status = (error as Record<string, unknown>)?.status
+        const isServerError = typeof status === 'number' && status >= 500 && status < 600
+        if (!isServerError || attempt >= maxRetries) {
+          throw error
+        }
+        const delay = 1000 * Math.pow(2, attempt) // 1s, 2s
+        console.warn(
+          `[GoogleDriveApiService] Request failed with ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  /**
    * Fetch file content from Google Drive using gapi.client
    *
    * This method bypasses CORS by using Google's official SDK with API key.
@@ -164,11 +203,13 @@ export class GoogleDriveApiService {
     console.log(`[GoogleDriveApiService] Fetching file: ${fileId}`)
 
     try {
-      // Use gapi.client to fetch file with alt=media
-      const response = await window.gapi.client.drive.files.get({
-        fileId: fileId,
-        alt: 'media'
-      })
+      // Use gapi.client to fetch file with alt=media, with retry on 5xx
+      const response = await this.fetchWithRetry(() =>
+        window.gapi.client.drive.files.get({
+          fileId: fileId,
+          alt: 'media'
+        })
+      )
 
       if (!response || !response.body) {
         throw new Error('Empty response from Google Drive API')
@@ -176,20 +217,26 @@ export class GoogleDriveApiService {
 
       console.log('[GoogleDriveApiService] File fetched successfully')
       return response.body
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[GoogleDriveApiService] Failed to fetch file:', error)
 
+      const err = error as Record<string, unknown>
       // Provide helpful error messages
-      if (error.status === 404) {
+      if (err.status === 404) {
         throw new Error('File not found. Make sure the file is shared publicly.')
-      } else if (error.status === 403) {
+      } else if (err.status === 403) {
         throw new Error('Access denied. Make sure the file is shared "Anyone with the link".')
-      } else if (error.result?.error?.message) {
-        throw new Error(`Google Drive API error: ${error.result.error.message}`)
+      } else if (
+        (err.result as Record<string, unknown> | undefined)?.error &&
+        typeof ((err.result as Record<string, unknown>).error as Record<string, unknown>)
+          ?.message === 'string'
+      ) {
+        const result = err.result as Record<string, unknown>
+        const apiError = result.error as Record<string, unknown>
+        throw new Error(`Google Drive API error: ${apiError.message}`)
       } else {
-        throw new Error(
-          `Failed to fetch file from Google Drive: ${error.message || 'Unknown error'}`
-        )
+        const message = typeof err.message === 'string' ? err.message : 'Unknown error'
+        throw new Error(`Failed to fetch file from Google Drive: ${message}`)
       }
     }
   }
@@ -200,7 +247,7 @@ export class GoogleDriveApiService {
    * @param fileId Google Drive file ID
    * @returns Parsed JSON object
    */
-  public async fetchJsonFile<T = any>(fileId: string): Promise<T> {
+  public async fetchJsonFile<T = unknown>(fileId: string): Promise<T> {
     const content = await this.fetchFileContent(fileId)
 
     try {
@@ -218,7 +265,7 @@ export class GoogleDriveApiService {
    * @param url Google Drive URL
    * @returns Parsed JSON object
    */
-  public async fetchJsonFromUrl<T = any>(url: string): Promise<T> {
+  public async fetchJsonFromUrl<T = unknown>(url: string): Promise<T> {
     const fileId = this.extractFileId(url)
 
     if (!fileId) {

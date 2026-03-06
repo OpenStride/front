@@ -5,7 +5,7 @@ export interface ProviderPlugin {
   label: string
   icon?: string
   description?: string
-  setupComponent: () => Promise<any>
-  refreshData?: () => Promise<any>
+  setupComponent: () => Promise<unknown>
+  refreshData?: () => Promise<unknown>
   context?: PluginContext
 }

@@ -43,10 +43,10 @@ async function onLocaleChange() {
 
 select {
   cursor: pointer;
-  background-color: white;
+  background-color: var(--color-white);
 }
 
 select:hover {
-  border-color: #9ca3af;
+  border-color: var(--color-gray-400);
 }
 </style>

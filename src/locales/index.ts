@@ -12,7 +12,8 @@ const DEFAULT_LOCALE: Locale = 'en'
  * Detects the browser's preferred language
  */
 export function getBrowserLocale(): Locale {
-  const browserLang = navigator.language || (navigator as any).userLanguage || ''
+  const browserLang =
+    navigator.language || (navigator as Navigator & { userLanguage?: string }).userLanguage || ''
   const lang = browserLang.split('-')[0].toLowerCase()
   return SUPPORTED_LOCALES.includes(lang as Locale) ? (lang as Locale) : DEFAULT_LOCALE
 }

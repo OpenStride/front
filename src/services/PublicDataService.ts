@@ -1,12 +1,14 @@
 import { IndexedDBService } from './IndexedDBService'
 import { getInteractionService } from './InteractionService'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity } from '@/types/activity'
 import type { PublicManifest, PublicActivity, YearActivities, Friend } from '@/types/friend'
 
 export class PublicDataService {
   private static instance: PublicDataService
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): PublicDataService {
     if (!PublicDataService.instance) {

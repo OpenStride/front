@@ -2,7 +2,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import type { Activity } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { IActivityService } from '@/types/plugin-context'
-import { formatSportType } from '@plugins/app-extensions/Goals/sportLabels'
+import { formatSportType } from '@/utils/sportLabels'
 
 const allActivities = ref<Activity[]>([])
 const selectedSport = ref<string>('')

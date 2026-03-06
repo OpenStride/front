@@ -129,7 +129,7 @@ function onSave() {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-green-200);
   border-radius: 6px;
-  background: white;
+  background: var(--color-white);
   font-size: 0.9rem;
   color: var(--text-color);
 }
@@ -178,7 +178,7 @@ function onSave() {
 
 .btn-confirm {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
 }
 
 .btn-confirm:disabled {

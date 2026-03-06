@@ -12,7 +12,7 @@
           class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition"
         >
           <div class="flex items-center space-x-4">
-            <img :src="provider.icon" alt="logo" class="w-6 h-6" />
+            <img :src="provider.icon" alt="" class="w-6 h-6" />
             <span class="font-semibold">{{ provider.label }}</span>
           </div>
           <router-link
@@ -42,7 +42,7 @@
           class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200"
         >
           <div class="flex items-center space-x-4">
-            <img :src="provider.icon" alt="logo" class="w-6 h-6" />
+            <img :src="provider.icon" alt="" class="w-6 h-6" />
             <span>{{ provider.label }}</span>
           </div>
           <button
@@ -68,12 +68,11 @@ import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 const { t } = useI18n()
 
 const manager = DataProviderPluginManager.getInstance()
-const userDataProviderPlugins = ref<ProviderPlugin[]>([])
 
-const userProviders = ref<string[]>([])
+const userProviders = ref<ProviderPlugin[]>([])
 
 const availableProviders = computed(() =>
-  allProviderPlugins.filter(p => !userProviders.value.find(up => up.id === p.id))
+  allProviderPlugins.filter(p => !userProviders.value.some(up => up.id === p.id))
 )
 
 onMounted(async () => {

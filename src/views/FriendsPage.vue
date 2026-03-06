@@ -115,7 +115,7 @@ const navigateToManageFriends = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 1rem;
-  background: white;
+  background: var(--color-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
   gap: 1rem;
@@ -125,7 +125,7 @@ const navigateToManageFriends = () => {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .add-btn {
@@ -138,7 +138,7 @@ const navigateToManageFriends = () => {
   border: none;
   border-radius: 0.5rem;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -156,7 +156,7 @@ const navigateToManageFriends = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: white;
+  background: var(--color-white);
   padding: 1rem;
   margin-bottom: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -172,14 +172,14 @@ const navigateToManageFriends = () => {
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 500;
 }
 
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .feed-container {
@@ -192,7 +192,7 @@ const navigateToManageFriends = () => {
 .end-text {
   text-align: center;
   padding: 2rem 1rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-size: 0.875rem;
 }
 
@@ -219,12 +219,12 @@ const navigateToManageFriends = () => {
 .empty-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0 0 0.5rem;
 }
 
 .empty-description {
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0 0 2rem;
   max-width: 400px;
 }
@@ -248,7 +248,7 @@ const navigateToManageFriends = () => {
 
 .action-btn.primary {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
 }
 
 .action-btn.primary:hover {

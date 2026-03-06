@@ -65,7 +65,7 @@ export class PublicFileService {
    * Write a file to public storage
    * Returns the public URL for accessing the file
    */
-  public async writePublicFile(filename: string, content: any): Promise<string | null> {
+  public async writePublicFile(filename: string, content: unknown): Promise<string | null> {
     const plugin = await this.getPublicFilePlugin()
     if (!plugin?.writePublicFile) {
       console.error('[PublicFileService] No plugin available for writePublicFile')

@@ -48,7 +48,9 @@ export class MigrationService {
   private migrations: Migration[] = []
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): MigrationService {
     if (!MigrationService.instance) {

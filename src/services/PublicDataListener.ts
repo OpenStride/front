@@ -23,7 +23,9 @@ export class PublicDataListener {
   private isPublishing = false
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): PublicDataListener {
     if (!PublicDataListener.instance) {
@@ -121,14 +123,15 @@ export class PublicDataListener {
       } else {
         throw new Error('FriendService.publishPublicData() returned null')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
       console.error('[PublicDataListener] Publish failed:', err)
       this.emitter.dispatchEvent(
         new CustomEvent('publish-failed', {
-          detail: { error: err.message }
+          detail: { error: message }
         })
       )
-      return { success: false, error: err.message }
+      return { success: false, error: message }
     } finally {
       this.isPublishing = false
     }

@@ -13,32 +13,32 @@
       <div class="activity-card-header">
         <div class="icon-label">
           <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <i :class="iconClass" class="text-[1.5rem]" style="color: #88aa00"></i>
-            {{ activity.title || formatSport(activity.type) }}
+            <i :class="iconClass" class="text-[1.5rem] activity-icon" aria-hidden="true"></i>
+            {{ activity.title || formatSportType(activity.type) }}
           </h3>
         </div>
         <div class="right-side">
           <span class="date">{{ formatDate(activity.startTime) }}</span>
-          <button class="menu-button" @click="toggleMenu">⋮</button>
+          <button class="menu-button" @click="toggleMenu" aria-label="Menu actions">⋮</button>
         </div>
       </div>
 
       <!-- grille simplifiée -->
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm text-gray-700 mt-4">
         <div class="flex items-center gap-2">
-          <i class="fas fa-ruler-horizontal text-lg text-gray-600"></i>
+          <i class="fas fa-ruler-horizontal text-lg text-gray-600" aria-hidden="true"></i>
           <span>{{ formatDistance(activity.distance) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <i class="fas fa-stopwatch text-lg text-gray-600"></i>
+          <i class="fas fa-stopwatch text-lg text-gray-600" aria-hidden="true"></i>
           <span>{{ formatDuration(activity.duration) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <i class="fas fa-tachometer-alt text-lg text-gray-600"></i>
+          <i class="fas fa-tachometer-alt text-lg text-gray-600" aria-hidden="true"></i>
           <span>{{ formatPace(activity.distance, activity.duration) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <i class="fas fa-calendar-alt text-lg text-gray-600"></i>
+          <i class="fas fa-calendar-alt text-lg text-gray-600" aria-hidden="true"></i>
           <span>{{ formatDate(activity.startTime) }}</span>
         </div>
       </div>
@@ -69,13 +69,13 @@ import router from '@/router'
 import { Activity } from '@/types/activity'
 import { getInteractionService } from '@/services/InteractionService'
 import { IndexedDBService } from '@/services/IndexedDBService'
-import type { Friend } from '@/types/friend'
+import type { Friend, FriendActivity } from '@/types/friend'
+import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 
 const props = defineProps<{
   activity: Activity
   friendUsername?: string
 }>()
-const activity = props.activity
 const showMenu = ref(false)
 
 // formatage date en français
@@ -110,43 +110,22 @@ const formatPace = (distanceMeters: number, durationSec: number) => {
   return `${m}'${s.toString().padStart(2, '0')}" /km`
 }
 
-const formatSport = (sport: string): string => {
-  const map: Record<string, string> = {
-    RUNNING: 'Course à pied',
-    RUN: 'Course à pied',
-    CYCLING: 'Vélo',
-    SWIMMING: 'Natation',
-    HIKING: 'Randonnée',
-    YOGA: 'Yoga'
-  }
-  return map[sport] || 'Activité'
-}
-const faIcons: Record<string, string> = {
-  RUNNING: 'fas fa-person-running',
-  RUN: 'fas fa-person-running',
-  CYCLING: 'fas fa-person-biking',
-  SWIMMING: 'fas fa-person-swimming',
-  HIKING: 'fas fa-person-hiking',
-  YOGA: 'fas fa-person-praying' // choisis l’icône qui te convient
-}
-const iconClass = computed(
-  () => faIcons[props.activity.type?.toUpperCase() as string] ?? 'fas fa-medal'
-)
+const iconClass = computed(() => getSportIcon(props.activity.type))
 
 // Extract friendId for interactions
 const friendId = computed(() => {
   if (!props.friendUsername) return null
-  const friendActivity = activity as any
+  const friendActivity = props.activity as Activity & Partial<FriendActivity>
   return (
     friendActivity.friendId ||
-    (activity.provider?.startsWith('friend_') ? activity.provider.substring(7) : null)
+    (props.activity.provider?.startsWith('friend_') ? props.activity.provider.substring(7) : null)
   )
 })
 
 // Get original activity ID (for friend activities)
 const originalActivityId = computed(() => {
-  const friendActivity = activity as any
-  return friendActivity.activityId || activity.id
+  const friendActivity = props.activity as Activity & Partial<FriendActivity>
+  return friendActivity.activityId || props.activity.id
 })
 
 // ========== InteractionBar support for both friend and own activities ==========
@@ -194,35 +173,33 @@ const canShowInteractions = computed(() => {
 
 // présence de carte
 const hasMap = computed(
-  () => Array.isArray(activity.mapPolyline) && activity.mapPolyline.length > 1
+  () => Array.isArray(props.activity.mapPolyline) && props.activity.mapPolyline.length > 1
 )
 
 const showDetails = () => {
-  // Check if this is a friend activity using the friendUsername prop
   if (props.friendUsername) {
-    // Friend activity: extract friendId from provider (format: "friend_${friendId}")
-    // or use friendId property if available (FriendActivity interface)
-    const friendActivity = activity as any
-    const friendId =
-      friendActivity.friendId ||
-      (activity.provider?.startsWith('friend_') ? activity.provider.substring(7) : null)
-    // activityId is either explicit or falls back to id
-    const activityId = friendActivity.activityId || activity.id
+    const fa = props.activity as Activity & Partial<FriendActivity>
+    const fId =
+      fa.friendId ||
+      (props.activity.provider?.startsWith('friend_')
+        ? props.activity.provider.substring(7)
+        : null)
+    const activityId = fa.activityId || props.activity.id
 
-    if (friendId && activityId) {
+    if (fId && activityId) {
       router.push({
         name: 'ActivityDetails',
         params: { activityId },
-        query: { source: 'friend', friendId }
+        query: { source: 'friend', friendId: fId }
       })
     } else {
       console.error(
         '[ActivityCard] Cannot navigate to friend activity: missing friendId or activityId',
-        { friendId, activityId, activity }
+        { friendId: fId, activityId, activity: props.activity }
       )
     }
   } else {
-    router.push({ name: 'ActivityDetails', params: { activityId: activity.id } })
+    router.push({ name: 'ActivityDetails', params: { activityId: props.activity.id } })
   }
 }
 
@@ -233,7 +210,7 @@ const toggleMenu = () => {
 
 <style scoped>
 .activity-card {
-  background: #fff;
+  background: var(--color-white);
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem;
@@ -258,7 +235,7 @@ const toggleMenu = () => {
   align-items: center;
   gap: 0.375rem;
   background: linear-gradient(135deg, var(--color-green-500) 0%, var(--color-green-600) 100%);
-  color: white;
+  color: var(--color-white);
   padding: 0.375rem 0.75rem;
   border-radius: 1rem;
   font-size: 0.75rem;
@@ -299,6 +276,10 @@ const toggleMenu = () => {
   font-size: 1.2rem;
 }
 
+.activity-icon {
+  color: var(--color-green-500);
+}
+
 .right-side {
   display: flex;
   align-items: center;
@@ -307,7 +288,7 @@ const toggleMenu = () => {
 
 .date {
   font-size: 0.85rem;
-  color: #888;
+  color: var(--color-gray-400);
 }
 
 .menu-button {
@@ -317,12 +298,12 @@ const toggleMenu = () => {
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .details {
   font-size: 0.9rem;
-  color: #444;
+  color: var(--color-gray-700);
   margin-top: 0.75rem;
 }
 
@@ -333,7 +314,7 @@ const toggleMenu = () => {
 }
 
 .details-button {
-  background: #f3f3f3;
+  background: var(--color-gray-100);
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -343,7 +324,7 @@ const toggleMenu = () => {
 }
 
 .details-button:hover {
-  background: #e1e1e1;
+  background: var(--color-gray-200);
 }
 
 .card-interactions {

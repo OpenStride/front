@@ -104,24 +104,24 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 20px;
+  gap: 0.75rem;
+  padding: 0.625rem 1.25rem;
   background: var(--color-yellow-100);
   border-left: 3px solid var(--color-yellow-500);
   color: var(--color-yellow-800);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .setup-banner-content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   flex: 1;
   min-width: 0;
 }
 
 .setup-banner-content i {
-  font-size: 16px;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
@@ -132,16 +132,16 @@ onUnmounted(() => {
 .setup-banner-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
 .setup-banner-cta {
-  padding: 5px 14px;
+  padding: 0.3125rem 0.875rem;
   background: var(--color-yellow-500);
-  color: #fff;
-  border-radius: 6px;
-  font-size: 13px;
+  color: var(--color-white);
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -156,15 +156,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border: none;
   background: none;
   color: var(--color-yellow-800);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transition: background 0.2s;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .setup-banner-dismiss:hover {
@@ -196,11 +196,11 @@ onUnmounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 600px) {
+@media (max-width: 37.5rem) {
   .setup-banner {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 0.5rem;
   }
 
   .setup-banner-actions {

@@ -18,7 +18,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IndexedDBService } from '@/services/IndexedDBService'
-import { getActivityDBService } from '@/services/ActivityDBService'
+import { getActivityService } from '@/services/ActivityService'
 import OnboardingProviderStep from './OnboardingProviderStep.vue'
 import OnboardingStorageStep from './OnboardingStorageStep.vue'
 import OnboardingComplete from './OnboardingComplete.vue'
@@ -67,6 +67,10 @@ onMounted(async () => {
 // Cleanup au démontage
 onUnmounted(() => {
   stopActivityPolling()
+  if (autoAdvanceTimeout) {
+    clearTimeout(autoAdvanceTimeout)
+    autoAdvanceTimeout = null
+  }
 })
 
 // Sauvegarder état à chaque changement
@@ -79,21 +83,22 @@ async function saveState() {
 
 // Polling pour détecter import d'activités
 let activityCheckInterval: NodeJS.Timeout | null = null
+let autoAdvanceTimeout: NodeJS.Timeout | null = null
 
 function startActivityPolling() {
   if (activityCheckInterval) return
 
   activityCheckInterval = setInterval(async () => {
     if (currentStep.value === 0 && !onboardingState.value.hasImportedActivities) {
-      const activityDb = await getActivityDBService()
-      const activities = await activityDb.getActivities({ limit: 1, offset: 0 })
+      const activitySvc = await getActivityService()
+      const activities = await activitySvc.getAllActivities()
 
       if (activities.length > 0) {
         onboardingState.value.hasImportedActivities = true
         await saveState()
 
         // Avancer automatiquement après 2 secondes
-        setTimeout(() => {
+        autoAdvanceTimeout = setTimeout(() => {
           goNext()
         }, 2000)
 

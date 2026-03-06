@@ -20,7 +20,9 @@ export interface FeedActivity extends Activity {
 export class ActivityFeedService {
   private static instance: ActivityFeedService
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): ActivityFeedService {
     if (!ActivityFeedService.instance) {

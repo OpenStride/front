@@ -66,7 +66,7 @@ const manifestUrl = ref<string | null>(null)
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
   const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { type, message, messageType } = customEvent.detail
+  const { message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
@@ -156,7 +156,7 @@ function goToFriends() {
   min-height: 100vh;
   padding: 2rem;
   text-align: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-200) 100%);
 }
 
 .loading-container,
@@ -166,7 +166,7 @@ function goToFriends() {
   max-width: 400px;
   width: 100%;
   padding: 2.5rem 2rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
@@ -180,7 +180,7 @@ function goToFriends() {
 
 .loading-text {
   font-size: 1.125rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0;
 }
 
@@ -194,33 +194,33 @@ function goToFriends() {
 .success-container h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0 0 0.5rem;
 }
 
 .redirect-text {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0;
 }
 
 /* Error State */
 .error-icon {
   font-size: 4rem;
-  color: #ef4444;
+  color: var(--color-red-500);
   margin-bottom: 1rem;
 }
 
 .error-container h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0 0 0.75rem;
 }
 
 .error-message {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0 0 1.5rem;
   line-height: 1.5;
 }
@@ -236,13 +236,13 @@ function goToFriends() {
 .invalid-container h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0 0 0.75rem;
 }
 
 .invalid-text {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0 0 1.5rem;
   line-height: 1.5;
 }
@@ -263,7 +263,7 @@ button {
 
 .retry-btn {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
 }
 
 .retry-btn:hover {
@@ -273,12 +273,12 @@ button {
 }
 
 .back-btn {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 .back-btn:hover {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 /* Mobile Responsive */

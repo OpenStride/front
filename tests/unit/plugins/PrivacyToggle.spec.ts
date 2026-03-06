@@ -2,27 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PrivacyToggle from '@plugins/app-extensions/ActivityPrivacy/PrivacyToggle.vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { FriendService } from '@/services/FriendService'
-
-// Mock services
-vi.mock('@/services/IndexedDBService', () => ({
-  IndexedDBService: {
-    getInstance: vi.fn()
-  }
-}))
-
-vi.mock('@/services/FriendService', () => ({
-  FriendService: {
-    getInstance: vi.fn()
-  }
-}))
-
-vi.mock('@/services/ToastService', () => ({
-  ToastService: {
-    push: vi.fn()
-  }
-}))
 
 describe('PrivacyToggle.vue', () => {
   const mockActivity: Activity = {
@@ -51,28 +30,34 @@ describe('PrivacyToggle.vue', () => {
     lastModified: Date.now()
   }
 
-  let mockDb: any
-  let mockFriendService: any
+  let mockStorage: any
+  let mockPluginContext: any
 
   beforeEach(() => {
-    // Mock IndexedDB service
-    mockDb = {
+    // Mock storage (provided via PluginContext)
+    mockStorage = {
       getData: vi.fn().mockResolvedValue(null),
       saveData: vi.fn().mockResolvedValue(undefined),
-      deleteData: vi.fn().mockResolvedValue(undefined)
+      deleteData: vi.fn().mockResolvedValue(undefined),
+      exportDB: vi.fn().mockResolvedValue([])
     }
-    vi.mocked(IndexedDBService.getInstance).mockResolvedValue(mockDb)
 
-    // Mock FriendService
-    mockFriendService = {
-      emitter: {
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn()
+    mockPluginContext = {
+      storage: mockStorage,
+      notifications: { notify: vi.fn() },
+      analyzer: { create: vi.fn() },
+      activity: { getAllActivities: vi.fn() },
+      plugins: { isPluginActive: vi.fn(), enablePlugin: vi.fn() },
+      aggregation: { getAggregated: vi.fn(), listMetrics: vi.fn() },
+      friends: {
+        publishPublicData: vi.fn().mockResolvedValue(undefined),
+        getMyManifestUrl: vi.fn(),
+        getMyPublicUrl: vi.fn().mockResolvedValue(null),
+        onEvent: vi.fn(),
+        offEvent: vi.fn()
       },
-      publishPublicData: vi.fn().mockResolvedValue(undefined)
+      sync: { syncNow: vi.fn() }
     }
-    vi.mocked(FriendService.getInstance).mockReturnValue(mockFriendService)
 
     // Reset all mocks
     vi.clearAllMocks()
@@ -85,7 +70,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Component should render
@@ -104,7 +90,8 @@ describe('PrivacyToggle.vue', () => {
           activity: undefined as any,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Should not crash, but should not render
@@ -124,7 +111,8 @@ describe('PrivacyToggle.vue', () => {
           activity: activityWithoutId,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Should not crash, but should not render
@@ -133,7 +121,7 @@ describe('PrivacyToggle.vue', () => {
   })
 
   it('loads privacy settings on mount', async () => {
-    mockDb.getData.mockImplementation((key: string) => {
+    mockStorage.getData.mockImplementation((key: string) => {
       if (key === 'defaultPrivacy') return Promise.resolve('public')
       if (key === 'activityPrivacy_test-1') return Promise.resolve('private')
       return Promise.resolve(null)
@@ -145,7 +133,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Wait for async operations
@@ -153,13 +142,13 @@ describe('PrivacyToggle.vue', () => {
     await new Promise(resolve => setTimeout(resolve, 100))
 
     // Should load default privacy
-    expect(mockDb.getData).toHaveBeenCalledWith('defaultPrivacy')
+    expect(mockStorage.getData).toHaveBeenCalledWith('defaultPrivacy')
     // Should load activity-specific privacy
-    expect(mockDb.getData).toHaveBeenCalledWith('activityPrivacy_test-1')
+    expect(mockStorage.getData).toHaveBeenCalledWith('activityPrivacy_test-1')
   })
 
   it('displays public state correctly', async () => {
-    mockDb.getData.mockImplementation((key: string) => {
+    mockStorage.getData.mockImplementation((key: string) => {
       if (key === 'activityPrivacy_test-1') return Promise.resolve('public')
       return Promise.resolve('private')
     })
@@ -170,7 +159,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     await wrapper.vm.$nextTick()
@@ -185,7 +175,7 @@ describe('PrivacyToggle.vue', () => {
   })
 
   it('displays private state correctly', async () => {
-    mockDb.getData.mockResolvedValue('private')
+    mockStorage.getData.mockResolvedValue('private')
 
     const wrapper = mount(PrivacyToggle, {
       props: {
@@ -193,7 +183,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     await wrapper.vm.$nextTick()
@@ -214,7 +205,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     await wrapper.vm.$nextTick()
@@ -228,10 +220,7 @@ describe('PrivacyToggle.vue', () => {
     await new Promise(resolve => setTimeout(resolve, 100))
 
     // Should save privacy setting
-    expect(mockDb.saveData).toHaveBeenCalledWith(
-      'activityPrivacy_test-1',
-      expect.any(String)
-    )
+    expect(mockStorage.saveData).toHaveBeenCalledWith('activityPrivacy_test-1', expect.any(String))
   })
 
   it('handles mount and unmount lifecycle correctly', async () => {
@@ -241,7 +230,8 @@ describe('PrivacyToggle.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Wait for mount lifecycle

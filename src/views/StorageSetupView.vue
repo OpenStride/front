@@ -7,12 +7,12 @@
 </template>
 
 <script setup lang="ts">
-import { shallowRef, onMounted } from 'vue'
+import { shallowRef, onMounted, type Component as VueComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { allStoragePlugins } from '@/services/StoragePluginRegistry'
 
 const route = useRoute()
-const setupComponent = shallowRef<any>(null)
+const setupComponent = shallowRef<VueComponent | null>(null)
 
 onMounted(async () => {
   const plugin = allStoragePlugins.find(p => p.id === route.params.id)

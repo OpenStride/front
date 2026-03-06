@@ -78,7 +78,7 @@ onUnmounted(() => {
 }
 
 .migration-card {
-  background: white;
+  background: var(--color-white);
   border-radius: 12px;
   padding: 40px;
   max-width: 400px;
@@ -95,12 +95,12 @@ onUnmounted(() => {
 .migration-card h2 {
   font-size: 24px;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--text-color);
 }
 
 .migration-card p {
   font-size: 14px;
-  color: #666;
+  color: var(--color-gray-500);
   margin-bottom: 20px;
   min-height: 40px;
 }
@@ -108,7 +108,7 @@ onUnmounted(() => {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #e0e0e0;
+  background: var(--color-gray-200);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -122,7 +122,7 @@ onUnmounted(() => {
 
 .migration-card small {
   font-size: 12px;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .fade-enter-active,

@@ -91,7 +91,7 @@ onMounted(() => {
 .status {
   text-align: center;
   padding: 2rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   max-width: 320px;

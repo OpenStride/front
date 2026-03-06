@@ -160,7 +160,7 @@ async function toggleNotifications(event: Event) {
 
 <style scoped>
 .notification-settings {
-  background-color: white;
+  background-color: var(--color-white);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -265,7 +265,7 @@ async function toggleNotifications(event: Event) {
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--color-white);
   transition: 0.3s;
   border-radius: 50%;
 }
@@ -333,7 +333,7 @@ input:disabled + .slider {
 }
 
 .token-display {
-  background-color: white;
+  background-color: var(--color-white);
   padding: 0.5rem;
   border-radius: 4px;
   font-family: 'Courier New', monospace;

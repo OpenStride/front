@@ -109,7 +109,7 @@ const navigateToFriends = () => {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background: white;
+  background: var(--color-white);
   padding: 1rem;
   margin-bottom: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -127,20 +127,20 @@ const navigateToFriends = () => {
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 500;
 }
 
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .stat-divider {
   width: 1px;
   height: 2.5rem;
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 .feed-container {
@@ -153,7 +153,7 @@ const navigateToFriends = () => {
 .end-text {
   text-align: center;
   padding: 2rem 1rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-size: 0.875rem;
 }
 
@@ -180,12 +180,12 @@ const navigateToFriends = () => {
 .empty-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0 0 0.5rem;
 }
 
 .empty-description {
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0 0 2rem;
   max-width: 400px;
 }
@@ -209,7 +209,7 @@ const navigateToFriends = () => {
 
 .action-btn.primary {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
 }
 
 .action-btn.primary:hover {
@@ -217,12 +217,12 @@ const navigateToFriends = () => {
 }
 
 .action-btn.secondary {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 .action-btn.secondary:hover {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 @media (max-width: 640px) {

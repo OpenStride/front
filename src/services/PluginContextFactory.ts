@@ -7,6 +7,9 @@ import { FriendService } from './FriendService'
 import { ActivityAnalyzer } from './ActivityAnalyzer'
 import { DataProviderPluginManager } from './DataProviderPluginManager'
 import { StoragePluginManager } from './StoragePluginManager'
+import { AppExtensionPluginManager } from './AppExtensionPluginManager'
+import { StorageService } from './StorageService'
+import { SyncService } from './SyncService'
 
 /**
  * Factory function to create a PluginContext for dependency injection
@@ -20,7 +23,15 @@ export async function createPluginContext(): Promise<PluginContext> {
 
   return {
     activity: activityService,
-    storage: storageService,
+    storage: {
+      getData: <T = unknown>(key: string) => storageService.getData(key) as Promise<T | null | undefined>,
+      saveData: (key, data) => storageService.saveData(key, data),
+      deleteData: key => storageService.deleteData(key),
+      exportDB: storeName => storageService.exportDB(storeName),
+      addItemsToStore: (storeName, items, keyFn) =>
+        storageService.addItemsToStore(storeName, items, keyFn),
+      importFromRemote: stores => StorageService.getInstance().importFromRemote(stores)
+    },
 
     notifications: {
       notify(message, opts) {
@@ -32,18 +43,29 @@ export async function createPluginContext(): Promise<PluginContext> {
       async isPluginActive(pluginId: string) {
         const dpManager = DataProviderPluginManager.getInstance()
         const spManager = StoragePluginManager.getInstance()
+        const aeManager = AppExtensionPluginManager.getInstance()
         const dpPlugins = await dpManager.getEnabledPlugins()
         const spPlugins = await spManager.getEnabledPlugins()
-        return dpPlugins.some(p => p.id === pluginId) || spPlugins.some(p => p.id === pluginId)
+        const aePlugins = await aeManager.getEnabledPlugins()
+        return (
+          dpPlugins.some(p => p.id === pluginId) ||
+          spPlugins.some(p => p.id === pluginId) ||
+          aePlugins.some(p => p.id === pluginId)
+        )
       },
       async enablePlugin(pluginId: string) {
         const dpManager = DataProviderPluginManager.getInstance()
         const spManager = StoragePluginManager.getInstance()
-        // Try data provider first, then storage
+        const aeManager = AppExtensionPluginManager.getInstance()
+        // Try data provider first, then storage, then app extension
         try {
           await dpManager.enablePlugin(pluginId)
         } catch {
-          await spManager.enablePlugin(pluginId)
+          try {
+            await spManager.enablePlugin(pluginId)
+          } catch {
+            await aeManager.enablePlugin(pluginId)
+          }
         }
       }
     },
@@ -51,17 +73,31 @@ export async function createPluginContext(): Promise<PluginContext> {
     aggregation: {
       getAggregated: (metricId, periodType) =>
         aggregationService.getAggregated(metricId, periodType),
-      listMetrics: () => aggregationService.listMetrics()
+      listMetrics: () => aggregationService.listMetrics(),
+      rebuildAll: (activities, detailsMap) => aggregationService.rebuildAll(activities, detailsMap),
+      loadConfigFromSettings: () => aggregationService.loadConfigFromSettings(),
+      subscribe: cb => aggregationService.subscribe(cb)
     },
 
     friends: {
       publishPublicData: () => FriendService.getInstance().publishPublicData(),
-      getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl()
+      getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl(),
+      getMyPublicUrl: () => FriendService.getInstance().getMyPublicUrl(),
+      onEvent: (event, handler) =>
+        FriendService.getInstance().emitter.addEventListener(event, handler as EventListener),
+      offEvent: (event, handler) =>
+        FriendService.getInstance().emitter.removeEventListener(event, handler as EventListener)
     },
 
     analyzer: {
       create(samples) {
         return new ActivityAnalyzer(samples)
+      }
+    },
+
+    sync: {
+      syncNow: async () => {
+        await SyncService.getInstance().syncNow()
       }
     }
   }

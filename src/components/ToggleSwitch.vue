@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { IndexedDBService } from '@/services/IndexedDBService'
 
 const props = defineProps<{
@@ -44,7 +44,7 @@ onMounted(load)
   position: relative;
   width: 40px;
   height: 20px;
-  background: #ccc;
+  background: var(--color-gray-300);
   border-radius: 999px;
   cursor: pointer;
 }
@@ -53,7 +53,7 @@ onMounted(load)
   position: absolute;
   width: 18px;
   height: 18px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
   top: 1px;
   left: 1px;

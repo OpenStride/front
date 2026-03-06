@@ -8,18 +8,21 @@ export async function sha256Hex(input: string): Promise<string> {
   }
   // Fallback naïf (non cryptographique) si environment sans subtle
   let h = 0,
-    i = 0,
-    len = input.length
+    i = 0
+  const len = input.length
   while (i < len) {
     h = (Math.imul(31, h) + input.charCodeAt(i++)) | 0
   }
   return ('00000000' + (h >>> 0).toString(16)).slice(-8)
 }
 
-export function stableStoreString(items: any[], keyFn: (x: any) => string): string {
+export function stableStoreString(
+  items: Record<string, unknown>[],
+  keyFn: (x: Record<string, unknown>) => string
+): string {
   const stripped = items.map(it => {
     if (!it || typeof it !== 'object') return it
-    const { lastModified, ...rest } = it as any
+    const { lastModified: _lastModified, ...rest } = it
     return rest
   })
   stripped.sort((a, b) => {

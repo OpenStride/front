@@ -100,10 +100,18 @@ vi.mock('@/services/ActivityService', async () => {
   }
 
   class FakeActivityService {
+    emitter = new EventTarget()
+
     async getUnsyncedActivities(): Promise<Activity[]> {
       const db = await getDB()
       const all = await (db as any).getAllData('activities')
       return all.filter((a: Activity) => !a.synced && !a.deleted)
+    }
+
+    async getAllActivities(): Promise<Activity[]> {
+      const db = await getDB()
+      const all = await (db as any).getAllData('activities')
+      return all.filter((a: Activity) => !a.deleted)
     }
 
     async getActivity(id: string): Promise<Activity | null> {
@@ -116,6 +124,25 @@ vi.mock('@/services/ActivityService', async () => {
       const db = await getDB()
       const all = await (db as any).getAllData('activity_details')
       return all.find((d: ActivityDetails) => d.id === id) || null
+    }
+
+    async deleteActivity(id: string): Promise<void> {
+      const db: any = await getDB()
+      const activities = await db.getAllData('activities')
+      const updated = activities.map((a: Activity) =>
+        a.id === id ? { ...a, deleted: true, synced: false } : a
+      )
+      db.clearStore('activities')
+      await db.addItemsToStore('activities', updated, (a: Activity) => a.id)
+    }
+
+    async saveActivitiesWithDetails(
+      activities: Activity[],
+      details: ActivityDetails[]
+    ): Promise<void> {
+      const db: any = await getDB()
+      await db.addItemsToStore('activities', activities, (a: Activity) => a.id)
+      await db.addItemsToStore('activity_details', details, (d: ActivityDetails) => d.id)
     }
 
     async markAsSynced(ids: string[]): Promise<void> {
@@ -146,9 +173,15 @@ vi.mock('@/services/ActivityService', async () => {
 vi.mock('@/services/StoragePluginManager', () => {
   class FakeManager {
     plugins: any[] = []
-    setPlugins(p: any[]) { this.plugins = p }
-    async getMyStoragePlugins() { return this.plugins }
-    static getInstance() { return fakeManagerInstance }
+    setPlugins(p: any[]) {
+      this.plugins = p
+    }
+    async getMyStoragePlugins() {
+      return this.plugins
+    }
+    static getInstance() {
+      return fakeManagerInstance
+    }
   }
   const fakeManagerInstance = new FakeManager()
   return {
@@ -479,14 +512,20 @@ describe('SyncService', () => {
       }
 
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
-      await db.addItemsToStore('activity_details', [{
-        id: 'act6',
-        version: 2,
-        lastModified: baseTime,
-        synced: false,
-        deleted: false,
-        samples: []
-      }], (d: ActivityDetails) => d.id)
+      await db.addItemsToStore(
+        'activity_details',
+        [
+          {
+            id: 'act6',
+            version: 2,
+            lastModified: baseTime,
+            synced: false,
+            deleted: false,
+            samples: []
+          }
+        ],
+        (d: ActivityDetails) => d.id
+      )
 
       remoteStorage.activities = [remoteActivity]
       remoteStorage.activity_details = []
@@ -589,14 +628,20 @@ describe('SyncService', () => {
       }
 
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
-      await db.addItemsToStore('activity_details', [{
-        id: 'act10',
-        version: 1,
-        lastModified: Date.now(),
-        synced: false,
-        deleted: false,
-        samples: []
-      }], (d: ActivityDetails) => d.id)
+      await db.addItemsToStore(
+        'activity_details',
+        [
+          {
+            id: 'act10',
+            version: 1,
+            lastModified: Date.now(),
+            synced: false,
+            deleted: false,
+            samples: []
+          }
+        ],
+        (d: ActivityDetails) => d.id
+      )
 
       await syncService.syncNow()
 
@@ -624,14 +669,20 @@ describe('SyncService', () => {
       }
 
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
-      await db.addItemsToStore('activity_details', [{
-        id: 'act11',
-        version: 1,
-        lastModified: Date.now(),
-        synced: false,
-        deleted: false,
-        samples: []
-      }], (d: ActivityDetails) => d.id)
+      await db.addItemsToStore(
+        'activity_details',
+        [
+          {
+            id: 'act11',
+            version: 1,
+            lastModified: Date.now(),
+            synced: false,
+            deleted: false,
+            samples: []
+          }
+        ],
+        (d: ActivityDetails) => d.id
+      )
 
       // First sync
       await syncService.syncNow()
@@ -679,14 +730,20 @@ describe('SyncService', () => {
       }
 
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
-      await db.addItemsToStore('activity_details', [{
-        id: 'act12',
-        version: 3,
-        lastModified: baseTime,
-        synced: false,
-        deleted: false,
-        samples: []
-      }], (d: ActivityDetails) => d.id)
+      await db.addItemsToStore(
+        'activity_details',
+        [
+          {
+            id: 'act12',
+            version: 3,
+            lastModified: baseTime,
+            synced: false,
+            deleted: false,
+            samples: []
+          }
+        ],
+        (d: ActivityDetails) => d.id
+      )
 
       remoteStorage.activities = [remoteActivity]
 
@@ -776,14 +833,20 @@ describe('SyncService', () => {
       }
 
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
-      await db.addItemsToStore('activity_details', [{
-        id: 'act14',
-        version: 1,
-        lastModified: Date.now(),
-        synced: false,
-        deleted: false,
-        samples: []
-      }], (d: ActivityDetails) => d.id)
+      await db.addItemsToStore(
+        'activity_details',
+        [
+          {
+            id: 'act14',
+            version: 1,
+            lastModified: Date.now(),
+            synced: false,
+            deleted: false,
+            samples: []
+          }
+        ],
+        (d: ActivityDetails) => d.id
+      )
 
       mockPlugin.writeRemote = vi.fn().mockRejectedValue(new Error('Storage full'))
 
@@ -814,16 +877,19 @@ describe('SyncService', () => {
       await db.addItemsToStore('activities', [localActivity], (a: Activity) => a.id)
 
       // Make sync slow to test concurrency
-      let resolveRead: any
-      mockPlugin.readRemote = vi.fn(() => new Promise(resolve => {
-        resolveRead = resolve
-        setTimeout(() => resolve([]), 100)
-      }))
+      let _resolveRead: any
+      mockPlugin.readRemote = vi.fn(
+        () =>
+          new Promise(resolve => {
+            _resolveRead = resolve
+            setTimeout(() => resolve([]), 100)
+          })
+      )
 
       const sync1Promise = syncService.syncNow()
       const sync2Promise = syncService.syncNow()
 
-      const [result1, result2] = await Promise.all([sync1Promise, sync2Promise])
+      const [_result1, result2] = await Promise.all([sync1Promise, sync2Promise])
 
       // Second sync should return early
       expect(result2.success).toBe(false)

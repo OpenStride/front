@@ -36,7 +36,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
-import { formatSportType } from '@plugins/app-extensions/Goals/sportLabels'
+import { formatSportType } from '@/utils/sportLabels'
 import { getMonthKey } from '@/utils/dateKeys'
 import { toMs } from '../types'
 
@@ -58,17 +58,20 @@ let distanceChart: Chart | null = null
 let durationChart: Chart | null = null
 let monthlyChart: Chart | null = null
 
+const cssVar = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+
 const sportColors = [
-  '#88aa00',
-  '#e06c00',
-  '#0077b6',
-  '#9b59b6',
-  '#e74c3c',
-  '#1abc9c',
-  '#f39c12',
-  '#34495e',
-  '#e91e63',
-  '#00bcd4'
+  cssVar('--color-green-500', '#88aa00'),
+  cssVar('--color-orange-500', '#f97316'),
+  cssVar('--color-blue-600', '#2563eb'),
+  cssVar('--color-purple-500', '#a855f7'),
+  cssVar('--color-red-500', '#ef4444'),
+  cssVar('--color-teal-500', '#14b8a6'),
+  cssVar('--color-yellow-500', '#eab308'),
+  cssVar('--color-slate-600', '#475569'),
+  cssVar('--color-pink-500', '#ec4899'),
+  cssVar('--color-cyan-500', '#06b6d4')
 ]
 
 function getSportData(activities: Activity[]) {

@@ -13,7 +13,7 @@
         @click="$emit('skip')"
         class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
-        <i class="fas fa-forward"></i>
+        <i class="fas fa-forward" aria-hidden="true"></i>
         {{ t('onboarding.storage.skipButton') }}
       </button>
       <p class="text-sm text-gray-500 mt-3 text-center">
@@ -37,7 +37,7 @@
         >
           <div class="flex items-center space-x-4">
             <img v-if="storage.icon" :src="storage.icon" :alt="storage.label" class="w-8 h-8" />
-            <i v-else class="fas fa-cloud text-green-600 text-xl"></i>
+            <i v-else class="fas fa-cloud text-green-600 text-xl" aria-hidden="true"></i>
             <div>
               <span class="font-semibold block">{{ storage.label }}</span>
               <p v-if="storage.description" class="text-sm text-gray-500">
@@ -60,7 +60,8 @@
         @click="selectedStorageId = null"
         class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
       >
-        <i class="fas fa-arrow-left"></i> {{ t('onboarding.storage.backButton') }}
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        {{ t('onboarding.storage.backButton') }}
       </button>
 
       <div class="bg-white p-6 rounded shadow">
@@ -72,14 +73,14 @@
         @click="$emit('next')"
         class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
-        {{ t('common.continue') }} <i class="fas fa-arrow-right"></i>
+        {{ t('common.continue') }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, watch, shallowRef, onMounted, onUnmounted, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { allStoragePlugins } from '@/services/StoragePluginRegistry'
 import { StoragePluginManager } from '@/services/StoragePluginManager'
@@ -99,7 +100,7 @@ const emit = defineEmits<{
 
 const manager = StoragePluginManager.getInstance()
 const selectedStorageId = ref(props.savedStorageId || null)
-const setupComponent = shallowRef<any>(null)
+const setupComponent = shallowRef<VueComponent | null>(null)
 const isConnected = ref(false)
 
 // Charger setup component quand storage sélectionné

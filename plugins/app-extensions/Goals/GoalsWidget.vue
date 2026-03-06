@@ -45,15 +45,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { aggregationService, getISOWeekKey, getMonthKey } from '@/services/AggregationService'
-import { IndexedDBService } from '@/services/IndexedDBService'
+import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
+import { usePluginContext } from '@/composables/usePluginContext'
 import GoalProgressBar from './GoalProgressBar.vue'
 import GoalEditForm from './GoalEditForm.vue'
 import type { Goal, GoalsConfig, GoalProgress } from './types'
-import type { Activity } from '@/types/activity'
-import { COMMON_SPORT_TYPES } from './sportLabels'
+import { COMMON_SPORT_TYPES } from '@/utils/sportLabels'
 
 const { t } = useI18n()
+const { storage, activity: activityService, aggregation: aggregationCtx } = usePluginContext()
 
 const goals = ref<Goal[]>([])
 const progressList = ref<GoalProgress[]>([])
@@ -93,17 +93,15 @@ function goToToday() {
 }
 
 async function loadConfig(): Promise<GoalsConfig> {
-  const db = await IndexedDBService.getInstance()
-  const config = await db.getData('goals_config')
-  if (config && Array.isArray(config.goals)) {
+  const config = await storage.getData('goals_config')
+  if (config && Array.isArray((config as GoalsConfig).goals)) {
     return config as GoalsConfig
   }
   return { version: 1, goals: [] }
 }
 
 async function saveConfig(config: GoalsConfig) {
-  const db = await IndexedDBService.getInstance()
-  await db.saveData('goals_config', config)
+  await storage.saveData('goals_config', config)
 }
 
 function getActivityPeriodKey(period: 'week' | 'month', startTime: number): string {
@@ -112,8 +110,7 @@ function getActivityPeriodKey(period: 'week' | 'month', startTime: number): stri
 }
 
 async function loadSportTypes() {
-  const db = await IndexedDBService.getInstance()
-  const activities = (await db.getAllData('activities')) as Activity[]
+  const activities = await activityService.getAllActivities()
   const types = new Set<string>(COMMON_SPORT_TYPES)
   for (const act of activities) {
     if (act.type && !act.deleted) types.add(act.type)
@@ -122,8 +119,7 @@ async function loadSportTypes() {
 }
 
 async function computeProgress(): Promise<GoalProgress[]> {
-  const db = await IndexedDBService.getInstance()
-  const activities = (await db.getAllData('activities')) as Activity[]
+  const activities = await activityService.getAllActivities()
   const viewDate = getViewDate()
   const result: GoalProgress[] = []
 
@@ -199,7 +195,7 @@ watch(periodOffset, () => refresh())
 onMounted(async () => {
   await loadSportTypes()
   await refresh()
-  unsubscribe = aggregationService.subscribe(() => {
+  unsubscribe = aggregationCtx.subscribe(() => {
     refresh()
   })
 })
@@ -282,7 +278,7 @@ onUnmounted(() => {
 
 .today-btn {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   padding: 3px 10px;

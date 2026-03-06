@@ -87,7 +87,7 @@ export interface IStorageService {
    *
    * Example: await storage.getData('myPluginConfig')
    */
-  getData<T = any>(key: string): Promise<T | null | undefined>
+  getData<T = unknown>(key: string): Promise<T | null | undefined>
 
   /**
    * Save a value to settings store
@@ -95,7 +95,7 @@ export interface IStorageService {
    *
    * Example: await storage.saveData('myPluginConfig', { enabled: true })
    */
-  saveData<T = any>(key: string, data: T): Promise<void>
+  saveData<T = unknown>(key: string, data: T): Promise<void>
 
   /**
    * Delete a value from settings store
@@ -111,13 +111,19 @@ export interface IStorageService {
    * Available stores: 'activities', 'activity_details', 'settings',
    * 'notifLogs', 'aggregatedData', 'friends', 'friend_activities'
    */
-  exportDB(storeName: string): Promise<any[]>
+  exportDB(storeName: string): Promise<unknown[]>
 
   /**
    * Add or update items in a specific store
    * Useful for bulk operations
    */
-  addItemsToStore<T>(storeName: string, items: T[], keyFn: (item: T) => any): Promise<void>
+  addItemsToStore<T>(storeName: string, items: T[], keyFn: (item: T) => IDBValidKey): Promise<void>
+
+  /**
+   * Import data one-way from remote storage to local IndexedDB
+   * Used after authentication to hydrate a fresh database
+   */
+  importFromRemote(stores?: string[]): Promise<void>
 }
 
 /**
@@ -152,6 +158,14 @@ export interface IPluginManager {
 export interface IAggregationService {
   getAggregated(metricId: string, periodType: AggregationPeriod): Promise<AggregatedRecord[]>
   listMetrics(): AggregationMetricDefinition[]
+  rebuildAll(
+    activities: Record<string, unknown>[],
+    detailsMap: Map<string, Record<string, unknown> | null>
+  ): Promise<void>
+  loadConfigFromSettings(): Promise<void>
+  subscribe(
+    cb: (ev: { metricId: string; periodType: AggregationPeriod; periodKey: string }) => void
+  ): () => void
 }
 
 /**
@@ -163,6 +177,9 @@ export interface IAggregationService {
 export interface IFriendService {
   publishPublicData(): Promise<string | null>
   getMyManifestUrl(): Promise<string | null>
+  getMyPublicUrl(): Promise<string | null>
+  onEvent(event: string, handler: (...args: unknown[]) => void): void
+  offEvent(event: string, handler: (...args: unknown[]) => void): void
 }
 
 /**
@@ -172,8 +189,25 @@ export interface IFriendService {
  */
 export interface IAnalyzerFactory {
   create(samples: Sample[]): {
-    bestSegments(targets: number[]): Record<number, { duration: number } | null | undefined>
+    bestSegments(
+      targets: number[]
+    ): Record<
+      number,
+      { sample: Sample; duration: number; startIdx: number; endIdx: number } | null | undefined
+    >
+    sampleAverageByDistance(stepMeters: number): Sample[]
+    sampleBySlopeChange(minDistanceMeters: number): Sample[]
+    sampleByLaps(laps: { time: number }[]): Sample[]
   }
+}
+
+/**
+ * Sync interface for plugins
+ *
+ * Allows plugins to trigger sync without importing SyncService directly.
+ */
+export interface ISyncService {
+  syncNow(): Promise<void>
 }
 
 /**
@@ -190,6 +224,7 @@ export interface PluginContext {
   aggregation: IAggregationService
   friends: IFriendService
   analyzer: IAnalyzerFactory
+  sync: ISyncService
 }
 
 /**

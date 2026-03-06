@@ -55,17 +55,19 @@ export class AggregationService {
     const activityService = await getActivityService()
 
     this.activityServiceListener = async (evt: Event) => {
-      const e = evt as CustomEvent<ActivityServiceEvent>
-      const { type, activity, details } = e.detail
+      try {
+        const e = evt as CustomEvent<ActivityServiceEvent>
+        const { type, activity, details } = e.detail
 
-      console.log(`[AggregationService] Activity ${type}: ${activity.id}`)
+        console.log(`[AggregationService] Activity ${type}: ${activity.id}`)
 
-      if (type === 'deleted') {
-        // Subtract from aggregations
-        await this.removeActivityFromAggregation(activity, details)
-      } else {
-        // Add or update aggregations (saved, updated)
-        await this.addActivityForAggregation(activity, details)
+        if (type === 'deleted') {
+          await this.removeActivityFromAggregation(activity, details)
+        } else {
+          await this.addActivityForAggregation(activity, details)
+        }
+      } catch (error) {
+        console.error('[AggregationService] Error handling activity event:', error)
       }
     }
 
@@ -99,12 +101,22 @@ export class AggregationService {
     this.subscribers.forEach(s => {
       try {
         s(ev)
-      } catch {}
+      } catch {
+        /* ignored */
+      }
     })
   }
 
-  private getValueByPath(obj: any, path: string) {
-    return path.split('.').reduce((acc, p) => (acc && acc[p] != null ? acc[p] : undefined), obj)
+  private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
+    return path
+      .split('.')
+      .reduce(
+        (acc: unknown, p) =>
+          acc != null && typeof acc === 'object' && p in (acc as Record<string, unknown>)
+            ? (acc as Record<string, unknown>)[p]
+            : undefined,
+        obj as unknown
+      )
   }
 
   private periodKey(period: AggregationPeriod, date: Date) {
@@ -118,7 +130,10 @@ export class AggregationService {
     }
   }
 
-  async addActivityForAggregation(activity: any, details: any) {
+  async addActivityForAggregation(
+    activity: Record<string, unknown> | null,
+    details: Record<string, unknown> | null
+  ) {
     if (!activity) return
     const merged = { ...activity, ...details }
     console.log('[AggregationService] Merging activity', activity?.id, 'merged :', merged)
@@ -188,7 +203,10 @@ export class AggregationService {
    * Remove activity from aggregations (decrement counters)
    * Called when an activity is soft-deleted
    */
-  async removeActivityFromAggregation(activity: any, details: any) {
+  async removeActivityFromAggregation(
+    activity: Record<string, unknown> | null,
+    details: Record<string, unknown> | null
+  ) {
     if (!activity) return
     const merged = { ...activity, ...details }
 
@@ -260,7 +278,10 @@ export class AggregationService {
     )
   }
 
-  async rebuildAll(activities: any[], detailsMap: Map<string, any>) {
+  async rebuildAll(
+    activities: Record<string, unknown>[],
+    detailsMap: Map<string, Record<string, unknown> | null>
+  ) {
     const db = await IndexedDBService.getInstance()
     console.log(
       '[AggregationService] rebuildAll activities:',

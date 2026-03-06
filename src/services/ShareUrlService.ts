@@ -92,7 +92,7 @@ export class ShareUrlService {
     try {
       const parsed = new URL(url)
       return parsed.pathname === '/add-friend' && parsed.searchParams.has('manifest')
-    } catch (error) {
+    } catch {
       // Invalid URL format, treat as not a share URL
       return false
     }
@@ -122,7 +122,7 @@ export class ShareUrlService {
       }
 
       return allowedHosts.includes(parsed.hostname)
-    } catch (error) {
+    } catch {
       // Invalid URL format
       return false
     }

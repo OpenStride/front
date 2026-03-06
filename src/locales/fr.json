@@ -155,6 +155,18 @@
     "configureData": "Configurer les données",
     "addFriends": "Ajouter des amis"
   },
+  "filters": {
+    "searchPlaceholder": "Rechercher une activité...",
+    "sportType": "Type de sport",
+    "allSports": "Tous",
+    "distance": "Distance",
+    "ascent": "Dénivelé positif",
+    "min": "Min",
+    "max": "Max",
+    "reset": "Réinitialiser",
+    "resultCount": "{count} activité | {count} activités",
+    "noResults": "Aucune activité ne correspond aux filtres."
+  },
   "friends": {
     "title": "Activités des amis",
     "activities": "Activités",

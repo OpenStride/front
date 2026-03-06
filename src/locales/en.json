@@ -155,6 +155,18 @@
     "configureData": "Configure data",
     "addFriends": "Add friends"
   },
+  "filters": {
+    "searchPlaceholder": "Search activities...",
+    "sportType": "Sport type",
+    "allSports": "All",
+    "distance": "Distance",
+    "ascent": "Elevation gain",
+    "min": "Min",
+    "max": "Max",
+    "reset": "Reset",
+    "resultCount": "{count} activity | {count} activities",
+    "noResults": "No activities match the current filters."
+  },
   "friends": {
     "title": "Friends' Activities",
     "activities": "Activities",

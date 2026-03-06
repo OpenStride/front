@@ -141,9 +141,7 @@ describe('MigrationService', () => {
       service.register(migration1)
       service.register(migration2)
 
-      expect(consoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('already registered')
-      )
+      expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('already registered'))
       expect(service.getRegisteredMigrations()).toHaveLength(1)
     })
 
@@ -346,18 +344,14 @@ describe('MigrationService', () => {
       service.register(migration)
       await service.runMigrations('0.1.0', '0.2.0')
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('Running 1 migrations')
-      )
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('Migration 0.2.0 completed')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Running 1 migrations'))
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Migration 0.2.0 completed'))
     })
   })
 
   describe('Event Emission', () => {
     it('should emit migration-started', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const migration: Migration = {
           version: '0.2.0',
           description: 'Test',
@@ -366,7 +360,7 @@ describe('MigrationService', () => {
 
         service.register(migration)
 
-        service.emitter.addEventListener('migration-started', (evt) => {
+        service.emitter.addEventListener('migration-started', evt => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('migration-started')
           expect(customEvent.detail.fromVersion).toBe('0.1.0')
@@ -379,7 +373,7 @@ describe('MigrationService', () => {
     })
 
     it('should emit migration-progress', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const migration: Migration = {
           version: '0.2.0',
           description: 'Test progress',
@@ -388,7 +382,7 @@ describe('MigrationService', () => {
 
         service.register(migration)
 
-        service.emitter.addEventListener('migration-progress', (evt) => {
+        service.emitter.addEventListener('migration-progress', evt => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('migration-progress')
           expect(customEvent.detail.currentMigration).toBe('Test progress')
@@ -402,7 +396,7 @@ describe('MigrationService', () => {
     })
 
     it('should emit migration-completed', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const migration: Migration = {
           version: '0.2.0',
           description: 'Test',
@@ -411,7 +405,7 @@ describe('MigrationService', () => {
 
         service.register(migration)
 
-        service.emitter.addEventListener('migration-completed', (evt) => {
+        service.emitter.addEventListener('migration-completed', evt => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('migration-completed')
           expect(customEvent.detail.fromVersion).toBe('0.1.0')
@@ -425,7 +419,7 @@ describe('MigrationService', () => {
     })
 
     it('should emit migration-failed on error', () => {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<void>((resolve, _reject) => {
         const migration: Migration = {
           version: '0.2.0',
           description: 'Failing',
@@ -436,7 +430,7 @@ describe('MigrationService', () => {
 
         service.register(migration)
 
-        service.emitter.addEventListener('migration-failed', (evt) => {
+        service.emitter.addEventListener('migration-failed', evt => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('migration-failed')
           expect(customEvent.detail.error).toContain('Test error')
@@ -452,7 +446,7 @@ describe('MigrationService', () => {
     })
 
     it('should calculate progress correctly', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const m1: Migration = { version: '0.2.0', description: 'First', up: vi.fn() }
         const m2: Migration = { version: '0.3.0', description: 'Second', up: vi.fn() }
 
@@ -461,7 +455,7 @@ describe('MigrationService', () => {
 
         const progressValues: number[] = []
 
-        service.emitter.addEventListener('migration-progress', (evt) => {
+        service.emitter.addEventListener('migration-progress', evt => {
           const customEvent = evt as CustomEvent
           progressValues.push(customEvent.detail.progress)
         })
@@ -579,9 +573,7 @@ describe('MigrationService', () => {
 
       await service.rollback()
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('No migrations to rollback')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('No migrations to rollback'))
     })
 
     it('should handle missing down() method', async () => {
@@ -599,9 +591,7 @@ describe('MigrationService', () => {
 
       await service.rollback()
 
-      expect(consoleError).toHaveBeenCalledWith(
-        expect.stringContaining('Cannot rollback 0.2.0')
-      )
+      expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Cannot rollback 0.2.0'))
     })
 
     it('should handle rollback errors', async () => {
@@ -635,9 +625,7 @@ describe('MigrationService', () => {
 
       await service.rollback()
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('Rollback successful')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Rollback successful'))
     })
   })
 
@@ -647,9 +635,7 @@ describe('MigrationService', () => {
 
       await service.runMigrations('0.1.0', '0.1.0')
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('No migrations needed')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('No migrations needed'))
     })
 
     it('should not emit events if no migrations', async () => {

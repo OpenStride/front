@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ActivityService } from '@/services/ActivityService'
-import type { Activity, ActivityDetails } from '@/types/activity'
 import { createActivity, createActivityDetails, createActivities } from '../fixtures/activities'
 
 // Mock IndexedDBService
@@ -70,8 +69,7 @@ vi.mock('@/services/IndexedDBService', () => {
     }
 
     // Get mock transaction (with proper async sequencing)
-    getMockTransaction(storeNames: string[], mode: IDBTransactionMode) {
-      const self = this
+    getMockTransaction(storeNames: string[], _mode: IDBTransactionMode) {
       const stores: Record<string, any> = {}
       let pendingOps = 0
 
@@ -86,18 +84,18 @@ vi.mock('@/services/IndexedDBService', () => {
       for (const name of storeNames) {
         stores[name] = {
           put: vi.fn((item: any) => {
-            const storeData = self.stores[name] || []
+            const storeData = this.stores[name] || []
             const existing = storeData.findIndex((i: any) => i.id === item.id)
             if (existing >= 0) {
               storeData[existing] = item
             } else {
               storeData.push(item)
             }
-            self.stores[name] = storeData
+            this.stores[name] = storeData
           }),
           get: vi.fn((id: string) => {
             pendingOps++
-            const storeData = self.stores[name] || []
+            const storeData = this.stores[name] || []
             const item = storeData.find((i: any) => i.id === id)
             const req = {
               result: item,
@@ -200,7 +198,7 @@ describe('ActivityService', () => {
       const activity = createActivity({ id: 'test-1' })
       const details = createActivityDetails('test-1')
 
-      const eventPromise = new Promise((resolve) => {
+      const eventPromise = new Promise(resolve => {
         service.emitter.addEventListener('activity-changed', (event: any) => {
           resolve(event.detail)
         })
@@ -326,7 +324,7 @@ describe('ActivityService', () => {
 
       await service.saveActivityWithDetails(activity, details)
 
-      const eventPromise = new Promise((resolve) => {
+      const eventPromise = new Promise(resolve => {
         service.emitter.addEventListener('activity-changed', (event: any) => {
           if (event.detail.type === 'updated') {
             resolve(event.detail)
@@ -404,7 +402,7 @@ describe('ActivityService', () => {
 
       await service.saveActivityWithDetails(activity, details)
 
-      const eventPromise = new Promise((resolve) => {
+      const eventPromise = new Promise(resolve => {
         service.emitter.addEventListener('activity-changed', (event: any) => {
           if (event.detail.type === 'deleted') {
             resolve(event.detail)

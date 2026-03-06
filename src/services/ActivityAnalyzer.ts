@@ -56,7 +56,7 @@ export class ActivityAnalyzer {
       }
     }
 
-    /* S’il reste des samples après le dernier lap (ex. arrêt tardif) */
+    /* S'il reste des samples après le dernier lap (ex. arrêt tardif) */
     if (sampleIdx < this.samples.length) {
       const leftover = this.computeAverageSample(this.samples.slice(sampleIdx))
       const last = this.samples[this.samples.length - 1]
@@ -91,14 +91,14 @@ export class ActivityAnalyzer {
 
   /**
    * Regroupe les samples par pente dominante (montée / descente / plat).
-   * On coupe le segment dès qu’un changement durable de signe de pente est
+   * On coupe le segment dès qu'un changement durable de signe de pente est
    * constaté sur une fenêtre de 20 m, à condition que le segment courant
    * fasse déjà minDistanceMeters.
    */
   /**
    * Segmente la trace en montées, descentes (ou plats) robustes au bruit.
-   * @param minDistanceMeters  Longueur minimale (m) qu’un tronçon doit avoir
-   *                           avant qu’on puisse le couper.
+   * @param minDistanceMeters  Longueur minimale (m) qu'un tronçon doit avoir
+   *                           avant qu'on puisse le couper.
    * @returns  Un Sample moyen par tronçon.
    */
   public sampleBySlopeChange(minDistanceMeters: number): Sample[] {
@@ -109,7 +109,7 @@ export class ActivityAnalyzer {
     const STABLE_DIST = 30
     const SLOPE_TOL = 0.02
 
-    /* — 1) Lissage simple de l’altitude — */
+    /* — 1) Lissage simple de l'altitude — */
     const elevSmooth = this.samples.map((_, i) => {
       let sum = 0,
         cnt = 0
@@ -137,7 +137,7 @@ export class ActivityAnalyzer {
 
     const segSamples: Sample[] = []
 
-    /* — 3) Variables d’état — */
+    /* — 3) Variables d'état — */
     let segStart = 0
     let segDir: number | null = null
     let candIdx = -1
@@ -203,6 +203,9 @@ export class ActivityAnalyzer {
   /** Construit un Sample représentatif du segment [a, b[ (b exclu) */
   private buildSegmentSample(a: number, b: number): Sample {
     const seg = this.samples.slice(a, b)
+    if (seg.length === 0) {
+      return { time: 0, distance: 0 }
+    }
     const end = seg[seg.length - 1] // ← distance & time cumulés
 
     const avg = <T extends keyof Sample>(key: T) => {
@@ -224,6 +227,9 @@ export class ActivityAnalyzer {
 
   /* utilitaire */
   private computeAverageSample(arr: Sample[]): Sample {
+    if (arr.length === 0) {
+      return { time: 0, distance: 0 }
+    }
     const avg = (sel: (s: Sample) => number | undefined) => {
       const v = arr.map(sel).filter((x): x is number => x !== undefined)
       return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined
@@ -256,13 +262,13 @@ export class ActivityAnalyzer {
       return Object.fromEntries(targets.map(t => [t, null]))
     }
 
-    /* Assure qu’on dispose de distance & temps cumulés */
+    /* Assure qu'on dispose de distance & temps cumulés */
     const valid = this.samples.every(s => s.distance != null && s.time != null)
     if (!valid) {
       throw new Error('Tous les samples doivent contenir une distance et un temps cumulés.')
     }
 
-    /* --- Fonction utilitaire pour moyenne d’un segment --- */
+    /* --- Fonction utilitaire pour moyenne d'un segment --- */
     const buildAvgSample = (a: number, b: number): Sample => {
       const seg = this.samples.slice(a, b + 1) // b inclus
       const end = seg[seg.length - 1]
@@ -294,7 +300,7 @@ export class ActivityAnalyzer {
 
       let end = 0
       for (let start = 0; start < this.samples.length; start++) {
-        // Avance end jusqu’à couvrir la distance cible
+        // Avance end jusqu'à couvrir la distance cible
         while (
           end < this.samples.length &&
           this.samples[end].distance! - this.samples[start].distance! < target

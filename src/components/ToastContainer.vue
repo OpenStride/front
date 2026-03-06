@@ -30,7 +30,7 @@ const dismiss = (id: number) => ToastService.remove(id)
 .toast {
   width: 100%;
   background: rgba(34, 34, 34, 0.88);
-  color: #fff;
+  color: var(--color-white);
   padding: 12px 16px;
   border-radius: 10px;
   font-size: 14px;
@@ -64,7 +64,7 @@ const dismiss = (id: number) => ToastService.remove(id)
 .toast .close {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--color-white);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;

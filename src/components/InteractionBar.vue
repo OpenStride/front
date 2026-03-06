@@ -224,10 +224,6 @@ onMounted(async () => {
   await checkCanInteract()
   await loadSummary()
   interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent)
-
-  // Debug logs for ID mismatch investigation
-  console.log('[InteractionBar] activityOwnerId:', props.activityOwnerId)
-  console.log('[InteractionBar] myUserId:', myUserId.value)
 })
 
 onUnmounted(() => {
@@ -238,7 +234,7 @@ onUnmounted(() => {
 <style scoped>
 .interaction-bar {
   padding: 0.75rem 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-gray-200);
 }
 
 .interaction-counters {
@@ -252,7 +248,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .counter i {
@@ -260,7 +256,7 @@ onUnmounted(() => {
 }
 
 .like-counter i {
-  color: #e74c3c;
+  color: var(--color-red-500);
 }
 
 .comment-counter i {
@@ -278,18 +274,18 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
-  background: white;
+  background: var(--color-white);
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .action-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-300);
 }
 
 .action-btn:disabled {
@@ -298,13 +294,13 @@ onUnmounted(() => {
 }
 
 .like-btn.liked {
-  color: #e74c3c;
-  border-color: #e74c3c;
-  background: #fef2f2;
+  color: var(--color-red-500);
+  border-color: var(--color-red-500);
+  background: var(--color-red-50);
 }
 
 .like-btn.liked:hover:not(:disabled) {
-  background: #fee2e2;
+  background: var(--color-red-100);
 }
 
 .btn-label {
@@ -313,7 +309,7 @@ onUnmounted(() => {
 
 .last-comment-preview {
   padding: 0.5rem;
-  background: #f9f9f9;
+  background: var(--color-gray-50);
   border-radius: 0.375rem;
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
@@ -321,12 +317,12 @@ onUnmounted(() => {
 
 .comment-author {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   margin-right: 0.375rem;
 }
 
 .comment-text {
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .comment-input-section {
@@ -336,7 +332,7 @@ onUnmounted(() => {
 .comment-textarea {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
   font-size: 0.9rem;
   resize: none;
@@ -357,17 +353,17 @@ onUnmounted(() => {
 
 .char-count {
   font-size: 0.75rem;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .char-count.warning {
-  color: #e67e22;
+  color: var(--color-orange-500);
 }
 
 .submit-btn {
   padding: 0.375rem 0.75rem;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 0.375rem;
   font-size: 0.85rem;
@@ -390,10 +386,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem;
-  background: #fff3cd;
+  background: var(--color-yellow-100);
   border-radius: 0.375rem;
   font-size: 0.8rem;
-  color: #856404;
+  color: var(--color-yellow-800);
 }
 
 .info-message {
@@ -401,10 +397,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem;
-  background: #e8f5e9;
+  background: var(--color-emerald-100);
   border-radius: 0.375rem;
   font-size: 0.8rem;
-  color: #2e7d32;
+  color: var(--color-emerald-700);
 }
 
 .mutual-required-message {
@@ -412,10 +408,10 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: #e3f2fd;
+  background: var(--color-blue-100);
   border-radius: 0.375rem;
   font-size: 0.85rem;
-  color: #1565c0;
+  color: var(--color-blue-700);
 }
 
 .mutual-required-message .message-content {
@@ -430,8 +426,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  background: #1976d2;
-  color: white;
+  background: var(--color-blue-600);
+  color: var(--color-white);
   border: none;
   border-radius: 0.375rem;
   font-size: 0.8rem;
@@ -442,6 +438,6 @@ onUnmounted(() => {
 }
 
 .mutual-required-message .share-btn:hover {
-  background: #1565c0;
+  background: var(--color-blue-700);
 }
 </style>

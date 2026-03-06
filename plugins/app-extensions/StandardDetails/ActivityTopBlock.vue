@@ -10,44 +10,45 @@
   </div>
   <div v-if="activity && details" class="bg-white w-full p-4 shadow rounded-lg">
     <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-      <i :class="iconClass" class="text-[1.5rem]" style="color:#88aa00;"></i>
-      {{ activity.title || formatSport(activity.type) }}
+      <i :class="iconClass" class="text-[1.5rem] activity-icon" aria-hidden="true"></i>
+      {{ activity.title || formatSportType(activity.type) }}
     </h2>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm text-gray-700">
       <div class="flex items-center gap-2">
-        <i class="fas fa-ruler-horizontal text-lg text-gray-600"></i>
+        <i class="fas fa-ruler-horizontal text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ formatDistance(activity.distance) }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <i class="fas fa-mountain text-lg text-gray-600"></i>
+        <i class="fas fa-mountain text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ formatElevation(details.stats?.totalAscent ?? 0) }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <i class="fas fa-stopwatch text-lg text-gray-600"></i>
+        <i class="fas fa-stopwatch text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ formatDuration(activity.duration) }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <i class="fas fa-tachometer-alt text-lg text-gray-600"></i>
+        <i class="fas fa-tachometer-alt text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ formatPace(details.stats?.averageSpeed ?? 0) }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <i class="fas fa-fire text-lg text-gray-600"></i>
+        <i class="fas fa-fire text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ details.stats?.calories ?? 0 }} kcal</span>
       </div>
       <div class="flex items-center gap-2">
-        <i class="fas fa-calendar-alt text-lg text-gray-600"></i>
+        <i class="fas fa-calendar-alt text-lg text-gray-600" aria-hidden="true"></i>
         <span>{{ formatDate(activity.startTime) }}</span>
       </div>
     </div>
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { computed } from 'vue'
-import MapPreview from '@/components/MapPreview.vue';
-import {Activity, ActivityDetails} from '@/types/activity';
+import MapPreview from '@/components/MapPreview.vue'
+import { Activity, ActivityDetails } from '@/types/activity'
+import { formatSportType, getSportIcon } from '@/utils/sportLabels'
+
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
 const activity = computed(() => props.data.activity)
@@ -86,39 +87,16 @@ const formatPace = (metersPerSecond?: number) => {
   return `${min}:${String(sec).padStart(2, '0')} min/km`
 }
 const formatDate = (timestamp?: number) => {
-  if (!timestamp) return 'N/A';
+  if (!timestamp) return 'N/A'
   return new Date(timestamp * 1000).toLocaleString()
 }
 
-const faIcons: Record<string, string> = {
-  RUNNING : 'fas fa-person-running',
-  RUN : 'fas fa-person-running',
-  CYCLING : 'fas fa-person-biking',
-  SWIMMING: 'fas fa-person-swimming',
-  HIKING  : 'fas fa-person-hiking',
-  YOGA    : 'fas fa-person-praying'   // choisis l’icône qui te convient
-}
-
-const iconClass = computed(() =>
-  faIcons[activity.value.type?.toUpperCase() as string] ?? 'fas fa-medal'
-)
-
-const formatSport = (sport: string): string => {
-  const map: Record<string, string> = {
-    RUNNING: 'Course à pied',
-    RUN: 'Course à pied',
-    CYCLING: 'Vélo',
-    SWIMMING: 'Natation',
-    HIKING: 'Randonnée',
-    YOGA: 'Yoga'
-  }
-  return map[sport] || 'Activité'
-}
+const iconClass = computed(() => getSportIcon(activity.value.type))
 </script>
 
 <style scoped>
 .bg-white {
-  background-color: white;
+  background-color: var(--bg-color);
 }
 
 .map-top {
@@ -126,5 +104,9 @@ const formatSport = (sport: string): string => {
   height: 240px;
   padding: 0;
   margin: 0;
+}
+
+.activity-icon {
+  color: var(--color-green-500);
 }
 </style>

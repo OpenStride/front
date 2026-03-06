@@ -3,102 +3,107 @@
 //TODO autoriser les fetch avec les ids de fichiers et dossiers stockés dans IndexedDB
 // afin d'eviter les multiples fetch pour les fichiers et dossiers de la même session
 
-import { GoogleDriveAuthService } from './GoogleDriveAuthService';
+import { GoogleDriveAuthService } from './GoogleDriveAuthService'
 
-const DRIVE_API_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
-const DRIVE_UPLOAD_ENDPOINT = "https://www.googleapis.com/upload/drive/v3/files";
+const DRIVE_API_ENDPOINT = 'https://www.googleapis.com/drive/v3/files'
+const DRIVE_UPLOAD_ENDPOINT = 'https://www.googleapis.com/upload/drive/v3/files'
 
 export class GoogleDriveFileService {
-    private static instance: GoogleDriveFileService;
-    private authService: GoogleDriveAuthService | null = null;
-    private folderId: string | null = null; // ID du dossier OpenStride
-    private manifestFileId: string | null = null;
+  private static instance: GoogleDriveFileService
+  private authService: GoogleDriveAuthService | null = null
+  private folderId: string | null = null // ID du dossier OpenStride
+  private manifestFileId: string | null = null
 
-    private constructor() { }
+  private constructor() {
+    /* singleton */
+  }
 
-    public static async getInstance(): Promise<GoogleDriveFileService> {
-        if (!GoogleDriveFileService.instance) {
-            GoogleDriveFileService.instance = new GoogleDriveFileService();
-            await GoogleDriveFileService.instance.initialize();
-        }
-        return GoogleDriveFileService.instance;
+  public static async getInstance(): Promise<GoogleDriveFileService> {
+    if (!GoogleDriveFileService.instance) {
+      GoogleDriveFileService.instance = new GoogleDriveFileService()
+      await GoogleDriveFileService.instance.initialize()
+    }
+    return GoogleDriveFileService.instance
+  }
+
+  private async initialize() {
+    this.authService = await GoogleDriveAuthService.getInstance()
+    this.folderId = await this.ensureFolderExists('OpenStride')
+  }
+
+  // ✅ 1. Vérifier ou créer le dossier OpenStride
+  private async ensureFolderExists(folderName: string): Promise<string | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('Not authenticated with Google Drive.')
+      return null
     }
 
-    private async initialize() {
-        this.authService = await GoogleDriveAuthService.getInstance();
-        this.folderId = await this.ensureFolderExists("OpenStride");
+    // ✅ Vérifier si le dossier existe déjà
+    const response = await fetch(
+      `${DRIVE_API_ENDPOINT}?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id
+      }
+    } else {
+      console.error('Error searching for folder:', await response.text())
     }
 
-    // ✅ 1. Vérifier ou créer le dossier OpenStride
-    private async ensureFolderExists(folderName: string): Promise<string | null> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("Not authenticated with Google Drive.");
-            return null;
-        }
+    // ✅ Créer le dossier s'il n'existe pas
+    const createResponse = await fetch(DRIVE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder'
+      })
+    })
 
-        // ✅ Vérifier si le dossier existe déjà
-        const response = await fetch(`${DRIVE_API_ENDPOINT}?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.files && data.files.length > 0) {
-                return data.files[0].id;
-            }
-        } else {
-            console.error("Error searching for folder:", await response.text());
-        }
-
-        // ✅ Créer le dossier s'il n'existe pas
-        const createResponse = await fetch(DRIVE_API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: folderName,
-                mimeType: 'application/vnd.google-apps.folder'
-            })
-        });
-
-        if (createResponse.ok) {
-            const folderData = await createResponse.json();
-            return folderData.id;
-        } else {
-            console.error("Error creating folder:", await createResponse.text());
-        }
-
-        return null;
+    if (createResponse.ok) {
+      const folderData = await createResponse.json()
+      return folderData.id
+    } else {
+      console.error('Error creating folder:', await createResponse.text())
     }
 
-    // ✅ 2. Vérifier ou créer le fichier de backup
-    async ensureBackupFile(filename: string): Promise<string | null> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("Not authenticated with Google Drive.");
-            return null;
-        }
+    return null
+  }
 
-        // ✅ Vérifier si le fichier existe dans le dossier
-        const fileId = await this.findBackupFile(filename, accessToken);
-        if (fileId) {
-            return fileId;
-        }
-
-        // ✅ Créer le fichier s'il n'existe pas
-        const newFileId = await this.createBackupFile(filename, accessToken);
-        console.log("Backup file created:", newFileId);
-        return newFileId;
+  // ✅ 2. Vérifier ou créer le fichier de backup
+  async ensureBackupFile(filename: string): Promise<string | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('Not authenticated with Google Drive.')
+      return null
     }
 
-    /*     private async findBackupFileOld(filename: string, accessToken: string): Promise<string | null> {
+    // ✅ Vérifier si le fichier existe dans le dossier
+    const fileId = await this.findBackupFile(filename, accessToken)
+    if (fileId) {
+      return fileId
+    }
+
+    // ✅ Créer le fichier s'il n'existe pas
+    const newFileId = await this.createBackupFile(filename, accessToken)
+    console.log('Backup file created:', newFileId)
+    return newFileId
+  }
+
+  /*     private async findBackupFileOld(filename: string, accessToken: string): Promise<string | null> {
             if (!this.folderId) {
                 console.error("Folder ID not set. Cannot find backup file.");
                 return null;
@@ -124,408 +129,422 @@ export class GoogleDriveFileService {
             return null;
         } */
 
-    private async findBackupFile(filename: string, accessToken: string): Promise<string | null> {
-        // Lazily ensure folder exists if not yet initialized (race-safe)
-        if (!this.folderId) {
-            try {
-                this.folderId = await this.ensureFolderExists("OpenStride");
-            } catch (e) {
-                console.warn('[GDrive] Unable to lazily ensure folder', e);
-            }
-            if (!this.folderId) {
-                // Auth might not be ready yet; return null quietly to let upstream retry later
-                return null;
-            }
-        }
-
-        // ✅ Vérifier uniquement les fichiers dans le dossier OpenStride
-        const query = `name='${filename}' and '${this.folderId}' in parents and trashed=false`;
-        const response = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}&spaces=drive`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.files && data.files.length > 0) {
-                console.log("Backup file found:", data.files[0].id, data.files[0]);
-                return data.files[0].id;
-            } else {
-                console.log("No backup file found in the specified folder.");
-            }
-        } else {
-            console.error("Error listing files:", await response.text());
-        }
-
-        return null;
+  private async findBackupFile(filename: string, accessToken: string): Promise<string | null> {
+    // Lazily ensure folder exists if not yet initialized (race-safe)
+    if (!this.folderId) {
+      try {
+        this.folderId = await this.ensureFolderExists('OpenStride')
+      } catch (e) {
+        console.warn('[GDrive] Unable to lazily ensure folder', e)
+      }
+      if (!this.folderId) {
+        // Auth might not be ready yet; return null quietly to let upstream retry later
+        return null
+      }
     }
 
-    private async createBackupFile(filename: string, accessToken: string): Promise<string | null> {
-        if (!this.folderId) {
-            console.error("Folder ID not set. Cannot create backup file.");
-            return null;
+    // ✅ Vérifier uniquement les fichiers dans le dossier OpenStride
+    const query = `name='${filename}' and '${this.folderId}' in parents and trashed=false`
+    const response = await fetch(
+      `${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}&spaces=drive`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
+      }
+    )
 
-        const response = await fetch(`${DRIVE_API_ENDPOINT}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: filename,
-                mimeType: 'application/json',
-                parents: [this.folderId]
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            return data.id;
-        } else {
-            console.error("Error creating file:", await response.text());
-        }
-
-        return null;
+    if (response.ok) {
+      const data = await response.json()
+      if (data.files && data.files.length > 0) {
+        console.log('Backup file found:', data.files[0].id, data.files[0])
+        return data.files[0].id
+      } else {
+        console.log('No backup file found in the specified folder.')
+      }
+    } else {
+      console.error('Error listing files:', await response.text())
     }
 
-    async writeBackupFileByFileId(fileId: string, content: any) {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("Not authenticated with Google Drive.");
-            return;
-        }
-        const response = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(content)
-        });
+    return null
+  }
 
-        if (response.ok) {
-            console.log("Backup file updated successfully.");
-        } else {
-            console.error("Error writing to backup file:", await response.text());
-        }
+  private async createBackupFile(filename: string, accessToken: string): Promise<string | null> {
+    if (!this.folderId) {
+      console.error('Folder ID not set. Cannot create backup file.')
+      return null
     }
 
-    // ✅ 3. Écrire ou mettre à jour le fichier de backup
-    async writeBackupFile(filename: string, content: any) {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("Not authenticated with Google Drive.");
-            return;
-        }
+    const response = await fetch(`${DRIVE_API_ENDPOINT}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: filename,
+        mimeType: 'application/json',
+        parents: [this.folderId]
+      })
+    })
 
-        const fileId = await this.ensureBackupFile(filename);
-        if (!fileId) {
-            console.error("Failed to ensure backup file.");
-            return;
-        }
-
-        this.writeBackupFileByFileId(fileId, content).catch(error => {
-            console.error("Error writing to backup file:", error);
-        });
+    if (response.ok) {
+      const data = await response.json()
+      return data.id
+    } else {
+      console.error('Error creating file:', await response.text())
     }
 
-    public async readBackupFileContent(fileId: string): Promise<any | null> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) throw new Error("Not authenticated");
+    return null
+  }
 
-        const url = `${DRIVE_API_ENDPOINT}/${fileId}?alt=media`;
-        const resp = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        if (!resp.ok) {
-            console.warn("No existing backup to read, status", resp.status);
-            return null;
-        }
-        return await resp.json();
+  async writeBackupFileByFileId(fileId: string, content: unknown) {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('Not authenticated with Google Drive.')
+      return
+    }
+    const response = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(content)
+    })
+
+    if (response.ok) {
+      console.log('Backup file updated successfully.')
+    } else {
+      console.error('Error writing to backup file:', await response.text())
+    }
+  }
+
+  // ✅ 3. Écrire ou mettre à jour le fichier de backup
+  async writeBackupFile(filename: string, content: unknown) {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('Not authenticated with Google Drive.')
+      return
     }
 
-    // Manifest helpers
-    public async ensureManifest(): Promise<string | null> {
-        if (this.manifestFileId) return this.manifestFileId;
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) return null;
-        const id = await this.findBackupFile('stores_index.json', accessToken);
-        if (id) { this.manifestFileId = id; return id; }
-        const created = await this.createBackupFile('stores_index.json', accessToken);
-        this.manifestFileId = created; return created;
+    const fileId = await this.ensureBackupFile(filename)
+    if (!fileId) {
+      console.error('Failed to ensure backup file.')
+      return
     }
 
-    public async readManifest(): Promise<any | null> {
-        const id = await this.ensureManifest();
-        if (!id) return null;
-        try { return await this.readBackupFileContent(id); } catch { return null; }
+    this.writeBackupFileByFileId(fileId, content).catch(error => {
+      console.error('Error writing to backup file:', error)
+    })
+  }
+
+  public async readBackupFileContent(fileId: string): Promise<unknown> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) throw new Error('Not authenticated')
+
+    const url = `${DRIVE_API_ENDPOINT}/${fileId}?alt=media`
+    const resp = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    if (!resp.ok) {
+      console.warn('No existing backup to read, status', resp.status)
+      return null
+    }
+    return await resp.json()
+  }
+
+  // Manifest helpers
+  public async ensureManifest(): Promise<string | null> {
+    if (this.manifestFileId) return this.manifestFileId
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return null
+    const id = await this.findBackupFile('stores_index.json', accessToken)
+    if (id) {
+      this.manifestFileId = id
+      return id
+    }
+    const created = await this.createBackupFile('stores_index.json', accessToken)
+    this.manifestFileId = created
+    return created
+  }
+
+  public async readManifest(): Promise<unknown> {
+    const id = await this.ensureManifest()
+    if (!id) return null
+    try {
+      return await this.readBackupFileContent(id)
+    } catch {
+      return null
+    }
+  }
+
+  public async writeManifest(manifest: unknown): Promise<void> {
+    const id = await this.ensureManifest()
+    if (!id) {
+      console.warn('[GDrive] cannot write manifest')
+      return
+    }
+    await this.writeBackupFileByFileId(id, manifest)
+  }
+
+  // ========== PUBLIC FILE SHARING METHODS ==========
+
+  private publicFolderId: string | null = null
+
+  /**
+   * Ensure OpenStride/public folder exists (for public sharing)
+   */
+  private async ensurePublicFolder(): Promise<string | null> {
+    if (this.publicFolderId) return this.publicFolderId
+
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return null
+
+    // Ensure parent OpenStride folder exists first
+    if (!this.folderId) {
+      this.folderId = await this.ensureFolderExists('OpenStride')
+    }
+    if (!this.folderId) return null
+
+    // Check if public subfolder exists
+    const query = `name='public' and '${this.folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    const response = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.files && data.files.length > 0) {
+        this.publicFolderId = data.files[0].id
+        return this.publicFolderId
+      }
     }
 
-    public async writeManifest(manifest: any): Promise<void> {
-        const id = await this.ensureManifest();
-        if (!id) { console.warn('[GDrive] cannot write manifest'); return; }
-        await this.writeBackupFileByFileId(id, manifest);
+    // Create public folder
+    const createResponse = await fetch(DRIVE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: 'public',
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [this.folderId]
+      })
+    })
+
+    if (createResponse.ok) {
+      const folderData = await createResponse.json()
+      this.publicFolderId = folderData.id
+      return this.publicFolderId
     }
 
-    // ========== PUBLIC FILE SHARING METHODS ==========
+    console.error('Error creating public folder:', await createResponse.text())
+    return null
+  }
 
-    private publicFolderId: string | null = null;
+  /**
+   * Set file permissions to public (anyone with link can view)
+   */
+  private async makeFilePublic(fileId: string): Promise<boolean> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return false
 
-    /**
-     * Ensure OpenStride/public folder exists (for public sharing)
-     */
-    private async ensurePublicFolder(): Promise<string | null> {
-        if (this.publicFolderId) return this.publicFolderId;
-
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) return null;
-
-        // Ensure parent OpenStride folder exists first
-        if (!this.folderId) {
-            this.folderId = await this.ensureFolderExists("OpenStride");
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            role: 'reader',
+            type: 'anyone'
+          })
         }
-        if (!this.folderId) return null;
+      )
 
-        // Check if public subfolder exists
-        const query = `name='public' and '${this.folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-        const response = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
+      if (!response.ok) {
+        console.error('[GDrive] Failed to make file public:', await response.text())
+        return false
+      }
 
-        if (response.ok) {
-            const data = await response.json();
-            if (data.files && data.files.length > 0) {
-                this.publicFolderId = data.files[0].id;
-                return this.publicFolderId;
-            }
-        }
+      return true
+    } catch (error) {
+      console.error('[GDrive] Error making file public:', error)
+      return false
+    }
+  }
 
-        // Create public folder
-        const createResponse = await fetch(DRIVE_API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: 'public',
-                mimeType: 'application/vnd.google-apps.folder',
-                parents: [this.folderId]
-            })
-        });
-
-        if (createResponse.ok) {
-            const folderData = await createResponse.json();
-            this.publicFolderId = folderData.id;
-            return this.publicFolderId;
-        }
-
-        console.error("Error creating public folder:", await createResponse.text());
-        return null;
+  /**
+   * Write or update a public file in OpenStride/public/ folder
+   * Returns the public download URL
+   */
+  public async writePublicFile(filename: string, content: unknown): Promise<string | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('[GDrive] Not authenticated')
+      return null
     }
 
-    /**
-     * Set file permissions to public (anyone with link can view)
-     */
-    private async makeFilePublic(fileId: string): Promise<boolean> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) return false;
-
-        try {
-            const response = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        role: 'reader',
-                        type: 'anyone'
-                    })
-                }
-            );
-
-            if (!response.ok) {
-                console.error('[GDrive] Failed to make file public:', await response.text());
-                return false;
-            }
-
-            return true;
-        } catch (error) {
-            console.error('[GDrive] Error making file public:', error);
-            return false;
-        }
+    // Ensure public folder exists
+    const publicFolderId = await this.ensurePublicFolder()
+    if (!publicFolderId) {
+      console.error('[GDrive] Failed to ensure public folder')
+      return null
     }
 
-    /**
-     * Write or update a public file in OpenStride/public/ folder
-     * Returns the public download URL
-     */
-    public async writePublicFile(filename: string, content: any): Promise<string | null> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("[GDrive] Not authenticated");
-            return null;
-        }
+    // Check if file exists
+    const query = `name='${filename}' and '${publicFolderId}' in parents and trashed=false`
+    const searchResponse = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
 
-        // Ensure public folder exists
-        const publicFolderId = await this.ensurePublicFolder();
-        if (!publicFolderId) {
-            console.error("[GDrive] Failed to ensure public folder");
-            return null;
-        }
+    let fileId: string | null = null
 
-        // Check if file exists
-        const query = `name='${filename}' and '${publicFolderId}' in parents and trashed=false`;
-        const searchResponse = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        let fileId: string | null = null;
-
-        if (searchResponse.ok) {
-            const data = await searchResponse.json();
-            if (data.files && data.files.length > 0) {
-                fileId = data.files[0].id;
-            }
-        }
-
-        // Create or update file
-        if (fileId) {
-            // Update existing file
-            const updateResponse = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(content)
-            });
-
-            if (!updateResponse.ok) {
-                console.error("[GDrive] Failed to update public file:", await updateResponse.text());
-                return null;
-            }
-        } else {
-            // Create new file
-            const createResponse = await fetch(DRIVE_API_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: filename,
-                    mimeType: 'application/json',
-                    parents: [publicFolderId]
-                })
-            });
-
-            if (!createResponse.ok) {
-                console.error("[GDrive] Failed to create public file:", await createResponse.text());
-                return null;
-            }
-
-            const fileData = await createResponse.json();
-            fileId = fileData.id;
-
-            // Write initial content
-            const writeResponse = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(content)
-            });
-
-            if (!writeResponse.ok) {
-                console.error("[GDrive] Failed to write content to new file:", await writeResponse.text());
-                return null;
-            }
-        }
-
-        // Make file publicly readable
-        const madePublic = await this.makeFilePublic(fileId!);
-        if (!madePublic) {
-            console.warn('[GDrive] File created but could not be made public');
-        }
-
-        // Return public download URL
-        return `https://drive.google.com/uc?id=${fileId}&export=download`;
+    if (searchResponse.ok) {
+      const data = await searchResponse.json()
+      if (data.files && data.files.length > 0) {
+        fileId = data.files[0].id
+      }
     }
 
-    /**
-     * Get public download URL for a file in public folder
-     */
-    public async getPublicFileUrl(filename: string): Promise<string | null> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) return null;
+    // Create or update file
+    if (fileId) {
+      // Update existing file
+      const updateResponse = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(content)
+      })
 
-        const publicFolderId = await this.ensurePublicFolder();
-        if (!publicFolderId) return null;
+      if (!updateResponse.ok) {
+        console.error('[GDrive] Failed to update public file:', await updateResponse.text())
+        return null
+      }
+    } else {
+      // Create new file
+      const createResponse = await fetch(DRIVE_API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: filename,
+          mimeType: 'application/json',
+          parents: [publicFolderId]
+        })
+      })
 
-        const query = `name='${filename}' and '${publicFolderId}' in parents and trashed=false`;
-        const response = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
+      if (!createResponse.ok) {
+        console.error('[GDrive] Failed to create public file:', await createResponse.text())
+        return null
+      }
 
-        if (response.ok) {
-            const data = await response.json();
-            if (data.files && data.files.length > 0) {
-                const fileId = data.files[0].id;
-                return `https://drive.google.com/uc?id=${fileId}&export=download`;
-            }
-        }
+      const fileData = await createResponse.json()
+      fileId = fileData.id
 
-        return null;
+      // Write initial content
+      const writeResponse = await fetch(`${DRIVE_UPLOAD_ENDPOINT}/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(content)
+      })
+
+      if (!writeResponse.ok) {
+        console.error('[GDrive] Failed to write content to new file:', await writeResponse.text())
+        return null
+      }
     }
 
-    /**
-     * Delete a file by its ID (used for cleanup on failed uploads)
-     */
-    public async deleteFile(fileId: string): Promise<boolean> {
-        const accessToken = await this.authService?.getAccessToken();
-        if (!accessToken) {
-            console.error("[GDrive] Not authenticated");
-            return false;
-        }
-
-        try {
-            const response = await fetch(`${DRIVE_API_ENDPOINT}/${fileId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-
-            if (!response.ok) {
-                console.error("[GDrive] Failed to delete file:", await response.text());
-                return false;
-            }
-
-            return true;
-        } catch (error) {
-            console.error("[GDrive] Error deleting file:", error);
-            return false;
-        }
+    // Make file publicly readable
+    const madePublic = await this.makeFilePublic(fileId!)
+    if (!madePublic) {
+      console.warn('[GDrive] File created but could not be made public')
     }
+
+    // Return public download URL
+    return `https://drive.google.com/uc?id=${fileId}&export=download`
+  }
+
+  /**
+   * Get public download URL for a file in public folder
+   */
+  public async getPublicFileUrl(filename: string): Promise<string | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return null
+
+    const publicFolderId = await this.ensurePublicFolder()
+    if (!publicFolderId) return null
+
+    const query = `name='${filename}' and '${publicFolderId}' in parents and trashed=false`
+    const response = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.files && data.files.length > 0) {
+        const fileId = data.files[0].id
+        return `https://drive.google.com/uc?id=${fileId}&export=download`
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Delete a file by its ID (used for cleanup on failed uploads)
+   */
+  public async deleteFile(fileId: string): Promise<boolean> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) {
+      console.error('[GDrive] Not authenticated')
+      return false
+    }
+
+    try {
+      const response = await fetch(`${DRIVE_API_ENDPOINT}/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+
+      if (!response.ok) {
+        console.error('[GDrive] Failed to delete file:', await response.text())
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('[GDrive] Error deleting file:', error)
+      return false
+    }
+  }
 }
