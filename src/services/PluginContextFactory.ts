@@ -24,7 +24,8 @@ export async function createPluginContext(): Promise<PluginContext> {
   return {
     activity: activityService,
     storage: {
-      getData: <T = unknown>(key: string) => storageService.getData(key) as Promise<T | null | undefined>,
+      getData: <T = unknown>(key: string) =>
+        storageService.getData(key) as Promise<T | null | undefined>,
       saveData: (key, data) => storageService.saveData(key, data),
       deleteData: key => storageService.deleteData(key),
       exportDB: storeName => storageService.exportDB(storeName),

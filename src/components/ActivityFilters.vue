@@ -208,7 +208,10 @@ function onAscentMax(e: Event) {
   color: var(--text-color);
   font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   font-family: var(--font-main);
   display: flex;
   align-items: center;

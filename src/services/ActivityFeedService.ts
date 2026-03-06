@@ -77,11 +77,12 @@ export class ActivityFeedService {
     const db = await IndexedDBService.getInstance()
 
     // Load own activities
-    const ownActivities: Activity[] = await db.getAllData('activities')
+    const ownActivities: Activity[] = await db.getAllData<Activity>('activities')
     const ownFeedActivities = ownActivities.map(a => this.transformOwnActivity(a))
 
     // Load friend activities
-    const friendActivities: FriendActivity[] = await db.getAllData('friend_activities')
+    const friendActivities: FriendActivity[] =
+      await db.getAllData<FriendActivity>('friend_activities')
     const friendFeedActivities = friendActivities.map(a => this.transformFriendActivity(a))
 
     // Merge and sort

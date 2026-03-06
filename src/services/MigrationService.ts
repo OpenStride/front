@@ -122,7 +122,8 @@ export class MigrationService {
     )
 
     // Get or initialize migration history
-    const history: MigrationRecord[] = (await db.getData('migration_history')) || []
+    const history: MigrationRecord[] =
+      (await db.getData<MigrationRecord[]>('migration_history')) || []
 
     for (let i = 0; i < pending.length; i++) {
       const migration = pending[i]
@@ -224,7 +225,7 @@ export class MigrationService {
    */
   public async getHistory(): Promise<MigrationRecord[]> {
     const db = await IndexedDBService.getInstance()
-    return (await db.getData('migration_history')) || []
+    return (await db.getData<MigrationRecord[]>('migration_history')) || []
   }
 
   /**

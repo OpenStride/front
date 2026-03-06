@@ -118,7 +118,13 @@ export interface IStorageService {
    * Useful for bulk operations
    */
   addItemsToStore<T>(storeName: string, items: T[], keyFn: (item: T) => IDBValidKey): Promise<void>
+}
 
+/**
+ * Extended storage interface exposed to plugins via PluginContext.
+ * Includes high-level operations that require StorageService (not just IndexedDB).
+ */
+export interface IPluginStorageService extends IStorageService {
   /**
    * Import data one-way from remote storage to local IndexedDB
    * Used after authentication to hydrate a fresh database
@@ -158,10 +164,7 @@ export interface IPluginManager {
 export interface IAggregationService {
   getAggregated(metricId: string, periodType: AggregationPeriod): Promise<AggregatedRecord[]>
   listMetrics(): AggregationMetricDefinition[]
-  rebuildAll(
-    activities: Record<string, unknown>[],
-    detailsMap: Map<string, Record<string, unknown> | null>
-  ): Promise<void>
+  rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>): Promise<void>
   loadConfigFromSettings(): Promise<void>
   subscribe(
     cb: (ev: { metricId: string; periodType: AggregationPeriod; periodKey: string }) => void
@@ -218,7 +221,7 @@ export interface ISyncService {
  */
 export interface PluginContext {
   activity: IActivityService
-  storage: IStorageService
+  storage: IPluginStorageService
   notifications: INotificationService
   plugins: IPluginManager
   aggregation: IAggregationService

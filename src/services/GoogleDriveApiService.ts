@@ -165,10 +165,7 @@ export class GoogleDriveApiService {
    * Retries up to maxRetries times (delays: 1s, 2s).
    * Does not retry on 4xx or other client errors.
    */
-  private async fetchWithRetry<T>(
-    request: () => Promise<T>,
-    maxRetries = 2
-  ): Promise<T> {
+  private async fetchWithRetry<T>(request: () => Promise<T>, maxRetries = 2): Promise<T> {
     for (let attempt = 0; ; attempt++) {
       try {
         return await request()
@@ -182,7 +179,7 @@ export class GoogleDriveApiService {
         console.warn(
           `[GoogleDriveApiService] Request failed with ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
         )
-        await new Promise((resolve) => setTimeout(resolve, delay))
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
   }

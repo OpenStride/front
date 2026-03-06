@@ -1,12 +1,7 @@
 import { IndexedDBService } from './IndexedDBService'
 import { ShareUrlService } from './ShareUrlService'
 import { FriendSyncService } from './FriendSyncService'
-import type {
-  Friend,
-  FriendActivity,
-  FriendSyncResult,
-  FriendServiceEvent
-} from '@/types/friend'
+import type { Friend, FriendActivity, FriendSyncResult, FriendServiceEvent } from '@/types/friend'
 
 /**
  * Handles Friend CRUD and social graph operations.

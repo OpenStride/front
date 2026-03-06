@@ -130,7 +130,7 @@ describe('PWAUpdateService', () => {
       mockWb.register.mockRejectedValue(new Error('Registration failed'))
 
       const events: any[] = []
-      service.emitter.addEventListener('update-error', (evt) => {
+      service.emitter.addEventListener('update-error', evt => {
         events.push((evt as CustomEvent).detail)
       })
 
@@ -152,7 +152,7 @@ describe('PWAUpdateService', () => {
     })
 
     it('should emit update-available when SW is waiting', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const handler = (evt: Event) => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('update-available')
@@ -178,7 +178,7 @@ describe('PWAUpdateService', () => {
     })
 
     it('should NOT emit update-installing on install (prompt mode)', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         let updateInstallingEmitted = false
 
         service.emitter.addEventListener('update-installing', () => {
@@ -204,13 +204,11 @@ describe('PWAUpdateService', () => {
       const installedHandler = eventListeners.get('installed')
       installedHandler!({ isUpdate: false, sw: {} })
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('First install')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('First install'))
     })
 
     it('should emit update-ready when controlling', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         // Mock window.location.reload
         const originalReload = window.location.reload
         const reloadMock = vi.fn()
@@ -273,7 +271,7 @@ describe('PWAUpdateService', () => {
     })
 
     it('should emit update-installing', () => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(resolve => {
         const handler = (evt: Event) => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('update-installing')
@@ -310,9 +308,7 @@ describe('PWAUpdateService', () => {
 
       await service.acceptUpdate()
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('User accepted update')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('User accepted update'))
     })
   })
 
@@ -340,9 +336,7 @@ describe('PWAUpdateService', () => {
 
       service.deferUpdate()
 
-      expect(consoleLog).toHaveBeenCalledWith(
-        expect.stringContaining('Update deferred by user')
-      )
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Update deferred by user'))
     })
   })
 
@@ -381,8 +375,8 @@ describe('PWAUpdateService', () => {
 
       mockServiceWorker.getRegistration.mockResolvedValue(mockRegistration)
 
-      const eventPromise = new Promise<void>((resolve) => {
-        service.emitter.addEventListener('no-update-available', (evt) => {
+      const eventPromise = new Promise<void>(resolve => {
+        service.emitter.addEventListener('no-update-available', evt => {
           const customEvent = evt as CustomEvent
           expect(customEvent.detail.type).toBe('no-update-available')
           resolve()
@@ -405,7 +399,7 @@ describe('PWAUpdateService', () => {
       mockServiceWorker.getRegistration.mockRejectedValue(new Error('Check failed'))
 
       const events: any[] = []
-      service.emitter.addEventListener('update-error', (evt) => {
+      service.emitter.addEventListener('update-error', evt => {
         events.push((evt as CustomEvent).detail)
       })
 
@@ -488,7 +482,7 @@ describe('PWAUpdateService', () => {
       await service.initialize()
 
       const events: any[] = []
-      service.emitter.addEventListener('update-available', (evt) => {
+      service.emitter.addEventListener('update-available', evt => {
         events.push((evt as CustomEvent).detail)
       })
 

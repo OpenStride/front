@@ -91,9 +91,7 @@
             @click="copyToClipboard"
             :class="[
               'px-4 py-2 rounded-md font-medium text-sm transition-colors',
-              copied
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              copied ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             ]"
           >
             <i :class="['fas', copied ? 'fa-check' : 'fa-copy', 'mr-2']" aria-hidden="true"></i>
@@ -253,7 +251,7 @@ const platforms = [
 ]
 
 const currentPlatformPath = computed(() => {
-  return platforms.find((p) => p.id === selectedPlatform.value)?.path || ''
+  return platforms.find(p => p.id === selectedPlatform.value)?.path || ''
 })
 
 const configCode = computed(() => {

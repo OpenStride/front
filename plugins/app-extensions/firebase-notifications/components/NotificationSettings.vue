@@ -67,93 +67,103 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { NotificationService, type NotificationState } from '../services/NotificationService';
-import { isFirebaseConfigured } from '../lib/firebase';
+import { ref, onMounted, computed } from 'vue'
+import { NotificationService, type NotificationState } from '../services/NotificationService'
+import { isFirebaseConfigured } from '../lib/firebase'
 
-const notificationService = NotificationService.getInstance();
-const browserSupportsNotifications = 'Notification' in window;
-const loading = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const notificationService = NotificationService.getInstance()
+const browserSupportsNotifications = 'Notification' in window
+const loading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
 const state = ref<NotificationState>({
   enabled: false,
   token: null,
   tokenTimestamp: null,
   permissionStatus: 'default'
-});
+})
 
 const permissionClass = computed(() => {
   switch (state.value.permissionStatus) {
-    case 'granted': return 'status-granted';
-    case 'denied': return 'status-denied';
-    default: return 'status-default';
+    case 'granted':
+      return 'status-granted'
+    case 'denied':
+      return 'status-denied'
+    default:
+      return 'status-default'
   }
-});
+})
 
 const permissionText = computed(() => {
   switch (state.value.permissionStatus) {
-    case 'granted': return 'Autorisées';
-    case 'denied': return 'Refusées';
-    default: return 'Non demandées';
+    case 'granted':
+      return 'Autorisées'
+    case 'denied':
+      return 'Refusées'
+    default:
+      return 'Non demandées'
   }
-});
+})
 
 const truncatedToken = computed(() => {
-  if (!state.value.token) return '';
-  const token = state.value.token;
-  return token.length > 20 ? `${token.substring(0, 20)}...` : token;
-});
+  if (!state.value.token) return ''
+  const token = state.value.token
+  return token.length > 20 ? `${token.substring(0, 20)}...` : token
+})
 
 onMounted(async () => {
   if (notificationService) {
-    await notificationService.initialize();
-    await loadState();
+    await notificationService.initialize()
+    await loadState()
 
     // Refresh token if needed (older than 30 days)
-    await notificationService.refreshTokenIfNeeded();
+    await notificationService.refreshTokenIfNeeded()
   }
-});
+})
 
 async function loadState() {
-  if (!notificationService) return;
-  state.value = await notificationService.getState();
+  if (!notificationService) return
+  state.value = await notificationService.getState()
 }
 
 async function toggleNotifications(event: Event) {
-  if (!notificationService) return;
+  if (!notificationService) return
 
-  const checkbox = event.target as HTMLInputElement;
-  const shouldEnable = checkbox.checked;
+  const checkbox = event.target as HTMLInputElement
+  const shouldEnable = checkbox.checked
 
-  loading.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
+  loading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
 
   try {
     if (shouldEnable) {
-      const result = await notificationService.enable();
+      const result = await notificationService.enable()
       if (result.success) {
-        successMessage.value = 'Notifications activées avec succès !';
-        setTimeout(() => { successMessage.value = ''; }, 3000);
+        successMessage.value = 'Notifications activées avec succès !'
+        setTimeout(() => {
+          successMessage.value = ''
+        }, 3000)
       } else {
-        errorMessage.value = result.error || 'Erreur lors de l\'activation';
-        checkbox.checked = false;
+        errorMessage.value = result.error || "Erreur lors de l'activation"
+        checkbox.checked = false
       }
     } else {
-      await notificationService.disable();
-      successMessage.value = 'Notifications désactivées';
-      setTimeout(() => { successMessage.value = ''; }, 3000);
+      await notificationService.disable()
+      successMessage.value = 'Notifications désactivées'
+      setTimeout(() => {
+        successMessage.value = ''
+      }, 3000)
     }
 
-    await loadState();
+    await loadState()
   } catch (error) {
-    console.error('Toggle notifications error:', error);
-    errorMessage.value = 'Une erreur est survenue';
-    checkbox.checked = !shouldEnable;
+    console.error('Toggle notifications error:', error)
+    errorMessage.value = 'Une erreur est survenue'
+    checkbox.checked = !shouldEnable
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 </script>
@@ -260,7 +270,7 @@ async function toggleNotifications(event: Event) {
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 18px;
   width: 18px;
   left: 3px;

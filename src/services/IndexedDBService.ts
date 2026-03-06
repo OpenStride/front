@@ -224,7 +224,7 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
-  async getData(key: string): Promise<unknown> {
+  async getData<T = unknown>(key: string): Promise<T | null | undefined> {
     return new Promise((resolve, reject) => {
       if (!this.db) return reject(new Error('DB not initialized'))
 
@@ -239,7 +239,7 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
-  public getAllData(storeName: string): Promise<unknown[]> {
+  public getAllData<T = unknown>(storeName: string): Promise<T[]> {
     if (!this.db) throw new Error('DB not initialized')
 
     return new Promise((resolve, reject) => {
@@ -252,7 +252,7 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
-  async getDataFromStore(storeName: string, key: string): Promise<unknown> {
+  async getDataFromStore<T = unknown>(storeName: string, key: string): Promise<T | null> {
     return new Promise((resolve, reject) => {
       if (!this.db) return reject(new Error('DB not initialized'))
 

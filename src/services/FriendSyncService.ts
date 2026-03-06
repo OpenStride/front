@@ -77,10 +77,7 @@ export class FriendSyncService {
   /**
    * Check if a friend has us in their "following" list (mutual friendship)
    */
-  public async checkMutualFriendship(
-    friend: Friend,
-    manifest: PublicManifest
-  ): Promise<boolean> {
+  public async checkMutualFriendship(friend: Friend, manifest: PublicManifest): Promise<boolean> {
     const interactionService = getInteractionService()
     const myUserId = await interactionService.getMyUserId()
 

@@ -4,7 +4,14 @@ import ActivityTopBlock from '@plugins/app-extensions/StandardDetails/ActivityTo
 
 function makeData() {
   return {
-    activity: { id: 'a1', type: 'RUNNING', distance: 5000, duration: 1500, startTime: Math.floor(Date.now()/1000), provider: 'mock' },
+    activity: {
+      id: 'a1',
+      type: 'RUNNING',
+      distance: 5000,
+      duration: 1500,
+      startTime: Math.floor(Date.now() / 1000),
+      provider: 'mock'
+    },
     details: { id: 'a1', stats: { totalAscent: 120, averageSpeed: 3, calories: 400 }, samples: [] }
   }
 }

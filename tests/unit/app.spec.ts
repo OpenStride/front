@@ -21,39 +21,39 @@ vi.mock('@/services/IndexedDBService', () => ({
 
 // Create i18n instance for tests
 const i18n = createI18n({
-    legacy: false,
-    locale: 'en',
-    fallbackLocale: 'en',
-    messages: { en, fr }
+  legacy: false,
+  locale: 'en',
+  fallbackLocale: 'en',
+  messages: { en, fr }
 })
 
 // Fake router for testing
 const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [
-        {
-            path: '/',
-            component: {
-                template: '<div>Home Page</div>'
-            }
-        }
-    ]
+  history: createMemoryHistory(),
+  routes: [
+    {
+      path: '/',
+      component: {
+        template: '<div>Home Page</div>'
+      }
+    }
+  ]
 })
 
 describe('App.vue global layout', () => {
-    it('affiche le header et la route par défaut', async () => {
-        router.push('/')
-        await router.isReady()
+  it('affiche le header et la route par défaut', async () => {
+    router.push('/')
+    await router.isReady()
 
-        const wrapper = mount(App, {
-            global: {
-                plugins: [router, i18n]
-            }
-        })
-
-        expect(wrapper.findComponent({ name: 'AppHeader' }).exists()).toBe(true)
-        expect(wrapper.text().toLowerCase()).toContain('openstride') // si visible dans le header
-        expect(wrapper.text().toLowerCase()).toContain('profile') // si visible dans le header
-        expect(wrapper.text()).toContain('Home Page')
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router, i18n]
+      }
     })
+
+    expect(wrapper.findComponent({ name: 'AppHeader' }).exists()).toBe(true)
+    expect(wrapper.text().toLowerCase()).toContain('openstride') // si visible dans le header
+    expect(wrapper.text().toLowerCase()).toContain('profile') // si visible dans le header
+    expect(wrapper.text()).toContain('Home Page')
+  })
 })

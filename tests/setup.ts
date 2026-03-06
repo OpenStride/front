@@ -10,8 +10,12 @@ vi.mock('chart.js/auto', () => ({
     render() {}
     stop() {}
     clear() {}
-    toBase64Image() { return '' }
-    generateLegend() { return '' }
+    toBase64Image() {
+      return ''
+    }
+    generateLegend() {
+      return ''
+    }
     static register() {}
     static unregister() {}
   }
@@ -27,8 +31,12 @@ vi.mock('chart.js', () => ({
     render() {}
     stop() {}
     clear() {}
-    toBase64Image() { return '' }
-    generateLegend() { return '' }
+    toBase64Image() {
+      return ''
+    }
+    generateLegend() {
+      return ''
+    }
     static register() {}
     static unregister() {}
   },

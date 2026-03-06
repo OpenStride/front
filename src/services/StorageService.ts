@@ -121,7 +121,7 @@ export class StorageService {
         }
 
         try {
-          const localData = await dbService.exportDB(store)
+          const localData = (await dbService.exportDB(store)) as StoreRecord[]
           // Compute local hash early to possibly skip remote read
           let localHash: string | null = null
           try {
@@ -142,7 +142,7 @@ export class StorageService {
             console.log(`[StorageService][skip] store="${store}" hash match (${localHash})`)
             continue // skip this store entirely (no change)
           }
-          const remoteData: StoreRecord[] = await plugin.readRemote(store)
+          const remoteData = (await plugin.readRemote(store)) as StoreRecord[]
 
           const localMap = new Map(localData.map((item: StoreRecord) => [keyFn(item), item]))
           const remoteMap = new Map(remoteData.map((item: StoreRecord) => [keyFn(item), item]))
@@ -227,7 +227,7 @@ export class StorageService {
       contentHash: string
     }> = []
     for (const store of dbStores) {
-      let items = await dbService.exportDB(store).catch(() => [])
+      let items = (await dbService.exportDB(store).catch(() => [])) as StoreRecord[]
       // Exclude internal manifest summary record from hashing & counts
       if (store === 'settings') {
         items = items.filter((it: StoreRecord) => it?.key !== 'lastStorageManifestSummary')
@@ -253,7 +253,7 @@ export class StorageService {
     // Check previous snapshot to avoid constant churn
     let previousAggregate: string | null = null
     try {
-      const prev = await dbService.getData('lastStorageManifestSummary')
+      const prev = await dbService.getData<{ aggregateHash: string }>('lastStorageManifestSummary')
       previousAggregate = prev?.aggregateHash || null
     } catch {
       /* ignore */
@@ -270,9 +270,7 @@ export class StorageService {
         console.warn('[StorageService] Failed to persist local manifest summary', e)
       }
       await Promise.all(
-        plugins
-          .filter(p => p.updateManifest)
-          .map(p => p.updateManifest!(summary, aggregateHash))
+        plugins.filter(p => p.updateManifest).map(p => p.updateManifest!(summary, aggregateHash))
       )
     }
   }
@@ -315,10 +313,10 @@ export class StorageService {
         }
         for (const store of targetStores) {
           try {
-            const [localData, remoteData] = await Promise.all([
+            const [localData, remoteData] = (await Promise.all([
               db.exportDB(store).catch(() => [] as StoreRecord[]),
               plugin.readRemote(store).catch(() => [] as StoreRecord[])
-            ])
+            ])) as [StoreRecord[], StoreRecord[]]
             if (!Array.isArray(remoteData) || remoteData.length === 0) continue
             const localMap = new Map<string, StoreRecord>(
               localData.map((i: StoreRecord) => [keyFn(i), i])

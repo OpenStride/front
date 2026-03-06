@@ -181,9 +181,7 @@ const showDetails = () => {
     const fa = props.activity as Activity & Partial<FriendActivity>
     const fId =
       fa.friendId ||
-      (props.activity.provider?.startsWith('friend_')
-        ? props.activity.provider.substring(7)
-        : null)
+      (props.activity.provider?.startsWith('friend_') ? props.activity.provider.substring(7) : null)
     const activityId = fa.activityId || props.activity.id
 
     if (fId && activityId) {

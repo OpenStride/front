@@ -1,6 +1,6 @@
 // plugins/storage-providers/GDrive/client/GoogleDriveAuthService.ts
 import { getPluginContext } from '@/services/PluginContextFactory'
-import type { IStorageService } from '@/types/plugin-context'
+import type { IPluginStorageService } from '@/types/plugin-context'
 import { generateCodeChallenge, generateRandomString } from './pkceUtils'
 
 // OAuth Client type: Web application (exige client_secret même avec PKCE)
@@ -18,7 +18,7 @@ const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 
 export class GoogleDriveAuthService {
   private static instance: GoogleDriveAuthService
-  private dbService: IStorageService | null = null
+  private dbService: IPluginStorageService | null = null
 
   private constructor() {
     /* singleton */
@@ -40,9 +40,9 @@ export class GoogleDriveAuthService {
   async getAccessToken(): Promise<string | null> {
     if (!this.dbService) return null
 
-    const accessToken = await this.dbService.getData('gdrive_access_token')
-    const refreshToken = await this.dbService.getData('gdrive_refresh_token')
-    const accessTokenExpireTimestamp = await this.dbService.getData(
+    const accessToken = await this.dbService.getData<string>('gdrive_access_token')
+    const refreshToken = await this.dbService.getData<string>('gdrive_refresh_token')
+    const accessTokenExpireTimestamp = await this.dbService.getData<number>(
       'gdrive_access_token_expire_timestamp'
     )
     const now = Date.now()
@@ -78,7 +78,7 @@ export class GoogleDriveAuthService {
         // Attempt initial hydration after silent refresh
         this.dbService
           ?.importFromRemote(['activities', 'activity_details', 'settings'])
-          .catch(err => console.warn('[GDrive] hydration after refresh failed', err))
+          .catch((err: unknown) => console.warn('[GDrive] hydration after refresh failed', err))
         return tokenData.access_token
       } else {
         console.error('Error refreshing access token:', await tokenResponse.text())
@@ -129,7 +129,7 @@ export class GoogleDriveAuthService {
       // Hydrate local stores now that we have first access token
       this.dbService
         ?.importFromRemote(['activities', 'activity_details', 'settings'])
-        .catch(err => console.warn('[GDrive] initial hydration failed', err))
+        .catch((err: unknown) => console.warn('[GDrive] initial hydration failed', err))
 
       return tokenData.access_token
     } else {

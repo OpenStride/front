@@ -2,7 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { ActivityAnalyzer } from '@/services/ActivityAnalyzer'
 import type { Sample } from '@/types/activity'
 
-function buildSegment(startDist: number, length: number, slopePct: number, startElev: number, speed = 3, step = 10): Sample[] {
+function buildSegment(
+  startDist: number,
+  length: number,
+  slopePct: number,
+  startElev: number,
+  speed = 3,
+  step = 10
+): Sample[] {
   const out: Sample[] = []
   const metersPerSample = step
   const elevPerMeter = slopePct / 100
@@ -53,7 +60,7 @@ describe('ActivityAnalyzer.sampleBySlopeChange', () => {
     const segs = analyzer.sampleBySlopeChange(100)
     expect(segs.length).toBeGreaterThanOrEqual(1)
     const last = segs[segs.length - 1]
-    expect((last.distance ?? 0)).toBeGreaterThanOrEqual(samples[samples.length - 1].distance!)
+    expect(last.distance ?? 0).toBeGreaterThanOrEqual(samples[samples.length - 1].distance!)
   })
 
   it('retourne un seul segment pour un parcours quasi plat bruité', () => {

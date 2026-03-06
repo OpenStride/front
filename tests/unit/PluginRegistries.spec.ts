@@ -13,8 +13,10 @@ vi.mock('@/services/IndexedDBService', () => ({
       }
       return this.instance
     }
-    async getData() { return null }
-    async saveData() { }
+    async getData() {
+      return null
+    }
+    async saveData() {}
     emitter = new EventTarget()
   }
 }))

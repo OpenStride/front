@@ -53,13 +53,13 @@ export class InteractionService {
     const db = await IndexedDBService.getInstance()
 
     // First check for stable stored ID (new approach)
-    const storedUserId = await db.getData('myUserId')
+    const storedUserId = await db.getData<string>('myUserId')
     if (storedUserId) {
       return storedUserId
     }
 
     // Fallback: check if user has published (legacy)
-    const myPublicUrl = await db.getData('myPublicUrl')
+    const myPublicUrl = await db.getData<string>('myPublicUrl')
     if (!myPublicUrl) {
       return null
     }
@@ -77,7 +77,7 @@ export class InteractionService {
     const db = await IndexedDBService.getInstance()
 
     // Check if already exists
-    const existing = await db.getData('myUserId')
+    const existing = await db.getData<string>('myUserId')
     if (existing) {
       return existing
     }
@@ -102,7 +102,7 @@ export class InteractionService {
    */
   public async getMyUsername(): Promise<string> {
     const db = await IndexedDBService.getInstance()
-    return (await db.getData('username')) || 'Utilisateur'
+    return (await db.getData<string>('username')) || 'Utilisateur'
   }
 
   /**
