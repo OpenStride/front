@@ -71,7 +71,7 @@ router.beforeEach(async (to, from, next) => {
   // Empêcher accès à /onboarding si déjà complété
   if (to.path === '/onboarding') {
     const db = await IndexedDBService.getInstance()
-    const state = await db.getData('onboarding_state')
+    const state = await db.getData<{ completed?: boolean }>('onboarding_state')
     if (state?.completed) {
       return next('/my-activities')
     }

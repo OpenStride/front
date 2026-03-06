@@ -1,5 +1,6 @@
 // src/services/AppPluginRegistry.ts
 import type { ExtensionPlugin } from '@/types/extension'
+import type { Component } from 'vue'
 import { AppExtensionPluginManager } from '@/services/AppExtensionPluginManager'
 
 // Chargement automatique de tous les plugins applicatifs
@@ -15,7 +16,7 @@ export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
   return allAppPlugins.filter(p => enabledIds.includes(p.id))
 }
 
-export async function getPluginViewsForSlot(slotName: string): Promise<unknown[]> {
+export async function getPluginViewsForSlot(slotName: string): Promise<Component[]> {
   const plugins = await getActiveAppPlugins()
   const views = []
 

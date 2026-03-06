@@ -25,7 +25,7 @@ export function getBrowserLocale(): Locale {
 export async function getInitialLocale(): Promise<Locale> {
   try {
     const db = await IndexedDBService.getInstance()
-    const savedLocale = await db.getData('user_locale')
+    const savedLocale = await db.getData<Locale>('user_locale')
     if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale)) {
       return savedLocale as Locale
     }

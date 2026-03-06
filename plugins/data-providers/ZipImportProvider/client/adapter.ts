@@ -113,30 +113,27 @@ export function adaptZipDetails(zip: ZipRawData): ActivityDetails {
   )
   // Samples: records (FIT), ou samples (FIT)
   const samples = (zip.records ?? zip.samples ?? []).map((m: RawRecord) => ({
-    time: m.elapsed_time ?? m.timer_time ?? (m.timestamp ? toTimestamp(m.timestamp) - start : 0),
+    time: Number(
+      m.elapsed_time ?? m.timer_time ?? (m.timestamp ? toTimestamp(m.timestamp) - start : 0)
+    ),
     distance: Number(m.distance ?? 0),
-    lat: m.position_lat ?? m.start_position_lat ?? null,
-    lng: m.position_long ?? m.start_position_long ?? null,
-    elevation: m.elevation ?? m.enhanced_altitude ?? null,
-    heartRate: m.heart_rate ?? null,
-    cadence: m.cadence ?? null,
-    speed: m.enhanced_speed ?? null,
-    timestamp: m.timestamp ? toTimestamp(m.timestamp) : null
+    lat: (m.position_lat ?? m.start_position_lat ?? undefined) as number | undefined,
+    lng: (m.position_long ?? m.start_position_long ?? undefined) as number | undefined,
+    elevation: (m.elevation ?? m.enhanced_altitude ?? undefined) as number | undefined,
+    heartRate: (m.heart_rate ?? undefined) as number | undefined,
+    cadence: (m.cadence ?? undefined) as number | undefined,
+    speed: (m.enhanced_speed ?? undefined) as number | undefined
   }))
 
   // Laps: FIT laps
   const laps = (zip.laps ?? []).map((lap: RawRecord) => ({
-    time:
+    time: Number(
       lap.total_timer_time ??
-      lap.total_elapsed_time ??
-      (lap.start_time ? toTimestamp(lap.start_time) - start : 0),
-    startTime: lap.start_time ? toTimestamp(lap.start_time) : null,
-    endTime: lap.end_time ? toTimestamp(lap.end_time) : null,
-    distance: lap.total_distance ?? 0,
-    avgHeartRate: lap.avg_heart_rate ?? null,
-    maxHeartRate: lap.max_heart_rate ?? null,
-    avgCadence: lap.avg_cadence ?? null,
-    maxCadence: lap.max_cadence ?? null
+        lap.total_elapsed_time ??
+        (lap.start_time ? toTimestamp(lap.start_time) - start : 0)
+    ),
+    duration: Number(lap.total_timer_time ?? lap.total_elapsed_time ?? 0),
+    distance: Number(lap.total_distance ?? 0)
   }))
 
   return {

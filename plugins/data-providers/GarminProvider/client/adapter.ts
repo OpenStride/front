@@ -52,7 +52,9 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
   }))
 
   const laps = garmin.laps?.map((lap: RawRecord) => ({
-    time: (lap.startTimeInSeconds as number) - start
+    time: (lap.startTimeInSeconds as number) - start,
+    duration: (lap.durationInSeconds as number) || 0,
+    distance: (lap.totalDistanceInMeters as number) || 0
   }))
 
   return {
