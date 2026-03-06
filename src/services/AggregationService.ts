@@ -1,5 +1,6 @@
 import { IndexedDBService } from './IndexedDBService'
 import { getActivityService, type ActivityServiceEvent } from './ActivityService'
+import type { Activity, ActivityDetails } from '@/types/activity'
 import type {
   AggregationMetricDefinition,
   AggregatedRecord,
@@ -35,10 +36,10 @@ export class AggregationService {
 
   async loadConfigFromSettings() {
     const db = await IndexedDBService.getInstance()
-    const cfg = await db.getData('aggregationConfig')
+    const cfg = await db.getData<{ metrics: AggregationMetricDefinition[] }>('aggregationConfig')
     console.log('[AggregationService] Loaded config:', cfg)
     if (cfg && Array.isArray(cfg.metrics)) {
-      this.metrics = cfg.metrics as AggregationMetricDefinition[]
+      this.metrics = cfg.metrics
     } else {
       // default sample metrics
       this.metrics = []
@@ -55,17 +56,19 @@ export class AggregationService {
     const activityService = await getActivityService()
 
     this.activityServiceListener = async (evt: Event) => {
-      const e = evt as CustomEvent<ActivityServiceEvent>
-      const { type, activity, details } = e.detail
+      try {
+        const e = evt as CustomEvent<ActivityServiceEvent>
+        const { type, activity, details } = e.detail
 
-      console.log(`[AggregationService] Activity ${type}: ${activity.id}`)
+        console.log(`[AggregationService] Activity ${type}: ${activity.id}`)
 
-      if (type === 'deleted') {
-        // Subtract from aggregations
-        await this.removeActivityFromAggregation(activity, details)
-      } else {
-        // Add or update aggregations (saved, updated)
-        await this.addActivityForAggregation(activity, details)
+        if (type === 'deleted') {
+          await this.removeActivityFromAggregation(activity, details)
+        } else {
+          await this.addActivityForAggregation(activity, details)
+        }
+      } catch (error) {
+        console.error('[AggregationService] Error handling activity event:', error)
       }
     }
 
@@ -99,12 +102,22 @@ export class AggregationService {
     this.subscribers.forEach(s => {
       try {
         s(ev)
-      } catch {}
+      } catch {
+        /* ignored */
+      }
     })
   }
 
-  private getValueByPath(obj: any, path: string) {
-    return path.split('.').reduce((acc, p) => (acc && acc[p] != null ? acc[p] : undefined), obj)
+  private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
+    return path
+      .split('.')
+      .reduce(
+        (acc: unknown, p) =>
+          acc != null && typeof acc === 'object' && p in (acc as Record<string, unknown>)
+            ? (acc as Record<string, unknown>)[p]
+            : undefined,
+        obj as unknown
+      )
   }
 
   private periodKey(period: AggregationPeriod, date: Date) {
@@ -118,20 +131,28 @@ export class AggregationService {
     }
   }
 
-  async addActivityForAggregation(activity: any, details: any) {
+  async addActivityForAggregation(
+    activity: Activity | null,
+    details: ActivityDetails | null | undefined
+  ) {
     if (!activity) return
-    const merged = { ...activity, ...details }
-    console.log('[AggregationService] Merging activity', activity?.id, 'merged :', merged)
+    const merged: Record<string, unknown> = {
+      ...(activity as unknown as Record<string, unknown>),
+      ...(details as unknown as Record<string, unknown>)
+    }
+    console.log('[AggregationService] Merging activity', activity.id, 'merged :', merged)
     // heuristique startTime ms or sec
     const startTs = merged.startTime || merged.start_time || merged.timestamp
     if (!startTs) {
-      console.log('[AggregationService] No startTime for activity', activity?.id)
+      console.log('[AggregationService] No startTime for activity', activity.id)
       return
     }
-    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : startTs)
+    const date = new Date(
+      typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : (startTs as number)
+    )
 
     const db = await IndexedDBService.getInstance()
-    console.log('[AggregationService] Aggregating activity', activity?.id, 'details:', details)
+    console.log('[AggregationService] Aggregating activity', activity.id, 'details:', details)
 
     for (const metric of this.metrics) {
       if (!metric.enabled) continue
@@ -141,7 +162,7 @@ export class AggregationService {
         raw
       )
       if (raw == null) continue
-      const numeric = typeof raw === 'number' ? raw : parseFloat(raw)
+      const numeric = typeof raw === 'number' ? raw : parseFloat(String(raw))
       if (isNaN(numeric)) {
         console.log(
           `[AggregationService] Metric ${metric.id} value is NaN for activity ${activity?.id}`
@@ -154,7 +175,7 @@ export class AggregationService {
         const id = `${metric.id}|${p}|${key}`
         let record: AggregatedRecord | null = null
         try {
-          record = await db.getDataFromStore('aggregatedData', id)
+          record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', id)
         } catch {
           /* ignore */
         }
@@ -188,17 +209,25 @@ export class AggregationService {
    * Remove activity from aggregations (decrement counters)
    * Called when an activity is soft-deleted
    */
-  async removeActivityFromAggregation(activity: any, details: any) {
+  async removeActivityFromAggregation(
+    activity: Activity | null,
+    details: ActivityDetails | null | undefined
+  ) {
     if (!activity) return
-    const merged = { ...activity, ...details }
+    const merged: Record<string, unknown> = {
+      ...(activity as unknown as Record<string, unknown>),
+      ...(details as unknown as Record<string, unknown>)
+    }
 
     // heuristique startTime ms or sec
     const startTs = merged.startTime || merged.start_time || merged.timestamp
     if (!startTs) {
-      console.log('[AggregationService] No startTime for deleted activity', activity?.id)
+      console.log('[AggregationService] No startTime for deleted activity', activity.id)
       return
     }
-    const date = new Date(typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : startTs)
+    const date = new Date(
+      typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : (startTs as number)
+    )
 
     const db = await IndexedDBService.getInstance()
     console.log('[AggregationService] Removing activity from aggregations', activity?.id)
@@ -207,7 +236,7 @@ export class AggregationService {
       if (!metric.enabled) continue
       const raw = this.getValueByPath(merged, metric.sourceRef)
       if (raw == null) continue
-      const numeric = typeof raw === 'number' ? raw : parseFloat(raw)
+      const numeric = typeof raw === 'number' ? raw : parseFloat(String(raw))
       if (isNaN(numeric)) continue
 
       for (const p of metric.periods) {
@@ -216,7 +245,7 @@ export class AggregationService {
 
         let record: AggregatedRecord | null = null
         try {
-          record = await db.getDataFromStore('aggregatedData', id)
+          record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', id)
         } catch {
           // Record doesn't exist, nothing to remove
           continue
@@ -249,18 +278,16 @@ export class AggregationService {
     periodType: AggregationPeriod
   ): Promise<AggregatedRecord[]> {
     const db = await IndexedDBService.getInstance()
-    const all = await db.getAllData('aggregatedData')
+    const all = await db.getAllData<AggregatedRecord>('aggregatedData')
     console.log(
       `[AggregationService] getAggregated metricId=${metricId} periodType=${periodType} found`,
       all.length,
       'records'
     )
-    return (all as AggregatedRecord[]).filter(
-      r => r.metricId === metricId && r.periodType === periodType
-    )
+    return all.filter(r => r.metricId === metricId && r.periodType === periodType)
   }
 
-  async rebuildAll(activities: any[], detailsMap: Map<string, any>) {
+  async rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>) {
     const db = await IndexedDBService.getInstance()
     console.log(
       '[AggregationService] rebuildAll activities:',

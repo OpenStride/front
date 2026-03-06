@@ -41,15 +41,15 @@ Plugins access core services exclusively through `PluginContext` -- never via di
 
 Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts`):
 
-| Interface              | Key methods                                                              |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `ctx.activity`         | `saveActivityWithDetails()`, `getAllActivities()`, `getDetails()`, `deleteActivity()` |
-| `ctx.storage`          | `getData()`, `saveData()`, `deleteData()`, `exportDB()`                  |
-| `ctx.notifications`    | `notify(message, { type, timeout })`                                     |
-| `ctx.plugins`          | `isPluginActive(id)`, `enablePlugin(id)`                                 |
-| `ctx.aggregation`      | `getAggregated(metric, period)`, `listMetrics()`                         |
-| `ctx.friends`          | `publishPublicData()`, `getMyManifestUrl()`                              |
-| `ctx.analyzer`         | `create(samples)` returns `{ bestSegments() }`                           |
+| Interface           | Key methods                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `ctx.activity`      | `saveActivityWithDetails()`, `getAllActivities()`, `getDetails()`, `deleteActivity()` |
+| `ctx.storage`       | `getData()`, `saveData()`, `deleteData()`, `exportDB()`                               |
+| `ctx.notifications` | `notify(message, { type, timeout })`                                                  |
+| `ctx.plugins`       | `isPluginActive(id)`, `enablePlugin(id)`                                              |
+| `ctx.aggregation`   | `getAggregated(metric, period)`, `listMetrics()`                                      |
+| `ctx.friends`       | `publishPublicData()`, `getMyManifestUrl()`                                           |
+| `ctx.analyzer`      | `create(samples)` returns `{ bestSegments() }`                                        |
 
 ### Creating a New Plugin
 
@@ -129,3 +129,31 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
 - Deployment: `docs/DEPLOYMENT.md`
+
+---
+
+# Axon — Impact-driven development
+
+This project uses axon for structural impact analysis. Use `/wanadev-axon-plan` for the full workflow.
+
+## Risk thresholds
+
+| Condition                                    | Action                            |
+| -------------------------------------------- | --------------------------------- |
+| Sensitive cluster (Payments / Auth / Export) | **STOP** — explicit confirmation  |
+| will_break > 10 symbols                      | **STOP** — explicit confirmation  |
+| will_break 4–10 symbols                      | Present report, wait for "ok"     |
+| will_break ≤ 3 symbols                       | Proceed, mention affected symbols |
+
+## Axon MCP tools
+
+```
+axon_query("concept")       axon_context("Symbol")      axon_impact("Symbol")
+axon_dead_code()            axon_detect_changes()        axon_cypher("MATCH ...")
+```
+
+## Sensitive clusters
+
+<!-- Fill in after axon analyze -->
+
+- _To be filled_

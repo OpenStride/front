@@ -16,7 +16,7 @@
         >
           <div class="flex items-center space-x-4">
             <img v-if="provider.icon" :src="provider.icon" :alt="provider.label" class="w-8 h-8" />
-            <i v-else class="fas fa-plug text-green-600 text-xl"></i>
+            <i v-else class="fas fa-plug text-green-600 text-xl" aria-hidden="true"></i>
             <div>
               <span class="font-semibold block">{{ provider.label }}</span>
               <p v-if="provider.description" class="text-sm text-gray-500">
@@ -39,7 +39,8 @@
         @click="selectedProviderId = null"
         class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
       >
-        <i class="fas fa-arrow-left"></i> {{ t('onboarding.provider.backButton') }}
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        {{ t('onboarding.provider.backButton') }}
       </button>
 
       <div class="bg-white p-6 rounded shadow">
@@ -52,18 +53,18 @@
       v-if="hasActivities"
       class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded"
     >
-      <i class="fas fa-check-circle text-2xl"></i>
+      <i class="fas fa-check-circle text-2xl" aria-hidden="true"></i>
       <p class="font-medium">{{ t('onboarding.provider.success') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, watch, shallowRef, onMounted, onUnmounted, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { allProviderPlugins } from '@/services/ProviderPluginRegistry'
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
-import { getActivityDBService } from '@/services/ActivityDBService'
+import { getActivityService } from '@/services/ActivityService'
 
 const { t } = useI18n()
 
@@ -78,7 +79,7 @@ const emit = defineEmits<{
 
 const manager = DataProviderPluginManager.getInstance()
 const selectedProviderId = ref(props.savedProviderId || null)
-const setupComponent = shallowRef<any>(null)
+const setupComponent = shallowRef<VueComponent | null>(null)
 const hasActivities = ref(false)
 
 // Charger setup component quand provider sélectionné
@@ -124,8 +125,8 @@ function startPolling() {
   if (pollInterval) return
 
   pollInterval = setInterval(async () => {
-    const activityDb = await getActivityDBService()
-    const activities = await activityDb.getActivities({ limit: 1, offset: 0 })
+    const activitySvc = await getActivityService()
+    const activities = await activitySvc.getAllActivities()
 
     if (activities.length > 0 && !hasActivities.value) {
       hasActivities.value = true

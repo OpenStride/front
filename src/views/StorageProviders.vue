@@ -9,14 +9,14 @@
           class="flex items-center justify-between bg-white p-4 rounded shadow hover:shadow-md transition"
         >
           <div class="flex items-center space-x-4">
-            <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
+            <img :src="plugin.icon" alt="" class="w-6 h-6" />
             <span class="font-semibold">{{ plugin.label }}</span>
           </div>
           <router-link
             :to="`/storage-provider/${plugin.id}`"
             class="inline-flex items-center gap-2 px-4 py-1.5 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-600 hover:text-white transition-colors duration-200"
           >
-            <i class="fas fa-cog"></i>
+            <i class="fas fa-cog" aria-hidden="true"></i>
             {{ t('common.configure') }}
           </router-link>
         </li>
@@ -33,7 +33,7 @@
           class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200"
         >
           <div class="flex items-center space-x-4">
-            <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
+            <img :src="plugin.icon" alt="" class="w-6 h-6" />
             <span>{{ plugin.label }}</span>
           </div>
           <button

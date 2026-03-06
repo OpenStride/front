@@ -24,7 +24,13 @@
       :disabled="publishing"
       class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400"
     >
-      {{ publishing ? t('profile.publishing') : (publicUrl ? t('profile.updateData') : t('profile.publishData')) }}
+      {{
+        publishing
+          ? t('profile.publishing')
+          : publicUrl
+            ? t('profile.updateData')
+            : t('profile.publishData')
+      }}
     </button>
 
     <!-- QR Code Display -->
@@ -40,64 +46,58 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IndexedDBService } from '@/services/IndexedDBService'
-import { FriendService } from '@/services/FriendService'
-import { ToastService } from '@/services/ToastService'
+import { usePluginContext } from '@/composables/usePluginContext'
 import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
 import type { FriendServiceEvent } from '@/types/friend'
 
 const { t } = useI18n()
-const friendService = FriendService.getInstance()
+const { storage, notifications, friends } = usePluginContext()
 
 // Privacy & Sharing state
 const defaultPrivacy = ref<'public' | 'private'>('private')
 const publicUrl = ref<string | null>(null)
 const publishing = ref(false)
 
-let dbService: IndexedDBService | null = null
-
 // Event listener for FriendService events
-const handleFriendEvent = (event: Event) => {
+const handleFriendEvent = ((...args: unknown[]) => {
+  const event = args[0] as Event
   const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { type, message, messageType } = customEvent.detail
+  const { message, messageType } = customEvent.detail
 
   if (message && messageType) {
-    ToastService.push(message, {
+    notifications.notify(message, {
       type: messageType,
       timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
     })
   }
-}
+}) as (...args: unknown[]) => void
 
 onMounted(async () => {
-  dbService = await IndexedDBService.getInstance()
-
   // Load privacy settings
-  const privacySetting = await dbService.getData('defaultPrivacy')
-  defaultPrivacy.value = privacySetting || 'private'
+  const privacySetting = await storage.getData('defaultPrivacy')
+  defaultPrivacy.value = (privacySetting as string as 'public' | 'private') || 'private'
 
   // Load public URL if available
-  publicUrl.value = await friendService.getMyPublicUrl()
+  publicUrl.value = await friends.getMyPublicUrl()
 
   // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
+  friends.onEvent('friend-event', handleFriendEvent)
 })
 
 onBeforeUnmount(() => {
   // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
+  friends.offEvent('friend-event', handleFriendEvent)
 })
 
 // Privacy & Sharing functions
 const saveDefaultPrivacy = async () => {
-  if (!dbService) return
-  await dbService.saveData('defaultPrivacy', defaultPrivacy.value)
+  await storage.saveData('defaultPrivacy', defaultPrivacy.value)
 }
 
 const publishData = async () => {
   publishing.value = true
   try {
-    const url = await friendService.publishPublicData()
+    const url = await friends.publishPublicData()
     if (url) {
       publicUrl.value = url
     }

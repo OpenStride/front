@@ -73,7 +73,7 @@ watch(
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -83,8 +83,8 @@ watch(
   justify-content: center;
   align-items: center;
   padding: 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--color-white);
+  border: 2px solid var(--color-gray-200);
   border-radius: 0.5rem;
 }
 
@@ -106,9 +106,9 @@ watch(
   padding: 0.5rem;
   font-size: 0.75rem;
   font-family: monospace;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.375rem;
-  background: #f9fafb;
+  background: var(--color-gray-50);
   cursor: pointer;
 }
 
@@ -122,7 +122,7 @@ watch(
 .copy-btn {
   padding: 0.5rem 1rem;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;

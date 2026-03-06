@@ -72,7 +72,9 @@ onMounted(() => {
 
     if (latlngs.length > 1) {
       L.polyline(latlngs, {
-        color: '#333333',
+        color:
+          getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() ||
+          '#333333',
         weight: 4,
         opacity: 0.8,
         lineJoin: 'round'

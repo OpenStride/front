@@ -32,8 +32,9 @@
         </div>
 
         <div v-if="showManualInput" class="manual-input">
-          <label>URL publique de votre ami:</label>
+          <label for="friend-public-url">URL publique de votre ami:</label>
           <input
+            id="friend-public-url"
             v-model="manualUrl"
             type="url"
             placeholder="https://drive.google.com/..."
@@ -79,7 +80,7 @@ let html5QrCode: Html5Qrcode | null = null
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
   const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { type, message, messageType } = customEvent.detail
+  const { message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
@@ -195,7 +196,7 @@ onUnmounted(() => {
 }
 
 .scanner-container {
-  background: white;
+  background: var(--color-white);
   border-radius: 1rem;
   max-width: 500px;
   width: 100%;
@@ -209,7 +210,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .scanner-header h3 {
@@ -223,7 +224,7 @@ onUnmounted(() => {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-gray-500);
   padding: 0;
   width: 2rem;
   height: 2rem;
@@ -233,7 +234,7 @@ onUnmounted(() => {
 }
 
 .close-btn:hover {
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .scanner-body {
@@ -254,7 +255,7 @@ onUnmounted(() => {
 
 .text-sm {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 .permission-icon {
@@ -264,7 +265,7 @@ onUnmounted(() => {
 }
 
 .permission-icon.error {
-  color: #ef4444;
+  color: var(--color-red-500);
 }
 
 .start-btn,
@@ -272,7 +273,7 @@ onUnmounted(() => {
 .add-btn {
   padding: 0.75rem 1.5rem;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -286,12 +287,12 @@ onUnmounted(() => {
 }
 
 .manual-btn {
-  background: #6b7280;
+  background: var(--color-gray-500);
   margin-top: 0.5rem;
 }
 
 .manual-btn:hover {
-  background: #4b5563;
+  background: var(--color-gray-600);
 }
 
 .scanner-viewport {
@@ -310,7 +311,7 @@ onUnmounted(() => {
 
 .scanner-hint {
   text-align: center;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-size: 0.875rem;
 }
 
@@ -322,12 +323,12 @@ onUnmounted(() => {
 
 .manual-input label {
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .url-input {
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-family: monospace;
@@ -341,7 +342,7 @@ onUnmounted(() => {
 }
 
 .add-btn:disabled {
-  background: #d1d5db;
+  background: var(--color-gray-300);
   cursor: not-allowed;
 }
 
@@ -353,15 +354,15 @@ onUnmounted(() => {
 
 .secondary-btn {
   padding: 0.5rem 1rem;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-300);
   border-radius: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
 }
 
 .secondary-btn:hover {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 </style>

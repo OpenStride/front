@@ -21,7 +21,7 @@
             :to="`/storage-provider/${plugin.id}`"
             class="inline-flex items-center gap-2 px-4 py-1.5 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-600 hover:text-white transition-colors duration-200"
           >
-            <i class="fas fa-cog"></i>
+            <i class="fas fa-cog" aria-hidden="true"></i>
             {{ t('common.configure') }}
           </router-link>
         </li>

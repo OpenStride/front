@@ -19,7 +19,7 @@ async function bootstrap() {
   const db = await IndexedDBService.getInstance()
 
   // 2. Check and run migrations
-  const storedVersion = await db.getData('app_version')
+  const storedVersion = await db.getData<{ version: string; installedAt?: number }>('app_version')
   const currentVersion = storedVersion?.version || '0.0.0'
   const newVersion = __APP_VERSION__
 

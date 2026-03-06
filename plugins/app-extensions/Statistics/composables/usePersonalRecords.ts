@@ -47,7 +47,7 @@ export function usePersonalRecords(activities: Ref<Activity[]>, selectedSport: R
     const cached = (await ctx.storage.getData(cacheKey(sport))) as PRCache | undefined
     if (
       cached &&
-      (cached as any).cacheVersion === CACHE_VERSION &&
+      (cached as PRCache & { cacheVersion?: number }).cacheVersion === CACHE_VERSION &&
       cached.activityCount === activityCount &&
       cached.maxLastModified === maxLastModified &&
       cached.sport === sport

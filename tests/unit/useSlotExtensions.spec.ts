@@ -18,7 +18,11 @@ import { useSlotExtensions } from '@/composables/useSlotExtensions'
 const Host = defineComponent({
   setup() {
     const { components } = useSlotExtensions('activity.widgets')
-    return () => h('section', components.value.map((c: any, i: number) => h(c.default || c, { 'data-idx': i })))
+    return () =>
+      h(
+        'section',
+        components.value.map((c: any, i: number) => h(c.default || c, { 'data-idx': i }))
+      )
   }
 })
 

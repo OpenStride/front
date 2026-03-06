@@ -11,17 +11,30 @@ vi.mock('@/services/IndexedDBService', () => {
       activity_details: [],
       notifLogs: []
     }
-    async getObjectStoresNames() { return Object.keys(this.stores) }
-    async exportDB(store: string) { return [...(this.stores[store] || [])] }
-    async addItemsToStore(store: string, items: any[]) { this.stores[store] = [...(this.stores[store] || []), ...items] }
-    async saveData(key: string, value: any) { /* no-op */ }
-    async getData(key: string) { return null }
+    async getObjectStoresNames() {
+      return Object.keys(this.stores)
+    }
+    async exportDB(store: string) {
+      return [...(this.stores[store] || [])]
+    }
+    async addItemsToStore(store: string, items: any[]) {
+      this.stores[store] = [...(this.stores[store] || []), ...items]
+    }
+    async saveData(_key: string, _value: any) {
+      /* no-op */
+    }
+    async getData(_key: string) {
+      return null
+    }
     emitter = new EventTarget()
   }
   let instance: any
   return {
     IndexedDBService: {
-      getInstance: async () => { if (!instance) instance = new FakeDB(); return instance }
+      getInstance: async () => {
+        if (!instance) instance = new FakeDB()
+        return instance
+      }
     }
   }
 })
@@ -30,8 +43,12 @@ vi.mock('@/services/IndexedDBService', () => {
 vi.mock('@/services/StoragePluginManager', () => {
   class FakeManager {
     plugins: any[] = []
-    setPlugins(p: any[]) { this.plugins = p }
-    async getMyStoragePlugins() { return this.plugins }
+    setPlugins(p: any[]) {
+      this.plugins = p
+    }
+    async getMyStoragePlugins() {
+      return this.plugins
+    }
   }
   const inst = new FakeManager()
   return { StoragePluginManager: { getInstance: () => inst } }
@@ -55,8 +72,12 @@ describe('StorageService.syncStores', () => {
     const plugin = {
       id: 'mock-storage',
       label: 'Mock Storage',
-      async readRemote(store: string) { return [] },
-      async writeRemote(store: string, data: any[]) { pushed[store] = data }
+      async readRemote(_store: string) {
+        return []
+      },
+      async writeRemote(store: string, data: any[]) {
+        pushed[store] = data
+      }
     }
     const mgr: any = StoragePluginManager.getInstance()
     mgr.setPlugins([plugin])

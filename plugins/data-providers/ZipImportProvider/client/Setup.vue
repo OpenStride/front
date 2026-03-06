@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="zip-import-provider">
     <h3>Importer un export ZIP d'activités</h3>
@@ -12,80 +13,117 @@
 </template>
 
 <script setup lang="ts">
-import { getPluginContext } from '@/services/PluginContextFactory';
-import { ref } from 'vue';
-import JSZip from 'jszip';
-import Papa from 'papaparse';
-import FitFileParser from 'fit-file-parser';
-import pako from 'pako';
-import { adaptZipSummary, adaptZipDetails } from './adapter';
+import { getPluginContext } from '@/services/PluginContextFactory'
+import { ref } from 'vue'
+import JSZip from 'jszip'
+import Papa from 'papaparse'
+import FitFileParser from 'fit-file-parser'
+import pako from 'pako'
+import { adaptZipSummary, adaptZipDetails } from './adapter'
+import type { Activity, ActivityDetails } from '@/types/activity'
 
-const importing = ref(false);
-const error = ref('');
-const success = ref(false);
-const totalToImport = ref(0);
-const importedCount = ref(0);
+interface CsvRow extends Record<string, unknown> {
+  id?: string
+  ID?: string
+  activity_id?: string
+  ActivityID?: string
+  'Activity ID'?: string
+  filename?: string
+  Filename?: string
+  file?: string
+  FileName?: string
+  'File Name'?: string
+}
+
+interface FitParseResult extends Record<string, unknown> {
+  records?: Record<string, unknown>[]
+  laps?: Record<string, unknown>[]
+  session?: Record<string, unknown>
+  activity?: Record<string, unknown>
+  sessions?: Record<string, unknown>[]
+}
+
+const importing = ref(false)
+const error = ref('')
+const success = ref(false)
+const totalToImport = ref(0)
+const importedCount = ref(0)
 
 function onFileChange(e: Event) {
-  const files = (e.target as HTMLInputElement).files;
-  if (!files || !files[0]) return;
-  importing.value = true;
-  error.value = '';
-  success.value = false;
-  totalToImport.value = 0;
-  importedCount.value = 0;
-  const file = files[0];
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
+  const files = (e.target as HTMLInputElement).files
+  if (!files || !files[0]) return
+  importing.value = true
+  error.value = ''
+  success.value = false
+  totalToImport.value = 0
+  importedCount.value = 0
+  const file = files[0]
+  const reader = new FileReader()
+  reader.onload = async ev => {
     try {
-      const zip = await JSZip.loadAsync(ev.target?.result as ArrayBuffer);
+      const zip = await JSZip.loadAsync(ev.target?.result as ArrayBuffer)
       // Liste les fichiers du ZIP
-      const fileNames = Object.keys(zip.files);
-      console.log('Fichiers dans le ZIP:', fileNames);
+      const fileNames = Object.keys(zip.files)
+      console.log('Fichiers dans le ZIP:', fileNames)
       // Lire activities.csv à la racine et parser les activités
       if (zip.files['activities.csv']) {
-        const csvContent = await zip.files['activities.csv'].async('string');
-        const parsed = Papa.parse(csvContent, { header: true });
-        console.log('Colonnes CSV:', parsed.meta.fields);
+        const csvContent = await zip.files['activities.csv'].async('string')
+        const parsed = Papa.parse(csvContent, { header: true })
+        console.log('Colonnes CSV:', parsed.meta.fields)
         // Préparer la liste des activités à importer
-        const activitiesToImport: any[] = [];
-        const detailsToImport: any[] = [];
-        for (const row of parsed.data as any[]) {
-          const id = row.id || row.ID || row.activity_id || row.ActivityID || row['Activity ID'];
-          if (!id) continue;
-          const fitPath = row.filename || row.Filename || row.file || row.FileName || row['File Name'] || `${id}.fit.gz`;
-          let fitResult: any = {};
+        const activitiesToImport: Activity[] = []
+        const detailsToImport: ActivityDetails[] = []
+        for (const row of parsed.data as CsvRow[]) {
+          const id = row.id || row.ID || row.activity_id || row.ActivityID || row['Activity ID']
+          if (!id) continue
+          const fitPath =
+            row.filename ||
+            row.Filename ||
+            row.file ||
+            row.FileName ||
+            row['File Name'] ||
+            `${id}.fit.gz`
+          let fitResult: FitParseResult = {}
           if (zip.files[fitPath]) {
             // Lire le fichier FIT.gz
-            const gzData = await zip.files[fitPath].async('uint8array');
+            const gzData = await zip.files[fitPath].async('uint8array')
             // Décompresser le .gz avec pako
-            let fitData;
+            let fitData
             try {
-              fitData = pako.ungzip(gzData);
+              fitData = pako.ungzip(gzData)
             } catch (err) {
-              error.value = 'Erreur de décompression du FIT.gz: ' + (err as any).message;
-              continue;
+              error.value =
+                'Erreur de décompression du FIT.gz: ' +
+                (err instanceof Error ? err.message : String(err))
+              continue
             }
             // Parse le FIT avec fit-file-parser
             try {
-              const fitParser = new FitFileParser({ force: true, speedUnit: 'm/s', lengthUnit: 'm', temperatureUnit: 'celsius', elapsedRecordField: true });
+              const fitParser = new FitFileParser({
+                force: true,
+                speedUnit: 'm/s',
+                lengthUnit: 'm',
+                temperatureUnit: 'celsius',
+                elapsedRecordField: true
+              })
               await new Promise<void>((resolve, reject) => {
                 fitParser.parse(fitData.buffer, (err, result) => {
                   if (err) {
-                    error.value = 'Erreur de parsing FIT: ' + err.message;
-                    reject(err);
+                    error.value = 'Erreur de parsing FIT: ' + err.message
+                    reject(err)
                   } else {
-                    fitResult = result;
-                    resolve();
+                    fitResult = result
+                    resolve()
                   }
-                });
-              });
+                })
+              })
             } catch (err) {
-              error.value = 'Erreur de parsing FIT: ' + (err as any).message;
-              continue;
+              error.value =
+                'Erreur de parsing FIT: ' + (err instanceof Error ? err.message : String(err))
+              continue
             }
           } else {
-            console.log('Activité:', id, 'FIT.gz manquant');
+            console.log('Activité:', id, 'FIT.gz manquant')
           }
           // Fusionner les infos CSV et FIT
           const activityRaw = {
@@ -93,59 +131,68 @@ function onFileChange(e: Event) {
             ...fitResult,
             samples: fitResult.records || [],
             laps: fitResult.laps || [],
-            summary: fitResult.session || fitResult.activity || {},
-          };
+            summary: fitResult.session || fitResult.activity || {}
+          }
           // Adapter au format OpenStride
-          const activity = adaptZipSummary(activityRaw);
-          const details = adaptZipDetails(activityRaw);
-          activitiesToImport.push(activity);
-          detailsToImport.push(details);
+          const activity = adaptZipSummary(activityRaw)
+          const details = adaptZipDetails(activityRaw)
+          activitiesToImport.push(activity)
+          detailsToImport.push(details)
         }
-        totalToImport.value = activitiesToImport.length;
+        totalToImport.value = activitiesToImport.length
         // Déduplication par id
         const uniqueActivities = Object.values(
-          activitiesToImport.reduce((acc, act) => {
-            acc[act.id] = act;
-            return acc;
-          }, {} as Record<string, any>)
-        );
+          activitiesToImport.reduce(
+            (acc, act) => {
+              acc[act.id] = act
+              return acc
+            },
+            {} as Record<string, Activity>
+          )
+        )
         const uniqueDetails = Object.values(
-          detailsToImport.reduce((acc, det) => {
-            acc[det.id] = det;
-            return acc;
-          }, {} as Record<string, any>)
-        );
+          detailsToImport.reduce(
+            (acc, det) => {
+              acc[det.id] = det
+              return acc
+            },
+            {} as Record<string, ActivityDetails>
+          )
+        )
         // Insertion via PluginContext (atomic, versioned, event-emitting)
-        const ctx = await getPluginContext();
+        const ctx = await getPluginContext()
         // Récupérer toutes les activités existantes pour comparer les startTime
-        const existingActivities = await ctx.activity.getAllActivities();
-        const existingStartTimes = new Set(existingActivities.map((a: any) => a.startTime));
+        const existingActivities = await ctx.activity.getAllActivities()
+        const existingStartTimes = new Set(existingActivities.map((a: Activity) => a.startTime))
         for (let i = 0; i < uniqueActivities.length; i++) {
-          const act = uniqueActivities[i];
+          const act = uniqueActivities[i]
           if (existingStartTimes.has(act.startTime)) {
-            console.warn(`Doublon détecté: activité avec startTime ${act.startTime} déjà présente, non importée (id: ${act.id})`);
-            continue;
+            console.warn(
+              `Doublon détecté: activité avec startTime ${act.startTime} déjà présente, non importée (id: ${act.id})`
+            )
+            continue
           }
           try {
-            await ctx.activity.saveActivityWithDetails(act, uniqueDetails[i]);
-            importedCount.value = importedCount.value + 1;
+            await ctx.activity.saveActivityWithDetails(act, uniqueDetails[i])
+            importedCount.value = importedCount.value + 1
           } catch (err) {
-            console.error('Erreur lors de l\'insertion en base:', err);
+            console.error("Erreur lors de l'insertion en base:", err)
           }
         }
       }
-      importing.value = false;
-      success.value = true;
-    } catch (err:any) {
-      error.value = 'Erreur lors de la lecture du ZIP: ' + err.message;
-      importing.value = false;
+      importing.value = false
+      success.value = true
+    } catch (err: unknown) {
+      error.value =
+        'Erreur lors de la lecture du ZIP: ' + (err instanceof Error ? err.message : String(err))
+      importing.value = false
     }
-  };
+  }
   reader.onerror = () => {
-    error.value = 'Erreur de lecture du fichier ZIP.';
-    importing.value = false;
-  };
-  reader.readAsArrayBuffer(file);
+    error.value = 'Erreur de lecture du fichier ZIP.'
+    importing.value = false
+  }
+  reader.readAsArrayBuffer(file)
 }
 </script>
 
@@ -153,6 +200,12 @@ function onFileChange(e: Event) {
 .zip-import-provider {
   padding: 1.2rem;
 }
-.error { color: var(--color-red-600); margin-top: 1rem; }
-.success { color: var(--color-emerald-800); margin-top: 1rem; }
+.error {
+  color: var(--color-red-600);
+  margin-top: 1rem;
+}
+.success {
+  color: var(--color-emerald-800);
+  margin-top: 1rem;
+}
 </style>

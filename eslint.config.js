@@ -35,7 +35,14 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        NodeJS: 'readonly'
+        NodeJS: 'readonly',
+        IDBTransactionMode: 'readonly',
+        IDBValidKey: 'readonly',
+        IDBObjectStoreParameters: 'readonly',
+        NotificationPermission: 'readonly',
+        ServiceWorkerGlobalScope: 'readonly',
+        __APP_VERSION__: 'readonly',
+        __BUILD_TIME__: 'readonly'
       }
     },
     rules: {
@@ -44,7 +51,10 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/no-empty-function': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+      ],
       '@typescript-eslint/no-this-alias': 'warn',
       '@typescript-eslint/no-unused-expressions': 'warn',
       'no-var': 'warn',
@@ -69,7 +79,14 @@ export default [
         defineProps: 'readonly',
         defineEmits: 'readonly',
         defineExpose: 'readonly',
-        withDefaults: 'readonly'
+        withDefaults: 'readonly',
+        NodeJS: 'readonly',
+        IDBTransactionMode: 'readonly',
+        IDBValidKey: 'readonly',
+        IDBObjectStoreParameters: 'readonly',
+        NotificationPermission: 'readonly',
+        __APP_VERSION__: 'readonly',
+        __BUILD_TIME__: 'readonly'
       }
     },
     rules: {
@@ -78,7 +95,10 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/no-empty-function': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+      ],
       '@typescript-eslint/no-this-alias': 'warn',
       '@typescript-eslint/no-unused-expressions': 'warn',
       'no-var': 'warn',
@@ -91,7 +111,12 @@ export default [
 
   // Vitest test files configuration
   {
-    files: ['**/__tests__/*.{j,t}s?(x)', '**/tests/unit/**/*.spec.{j,t}s?(x)'],
+    files: [
+      '**/__tests__/*.{j,t}s?(x)',
+      '**/tests/unit/**/*.spec.{j,t}s?(x)',
+      '**/tests/helpers/**/*.{j,t}s?(x)',
+      '**/tests/setup.ts'
+    ],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -101,14 +126,20 @@ export default [
         expect: 'readonly',
         vi: 'readonly',
         beforeEach: 'readonly',
-        afterEach: 'readonly'
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly'
       }
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-empty-function': 'off'
     }
   },
 
   // Cypress E2E test files configuration
   {
-    files: ['**/tests/e2e/**/*.{j,t}s?(x)'],
+    files: ['**/tests/e2e/**/*.{j,t}s?(x)', '**/tests/e2e/**/*.d.ts'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -119,11 +150,15 @@ export default [
         it: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
-        expect: 'readonly'
+        expect: 'readonly',
+        JQuery: 'readonly'
       }
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': 'warn'
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+      ]
     }
   },
 

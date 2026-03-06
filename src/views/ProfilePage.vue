@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, watch, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getActiveAppPlugins } from '@/services/ExtensionPluginRegistry'
@@ -55,8 +55,8 @@ interface Tab {
   id: TabId
   labelKey: string
   icon: string
-  component: any
-  loader?: () => Promise<any> // Lazy loader for dynamic tabs
+  component: VueComponent | null
+  loader?: () => Promise<{ default: VueComponent } | VueComponent> // Lazy loader for dynamic tabs
 }
 
 const tabs: Tab[] = [
@@ -102,7 +102,7 @@ const tabs: Tab[] = [
 const dynamicTabs = ref<Tab[]>([])
 
 // Cache for loaded components
-const loadedComponents = ref<Record<TabId, any>>({})
+const loadedComponents = ref<Record<TabId, VueComponent>>({})
 
 // Combine static and dynamic tabs
 const allTabs = computed(() => [...tabs, ...dynamicTabs.value])
@@ -116,10 +116,14 @@ onMounted(async () => {
 
   // Extract tabs from plugins that have tabMetadata (WITHOUT loading components yet)
   const pluginTabs = plugins
-    .filter(p => p.slots?.['profile.tabs'] && (p as any).tabMetadata)
-    .map((plugin: any) => {
-      const metadata = plugin.tabMetadata
-      const loaders = plugin.slots['profile.tabs']
+    .filter(p => p.slots?.['profile.tabs'] && 'tabMetadata' in p && p.tabMetadata != null)
+    .map(plugin => {
+      const metadata = (
+        plugin as typeof plugin & {
+          tabMetadata: { tabId: string; tabLabelKey: string; tabIcon: string }
+        }
+      ).tabMetadata
+      const loaders = plugin.slots!['profile.tabs']
       const loader = Array.isArray(loaders) ? loaders[0] : loaders
 
       return {
@@ -179,7 +183,7 @@ const selectTab = (tabId: TabId) => {
 .profile-container {
   display: flex;
   min-height: calc(100vh - 80px);
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
 }
 
 /* Desktop: Vertical tabs on the left */
@@ -189,8 +193,8 @@ const selectTab = (tabId: TabId) => {
     flex-direction: column;
     width: 20%;
     min-width: 200px;
-    background-color: white;
-    border-right: 1px solid #e5e7eb;
+    background-color: var(--color-white);
+    border-right: 1px solid var(--color-gray-200);
     padding: 1.5rem 0;
   }
 
@@ -211,21 +215,21 @@ const selectTab = (tabId: TabId) => {
     text-align: left;
     cursor: pointer;
     transition: all 0.2s;
-    color: #6b7280;
+    color: var(--color-gray-500);
     font-size: 0.95rem;
     border-left: 3px solid transparent;
     width: 100%;
   }
 
   .profile-tab:hover {
-    background-color: #f3f4f6;
-    color: #374151;
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
   }
 
   .profile-tab.active {
-    background-color: #ecfdf5;
-    color: #059669;
-    border-left-color: #059669;
+    background-color: var(--color-green-50);
+    color: var(--color-green-500);
+    border-left-color: var(--color-green-500);
     font-weight: 600;
   }
 
@@ -249,8 +253,8 @@ const selectTab = (tabId: TabId) => {
   .profile-tabs {
     display: flex;
     overflow-x: auto;
-    background-color: white;
-    border-bottom: 1px solid #e5e7eb;
+    background-color: var(--color-white);
+    border-bottom: 1px solid var(--color-gray-200);
     padding: 0.5rem 1rem;
     gap: 0.5rem;
     scrollbar-width: none;
@@ -276,7 +280,7 @@ const selectTab = (tabId: TabId) => {
     background: transparent;
     cursor: pointer;
     transition: all 0.2s;
-    color: #6b7280;
+    color: var(--color-gray-500);
     font-size: 0.75rem;
     white-space: nowrap;
     border-bottom: 2px solid transparent;
@@ -284,12 +288,12 @@ const selectTab = (tabId: TabId) => {
   }
 
   .profile-tab:hover {
-    color: #374151;
+    color: var(--color-gray-700);
   }
 
   .profile-tab.active {
-    color: #059669;
-    border-bottom-color: #059669;
+    color: var(--color-green-500);
+    border-bottom-color: var(--color-green-500);
     font-weight: 600;
   }
 

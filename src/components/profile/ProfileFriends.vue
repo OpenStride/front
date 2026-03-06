@@ -77,8 +77,12 @@
             class="action-btn sync-all"
             title="Synchroniser l'historique complet"
           >
-            <i v-if="syncingFriendId === friend.id" class="fas fa-spinner fa-spin icon-sm"></i>
-            <i v-else class="fas fa-history icon-sm"></i>
+            <i
+              v-if="syncingFriendId === friend.id"
+              class="fas fa-spinner fa-spin icon-sm"
+              aria-hidden="true"
+            ></i>
+            <i v-else class="fas fa-history icon-sm" aria-hidden="true"></i>
           </button>
 
           <!-- Show badge if fully synced -->
@@ -87,7 +91,7 @@
             class="fully-synced-badge"
             title="Historique complet synchronisé"
           >
-            <i class="fas fa-check-circle"></i>
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
           </span>
 
           <button @click="confirmRemove(friend)" class="action-btn remove" title="Supprimer">
@@ -134,7 +138,7 @@ const friendToRemove = ref<Friend | null>(null)
 // Event listener for FriendService events
 const handleFriendEvent = (event: Event) => {
   const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { type, message, messageType } = customEvent.detail
+  const { message, messageType } = customEvent.detail
 
   if (message && messageType) {
     ToastService.push(message, {
@@ -291,12 +295,12 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .refresh-btn {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 .refresh-btn:disabled {
@@ -306,7 +310,7 @@ const formatRelativeTime = (timestamp: number): string => {
 
 .add-btn {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
 }
 
 .add-btn:hover {
@@ -333,7 +337,7 @@ const formatRelativeTime = (timestamp: number): string => {
 .loading {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 .empty-state {
@@ -349,19 +353,19 @@ const formatRelativeTime = (timestamp: number): string => {
 .empty-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
   margin-bottom: 0.5rem;
 }
 
 .empty-description {
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin-bottom: 2rem;
 }
 
 .empty-action-btn {
   padding: 0.75rem 1.5rem;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 0.5rem;
   font-size: 1rem;
@@ -384,7 +388,7 @@ const formatRelativeTime = (timestamp: number): string => {
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
@@ -411,7 +415,7 @@ const formatRelativeTime = (timestamp: number): string => {
   align-items: center;
   justify-content: center;
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -425,12 +429,12 @@ const formatRelativeTime = (timestamp: number): string => {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 0.25rem;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .friend-bio {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin: 0 0 0.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -441,7 +445,7 @@ const formatRelativeTime = (timestamp: number): string => {
   display: flex;
   gap: 1rem;
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-gray-400);
 }
 
 .friend-actions {
@@ -464,11 +468,11 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .action-btn.refresh {
-  background: #f3f4f6;
+  background: var(--color-gray-100);
 }
 
 .action-btn.refresh:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 .action-btn.refresh:disabled {
@@ -477,12 +481,12 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .action-btn.sync-all {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--color-blue-100);
+  color: var(--color-blue-800);
 }
 
 .action-btn.sync-all:hover:not(:disabled) {
-  background: #bfdbfe;
+  background: var(--color-blue-200);
 }
 
 .action-btn.sync-all:disabled {
@@ -491,11 +495,11 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .action-btn.remove {
-  background: #fee2e2;
+  background: var(--color-red-100);
 }
 
 .action-btn.remove:hover {
-  background: #fecaca;
+  background: var(--color-red-200);
 }
 
 .icon-sm {
@@ -521,7 +525,7 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-white);
   border-radius: 0.75rem;
   padding: 1.5rem;
   max-width: 400px;
@@ -532,12 +536,12 @@ const formatRelativeTime = (timestamp: number): string => {
 .modal-content h3 {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .modal-content p {
   margin: 0 0 1.5rem;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 .modal-actions {
@@ -557,21 +561,21 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .cancel-btn {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 .cancel-btn:hover {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
 }
 
 .confirm-btn {
-  background: #ef4444;
-  color: white;
+  background: var(--color-red-500);
+  color: var(--color-white);
 }
 
 .confirm-btn:hover {
-  background: #dc2626;
+  background: var(--color-red-600);
 }
 
 .fully-synced-badge {
@@ -579,8 +583,8 @@ const formatRelativeTime = (timestamp: number): string => {
   align-items: center;
   gap: 0.25rem;
   padding: 0.375rem 0.75rem;
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--color-emerald-100);
+  color: var(--color-emerald-800);
   border-radius: 0.375rem;
   font-size: 0.75rem;
   font-weight: 500;

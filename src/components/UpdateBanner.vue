@@ -25,14 +25,13 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
-import type { PWAUpdateEvent } from '@/services/PWAUpdateService'
 
 const { t } = useI18n()
 const updateService = getPWAUpdateService()
 
 const showToast = ref(false)
 
-const handleUpdateAvailable = (evt: Event) => {
+const handleUpdateAvailable = (_evt: Event) => {
   showToast.value = true
 }
 
@@ -69,7 +68,7 @@ onUnmounted(() => {
 .update-toast {
   width: 100%;
   background: color-mix(in srgb, var(--color-green-500) 95%, transparent);
-  color: #fff;
+  color: var(--color-white);
   padding: 16px;
   border-radius: 10px;
   box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
@@ -122,7 +121,7 @@ onUnmounted(() => {
 }
 
 .btn-update {
-  background: white;
+  background: var(--color-white);
   color: var(--color-green-700);
   font-weight: 600;
 }
@@ -139,7 +138,7 @@ onUnmounted(() => {
 
 .btn-later {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--color-white);
 }
 
 .btn-later:hover {

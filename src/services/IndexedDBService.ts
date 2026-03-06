@@ -166,21 +166,24 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
-  async exportDB(table: string): Promise<any> {
+  async exportDB(table: string): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized')
+      if (!this.db) return reject(new Error('DB not initialized'))
 
       const transaction = this.db.transaction(table, 'readonly')
       const store = transaction.objectStore(table)
       const request = store.getAll()
 
       request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(new Error(`exportDB failed for "${table}": ${request.error}`))
+      transaction.onerror = () =>
+        reject(new Error(`exportDB transaction failed for "${table}": ${transaction.error}`))
     })
   }
 
   async deleteData(key: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized')
+      if (!this.db) return reject(new Error('DB not initialized'))
 
       const transaction = this.db.transaction('settings', 'readwrite')
       const store = transaction.objectStore('settings')
@@ -194,12 +197,15 @@ export class IndexedDBService implements IStorageService {
         )
         resolve()
       }
+      request.onerror = () => reject(new Error(`deleteData failed for "${key}": ${request.error}`))
+      transaction.onerror = () =>
+        reject(new Error(`deleteData transaction failed for "${key}": ${transaction.error}`))
     })
   }
 
-  async saveData(key: string, value: any): Promise<void> {
+  async saveData(key: string, value: unknown): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized')
+      if (!this.db) return reject(new Error('DB not initialized'))
 
       const transaction = this.db.transaction('settings', 'readwrite')
       const store = transaction.objectStore('settings')
@@ -213,28 +219,27 @@ export class IndexedDBService implements IStorageService {
         )
         resolve()
       }
+      transaction.onerror = () =>
+        reject(new Error(`saveData transaction failed for "${key}": ${transaction.error}`))
     })
   }
 
-  async getData(key: string): Promise<any> {
+  async getData<T = unknown>(key: string): Promise<T | null | undefined> {
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized')
+      if (!this.db) return reject(new Error('DB not initialized'))
 
       const transaction = this.db.transaction('settings', 'readonly')
       const store = transaction.objectStore('settings')
       const request = store.get(key)
 
       request.onsuccess = () => resolve(request.result ? request.result.value : null)
+      request.onerror = () => reject(new Error(`getData failed for "${key}": ${request.error}`))
+      transaction.onerror = () =>
+        reject(new Error(`getData transaction failed for "${key}": ${transaction.error}`))
     })
   }
-  /* 
-    async getActivities({ offset = 0, limit = 10 }): Promise<any[]> {
-      const all = await this.getAllData("activity_details");
-      const sorted = all.sort((a, b) => b.startTime - a.startTime); // startTime généralisé
-      return sorted.slice(offset, offset + limit);
-    } */
 
-  public getAllData(storeName: string): Promise<any[]> {
+  public getAllData<T = unknown>(storeName: string): Promise<T[]> {
     if (!this.db) throw new Error('DB not initialized')
 
     return new Promise((resolve, reject) => {
@@ -247,9 +252,9 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
-  async getDataFromStore(storeName: string, key: string): Promise<any> {
+  async getDataFromStore<T = unknown>(storeName: string, key: string): Promise<T | null> {
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized')
+      if (!this.db) return reject(new Error('DB not initialized'))
 
       const transaction = this.db.transaction(storeName, 'readonly')
       const store = transaction.objectStore(storeName)
@@ -259,71 +264,6 @@ export class IndexedDBService implements IStorageService {
       request.onerror = () => reject(request.error)
     })
   }
-  /* 
-    async saveActivities(activities: any[]): Promise<void> {
-      if (!this.db) throw new Error("DB not initialized");
-  
-      return new Promise((resolve, reject) => {
-        const tx = this.db!.transaction("activities", "readwrite");
-        const store = tx.objectStore("activities");
-  
-        let pending = activities.length;
-        if (pending === 0) resolve();
-  
-        activities.forEach((activity) => {
-          const keyId = activity.id;
-          const getReq = store.get(keyId);
-  
-          getReq.onsuccess = () => {
-            if (!getReq.result) {
-              store.add(activity, keyId);
-            }
-            this.emitter.dispatchEvent(new CustomEvent('dbChange', {
-              detail: { store: 'activities' }
-            }));
-            if (--pending === 0) resolve();
-          };
-  
-          getReq.onerror = () => {
-            console.error(`Erreur lors de la vérif de l’activité ${activity.id}`);
-            if (--pending === 0) resolve(); // ignorer l’erreur ponctuelle
-          };
-        });
-  
-        tx.onerror = () => reject(tx.error);
-      });
-    } */
-  /* 
-    async saveActivityDetails(details: any[]): Promise<void> {
-      if (!this.db) throw new Error("DB not initialized");
-  
-      return new Promise((resolve, reject) => {
-        const tx = this.db!.transaction("activity_details", "readwrite");
-        const store = tx.objectStore("activity_details");
-  
-        let pending = details.length;
-        if (pending === 0) resolve();
-  
-        details.forEach((activity) => {
-          const keyId = activity.id;
-          const getReq = store.get(keyId);
-  
-          getReq.onsuccess = () => {
-            if (!getReq.result) {
-              store.add(activity, keyId);
-            }
-            if (--pending === 0) resolve();
-          };
-  
-          getReq.onerror = () => {
-            console.error(`Erreur lors de la vérif de l’activité ${activity.id}`);
-            if (--pending === 0) resolve();
-          };
-        });
-  
-        tx.onerror = () => reject(tx.error);
-      });
-    } */
 
   public async addItemsToStore<T>(
     storeName: string,
@@ -344,9 +284,9 @@ export class IndexedDBService implements IStorageService {
           // If the store uses inline keys and we can infer the keyPath, ensure item carries it
           if (usesInlineKeys && typeof os.keyPath === 'string') {
             const kp = os.keyPath as string
-            if (!(kp in (item as any)) && keyFn) {
+            if (!(kp in (item as Record<string, unknown>)) && keyFn) {
               try {
-                ;(item as any)[kp] = keyFn(item) as any
+                ;(item as Record<string, unknown>)[kp] = keyFn(item)
               } catch {
                 /* ignore */
               }
@@ -364,7 +304,7 @@ export class IndexedDBService implements IStorageService {
               detail: { store: storeName, key: '' }
             })
           )
-        } catch (_) {
+        } catch {
           /* no-op */
         }
         resolve()

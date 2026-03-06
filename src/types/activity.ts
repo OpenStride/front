@@ -48,3 +48,12 @@ export interface ActivityDetails extends Timestamped {
   }
   notes?: string
 }
+
+export interface ActivityFilters {
+  text?: string
+  sportType?: string
+  distanceMin?: number // in meters
+  distanceMax?: number // in meters
+  ascentMin?: number // in meters
+  ascentMax?: number // in meters
+}

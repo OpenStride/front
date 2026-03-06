@@ -16,16 +16,16 @@ export class ActivityDBService {
 
   async getActivities(params: { offset?: number; limit?: number } = {}): Promise<Activity[]> {
     const { offset = 0, limit = 10 } = params
-    const all = await this.db.getAllData('activities')
+    const all = await this.db.getAllData<Activity>('activities')
     return all.sort((a, b) => b.startTime - a.startTime).slice(offset, offset + limit)
   }
 
   async getActivity(id: string): Promise<Activity | null> {
-    return await this.db.getDataFromStore('activities', id)
+    return await this.db.getDataFromStore<Activity>('activities', id)
   }
 
   async getDetails(id: string): Promise<ActivityDetails | null> {
-    return await this.db.getDataFromStore('activity_details', id)
+    return await this.db.getDataFromStore<ActivityDetails>('activity_details', id)
   }
 }
 

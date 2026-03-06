@@ -35,7 +35,9 @@ export class SyncService {
   private syncing = false
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): SyncService {
     if (!SyncService.instance) {
@@ -209,9 +211,26 @@ export class SyncService {
         }
       }
 
-      // Check for new remote activities to pull
+      // Check for new remote activities to pull or remote soft-deletes
+      const allLocal = await activityService.getAllActivities()
+      const allLocalMap = new Map<string, Activity>()
+      for (const a of allLocal) {
+        allLocalMap.set(a.id, a)
+      }
+
       for (const [id, remote] of remoteMap.entries()) {
-        if (!localMap.has(id)) {
+        if (remote.deleted) {
+          // Remote soft-delete: propagate locally if local copy exists and isn't deleted
+          const localActivity = allLocalMap.get(id)
+          if (localActivity && !localActivity.deleted) {
+            try {
+              await activityService.deleteActivity(id)
+              console.log(`[SyncService] Propagated remote soft-delete for ${id}`)
+            } catch {
+              // Activity may not exist locally, ignore
+            }
+          }
+        } else if (!localMap.has(id) && !allLocalMap.has(id)) {
           toPull.push(remote)
         }
       }
@@ -230,29 +249,35 @@ export class SyncService {
         }
       }
 
-      // 6. Pull new remote activities
+      // 6. Pull new remote activities via ActivityService (ensures versioning, events, aggregation)
       if (toPull.length > 0) {
-        const db = await IndexedDBService.getInstance()
-        for (const activity of toPull) {
-          // Ensure metadata
-          const activityToSave = {
-            ...activity,
-            synced: true // Mark as synced since it came from remote
-          }
-          await db.addItemsToStore('activities', [activityToSave], (a: Activity) => a.id)
+        const detailsToPull = remoteDetails.filter(d => toPull.some(a => a.id === d.id))
+        const detailsMap = new Map<string, ActivityDetails>()
+        for (const d of detailsToPull) {
+          detailsMap.set(d.id, d)
         }
 
-        // Also pull corresponding details
-        const detailsToPull = remoteDetails.filter(d => toPull.some(a => a.id === d.id))
-        if (detailsToPull.length > 0) {
-          for (const details of detailsToPull) {
-            const detailsToSave = { ...details, synced: true }
+        const activitiesToSave: Activity[] = []
+        const detailsToSave: ActivityDetails[] = []
+
+        for (const activity of toPull) {
+          const details = detailsMap.get(activity.id)
+          if (details) {
+            activitiesToSave.push({ ...activity, synced: true })
+            detailsToSave.push({ ...details, synced: true })
+          } else {
+            // Activity without details: save via raw IDB as fallback
+            const db = await IndexedDBService.getInstance()
             await db.addItemsToStore(
-              'activity_details',
-              [detailsToSave],
-              (d: ActivityDetails) => d.id
+              'activities',
+              [{ ...activity, synced: true }],
+              (a: Activity) => a.id
             )
           }
+        }
+
+        if (activitiesToSave.length > 0) {
+          await activityService.saveActivitiesWithDetails(activitiesToSave, detailsToSave)
         }
 
         console.log(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)

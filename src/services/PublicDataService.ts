@@ -1,12 +1,14 @@
 import { IndexedDBService } from './IndexedDBService'
 import { getInteractionService } from './InteractionService'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity } from '@/types/activity'
 import type { PublicManifest, PublicActivity, YearActivities, Friend } from '@/types/friend'
 
 export class PublicDataService {
   private static instance: PublicDataService
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): PublicDataService {
     if (!PublicDataService.instance) {
@@ -22,13 +24,13 @@ export class PublicDataService {
     const db = await IndexedDBService.getInstance()
 
     // Check for per-activity override
-    const override = await db.getData(`activityPrivacy_${activityId}`)
+    const override = await db.getData<boolean | string>(`activityPrivacy_${activityId}`)
     if (override !== null && override !== undefined) {
       return override === true || override === 'public'
     }
 
     // Fall back to default privacy setting
-    const defaultPrivacy = await db.getData('defaultPrivacy')
+    const defaultPrivacy = await db.getData<string>('defaultPrivacy')
     return defaultPrivacy === 'public'
   }
 
@@ -77,7 +79,7 @@ export class PublicDataService {
    */
   public async generateYearFiles(): Promise<Map<number, YearActivities>> {
     const db = await IndexedDBService.getInstance()
-    const allActivities: Activity[] = await db.getAllData('activities')
+    const allActivities: Activity[] = await db.getAllData<Activity>('activities')
 
     // Filter only public activities
     const publicActivities: Activity[] = []
@@ -121,9 +123,9 @@ export class PublicDataService {
     const userId = await interactionService.generateAndStoreUserId()
 
     // Get profile info from settings
-    const username = (await db.getData('username')) || 'OpenStride User'
-    const profilePhoto = await db.getData('profilePhoto')
-    const bio = await db.getData('bio')
+    const username = (await db.getData<string>('username')) || 'OpenStride User'
+    const profilePhoto = (await db.getData<string>('profilePhoto')) ?? undefined
+    const bio = (await db.getData<string>('bio')) ?? undefined
 
     // Calculate global stats
     let totalActivities = 0
@@ -149,7 +151,7 @@ export class PublicDataService {
       .sort((a, b) => b.year - a.year) // Newest year first
 
     // Build following list (for mutual friendship detection)
-    const friends = (await db.getAllData('friends')) as Friend[]
+    const friends = await db.getAllData<Friend>('friends')
     const following = friends
       .filter(f => f.userId) // Only include friends with stable userId
       .map(f => ({

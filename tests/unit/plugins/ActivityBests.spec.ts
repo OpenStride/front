@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ActivityBests from '@plugins/app-extensions/AggregatedDetails/ActivityBests.vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
@@ -12,6 +12,32 @@ const mockRouter = {
 const mockRoute = {
   params: {},
   query: {}
+}
+
+// Fake best-segment result (distance: 1000m in 240s)
+const fakeBestResult = {
+  1000: { duration: 240, avgSpeed: 4.17, sample: { speed: 4.17 } },
+  2000: { duration: 500, avgSpeed: 4.0, sample: { speed: 4.0 } },
+  5000: { duration: 1300, avgSpeed: 3.85, sample: { speed: 3.85 } },
+  10000: { duration: 2700, avgSpeed: 3.7, sample: { speed: 3.7 } }
+}
+
+// Mock PluginContext with analyzer factory
+const mockPluginContext = {
+  analyzer: {
+    create: (samples: any[]) => ({
+      bestSegments: vi.fn().mockReturnValue(samples.length ? fakeBestResult : {}),
+      sampleAverageByDistance: vi.fn().mockReturnValue([]),
+      sampleBySlopeChange: vi.fn().mockReturnValue([]),
+      sampleByLaps: vi.fn().mockReturnValue([])
+    })
+  },
+  storage: { getData: vi.fn(), saveData: vi.fn(), deleteData: vi.fn(), exportDB: vi.fn() },
+  notifications: { notify: vi.fn() },
+  activity: { getAllActivities: vi.fn().mockResolvedValue([]) },
+  plugins: { isPluginActive: vi.fn(), enablePlugin: vi.fn() },
+  aggregation: { getAggregated: vi.fn(), listMetrics: vi.fn() },
+  friends: { publishPublicData: vi.fn(), getMyManifestUrl: vi.fn() }
 }
 
 describe('ActivityBests.vue', () => {
@@ -57,6 +83,7 @@ describe('ActivityBests.vue', () => {
         }
       },
       global: {
+        provide: { pluginContext: mockPluginContext },
         mocks: {
           $router: mockRouter,
           $route: mockRoute
@@ -81,7 +108,8 @@ describe('ActivityBests.vue', () => {
           activity: mockActivity,
           details: undefined as any
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Should not crash - ActivityAnalyzer should handle empty array
@@ -100,7 +128,8 @@ describe('ActivityBests.vue', () => {
           activity: mockActivity,
           details: detailsWithoutSamples as any
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Should not crash - ActivityAnalyzer should handle empty array
@@ -119,7 +148,8 @@ describe('ActivityBests.vue', () => {
           activity: mockActivity,
           details: detailsWithEmptySamples
         }
-      }
+      },
+      global: { provide: { pluginContext: mockPluginContext } }
     })
 
     // Should not crash
@@ -135,6 +165,7 @@ describe('ActivityBests.vue', () => {
         }
       },
       global: {
+        provide: { pluginContext: mockPluginContext },
         mocks: {
           $router: mockRouter,
           $route: mockRoute

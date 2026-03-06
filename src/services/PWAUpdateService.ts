@@ -32,7 +32,9 @@ export class PWAUpdateService {
   private newWorker: ServiceWorker | null = null
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): PWAUpdateService {
     if (!PWAUpdateService.instance) {

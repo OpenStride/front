@@ -4,7 +4,7 @@
  * Ignore Service Worker registration errors in tests
  * Cypress doesn't play well with Service Workers
  */
-Cypress.on('uncaught:exception', (err) => {
+Cypress.on('uncaught:exception', err => {
   // Ignore Service Worker registration failures
   if (err.message.includes('ServiceWorker') || err.message.includes('dev-sw.js')) {
     return false
@@ -27,8 +27,8 @@ Cypress.Commands.add('getByTestId', (testId, options = {}) => {
  * Usage: cy.clearIndexedDB()
  */
 Cypress.Commands.add('clearIndexedDB', () => {
-  return cy.window().then((win) => {
-    return new Promise((resolve, reject) => {
+  return cy.window().then(win => {
+    return new Promise((resolve, _reject) => {
       if (!win.indexedDB) {
         resolve()
         return
@@ -80,7 +80,7 @@ Cypress.Commands.add('setupTest', (path = '/') => {
  * Usage: cy.mockGarminFetch()
  */
 Cypress.Commands.add('mockGarminFetch', () => {
-  cy.fixture('garmin_activity').then((garminData) => {
+  cy.fixture('garmin_activity').then(garminData => {
     cy.intercept('**/activities/fetch**', {
       statusCode: 200,
       body: garminData

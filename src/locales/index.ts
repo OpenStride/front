@@ -12,7 +12,8 @@ const DEFAULT_LOCALE: Locale = 'en'
  * Detects the browser's preferred language
  */
 export function getBrowserLocale(): Locale {
-  const browserLang = navigator.language || (navigator as any).userLanguage || ''
+  const browserLang =
+    navigator.language || (navigator as Navigator & { userLanguage?: string }).userLanguage || ''
   const lang = browserLang.split('-')[0].toLowerCase()
   return SUPPORTED_LOCALES.includes(lang as Locale) ? (lang as Locale) : DEFAULT_LOCALE
 }
@@ -24,7 +25,7 @@ export function getBrowserLocale(): Locale {
 export async function getInitialLocale(): Promise<Locale> {
   try {
     const db = await IndexedDBService.getInstance()
-    const savedLocale = await db.getData('user_locale')
+    const savedLocale = await db.getData<Locale>('user_locale')
     if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale)) {
       return savedLocale as Locale
     }

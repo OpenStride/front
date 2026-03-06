@@ -9,7 +9,10 @@
         class="inline-flex items-center gap-2 text-sm font-medium"
         :class="isConnected ? 'text-green-600' : 'text-red-600'"
       >
-        <i :class="isConnected ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+        <i
+          :class="isConnected ? 'fas fa-check-circle' : 'fas fa-times-circle'"
+          aria-hidden="true"
+        ></i>
         {{
           isConnected
             ? $t('providers.setup.connected', { provider: providerName })
@@ -24,7 +27,7 @@
         :disabled="isLoading"
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-plug'"></i>
+        <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-plug'" aria-hidden="true"></i>
         <template v-if="isLoading">
           {{ $t('providers.setup.connecting') }}
         </template>
@@ -42,7 +45,7 @@
         @click="$emit('disconnect')"
         class="inline-flex items-center gap-2 text-sm text-gray-600 font-medium hover:underline hover:text-gray-800 transition"
       >
-        <i class="fas fa-unlink"></i>
+        <i class="fas fa-unlink" aria-hidden="true"></i>
         {{ $t('providers.setup.disconnect') }}
       </button>
     </div>

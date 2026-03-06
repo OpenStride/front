@@ -5,21 +5,23 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick } from 'vue';
-import Chart from 'chart.js/auto';
-import type { AggregatedRecord } from '@/types/aggregation';
+import { onMounted, ref, watch, nextTick } from 'vue'
+import Chart from 'chart.js/auto'
+
+const cssVar = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{
-  weeks: string[];
-  distance: number[];
-  yLabel?: string;
-}>();
+  weeks: string[]
+  distance: number[]
+  yLabel?: string
+}>()
 
-const canvas = ref<HTMLCanvasElement|null>(null);
-let chart: Chart|null = null;
+const canvas = ref<HTMLCanvasElement | null>(null)
+let chart: Chart | null = null
 
 onMounted(async () => {
-  await nextTick();
+  await nextTick()
   if (canvas.value) {
     chart = new Chart(canvas.value, {
       type: 'line',
@@ -29,17 +31,17 @@ onMounted(async () => {
           {
             label: '',
             data: props.distance,
-            borderColor: '#18794e',
+            borderColor: cssVar('--color-emerald-700', '#047857'),
             backgroundColor: 'rgba(24,121,78,0.12)',
             fill: false,
-            tension: 0.2,
+            tension: 0.2
           }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: false },
+          legend: { display: false }
         },
         scales: {
           x: { title: { display: false, text: '' } },
@@ -49,18 +51,21 @@ onMounted(async () => {
           }
         }
       }
-    });
+    })
   }
-});
+})
 
-watch(() => [props.weeks, props.distance, props.yLabel], ([weeks, distance, yLabel]) => {
-  if (chart) {
-    chart.data.labels = Array.isArray(weeks) ? weeks : [];
-    chart.data.datasets[0].data = Array.isArray(distance) ? distance as number[] : [];
-    // No axis title update needed since labels are hidden
-    chart.update();
+watch(
+  () => [props.weeks, props.distance, props.yLabel],
+  ([weeks, distance]) => {
+    if (chart) {
+      chart.data.labels = Array.isArray(weeks) ? weeks : []
+      chart.data.datasets[0].data = Array.isArray(distance) ? (distance as number[]) : []
+      // No axis title update needed since labels are hidden
+      chart.update()
+    }
   }
-});
+)
 </script>
 
 <style scoped>

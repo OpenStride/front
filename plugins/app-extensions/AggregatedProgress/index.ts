@@ -1,6 +1,6 @@
-import type { ExtensionPlugin } from '@/types/extension';
+import type { ExtensionPlugin } from '@/types/extension'
 
-const AggregatedProgressWidget = () => import('./AggregatedProgressWidget.vue');
+const AggregatedProgressWidget = () => import('./AggregatedProgressWidget.vue')
 
 const plugin: ExtensionPlugin = {
   id: 'aggregated-progress',
@@ -10,6 +10,6 @@ const plugin: ExtensionPlugin = {
   slots: {
     'myactivities.top': [AggregatedProgressWidget]
   }
-};
+}
 
-export default plugin;
+export default plugin

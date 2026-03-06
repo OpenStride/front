@@ -1,6 +1,13 @@
 <template>
   <header class="header">
-    <div class="logo" @click="$router.push('/')" role="button" tabindex="0">
+    <div
+      class="logo"
+      @click="$router.push('/')"
+      @keydown.enter="$router.push('/')"
+      @keydown.space.prevent="$router.push('/')"
+      role="button"
+      tabindex="0"
+    >
       <img src="@/assets/logo.svg" alt="Logo" />
       <h1 class="brand-name">
         <span class="normal">open</span><span class="secondary">Stride</span>
@@ -33,14 +40,21 @@
           </svg>
         </span>
       </button>
-      <div class="burger-menu" @click="toggleMenu">
+      <div
+        class="burger-menu"
+        @click="toggleMenu"
+        role="button"
+        tabindex="0"
+        @keydown.enter="toggleMenu"
+        @keydown.space.prevent="toggleMenu"
+      >
         <i class="fas fa-bars" aria-hidden="true"></i>
       </div>
     </div>
     <nav :class="['nav-menu', { active: isMenuOpen }]">
-      <span class="close-menu" @click="closeMenu">
+      <button class="close-menu" @click="closeMenu" aria-label="Fermer">
         <i class="fas fa-times" aria-hidden="true"></i>
-      </span>
+      </button>
       <router-link to="/my-activities" @click="closeMenu">{{
         t('navigation.myActivities')
       }}</router-link>
@@ -74,7 +88,7 @@
   </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DataProviderService } from '@/services/DataProviderService'
@@ -123,28 +137,28 @@ const handleSyncNoPlugins = () => {
 const handleSyncCompleted = evt => {
   const detail = evt.detail
   if (detail.errors && detail.errors.length > 0) {
-    ToastService.push(`⚠️ Synchronisation partielle (${detail.errors.length} erreur(s))`, {
+    ToastService.push(`Synchronisation partielle (${detail.errors.length} erreur(s))`, {
       type: 'warning',
       timeout: 4000
     })
   } else {
     ToastService.push(
       detail.activitiesSynced > 0
-        ? `✅ ${detail.activitiesSynced} activité(s) synchronisée(s)`
-        : '✅ Tout est à jour',
+        ? `${detail.activitiesSynced} activité(s) synchronisée(s)`
+        : 'Tout est à jour',
       { type: 'success', timeout: 3000 }
     )
   }
 }
 
 const handleSyncFailed = () => {
-  ToastService.push('❌ Échec de la synchronisation', { type: 'error', timeout: 4000 })
+  ToastService.push('Échec de la synchronisation', { type: 'error', timeout: 4000 })
 }
 
 const handleSyncConflict = evt => {
   const detail = evt.detail
   ToastService.push(
-    `⚠️ "${detail.conflictActivity}" modifiée sur 2 appareils. Version la plus récente appliquée.`,
+    `"${detail.conflictActivity}" modifiée sur 2 appareils. Version la plus récente appliquée.`,
     { type: 'warning', timeout: 5000 }
   )
 }

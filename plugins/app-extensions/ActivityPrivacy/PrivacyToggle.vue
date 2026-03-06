@@ -29,117 +29,112 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { IndexedDBService } from '@/services/IndexedDBService';
-import { FriendService } from '@/services/FriendService';
-import { ToastService } from '@/services/ToastService';
-import type { Activity, ActivityDetails } from '@/types/activity';
-import type { FriendServiceEvent } from '@/types/friend';
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { usePluginContext } from '@/composables/usePluginContext'
+import type { Activity, ActivityDetails } from '@/types/activity'
+import type { FriendServiceEvent } from '@/types/friend'
 
 const props = defineProps<{
-  data: { activity: Activity; details: ActivityDetails };
-}>();
+  data: { activity: Activity; details: ActivityDetails }
+}>()
 
-const activity = computed(() => props.data?.activity);
-const details = computed(() => props.data?.details);
+const { storage, notifications, friends } = usePluginContext()
 
-const friendService = FriendService.getInstance();
+const activity = computed(() => props.data?.activity)
 
-const defaultPrivacy = ref<'public' | 'private'>('private');
-const activityPrivacy = ref<'public' | 'private' | null>(null);
-const saving = ref(false);
+const defaultPrivacy = ref<'public' | 'private'>('private')
+const activityPrivacy = ref<'public' | 'private' | null>(null)
+const saving = ref(false)
 
 const isPublic = computed(() => {
   if (activityPrivacy.value !== null) {
-    return activityPrivacy.value === 'public';
+    return activityPrivacy.value === 'public'
   }
-  return defaultPrivacy.value === 'public';
-});
+  return defaultPrivacy.value === 'public'
+})
 
 // Event listener for FriendService events
-const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>;
-  const { type, message, messageType } = customEvent.detail;
+const handleFriendEvent = ((...args: unknown[]) => {
+  const event = args[0] as Event
+  const customEvent = event as CustomEvent<FriendServiceEvent>
+  const { message, messageType } = customEvent.detail
 
   if (message && messageType) {
-    ToastService.push(message, {
+    notifications.notify(message, {
       type: messageType,
       timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    });
+    })
   }
-};
+}) as (...args: unknown[]) => void
 
 onMounted(async () => {
-  await loadPrivacySettings();
+  await loadPrivacySettings()
 
   // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent);
-});
+  friends.onEvent('friend-event', handleFriendEvent)
+})
 
 onUnmounted(() => {
   // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent);
-});
+  friends.offEvent('friend-event', handleFriendEvent)
+})
 
 const loadPrivacySettings = async () => {
   if (!activity.value || !activity.value.id) {
-    console.warn('[PrivacyToggle] Cannot load privacy settings: activity is undefined');
-    return;
+    console.warn('[PrivacyToggle] Cannot load privacy settings: activity is undefined')
+    return
   }
-
-  const db = await IndexedDBService.getInstance();
 
   // Load default privacy
-  const defaultSetting = await db.getData('defaultPrivacy');
-  defaultPrivacy.value = defaultSetting || 'private';
+  const defaultSetting = await storage.getData('defaultPrivacy')
+  defaultPrivacy.value = (defaultSetting as string as 'public' | 'private') || 'private'
 
   // Load activity-specific override
-  const override = await db.getData(`activityPrivacy_${activity.value.id}`);
+  const override = await storage.getData(`activityPrivacy_${activity.value.id}`)
   if (override !== null && override !== undefined) {
-    activityPrivacy.value = override === true || override === 'public' ? 'public' : 'private';
+    activityPrivacy.value = override === true || override === 'public' ? 'public' : 'private'
   }
-};
+}
 
 const togglePrivacy = async () => {
   if (!activity.value || !activity.value.id) {
-    console.warn('[PrivacyToggle] Cannot toggle privacy: activity is undefined');
-    return;
+    console.warn('[PrivacyToggle] Cannot toggle privacy: activity is undefined')
+    return
   }
 
-  saving.value = true;
+  saving.value = true
   try {
-    const db = await IndexedDBService.getInstance();
-    const newValue = !isPublic.value;
+    const newValue = !isPublic.value
 
     // Save override
-    await db.saveData(`activityPrivacy_${activity.value.id}`, newValue ? 'public' : 'private');
-    activityPrivacy.value = newValue ? 'public' : 'private';
+    await storage.saveData(`activityPrivacy_${activity.value.id}`, newValue ? 'public' : 'private')
+    activityPrivacy.value = newValue ? 'public' : 'private'
 
-    ToastService.push(
-      newValue ? 'Activité rendue publique' : 'Activité rendue privée',
-      { type: 'success', timeout: 2000 }
-    );
+    notifications.notify(newValue ? 'Activité rendue publique' : 'Activité rendue privée', {
+      type: 'success',
+      timeout: 2000
+    })
 
     // Trigger re-publication in background
-    republishInBackground();
+    republishInBackground()
   } catch (error) {
-    console.error('[PrivacyToggle] Error toggling privacy:', error);
-    ToastService.push('Erreur lors de la modification', { type: 'error', timeout: 3000 });
+    console.error('[PrivacyToggle] Error toggling privacy:', error)
+    notifications.notify('Erreur lors de la modification', { type: 'error', timeout: 3000 })
   } finally {
-    saving.value = false;
+    saving.value = false
   }
-};
+}
 
 const republishInBackground = () => {
   // Non-blocking re-publication
   setTimeout(async () => {
     try {
-      await friendService.publishPublicData();
+      await friends.publishPublicData()
     } catch (error) {
-      console.error('[PrivacyToggle] Background republish failed:', error);
+      console.error('[PrivacyToggle] Background republish failed:', error)
     }
-  }, 500);
-};
+  }, 500)
+}
 </script>
 
 <style scoped>
@@ -152,7 +147,7 @@ const republishInBackground = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   gap: 1rem;
@@ -231,7 +226,7 @@ const republishInBackground = () => {
   left: 0.25rem;
   width: 1.25rem;
   height: 1.25rem;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
   transition: transform 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);

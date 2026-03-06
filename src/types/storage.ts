@@ -5,10 +5,10 @@ export interface StoragePlugin {
   label: string
   icon?: string
   description?: string
-  setupComponent: () => Promise<any>
-  //syncData: (onlystores?: string[] | null) => Promise<any>
-  readRemote(store: string): Promise<any[]>
-  writeRemote(store: string, data: any[]): Promise<void>
+  setupComponent: () => Promise<unknown>
+  //syncData: (onlystores?: string[] | null) => Promise<unknown>
+  readRemote(store: string): Promise<unknown[]>
+  writeRemote(store: string, data: unknown[]): Promise<void>
   /**
    * Optional: plugin can provide a manifest update step after a sync.
    * Receives per-store summary and aggregate hash.
@@ -41,7 +41,7 @@ export interface StoragePlugin {
    * Optional: write a file to public storage (anyone with link can read)
    * Returns the public URL for accessing the file, or null if failed
    */
-  writePublicFile?(filename: string, content: any): Promise<string | null>
+  writePublicFile?(filename: string, content: unknown): Promise<string | null>
 
   /**
    * Optional: delete a file from storage by its ID

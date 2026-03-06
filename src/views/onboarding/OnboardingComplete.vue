@@ -1,7 +1,7 @@
 <template>
   <div class="onboarding-complete text-center py-8">
     <div class="text-green-600 text-6xl mb-6">
-      <i class="fas fa-check-circle"></i>
+      <i class="fas fa-check-circle" aria-hidden="true"></i>
     </div>
 
     <h2 class="text-3xl font-bold mb-3">{{ t('onboarding.complete.title') }}</h2>
@@ -9,7 +9,7 @@
 
     <div class="bg-gray-50 rounded-lg p-6 mb-8 max-w-md mx-auto">
       <div class="flex items-center justify-center gap-3 mb-4">
-        <i class="fas fa-database text-green-600 text-2xl"></i>
+        <i class="fas fa-database text-green-600 text-2xl" aria-hidden="true"></i>
         <span class="text-lg font-medium">{{
           t('onboarding.complete.activitiesImported', { count: activitiesCount })
         }}</span>
@@ -19,6 +19,7 @@
         <i
           :class="hasStorage ? 'fas fa-cloud-check text-green-600' : 'fas fa-hdd text-gray-400'"
           class="text-2xl"
+          aria-hidden="true"
         ></i>
         <span class="text-lg">
           {{
@@ -34,7 +35,7 @@
       @click="$emit('complete')"
       class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center gap-3 mb-6"
     >
-      <i class="fas fa-running"></i>
+      <i class="fas fa-running" aria-hidden="true"></i>
       {{ t('onboarding.complete.viewActivities') }}
     </button>
 
@@ -47,7 +48,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getActivityDBService } from '@/services/ActivityDBService'
+import { getActivityService } from '@/services/ActivityService'
 import { allStoragePlugins } from '@/services/StoragePluginRegistry'
 
 const { t } = useI18n()
@@ -65,8 +66,8 @@ const hasStorage = ref(false)
 const storageName = ref('')
 
 onMounted(async () => {
-  const activityDb = await getActivityDBService()
-  const activities = await activityDb.getActivities({ limit: 100, offset: 0 })
+  const activitySvc = await getActivityService()
+  const activities = await activitySvc.getAllActivities()
   activitiesCount.value = activities.length
 
   if (props.storageId) {

@@ -4,17 +4,16 @@
     <div class="flex justify-between items-center mb-2">
       <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
         <svg class="w-5 h-5 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 2a1 1 0 0 0-1 1v4.28a9 9 0 0 0 4 17.45 9 9 0 0 0 4-17.45V3a1 1 0 0 0-2 0v3.09a7 7 0 1 1-4 0V3a1 1 0 0 0-1-1Z"/>
-            </svg>
+          <path
+            d="M9 2a1 1 0 0 0-1 1v4.28a9 9 0 0 0 4 17.45 9 9 0 0 0 4-17.45V3a1 1 0 0 0-2 0v3.09a7 7 0 1 1-4 0V3a1 1 0 0 0-1-1Z"
+          />
+        </svg>
         Cadence
-        </h3>
+      </h3>
 
       <div class="flex items-center gap-2">
         <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
-        <label
-          v-if="granularity !== 'laps'"
-          class="text-sm flex items-center gap-1"
-        >
+        <label v-if="granularity !== 'laps'" class="text-sm flex items-center gap-1">
           <input
             type="checkbox"
             v-model="useSlope"
@@ -57,49 +56,51 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { getIndexedDBService } from '@/services/IndexedDBService'
-import { ActivityAnalyzer } from '@/services/ActivityAnalyzer'
+import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+
+const cssVar = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 /* ===== Props ===== */
 const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }
 }>()
 
+const { storage, analyzer: analyzerFactory } = usePluginContext()
+
 /* ===== Références & états ===== */
-const canvas      = ref<HTMLCanvasElement | null>(null)
-const samples     = ref<Sample[]>([])
-const granularity = ref('1000')      // distance (m) ou 'laps'
-const useSlope    = ref(false)       // mode variation de pente
+const canvas = ref<HTMLCanvasElement | null>(null)
+const samples = ref<Sample[]>([])
+const granularity = ref('1000') // distance (m) ou 'laps'
+const useSlope = ref(false) // mode variation de pente
 
 /* ===== Options de granularité ===== */
 const granularities = [
   { label: '100 m', value: '100' },
   { label: '200 m', value: '200' },
   { label: '500 m', value: '500' },
-  { label: '1 km',  value: '1000' },
-  { label: '2 km',  value: '2000' },
-  { label: '5 km',  value: '5000' },
-  { label: 'Laps',  value: 'laps' }
+  { label: '1 km', value: '1000' },
+  { label: '2 km', value: '2000' },
+  { label: '5 km', value: '5000' },
+  { label: 'Laps', value: 'laps' }
 ]
 
-/* ===== Persistance (IndexedDB) ===== */
+/* ===== Persistance (PluginContext) ===== */
 async function savePrefs() {
-  const db = await getIndexedDBService()
-  await db.saveData('granularity_for_cadence', granularity.value)
-  await db.saveData('use_slope_for_cadence', useSlope.value)
+  await storage.saveData('granularity_for_cadence', granularity.value)
+  await storage.saveData('use_slope_for_cadence', useSlope.value)
 }
 async function loadPrefs() {
-  const db = await getIndexedDBService()
-  const g = await db.getData('granularity_for_cadence')
-  const s = await db.getData('use_slope_for_cadence')
-  if (typeof g === 'string')  granularity.value = g
-  if (typeof s === 'boolean') useSlope.value    = s
+  const g = await storage.getData('granularity_for_cadence')
+  const s = await storage.getData('use_slope_for_cadence')
+  if (typeof g === 'string') granularity.value = g
+  if (typeof s === 'boolean') useSlope.value = s
 }
 
 /* ===== Re-échantillonnage ===== */
 async function resample() {
-  const analyzer = new ActivityAnalyzer(props.data.details.samples ?? [])
+  const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
   if (granularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
   } else if (useSlope.value) {
@@ -112,12 +113,12 @@ async function resample() {
 
 /* ===== Couleur des barres ===== */
 function getColorFromCadence(c: number, min: number, max: number): string {
-  const hue  = 186;          // cyan
-  const sat  = 80;           // %
-  const t    = (c - min) / (max - min || 1);  // 0 → 1
-  const light = 65 - t * 35; // 65 % (lent) → 30 % (rapide)
-  const alpha = 0.7;         // transparence douce
-  return `hsla(${hue} ${sat}% ${light}% / ${alpha})`;
+  const hue = 186 // cyan
+  const sat = 80 // %
+  const t = (c - min) / (max - min || 1) // 0 → 1
+  const light = 65 - t * 35 // 65 % (lent) → 30 % (rapide)
+  const alpha = 0.7 // transparence douce
+  return `hsla(${hue} ${sat}% ${light}% / ${alpha})`
 }
 
 /* ===== Dessin du graphique ===== */
@@ -138,16 +139,16 @@ function drawCanvas() {
   maxC += thr
 
   /* === Layout === */
-  const pxMargin   = 50
-  const plotTop    = 30
+  const pxMargin = 50
+  const plotTop = 30
   const plotHeight = H - 50
-  const baseline   = plotTop + plotHeight
-  const totalDist  = props.data.activity.distance || 1
+  const baseline = plotTop + plotHeight
+  const totalDist = props.data.activity.distance || 1
 
   /* === Grille horizontale (cadence) === */
-  ctx.strokeStyle = '#e0e0e0'
-  ctx.fillStyle   = '#888'
-  ctx.font        = '10px sans-serif'
+  ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
+  ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.font = '10px sans-serif'
   for (let c = Math.floor(minC / 10) * 10; c <= maxC + 10; c += 10) {
     const y = plotTop + ((c - minC) / (maxC - minC || 1)) * plotHeight
     ctx.beginPath()
@@ -158,13 +159,13 @@ function drawCanvas() {
   }
 
   /* === Grille verticale (distance) === */
-  const kmTotal  = totalDist / 1000
-  const rawStep  = kmTotal / 10
-  const mag      = 10 ** Math.floor(Math.log10(rawStep))
+  const kmTotal = totalDist / 1000
+  const rawStep = kmTotal / 10
+  const mag = 10 ** Math.floor(Math.log10(rawStep))
   const niceBase = [1, 2, 5].find(b => b * mag >= rawStep) || 10
-  const stepKm   = niceBase * mag
+  const stepKm = niceBase * mag
   for (let km = stepKm; km < kmTotal; km += stepKm) {
-    const x = pxMargin + (km * 1000 / totalDist) * (W - pxMargin)
+    const x = pxMargin + ((km * 1000) / totalDist) * (W - pxMargin)
     ctx.beginPath()
     ctx.moveTo(x, plotTop)
     ctx.lineTo(x, baseline)
@@ -172,44 +173,48 @@ function drawCanvas() {
   }
 
   /* === Profil altitude (gris) === */
-  const raw   = (props.data.details.samples ?? [])
+  const raw = (props.data.details.samples ?? [])
     .filter((_, i) => i % 5 === 0)
     .filter(s => s.elevation != null)
   const elevs = raw.map(s => s.elevation as number)
-  const minE  = Math.min(...elevs)
-  const maxE  = Math.max(...elevs)
-  const padE  = (maxE - minE || 1) * 0.1
+  const minE = Math.min(...elevs)
+  const maxE = Math.max(...elevs)
+  const padE = (maxE - minE || 1) * 0.1
   const minVE = minE - padE
   const maxVE = maxE + padE
   const rangeE = maxVE - minVE || 1
 
   ctx.beginPath()
-  ctx.strokeStyle = '#888'
-  ctx.lineWidth   = 1
+  ctx.strokeStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.lineWidth = 1
   let xCur = pxMargin
   for (let i = 0; i < raw.length; i++) {
     const d = raw[i].distance ?? 0
     const e = raw[i].elevation ?? 0
-    xCur    = pxMargin + (d / totalDist) * (W - pxMargin)
+    xCur = pxMargin + (d / totalDist) * (W - pxMargin)
     const y = baseline - ((e - minVE) / rangeE) * plotHeight
-    i === 0 ? ctx.moveTo(xCur, y) : ctx.lineTo(xCur, y)
+    if (i === 0) {
+      ctx.moveTo(xCur, y)
+    } else {
+      ctx.lineTo(xCur, y)
+    }
   }
   ctx.stroke()
   ctx.lineTo(xCur, baseline)
   ctx.lineTo(pxMargin, baseline)
-  ctx.fillStyle = '#f0f0f0'
+  ctx.fillStyle = cssVar('--color-gray-100', '#f3f4f6')
   ctx.fill()
 
   /* === Barres de cadence === */
   for (let i = 0; i < samples.value.length; i++) {
-      const s      = samples.value[i]
-      const d0     = i === 0 ? 0 : (samples.value[i - 1].distance ?? 0)
-      const d1     = s.distance ?? 0
-      const xStart = pxMargin + (d0 / totalDist) * (W - pxMargin)
-      const wPx    = ((d1 - d0) / totalDist) * (W - pxMargin)
-      const c      = s.cadence ?? 0
-      ctx.fillStyle = ctx.fillStyle = getColorFromCadence(c, minC, maxC)
-    const hPx    = ((c - minC) / (maxC - minC || 1)) * plotHeight
+    const s = samples.value[i]
+    const d0 = i === 0 ? 0 : (samples.value[i - 1].distance ?? 0)
+    const d1 = s.distance ?? 0
+    const xStart = pxMargin + (d0 / totalDist) * (W - pxMargin)
+    const wPx = ((d1 - d0) / totalDist) * (W - pxMargin)
+    const c = s.cadence ?? 0
+    ctx.fillStyle = ctx.fillStyle = getColorFromCadence(c, minC, maxC)
+    const hPx = ((c - minC) / (maxC - minC || 1)) * plotHeight
     ctx.fillRect(xStart, baseline - hPx, wPx - 1, hPx)
   }
 }
@@ -227,8 +232,8 @@ let hideTT: ReturnType<typeof setTimeout> | null = null
 function showTooltip(ev: MouseEvent | TouchEvent) {
   const clientX = 'touches' in ev ? ev.touches[0].clientX : ev.clientX
   const clientY = 'touches' in ev ? ev.touches[0].clientY : ev.clientY
-  const rect    = canvas.value!.getBoundingClientRect()
-  const xPct    = (clientX - rect.left - 50) / (rect.width - 50)
+  const rect = canvas.value!.getBoundingClientRect()
+  const xPct = (clientX - rect.left - 50) / (rect.width - 50)
   const distSel = xPct * (props.data.activity.distance || 0)
 
   /* recherche du sample cliqué */
@@ -236,11 +241,11 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
     const prev = samples.value[i - 1]
     return (prev?.distance ?? 0) <= distSel && (s.distance ?? 0) >= distSel
   })
-  const i     = idx === -1 ? samples.value.length - 1 : idx
-  const s     = samples.value[i]
-  const prev  = samples.value[i - 1] ?? s
+  const i = idx === -1 ? samples.value.length - 1 : idx
+  const s = samples.value[i]
+  const prev = samples.value[i - 1] ?? s
 
-  /* pente instantanée (si on a l’élévation) */
+  /* pente instantanée (si on a l'élévation) */
   let slope = null as number | null
   if (s.elevation != null && prev.elevation != null) {
     const delev = s.elevation - prev.elevation
@@ -281,5 +286,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-canvas { max-width: 100%; }
+canvas {
+  max-width: 100%;
+}
 </style>

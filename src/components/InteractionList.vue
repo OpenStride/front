@@ -5,8 +5,24 @@
       Interactions
     </h3>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="loading-state">
+      <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>Chargement...</span>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="error-state">
+      <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+      <p>{{ error }}</p>
+      <button class="retry-btn" data-test="retry-interactions" @click="loadInteractions">
+        <i class="fas fa-sync" aria-hidden="true"></i>
+        Réessayer
+      </button>
+    </div>
+
     <!-- Likes section -->
-    <div v-if="likes.length > 0" class="likes-section">
+    <div v-if="!loading && !error && likes.length > 0" class="likes-section">
       <div class="subsection-header">
         <i class="fas fa-heart" aria-hidden="true"></i>
         <span>{{ likes.length }} {{ likes.length === 1 ? 'like' : 'likes' }}</span>
@@ -20,7 +36,7 @@
     </div>
 
     <!-- Comments section -->
-    <div v-if="comments.length > 0" class="comments-section">
+    <div v-if="!loading && !error && comments.length > 0" class="comments-section">
       <div class="subsection-header">
         <i class="fas fa-comment" aria-hidden="true"></i>
         <span
@@ -51,7 +67,10 @@
     </div>
 
     <!-- Empty state -->
-    <div v-if="likes.length === 0 && comments.length === 0" class="empty-state">
+    <div
+      v-if="!loading && !error && likes.length === 0 && comments.length === 0"
+      class="empty-state"
+    >
       <i class="far fa-comment-dots" aria-hidden="true"></i>
       <p>Aucune interaction pour le moment</p>
     </div>
@@ -84,6 +103,8 @@ const interactionService = getInteractionService()
 const interactions = ref<Interaction[]>([])
 const myUserId = ref<string | null>(null)
 const deleting = ref<string | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
 
 // Computed properties for filtering
 const likes = computed(() => interactions.value.filter(i => i.type === 'like'))
@@ -94,13 +115,18 @@ const comments = computed(() =>
 
 // Load data
 const loadInteractions = async () => {
+  loading.value = true
+  error.value = null
   try {
     interactions.value = await interactionService.getInteractionsForActivity(
       props.activityId,
       props.activityOwnerId
     )
-  } catch (error) {
-    console.error('[InteractionList] Error loading interactions:', error)
+  } catch (err) {
+    console.error('[InteractionList] Error loading interactions:', err)
+    error.value = 'Impossible de charger les interactions.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -165,7 +191,7 @@ onUnmounted(() => {
 
 <style scoped>
 .interaction-list {
-  background: white;
+  background: var(--color-white);
   padding: 1rem;
   margin-top: 1rem;
 }
@@ -176,7 +202,7 @@ onUnmounted(() => {
   gap: 0.5rem;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   margin-bottom: 1rem;
 }
 
@@ -195,7 +221,7 @@ onUnmounted(() => {
   gap: 0.375rem;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #555;
+  color: var(--color-gray-600);
   margin-bottom: 0.5rem;
 }
 
@@ -204,7 +230,7 @@ onUnmounted(() => {
 }
 
 .likes-section .subsection-header i {
-  color: #e74c3c;
+  color: var(--color-red-500);
 }
 
 .comments-section .subsection-header i {
@@ -213,12 +239,12 @@ onUnmounted(() => {
 
 .likes-list {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-gray-500);
   padding-left: 1.25rem;
 }
 
 .like-author {
-  color: #333;
+  color: var(--text-color);
 }
 
 .comments-list {
@@ -229,7 +255,7 @@ onUnmounted(() => {
 
 .comment-item {
   padding: 0.75rem;
-  background: #f9f9f9;
+  background: var(--color-gray-50);
   border-radius: 0.5rem;
 }
 
@@ -243,12 +269,12 @@ onUnmounted(() => {
 .comment-author {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--text-color);
 }
 
 .comment-time {
   font-size: 0.8rem;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .delete-btn {
@@ -256,15 +282,15 @@ onUnmounted(() => {
   padding: 0.25rem 0.375rem;
   background: none;
   border: none;
-  color: #999;
+  color: var(--color-gray-400);
   cursor: pointer;
   border-radius: 0.25rem;
   transition: all 0.15s ease;
 }
 
 .delete-btn:hover:not(:disabled) {
-  color: #e74c3c;
-  background: #fee2e2;
+  color: var(--color-red-500);
+  background: var(--color-red-100);
 }
 
 .delete-btn:disabled {
@@ -274,10 +300,63 @@ onUnmounted(() => {
 
 .comment-text {
   font-size: 0.9rem;
-  color: #444;
+  color: var(--color-gray-700);
   line-height: 1.4;
   margin: 0;
   word-break: break-word;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--color-gray-400);
+  font-size: 0.9rem;
+}
+
+.loading-state i {
+  color: var(--color-green-500);
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  gap: 0.5rem;
+  color: var(--color-red-500);
+  text-align: center;
+}
+
+.error-state i {
+  font-size: 1.5rem;
+}
+
+.error-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-gray-600);
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background: none;
+  border: 1px solid var(--color-green-500);
+  color: var(--color-green-500);
+  border-radius: 0.375rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.retry-btn:hover {
+  background: var(--color-green-50);
 }
 
 .empty-state {
@@ -285,7 +364,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 2rem 1rem;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .empty-state i {
@@ -299,7 +378,7 @@ onUnmounted(() => {
 }
 
 .interaction-bar-section {
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-gray-200);
   margin-top: 1rem;
   padding-top: 0.75rem;
 }

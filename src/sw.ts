@@ -80,7 +80,7 @@ if (messaging) {
 // 3. Service Worker Lifecycle
 // ========================================
 
-self.addEventListener('install', event => {
+self.addEventListener('install', _event => {
   console.log('[Service Worker] Installing version', APP_VERSION)
   // Prompt mode: wait for user consent via messageSkipWaiting()
   // skipWaiting() will be called via message handler when user accepts update

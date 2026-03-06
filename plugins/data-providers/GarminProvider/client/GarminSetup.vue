@@ -12,7 +12,8 @@
     <div v-if="showFallbackRedirect" class="fallback-section">
       <p class="fallback-text">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        La fenêtre popup a été bloquée. Vous pouvez autoriser les popups ou utiliser la méthode alternative.
+        La fenêtre popup a été bloquée. Vous pouvez autoriser les popups ou utiliser la méthode
+        alternative.
       </p>
       <button @click="connectWithRedirect" class="fallback-button">
         <i class="fas fa-external-link-alt" aria-hidden="true"></i>
@@ -30,7 +31,9 @@
       <div v-if="syncState.status === 'syncing'" class="text-gray-600">
         <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
         <span v-if="syncProgress">
-          Import {{ syncProgress.month }} ({{ syncProgress.completed + 1 }}/{{ syncProgress.total }})
+          Import {{ syncProgress.month }} ({{ syncProgress.completed + 1 }}/{{
+            syncProgress.total
+          }})
         </span>
         <span v-else>Import en cours...</span>
       </div>
@@ -39,10 +42,7 @@
       <div v-else-if="syncState.status === 'error'" class="text-red-600">
         <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
         <span>Erreur: {{ syncState.lastError }}</span>
-        <button
-          @click="retryImport"
-          class="ml-4 text-sm text-blue-600 hover:underline"
-        >
+        <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">
           Réessayer
         </button>
       </div>
@@ -57,9 +57,7 @@
               · {{ formatLastSync(syncState.lastSyncDate) }}
             </span>
           </span>
-          <span v-else>
-            Connecté · Import initial en attente
-          </span>
+          <span v-else> Connecté · Import initial en attente </span>
         </p>
 
         <!-- Manual refresh button (discreet) -->
@@ -93,7 +91,12 @@ import {
   updateSyncState,
   type GarminSyncState
 } from './storage'
-import { getGarminSyncManager, syncEmitter, type SyncCompleteEvent, type SyncProgressEvent } from './GarminSyncManager'
+import {
+  getGarminSyncManager,
+  syncEmitter,
+  type SyncCompleteEvent,
+  type SyncProgressEvent
+} from './GarminSyncManager'
 import pluginEnv from './env'
 
 // TODO: migration db - migrate old garmin_token/garmin_token_secret to new format
@@ -217,7 +220,9 @@ async function handleOAuthMessage(event: MessageEvent) {
 function handlePopupBlocked() {
   isWaitingForOAuth.value = false
   showFallbackRedirect.value = true
-  notifications.notify('Popup bloquée. Autorisez les popups ou utilisez le fallback.', { type: 'warning' })
+  notifications.notify('Popup bloquée. Autorisez les popups ou utilisez le fallback.', {
+    type: 'warning'
+  })
 }
 
 function handleOAuthCancelled() {
@@ -273,8 +278,10 @@ async function manualRefresh() {
     const syncManager = getGarminSyncManager()
     const count = await syncManager.dailyRefresh()
     notifications.notify(`Garmin: ${count} activités synchronisées`, { type: 'success' })
-  } catch (err: any) {
-    notifications.notify(`Garmin: ${err.message || 'Erreur'}`, { type: 'error' })
+  } catch (err: unknown) {
+    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Erreur'}`, {
+      type: 'error'
+    })
   } finally {
     isRefreshing.value = false
     Object.assign(syncState, await getSyncState())
@@ -291,7 +298,7 @@ function handleSyncComplete(event: Event) {
   if (success) {
     notifications.notify(`Garmin: ${count} activités importées`, { type: 'success' })
   } else {
-    notifications.notify(`Garmin: ${error || 'Erreur d\'import'}`, { type: 'error' })
+    notifications.notify(`Garmin: ${error || "Erreur d'import"}`, { type: 'error' })
   }
 
   // Clear progress and refresh state
@@ -417,7 +424,7 @@ onUnmounted(() => {
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: var(--color-green-500, #88aa00);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   font-size: 0.875rem;

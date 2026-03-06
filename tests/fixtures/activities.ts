@@ -1,5 +1,11 @@
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
-import type { Friend, FriendActivity, PublicManifest, PublicActivity, YearActivities } from '@/types/friend'
+import type {
+  Friend,
+  FriendActivity,
+  PublicManifest,
+  PublicActivity,
+  YearActivities
+} from '@/types/friend'
 
 /**
  * Test fixtures for activities, details, and friends
@@ -119,8 +125,8 @@ export const createActivities = (count: number, baseTime: number = BASE_TIME): A
         startTime: baseTime + dayOffset,
         lastModified: baseTime + dayOffset,
         title: `Run ${i + 1}`,
-        distance: 5000 + (i * 100), // Gradually increasing distance
-        duration: 1800 + (i * 10)
+        distance: 5000 + i * 100, // Gradually increasing distance
+        duration: 1800 + i * 10
       })
     )
   }

@@ -58,14 +58,14 @@ main {
 }
 
 .footer {
-  background-color: #f4f4f4;
+  background-color: var(--color-gray-100);
   padding: 10px 20px;
   text-align: center;
   font-size: 0.9rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 .footer a {
-  color: #0073e6;
+  color: var(--color-blue-600);
   text-decoration: none;
   margin: 0 8px;
 }
@@ -75,7 +75,7 @@ main {
 .footer .version {
   margin-top: 8px;
   font-size: 0.75rem;
-  color: #999;
+  color: var(--color-gray-400);
   font-weight: 300;
   cursor: pointer;
 }

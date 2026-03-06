@@ -5,7 +5,7 @@
 describe('Garmin provider refresh (mock UI flow)', () => {
   beforeEach(() => {
     // Use cy.intercept to mock Garmin API calls
-    cy.fixture('garmin_activity').then((garminData) => {
+    cy.fixture('garmin_activity').then(garminData => {
       cy.intercept('GET', '**/activities/fetch**', {
         statusCode: 200,
         body: garminData
@@ -39,10 +39,7 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Click Configure to go to the Garmin setup page
     // Use .within() to ensure we click on the correct element and scroll it into view
     cy.getByTestId('connected-provider-garmin').within(() => {
-      cy.getByTestId('configure-provider-garmin')
-        .should('be.visible')
-        .scrollIntoView()
-        .click()
+      cy.getByTestId('configure-provider-garmin').should('be.visible').scrollIntoView().click()
     })
 
     // Wait for navigation to complete

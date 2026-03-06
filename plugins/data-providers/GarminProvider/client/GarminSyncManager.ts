@@ -2,7 +2,6 @@
 import { getTokens, getSyncState, updateSyncState } from './storage'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
 import { getPluginContext } from '@/services/PluginContextFactory'
-import type { IActivityService } from '@/types/plugin-context'
 import pluginEnv from './env'
 
 const baseURL = pluginEnv.apiUrl
@@ -90,9 +89,11 @@ export class GarminSyncManager {
       await updateSyncState({ status: 'syncing', lastError: null })
 
       // Emit sync-started event for UI update
-      syncEmitter.dispatchEvent(new CustomEvent<SyncProgressEvent>('sync-progress', {
-        detail: { type: 'started' }
-      }))
+      syncEmitter.dispatchEvent(
+        new CustomEvent<SyncProgressEvent>('sync-progress', {
+          detail: { type: 'started' }
+        })
+      )
 
       const months = this.getLast6Months()
       const state = await getSyncState()
@@ -100,11 +101,15 @@ export class GarminSyncManager {
       // Months fully done (backfill asked AND synced)
       const fullyDone = state.backfillSyncedMonths
       // Months where backfill was asked but not yet synced (browser closed mid-import)
-      const pendingSync = state.backfillAskedMonths.filter(m => !state.backfillSyncedMonths.includes(m))
+      const pendingSync = state.backfillAskedMonths.filter(
+        m => !state.backfillSyncedMonths.includes(m)
+      )
       // Months not yet started
       const notStarted = months.filter(m => !state.backfillAskedMonths.includes(m))
 
-      console.log(`[GarminSync] Status: ${fullyDone.length} done, ${pendingSync.length} pending sync, ${notStarted.length} not started`)
+      console.log(
+        `[GarminSync] Status: ${fullyDone.length} done, ${pendingSync.length} pending sync, ${notStarted.length} not started`
+      )
 
       const totalMonths = pendingSync.length + notStarted.length
       let completedMonths = 0
@@ -114,9 +119,11 @@ export class GarminSyncManager {
         console.log(`[GarminSync] ${month} - Resuming (backfill already asked)...`)
 
         // Emit progress event
-        syncEmitter.dispatchEvent(new CustomEvent<SyncProgressEvent>('sync-progress', {
-          detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
-        }))
+        syncEmitter.dispatchEvent(
+          new CustomEvent<SyncProgressEvent>('sync-progress', {
+            detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
+          })
+        )
 
         try {
           const { start, end } = this.getMonthRange(month)
@@ -138,9 +145,9 @@ export class GarminSyncManager {
           }
 
           await this.sleep(15000) // 15s between months
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error(`[GarminSync] Error syncing ${month}:`, err)
-          errors.push(`${month}: ${err.message || 'Unknown error'}`)
+          errors.push(`${month}: ${err instanceof Error ? err.message : 'Unknown error'}`)
         }
         completedMonths++
       }
@@ -150,9 +157,11 @@ export class GarminSyncManager {
         console.log(`[GarminSync] Importing ${month}...`)
 
         // Emit progress event
-        syncEmitter.dispatchEvent(new CustomEvent<SyncProgressEvent>('sync-progress', {
-          detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
-        }))
+        syncEmitter.dispatchEvent(
+          new CustomEvent<SyncProgressEvent>('sync-progress', {
+            detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
+          })
+        )
 
         try {
           const { start, end } = this.getMonthRange(month)
@@ -181,9 +190,9 @@ export class GarminSyncManager {
 
           // Longer delay between chunks to respect Garmin API rate limits (100 req/min)
           await this.sleep(15000) // 15 seconds between months
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error(`[GarminSync] Error importing ${month}:`, err)
-          errors.push(`${month}: ${err.message || 'Unknown error'}`)
+          errors.push(`${month}: ${err instanceof Error ? err.message : 'Unknown error'}`)
           // Continue with next month instead of failing completely
         }
         completedMonths++
@@ -207,26 +216,30 @@ export class GarminSyncManager {
       }
 
       // Emit completion event for toast notification
-      syncEmitter.dispatchEvent(new CustomEvent<SyncCompleteEvent>('sync-complete', {
-        detail: {
-          success: errors.length === 0,
-          count: totalCount,
-          error: errors.length > 0 ? `Errors on ${errors.length} months` : undefined
-        }
-      }))
+      syncEmitter.dispatchEvent(
+        new CustomEvent<SyncCompleteEvent>('sync-complete', {
+          detail: {
+            success: errors.length === 0,
+            count: totalCount,
+            error: errors.length > 0 ? `Errors on ${errors.length} months` : undefined
+          }
+        })
+      )
 
       console.log(`[GarminSync] Initial import complete: ${totalCount} activities total`)
-
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       await updateSyncState({
         status: 'error',
-        lastError: err.message || 'Unknown error'
+        lastError: errorMessage
       })
 
       // Emit error event for toast notification
-      syncEmitter.dispatchEvent(new CustomEvent<SyncCompleteEvent>('sync-complete', {
-        detail: { success: false, count: 0, error: err.message }
-      }))
+      syncEmitter.dispatchEvent(
+        new CustomEvent<SyncCompleteEvent>('sync-complete', {
+          detail: { success: false, count: 0, error: errorMessage }
+        })
+      )
 
       console.error('[GarminSync] Initial import failed:', err)
     }
@@ -263,9 +276,12 @@ export class GarminSyncManager {
         if (count > 0) {
           console.log(`[GarminSync] Day ${daysAgo + 1}/7: ${count} activities`)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Log but continue with other days
-        console.warn(`[GarminSync] Day ${daysAgo + 1}/7 failed:`, err.message)
+        console.warn(
+          `[GarminSync] Day ${daysAgo + 1}/7 failed:`,
+          err instanceof Error ? err.message : err
+        )
       }
     }
 
@@ -307,7 +323,9 @@ export class GarminSyncManager {
     if (res.status === 429 || res.status === 503) {
       if (retryCount < MAX_RETRIES) {
         const backoffMs = Math.pow(2, retryCount + 1) * 30000 // 60s, 120s, 240s
-        console.warn(`[GarminSync] Rate limit hit, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`)
+        console.warn(
+          `[GarminSync] Rate limit hit, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`
+        )
         await this.sleep(backoffMs)
         return this.fetchAndSaveActivities(startDate, endDate, useBackfill, retryCount + 1)
       }
@@ -317,10 +335,14 @@ export class GarminSyncManager {
       const errorBody = await res.text()
 
       // Handle "duplicate backfill" error - need to fetch using the backfill timestamp
-      const duplicateMatch = errorBody.match(/duplicate backfill processed at (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/)
+      const duplicateMatch = errorBody.match(
+        /duplicate backfill processed at (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/
+      )
       if (duplicateMatch) {
         const backfillTimestamp = duplicateMatch[1]
-        console.log(`[GarminSync] Duplicate backfill detected, fetching with timestamp: ${backfillTimestamp}`)
+        console.log(
+          `[GarminSync] Duplicate backfill detected, fetching with timestamp: ${backfillTimestamp}`
+        )
         return this.fetchWithBackfillTimestamp(backfillTimestamp)
       }
 
@@ -328,7 +350,9 @@ export class GarminSyncManager {
       if (errorBody.includes('Rate limit') || errorBody.includes('Too many request')) {
         if (retryCount < MAX_RETRIES) {
           const backoffMs = Math.pow(2, retryCount + 1) * 30000 // 60s, 120s, 240s
-          console.warn(`[GarminSync] Rate limit in response, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`)
+          console.warn(
+            `[GarminSync] Rate limit in response, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`
+          )
           await this.sleep(backoffMs)
           return this.fetchAndSaveActivities(startDate, endDate, useBackfill, retryCount + 1)
         }
@@ -371,13 +395,17 @@ export class GarminSyncManager {
     // The 2-second interval is well under the 24h limit for standard fetch
     const url = `${baseURL}/activities/fetch?oauth_token=${tokens.accessToken}&oauth_token_secret=${tokens.accessTokenSecret}&start_time=${startTime}&end_time=${endTime}&detail=1`
 
-    console.log(`[GarminSync] Fetching with backfill timestamp interval: ${startTime} to ${endTime}`)
+    console.log(
+      `[GarminSync] Fetching with backfill timestamp interval: ${startTime} to ${endTime}`
+    )
 
     const res = await fetch(url)
 
     if (!res.ok) {
       const errorBody = await res.text()
-      throw new Error(`Garmin API error (backfill fetch): ${res.status} - ${errorBody.substring(0, 200)}`)
+      throw new Error(
+        `Garmin API error (backfill fetch): ${res.status} - ${errorBody.substring(0, 200)}`
+      )
     }
 
     const raw = await res.json()

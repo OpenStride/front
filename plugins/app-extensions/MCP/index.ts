@@ -20,7 +20,8 @@ import type { ExtensionPlugin } from '@/types/extension'
 export default {
   id: 'mcp',
   label: 'AI Assistant (MCP)',
-  description: 'Connect your training data to AI assistants like Claude, ChatGPT, and more using the Model Context Protocol',
+  description:
+    'Connect your training data to AI assistants like Claude, ChatGPT, and more using the Model Context Protocol',
   icon: 'fas fa-robot',
 
   // Add tab to Profile page

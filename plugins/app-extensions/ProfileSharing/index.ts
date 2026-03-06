@@ -6,9 +6,7 @@ export default {
   description: 'Manage sharing settings and publish your public profile',
   icon: 'fas fa-share-nodes',
   slots: {
-    'profile.tabs': [
-      () => import('./ProfileSharingTab.vue')
-    ]
+    'profile.tabs': [() => import('./ProfileSharingTab.vue')]
   },
   // Metadata for profile tab
   tabMetadata: {

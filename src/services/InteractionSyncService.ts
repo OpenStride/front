@@ -26,7 +26,9 @@ export class InteractionSyncService {
   private static instance: InteractionSyncService
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static getInstance(): InteractionSyncService {
     if (!InteractionSyncService.instance) {

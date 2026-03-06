@@ -8,19 +8,21 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import Chart from 'chart.js/auto'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+
+const cssVar = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
-const activity = computed(() => props.data.activity)
 const samples = computed(() => props.data.details.samples ?? [])
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 
 const getDataPerKm = () => {
-  const perKm: { pace: number, speed: number, elevation: number }[] = []
+  const perKm: { pace: number; speed: number; elevation: number }[] = []
   let lastKm = 0
-  let segment: any[] = []
+  let segment: Sample[] = []
 
   for (const sample of samples.value) {
     const dist = sample.distance ?? 0
@@ -108,7 +110,7 @@ onMounted(() => {
           type: 'line',
           label: 'Altitude (m)',
           data: elevationPoints,
-          borderColor: '#888888',
+          borderColor: cssVar('--color-gray-400', '#9ca3af'),
           borderWidth: 0,
           parsing: false,
           fill: true,
@@ -124,10 +126,10 @@ onMounted(() => {
         tooltip: {
           position: 'nearest',
           callbacks: {
-            label: (tooltipItem) => {
+            label: tooltipItem => {
               const { dataset, dataIndex } = tooltipItem
               if (dataset.type === 'line') {
-                const elevation = getClosestY(dataset.data as any, dataIndex)
+                const elevation = getClosestY(dataset.data as { x: number; y: number }[], dataIndex)
                 return `${Math.round(elevation)} m`
               }
               const speed = dataset.data[dataIndex] as number

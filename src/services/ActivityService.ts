@@ -1,4 +1,4 @@
-import { Activity, ActivityDetails } from '@/types/activity'
+import { Activity, ActivityDetails, type ActivityFilters } from '@/types/activity'
 import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
 import type { IActivityService } from '@/types/plugin-context'
@@ -28,7 +28,9 @@ export class ActivityService implements IActivityService {
   private db: IndexedDBService | null = null
   public emitter = new EventTarget()
 
-  private constructor() {}
+  private constructor() {
+    /* singleton */
+  }
 
   public static async getInstance(): Promise<ActivityService> {
     if (!ActivityService.instance) {
@@ -290,19 +292,61 @@ export class ActivityService implements IActivityService {
       offset?: number
       limit?: number
       includeDeleted?: boolean
+      filters?: ActivityFilters
     } = {}
   ): Promise<Activity[]> {
     const db = this.ensureDB()
-    const { offset = 0, limit = 10, includeDeleted = false } = params
+    const { offset = 0, limit = 10, includeDeleted = false, filters } = params
 
     const all = (await db.getAllData('activities')) as Activity[]
 
     let filtered = all
     if (!includeDeleted) {
-      filtered = all.filter(a => !a.deleted)
+      filtered = filtered.filter(a => !a.deleted)
+    }
+
+    if (filters) {
+      filtered = this.applyFilters(filtered, filters)
     }
 
     return filtered.sort((a, b) => b.startTime - a.startTime).slice(offset, offset + limit)
+  }
+
+  /**
+   * Count total activities matching filters (for UI result count)
+   */
+  public async countActivities(filters?: ActivityFilters): Promise<number> {
+    const db = this.ensureDB()
+    const all = (await db.getAllData('activities')) as Activity[]
+    let filtered = all.filter(a => !a.deleted)
+    if (filters) {
+      filtered = this.applyFilters(filtered, filters)
+    }
+    return filtered.length
+  }
+
+  private applyFilters(activities: Activity[], filters: ActivityFilters): Activity[] {
+    let result = activities
+
+    if (filters.text) {
+      const search = filters.text.toLowerCase()
+      result = result.filter(a => a.title?.toLowerCase().includes(search))
+    }
+
+    if (filters.sportType) {
+      const sport = filters.sportType.toLowerCase()
+      result = result.filter(a => a.type?.toLowerCase() === sport)
+    }
+
+    if (filters.distanceMin != null) {
+      result = result.filter(a => a.distance >= filters.distanceMin!)
+    }
+
+    if (filters.distanceMax != null) {
+      result = result.filter(a => a.distance <= filters.distanceMax!)
+    }
+
+    return result
   }
 
   /**

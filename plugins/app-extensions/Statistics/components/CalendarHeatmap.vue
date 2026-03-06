@@ -286,7 +286,7 @@ const cells = computed(() => {
 
 .toggle-btn.active {
   background: var(--color-green-500);
-  color: white;
+  color: var(--color-white);
   border-color: var(--color-green-500);
 }
 

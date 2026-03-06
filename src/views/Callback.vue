@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="p-4 text-gray-700">
     <p v-if="error">Erreur : {{ error }}</p>

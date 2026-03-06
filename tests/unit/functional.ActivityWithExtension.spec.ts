@@ -16,25 +16,45 @@ vi.mock('@/services/ExtensionPluginRegistry', () => ({
 // Mock DB & analyzer comme dans le test ActivityDetails
 vi.mock('@/services/ActivityDBService', () => ({
   getActivityDBService: async () => ({
-    getActivity: async () => ({ id: 'abc', startTime: Date.now() / 1000, distance: 1000, type: 'RUNNING' }),
+    getActivity: async () => ({
+      id: 'abc',
+      startTime: Date.now() / 1000,
+      distance: 1000,
+      type: 'RUNNING'
+    }),
     getDetails: async () => ({ id: 'abc', samples: [] })
   })
 }))
 vi.mock('@/services/ActivityAnalyzer', () => ({
-  ActivityAnalyzer: class { constructor() { } sampleAverageByDistance() { return [] } }
+  ActivityAnalyzer: class {
+    constructor() {}
+    sampleAverageByDistance() {
+      return []
+    }
+  }
 }))
 
 // Mock ActivityDBService singleton pour éviter IndexedDB réel
 vi.mock('@/services/ActivityDBService', () => ({
   getActivityDBService: async () => ({
-    getActivity: async () => ({ id: 'abc', startTime: Date.now() / 1000, distance: 1000, type: 'RUNNING' }),
+    getActivity: async () => ({
+      id: 'abc',
+      startTime: Date.now() / 1000,
+      distance: 1000,
+      type: 'RUNNING'
+    }),
     getDetails: async () => ({ id: 'abc', samples: [] })
   })
 }))
 
 // Mock ActivityAnalyzer pour ignorer calcul
 vi.mock('@/services/ActivityAnalyzer', () => ({
-  ActivityAnalyzer: class { constructor() { } sampleAverageByDistance() { return [] } }
+  ActivityAnalyzer: class {
+    constructor() {}
+    sampleAverageByDistance() {
+      return []
+    }
+  }
 }))
 
 describe('Functional scenario: ActivityDetails + extension injection', () => {
@@ -48,8 +68,8 @@ describe('Functional scenario: ActivityDetails + extension injection', () => {
     await router.isReady()
     const wrapper = mount(ActivityDetails, { global: { plugins: [router], stubs: ['RouterLink'] } })
     for (let i = 0; i < 6 && !wrapper.find('.inject-top').exists(); i++) {
-      await Promise.resolve();
-      await nextTick();
+      await Promise.resolve()
+      await nextTick()
     }
     expect(wrapper.find('.inject-top').exists()).toBe(true)
   })

@@ -21,15 +21,22 @@ vi.mock('@/services/IndexedDBService', () => ({
       }
       return this.instance
     }
-    async getData() { return null }
-    async saveData() { }
+    async getData() {
+      return null
+    }
+    async saveData() {}
   }
 }))
 
 // Mock ActivityService pour éviter accès IndexedDB
 vi.mock('@/services/ActivityService', () => ({
   getActivityService: async () => ({
-    getActivity: async () => ({ id: 'test-123', startTime: Date.now(), distance: 1000, type: 'run' }),
+    getActivity: async () => ({
+      id: 'test-123',
+      startTime: Date.now(),
+      distance: 1000,
+      type: 'run'
+    }),
     getDetails: async () => ({ id: 'test-123', samples: [] })
   })
 }))
@@ -37,14 +44,24 @@ vi.mock('@/services/ActivityService', () => ({
 // Mock ActivityDBService pour éviter accès IndexedDB (legacy)
 vi.mock('@/services/ActivityDBService', () => ({
   getActivityDBService: async () => ({
-    getActivity: async () => ({ id: 'test-123', startTime: Date.now() / 1000, distance: 1000, type: 'RUNNING' }),
+    getActivity: async () => ({
+      id: 'test-123',
+      startTime: Date.now() / 1000,
+      distance: 1000,
+      type: 'RUNNING'
+    }),
     getDetails: async () => ({ id: 'test-123', samples: [] })
   })
 }))
 
 // Mock analyzer
 vi.mock('@/services/ActivityAnalyzer', () => ({
-  ActivityAnalyzer: class { constructor() { } sampleAverageByDistance() { return [] } }
+  ActivityAnalyzer: class {
+    constructor() {}
+    sampleAverageByDistance() {
+      return []
+    }
+  }
 }))
 
 describe('ActivityDetails.vue', () => {
@@ -52,9 +69,7 @@ describe('ActivityDetails.vue', () => {
     const ActivityDetails = (await import('@/views/ActivityDetails.vue')).default
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [
-        { path: '/activity/:activityId', component: ActivityDetails }
-      ]
+      routes: [{ path: '/activity/:activityId', component: ActivityDetails }]
     })
     router.push('/activity/test-123')
     await router.isReady()

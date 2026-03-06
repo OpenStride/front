@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AggregationService } from '@/services/AggregationService'
-import type { AggregationMetricDefinition, AggregatedRecord } from '@/types/aggregation'
+import type { AggregationMetricDefinition } from '@/types/aggregation'
 import { createActivity, createActivityDetails } from '../fixtures/activities'
 
 // Mock IndexedDBService
@@ -89,8 +89,7 @@ vi.mock('@/services/IndexedDBService', () => {
     }
 
     // Get mock transaction (with proper async sequencing)
-    getMockTransaction(storeNames: string[], mode: IDBTransactionMode) {
-      const self = this
+    getMockTransaction(storeNames: string[], _mode: IDBTransactionMode) {
       const stores: Record<string, any> = {}
       let pendingOps = 0
 
@@ -105,18 +104,18 @@ vi.mock('@/services/IndexedDBService', () => {
       for (const name of storeNames) {
         stores[name] = {
           put: vi.fn((item: any) => {
-            const storeData = self.stores[name] || []
+            const storeData = this.stores[name] || []
             const existing = storeData.findIndex((i: any) => i.id === item.id)
             if (existing >= 0) {
               storeData[existing] = item
             } else {
               storeData.push(item)
             }
-            self.stores[name] = storeData
+            this.stores[name] = storeData
           }),
           get: vi.fn((id: string) => {
             pendingOps++
-            const storeData = self.stores[name] || []
+            const storeData = this.stores[name] || []
             const item = storeData.find((i: any) => i.id === id)
             const req = {
               result: item,
@@ -576,7 +575,7 @@ describe('AggregationService', () => {
       await service.loadConfigFromSettings()
 
       const notifications: any[] = []
-      const unsubscribe = service.subscribe((ev) => {
+      const unsubscribe = service.subscribe(ev => {
         notifications.push(ev)
       })
 
@@ -599,7 +598,7 @@ describe('AggregationService', () => {
 
     it('should unsubscribe when returned function is called', async () => {
       const notifications: any[] = []
-      const unsubscribe = service.subscribe((ev) => {
+      const unsubscribe = service.subscribe(ev => {
         notifications.push(ev)
       })
 
