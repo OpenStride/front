@@ -19,6 +19,8 @@ import { debounce } from '@/utils/debounce'
 export class PublicDataListener {
   private static instance: PublicDataListener
   private activityServiceListener: ((evt: Event) => void) | null = null
+  private friendsChangedListener: ((evt: Event) => void) | null = null
+  private refreshRequestedListener: ((evt: Event) => void) | null = null
   private debouncedPublish: (() => void) | null = null
   private isPublishing = false
   public emitter = new EventTarget()
@@ -78,7 +80,22 @@ export class PublicDataListener {
     }
 
     activityService.emitter.addEventListener('activity-changed', this.activityServiceListener)
-    console.log('[PublicDataListener] Started listening to ActivityService events')
+
+    // Also publish when friends list changes (following list update)
+    this.friendsChangedListener = () => {
+      console.log('[PublicDataListener] Friends changed, scheduling publish')
+      if (this.debouncedPublish) this.debouncedPublish()
+    }
+    window.addEventListener('openstride:friends-changed', this.friendsChangedListener)
+
+    // Also publish on manual refresh (restores pre-refactoring behavior)
+    this.refreshRequestedListener = () => {
+      console.log('[PublicDataListener] Refresh requested, scheduling publish')
+      if (this.debouncedPublish) this.debouncedPublish()
+    }
+    window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
+
+    console.log('[PublicDataListener] Started listening to ActivityService, friends-changed, and refresh-requested events')
   }
 
   /**
@@ -89,9 +106,17 @@ export class PublicDataListener {
       const activityService = await getActivityService()
       activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener)
       this.activityServiceListener = null
-      this.debouncedPublish = null
-      console.log('[PublicDataListener] Stopped listening')
     }
+    if (this.friendsChangedListener) {
+      window.removeEventListener('openstride:friends-changed', this.friendsChangedListener)
+      this.friendsChangedListener = null
+    }
+    if (this.refreshRequestedListener) {
+      window.removeEventListener('openstride:refresh-requested', this.refreshRequestedListener)
+      this.refreshRequestedListener = null
+    }
+    this.debouncedPublish = null
+    console.log('[PublicDataListener] Stopped listening')
   }
 
   /**
