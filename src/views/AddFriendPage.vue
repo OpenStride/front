@@ -100,8 +100,8 @@ async function processDeepLink() {
       return
     }
 
-    // Decode manifest URL
-    manifestUrl.value = decodeURIComponent(manifestParam)
+    // Vue Router already decodes query parameters — no need for decodeURIComponent
+    manifestUrl.value = manifestParam
     console.log('[AddFriendPage] Processing manifest URL:', manifestUrl.value)
 
     // Validate manifest URL
