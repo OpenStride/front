@@ -131,15 +131,27 @@ const needsMutualFriendship = computed(() => {
 // Copy share URL to clipboard
 const copyShareUrl = async () => {
   try {
-    const db = (await import('@/services/IndexedDBService')).IndexedDBService
-    const dbInstance = await db.getInstance()
-    const myPublicUrl = await dbInstance.getData('myPublicUrl')
-    if (myPublicUrl) {
-      await navigator.clipboard.writeText(myPublicUrl)
-      console.log('[InteractionBar] Share URL copied to clipboard')
+    const { IndexedDBService } = await import('@/services/IndexedDBService')
+    const { ShareUrlService } = await import('@/services/ShareUrlService')
+    const { ToastService } = await import('@/services/ToastService')
+    const db = await IndexedDBService.getInstance()
+    const rawUrl = (await db.getData('myPublicUrl')) as string | null
+
+    if (!rawUrl) {
+      ToastService.push('Publiez vos données d\u2019abord depuis votre profil', {
+        type: 'warning',
+        timeout: 4000
+      })
+      return
     }
+
+    const shareUrl = ShareUrlService.wrapManifestUrl(rawUrl)
+    await navigator.clipboard.writeText(shareUrl)
+    ToastService.push('Lien de profil copié !', { type: 'success', timeout: 2000 })
   } catch (error) {
     console.error('[InteractionBar] Error copying share URL:', error)
+    const { ToastService } = await import('@/services/ToastService')
+    ToastService.push('Impossible de copier le lien', { type: 'error', timeout: 3000 })
   }
 }
 
