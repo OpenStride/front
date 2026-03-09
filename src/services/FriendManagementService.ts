@@ -130,6 +130,9 @@ export class FriendManagementService {
         messageType: 'success'
       })
 
+      // Notify that friends list changed (triggers re-publish of following list)
+      window.dispatchEvent(new Event('openstride:friends-changed'))
+
       // Quick sync activities
       const syncResult = await syncService.syncFriendActivitiesQuick(friendId, 30)
 
@@ -185,6 +188,9 @@ export class FriendManagementService {
         message: 'Ami supprimé',
         messageType: 'success'
       })
+
+      // Notify that friends list changed (triggers re-publish of following list)
+      window.dispatchEvent(new Event('openstride:friends-changed'))
     } catch (error) {
       console.error('[FriendManagementService] Error removing friend:', error)
       this.emitEvent({
