@@ -83,6 +83,11 @@ async function handleToggle(pluginId: string) {
   isToggling.value = true
   try {
     await manager.togglePlugin(pluginId)
+    // Sync settings to cloud before reload so the change persists remotely
+    const { StorageService } = await import('@/services/StorageService')
+    await StorageService.getInstance().triggerBackup([
+      { store: 'settings', key: 'enabledAppExtensions' }
+    ])
     // Reload page to apply changes (PWA-friendly)
     window.location.reload()
   } catch (error) {

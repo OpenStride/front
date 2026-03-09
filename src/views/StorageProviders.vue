@@ -72,8 +72,12 @@ onMounted(async () => {
 })
 
 async function installBackup(id: string) {
-  // ici tu ajoutes l'id dans tes settings via le manager
-  await manager.enablePlugin(id) // <-- méthode à implémenter
+  await manager.enablePlugin(id)
+  // Sync settings to cloud so the change persists remotely
+  const { StorageService } = await import('@/services/StorageService')
+  await StorageService.getInstance().triggerBackup([
+    { store: 'settings', key: 'enabledStoragePlugins' }
+  ])
   userStoragePlugins.value = await manager.getMyStoragePlugins()
 }
 </script>

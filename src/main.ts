@@ -104,9 +104,16 @@ async function bootstrap() {
   app.provide(PLUGIN_CONTEXT_KEY, pluginContext)
   app.mount('#app')
 
-  // NOTE: Automatic backup removed - now using manual sync via SyncService
-  // User triggers sync via the Refresh button in AppHeader
-  // await setupBackupListener(1000);
+  // Sync settings to cloud storage when they change in IndexedDB
+  // (covers plugin toggles, privacy settings, auto-publish, etc.)
+  const { StorageService } = await import('@/services/StorageService')
+  const storageService = StorageService.getInstance()
+  db.emitter.addEventListener('dbChange', (evt: Event) => {
+    const detail = (evt as CustomEvent).detail
+    if (detail?.store === 'settings') {
+      storageService.triggerBackup([{ store: 'settings', key: detail.key || '' }])
+    }
+  })
 
   // NOTE: Friend sync disabled on app start to avoid Google API rate limiting
   // User can manually trigger sync via the Refresh button in AppHeader
