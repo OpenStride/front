@@ -1,5 +1,5 @@
 <template>
-  <div class="interaction-bar">
+  <div v-if="sharingPluginActive" class="interaction-bar">
     <!-- Counters -->
     <div class="interaction-counters">
       <span v-if="summary.likeCount > 0" class="counter like-counter">
@@ -110,6 +110,7 @@ const summary = ref<InteractionSummary>({
   hasLiked: false
 })
 
+const sharingPluginActive = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
 const showCommentInput = ref(false)
@@ -233,6 +234,12 @@ const handleInteractionEvent = (event: Event) => {
 }
 
 onMounted(async () => {
+  // Only show interactions if the profile-sharing extension is enabled
+  const { AppExtensionPluginManager } = await import('@/services/AppExtensionPluginManager')
+  const manager = AppExtensionPluginManager.getInstance()
+  sharingPluginActive.value = await manager.isPluginEnabled('profile-sharing')
+  if (!sharingPluginActive.value) return
+
   await checkCanInteract()
   await loadSummary()
   interactionService.emitter.addEventListener('interaction-event', handleInteractionEvent)
