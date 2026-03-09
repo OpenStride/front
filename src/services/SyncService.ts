@@ -3,6 +3,7 @@ import type { StoragePlugin } from '@/types/storage'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { getActivityService } from '@/services/ActivityService'
 import type { Activity, ActivityDetails } from '@/types/activity'
+import { debounce } from '@/utils/debounce'
 
 /**
  * Events emitted by SyncService
@@ -34,6 +35,8 @@ export class SyncService {
   private pluginManager = StoragePluginManager.getInstance()
   private syncing = false
   public emitter = new EventTarget()
+  private activityServiceListener: ((evt: Event) => void) | null = null
+  private debouncedSync: (() => void) | null = null
 
   private constructor() {
     /* singleton */
@@ -359,6 +362,44 @@ export class SyncService {
     )
 
     return winner
+  }
+
+  /**
+   * Start listening to ActivityService events for auto-sync (debounced 5s).
+   * When activities change, sync is triggered automatically after a delay.
+   */
+  async startListening(): Promise<void> {
+    const activityService = await getActivityService()
+
+    this.debouncedSync = debounce(() => {
+      this.syncNow()
+        .then(result => {
+          if (result.activitiesSynced > 0) {
+            window.dispatchEvent(new Event('openstride:activities-refreshed'))
+          }
+        })
+        .catch(err => console.error('[SyncService] Auto-sync failed:', err))
+    }, 5000)
+
+    this.activityServiceListener = () => {
+      if (this.debouncedSync) this.debouncedSync()
+    }
+
+    activityService.emitter.addEventListener('activity-changed', this.activityServiceListener)
+    console.log('[SyncService] Started listening to ActivityService events (debounced 5s)')
+  }
+
+  /**
+   * Stop listening to ActivityService events
+   */
+  async stopListening(): Promise<void> {
+    if (this.activityServiceListener) {
+      const activityService = await getActivityService()
+      activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener)
+      this.activityServiceListener = null
+      this.debouncedSync = null
+      console.log('[SyncService] Stopped listening')
+    }
   }
 
   /**

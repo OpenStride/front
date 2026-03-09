@@ -6,6 +6,9 @@ import { aggregationService } from '@/services/AggregationService'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
 import { getPublicDataListener } from '@/services/PublicDataListener'
 import { getMigrationService } from '@/services/MigrationService'
+import { getSyncService } from '@/services/SyncService'
+import { DataProviderService } from '@/services/DataProviderService'
+import { FriendService } from '@/services/FriendService'
 import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 import { createPluginContext } from '@/services/PluginContextFactory'
@@ -65,6 +68,17 @@ async function bootstrap() {
   // Start public data auto-publish listener (if enabled)
   const publicDataListener = getPublicDataListener()
   await publicDataListener.startListening()
+
+  // Start reactive sync (auto-sync on activity changes, debounced 5s)
+  const syncService = getSyncService()
+  await syncService.startListening()
+
+  // Start event-driven refresh listeners (react to openstride:refresh-requested)
+  const dataProviderService = DataProviderService.getInstance()
+  dataProviderService.startListening()
+
+  const friendService = FriendService.getInstance()
+  friendService.startListening()
 
   // 4. Initialize PWA update service
   const pwaUpdateService = getPWAUpdateService()

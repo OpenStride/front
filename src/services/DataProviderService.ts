@@ -5,6 +5,7 @@ export class DataProviderService {
   private static instance: DataProviderService
   private pluginManager = DataProviderPluginManager.getInstance()
   public emitter = new EventTarget()
+  private refreshRequestedListener: ((evt: Event) => void) | null = null
 
   private constructor() {
     /* singleton */
@@ -15,6 +16,33 @@ export class DataProviderService {
       DataProviderService.instance = new DataProviderService()
     }
     return DataProviderService.instance
+  }
+
+  /**
+   * Subscribe to window 'openstride:refresh-requested' events.
+   * When fired, triggers data refresh and emits 'openstride:activities-refreshed' on completion.
+   */
+  startListening(): void {
+    this.refreshRequestedListener = () => {
+      this.triggerRefresh()
+        .then(() => {
+          window.dispatchEvent(new Event('openstride:activities-refreshed'))
+        })
+        .catch(err => console.error('[DataProviderService] Refresh failed:', err))
+    }
+    window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
+    console.log('[DataProviderService] Started listening to refresh-requested events')
+  }
+
+  /**
+   * Unsubscribe from window 'openstride:refresh-requested' events.
+   */
+  stopListening(): void {
+    if (this.refreshRequestedListener) {
+      window.removeEventListener('openstride:refresh-requested', this.refreshRequestedListener)
+      this.refreshRequestedListener = null
+      console.log('[DataProviderService] Stopped listening')
+    }
   }
 
   public async triggerRefresh(): Promise<void> {
