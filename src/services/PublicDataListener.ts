@@ -95,7 +95,9 @@ export class PublicDataListener {
     }
     window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
 
-    console.log('[PublicDataListener] Started listening to ActivityService, friends-changed, and refresh-requested events')
+    console.log(
+      '[PublicDataListener] Started listening to ActivityService, friends-changed, and refresh-requested events'
+    )
   }
 
   /**
