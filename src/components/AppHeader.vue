@@ -91,11 +91,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { DataProviderService } from '@/services/DataProviderService'
 import { getSyncService } from '@/services/SyncService'
 import { StorageService } from '@/services/StorageService'
-import { FriendService } from '@/services/FriendService'
-import { PublicFileService } from '@/services/PublicFileService'
 import { ToastService } from '@/services/ToastService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 
@@ -106,10 +103,10 @@ const navSlotComponents = computed(() => navRaw.value.map(c => c.default || c))
 
 const isMenuOpen = ref(false)
 const refreshing = ref(false)
-const dataProviderService = DataProviderService.getInstance()
 const syncService = getSyncService()
 const storageService = StorageService.getInstance()
-const friendService = FriendService.getInstance()
+
+let refreshTimeout: ReturnType<typeof setTimeout> | null = null
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -134,8 +131,8 @@ const handleSyncNoPlugins = () => {
   ToastService.push('Aucun stockage distant configuré', { type: 'warning', timeout: 3000 })
 }
 
-const handleSyncCompleted = evt => {
-  const detail = evt.detail
+const handleSyncCompleted = (evt: Event) => {
+  const detail = (evt as CustomEvent).detail
   if (detail.errors && detail.errors.length > 0) {
     ToastService.push(`Synchronisation partielle (${detail.errors.length} erreur(s))`, {
       type: 'warning',
@@ -155,8 +152,8 @@ const handleSyncFailed = () => {
   ToastService.push('Échec de la synchronisation', { type: 'error', timeout: 4000 })
 }
 
-const handleSyncConflict = evt => {
-  const detail = evt.detail
+const handleSyncConflict = (evt: Event) => {
+  const detail = (evt as CustomEvent).detail
   ToastService.push(
     `"${detail.conflictActivity}" modifiée sur 2 appareils. Version la plus récente appliquée.`,
     { type: 'warning', timeout: 5000 }
@@ -172,10 +169,18 @@ const handleBackupFailed = () => {
 }
 
 /**
+ * Handle refresh completion from any service
+ */
+const onRefreshCompleted = () => {
+  if (refreshTimeout) clearTimeout(refreshTimeout)
+  refreshing.value = false
+}
+
+/**
  * Setup event listeners on mount
  */
 onMounted(() => {
-  // SyncService events
+  // SyncService events (toast notifications)
   syncService.emitter.addEventListener('sync-started', handleSyncStarted)
   syncService.emitter.addEventListener('sync-in-progress', handleSyncInProgress)
   syncService.emitter.addEventListener('sync-no-plugins', handleSyncNoPlugins)
@@ -183,9 +188,12 @@ onMounted(() => {
   syncService.emitter.addEventListener('sync-failed', handleSyncFailed)
   syncService.emitter.addEventListener('sync-conflict', handleSyncConflict)
 
-  // StorageService events
+  // StorageService events (toast notifications)
   storageService.emitter.addEventListener('backup-completed', handleBackupCompleted)
   storageService.emitter.addEventListener('backup-failed', handleBackupFailed)
+
+  // Listen for refresh completion from services
+  window.addEventListener('openstride:activities-refreshed', onRefreshCompleted)
 })
 
 /**
@@ -203,47 +211,23 @@ onUnmounted(() => {
   // StorageService events
   storageService.emitter.removeEventListener('backup-completed', handleBackupCompleted)
   storageService.emitter.removeEventListener('backup-failed', handleBackupFailed)
+
+  // Window events
+  window.removeEventListener('openstride:activities-refreshed', onRefreshCompleted)
+  if (refreshTimeout) clearTimeout(refreshTimeout)
 })
 
 /**
- * Manual refresh flow:
- * 1. Refresh data providers (fetch new activities from Garmin, Coros, etc.)
- * 2. Sync to remote storage (incremental sync with conflict detection)
- * 3. Publish public data (manifest + activities + interactions + following list)
- * 4. Sync friends' activities (they will see our updated manifest)
- * 5. Notify views to reload
+ * Emit refresh-requested event — services react independently.
+ * Safety timeout stops the spinner after 15s if no service responds.
  */
-const onRefresh = async () => {
+const onRefresh = () => {
   if (refreshing.value) return
   refreshing.value = true
-  try {
-    // 1. Refresh data providers (fetch new activities)
-    await dataProviderService.triggerRefresh()
-
-    // 2. Sync to remote storage (incremental sync with conflict detection)
-    await syncService.syncNow()
-
-    // 3. Publish public data (manifest with following list + interactions)
-    // This ensures friends see us in their following list for mutual friendship
-    try {
-      const publicFileService = PublicFileService.getInstance()
-      if (await publicFileService.hasPublicFileSupport()) {
-        await friendService.publishPublicData()
-      }
-    } catch (e) {
-      console.warn('[AppHeader] Public data publish failed (non-blocking):', e)
-    }
-
-    // 4. Sync friends' activities (they will see our updated manifest)
-    await friendService.refreshAllFriends()
-
-    // 5. Emit event for views to reload
-    window.dispatchEvent(new CustomEvent('openstride:activities-refreshed'))
-  } catch (e) {
-    console.error('Refresh error', e)
-  } finally {
+  refreshTimeout = setTimeout(() => {
     refreshing.value = false
-  }
+  }, 15000)
+  window.dispatchEvent(new Event('openstride:refresh-requested'))
 }
 </script>
 
