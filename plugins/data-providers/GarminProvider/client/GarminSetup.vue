@@ -106,7 +106,9 @@ const isConnected = ref(false)
 const isRefreshing = ref(false)
 const isWaitingForOAuth = ref(false)
 const showFallbackRedirect = ref(false)
-const oauthPopup = ref<Window | null>(null)
+// Plain variable — NOT a ref. Storing a cross-origin Window in a Vue ref
+// causes SecurityError because Vue's reactivity probes __v_isShallow on it.
+let oauthPopup: Window | null = null
 const syncProgress = ref<{ month: string; completed: number; total: number } | null>(null)
 const syncState = reactive<GarminSyncState>({
   status: 'idle',
@@ -140,14 +142,14 @@ function connectToGarmin() {
   const left = window.screenX + (window.outerWidth - width) / 2
   const top = window.screenY + (window.outerHeight - height) / 2
 
-  oauthPopup.value = window.open(
+  oauthPopup = window.open(
     authUrl,
     'GarminOAuth',
     `width=${width},height=${height},left=${left},top=${top},popup=yes`
   )
 
   // Check if popup was blocked
-  if (!oauthPopup.value || oauthPopup.value.closed) {
+  if (!oauthPopup || oauthPopup.closed) {
     handlePopupBlocked()
     return
   }
@@ -166,7 +168,7 @@ function connectToGarmin() {
 
   // Poll to detect if popup closes without completing OAuth
   const pollInterval = setInterval(() => {
-    if (oauthPopup.value?.closed) {
+    if (oauthPopup?.closed) {
       clearInterval(pollInterval)
       if (isWaitingForOAuth.value) {
         handleOAuthCancelled()
@@ -184,7 +186,7 @@ async function handleOAuthMessage(event: MessageEvent) {
   window.removeEventListener('message', handleOAuthMessage)
   cleanupOAuthChannel()
   isWaitingForOAuth.value = false
-  oauthPopup.value?.close()
+  oauthPopup?.close()
 
   // Validate state (CSRF protection)
   const expectedState = sessionStorage.getItem('garmin_oauth_state')
