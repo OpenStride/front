@@ -31,17 +31,15 @@ const status = ref<'processing' | 'success' | 'error' | 'no-opener' | 'broadcast
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
-  const accessToken = params.get('access_token')
-  const accessTokenSecret = params.get('access_token_secret')
+  const code = params.get('code')
   const state = params.get('state')
   const error = params.get('error')
 
   const payload = {
     type: 'garmin-oauth-callback',
-    access_token: accessToken,
-    access_token_secret: accessTokenSecret,
-    state: state,
-    error: error
+    code,
+    state,
+    error
   }
 
   // Strategy 1: postMessage via window.opener (works if opener ref survived)
@@ -59,13 +57,11 @@ onMounted(() => {
     channel.postMessage(payload)
     channel.close()
     status.value = error ? 'error' : 'broadcast'
-    // Redirect to Garmin setup page with tokens so it can start the import,
-    // just like the old redirect flow. Don't use window.close() — on PWA
-    // Android it kills the entire app since there's no opener context.
+    // Redirect to Garmin setup page with code+state so it can exchange for tokens
     setTimeout(() => {
       const setupUrl = new URL('/data-provider/garmin', window.location.origin)
-      if (accessToken) setupUrl.searchParams.set('access_token', accessToken)
-      if (accessTokenSecret) setupUrl.searchParams.set('access_token_secret', accessTokenSecret)
+      if (code) setupUrl.searchParams.set('code', code)
+      if (state) setupUrl.searchParams.set('state', state)
       window.location.href = setupUrl.toString()
     }, 1500)
   } catch {
