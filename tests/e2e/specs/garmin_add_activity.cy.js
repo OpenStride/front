@@ -83,7 +83,8 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
 
     // Wait for at least one Garmin API call to complete (data is saved after this)
-    cy.wait('@garminFetch', { timeout: 20000 })
+    // Initial import uses the backfill endpoint, not the regular one
+    cy.wait('@garminBackfill', { timeout: 20000 })
 
     // Small delay to ensure IndexedDB write completes
     cy.wait(1000)
