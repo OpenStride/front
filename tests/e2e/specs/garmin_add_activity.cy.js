@@ -1,15 +1,34 @@
 /**
- * Test E2E mocké: activation plugin Garmin & ajout d'une activité via refresh.
- * On intercepte fetch vers l'API Garmin et renvoie un payload synthétique.
+ * Test E2E mocké: activation plugin Garmin & ajout d'une activité via OAuth2 PKCE.
+ * On intercepte fetch vers le proxy Firebase et renvoie des payloads synthétiques.
  */
 describe('Garmin provider refresh (mock UI flow)', () => {
+  const MOCK_STATE = 'test-state-12345'
+  const MOCK_CODE = 'test-auth-code-67890'
+
   beforeEach(() => {
-    // Use cy.intercept to mock Garmin API calls
+    // Mock token exchange (POST /token → returns OAuth2 tokens)
+    cy.intercept('POST', '**/token', {
+      statusCode: 200,
+      body: {
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        expires_in: 3600,
+        refresh_token_expires_in: 7776000
+      }
+    }).as('tokenExchange')
+
+    // Mock Garmin API calls via proxy (GET /api/activityDetails*)
     cy.fixture('garmin_activity').then(garminData => {
-      cy.intercept('GET', '**/activities/fetch**', {
+      cy.intercept('GET', '**/api/activityDetails**', {
         statusCode: 200,
         body: garminData
       }).as('garminFetch')
+
+      cy.intercept('GET', '**/api/backfill/activityDetails**', {
+        statusCode: 200,
+        body: garminData
+      }).as('garminBackfill')
     })
   })
 
@@ -45,11 +64,20 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for navigation to complete
     cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
-    // Simule retour OAuth avec tokens - l'import démarre automatiquement
-    cy.visit('/data-provider/garmin?access_token=T&access_token_secret=S')
+    // Pre-seed sessionStorage with OAuth state for CSRF validation
+    cy.window().then(win => {
+      win.sessionStorage.setItem('garmin_oauth_state', MOCK_STATE)
+      win.sessionStorage.setItem('garmin_pkce_verifier', 'test-verifier-abcdef')
+    })
+
+    // Simulate OAuth2 redirect callback with code + state
+    cy.visit(`/data-provider/garmin?code=${MOCK_CODE}&state=${MOCK_STATE}`)
 
     // Wait for the app to be ready
     cy.waitForApp()
+
+    // Wait for the token exchange to complete
+    cy.wait('@tokenExchange', { timeout: 10000 })
 
     // Wait for the status section to appear (indicates connection is established)
     cy.getByTestId('garmin-status-section', { timeout: 10000 }).should('be.visible')
