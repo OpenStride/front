@@ -33,7 +33,9 @@ export async function deletePluginData(key: string): Promise<void> {
 
 export interface GarminTokens {
   accessToken: string
-  accessTokenSecret: string
+  refreshToken: string
+  expiresAt: number
+  refreshTokenExpiresAt: number
 }
 
 export interface GarminSyncState {
