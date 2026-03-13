@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy to Firebase Hosting
+    name: Deploy to Firebase Hosting & Functions
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,6 +28,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Functions dependencies
+        run: cd functions && npm ci
 
       - name: Build production
         run: npm run build:prod
@@ -44,6 +47,14 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
           channelId: live
           projectId: openstrive-edd63
+
+      - name: Authenticate for Firebase Functions
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}' > "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy Firebase Functions
+        run: npx firebase-tools deploy --only functions --project openstrive-edd63
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
 
       - name: Deployment summary
         run: |
