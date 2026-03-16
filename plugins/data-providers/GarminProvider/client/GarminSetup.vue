@@ -85,7 +85,6 @@ import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetu
 import { usePluginContext } from '@/composables/usePluginContext'
 import {
   getTokens,
-  setTokens,
   deleteTokens,
   getSyncState,
   updateSyncState,
@@ -97,10 +96,8 @@ import {
   type SyncCompleteEvent,
   type SyncProgressEvent
 } from './GarminSyncManager'
+import { generateCodeVerifier, generateCodeChallenge, exchangeCodeForTokens } from './garminAuth'
 import pluginEnv from './env'
-
-// TODO: migration db - migrate old garmin_token/garmin_token_secret to new format
-// This should be handled by a global migration system later
 
 const isConnected = ref(false)
 const isRefreshing = ref(false)
@@ -109,6 +106,7 @@ const showFallbackRedirect = ref(false)
 // Plain variable — NOT a ref. Storing a cross-origin Window in a Vue ref
 // causes SecurityError because Vue's reactivity probes __v_isShallow on it.
 let oauthPopup: Window | null = null
+let popupPollInterval: ReturnType<typeof setInterval> | null = null
 const syncProgress = ref<{ month: string; completed: number; total: number } | null>(null)
 const syncState = reactive<GarminSyncState>({
   status: 'idle',
@@ -121,20 +119,30 @@ const syncState = reactive<GarminSyncState>({
 
 const { notifications, plugins } = usePluginContext()
 
-const baseURL = pluginEnv.apiUrl
 let oauthChannel: BroadcastChannel | null = null
 
 // ============================================================================
-// OAuth Flow (Popup-based to fix Samsung Android browser switching issue)
+// OAuth 2.0 PKCE Flow (Popup-based)
 // ============================================================================
 
-function connectToGarmin() {
+async function connectToGarmin() {
+  // Generate PKCE verifier + challenge
+  const codeVerifier = generateCodeVerifier()
+  const codeChallenge = await generateCodeChallenge(codeVerifier)
+  sessionStorage.setItem('garmin_pkce_verifier', codeVerifier)
+
   // Generate CSRF state token
   const state = crypto.randomUUID()
   sessionStorage.setItem('garmin_oauth_state', state)
 
-  const callbackUrl = `${window.location.origin}/oauth/garmin/callback`
-  const authUrl = `${baseURL}/auth/login?redirect_uri=${encodeURIComponent(callbackUrl)}&state=${state}`
+  const redirectUri = `${window.location.origin}/oauth/garmin/callback`
+  const authUrl =
+    `${pluginEnv.garminAuthUrl}?client_id=${pluginEnv.clientId}` +
+    `&response_type=code` +
+    `&code_challenge=${codeChallenge}` +
+    `&code_challenge_method=S256` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${state}`
 
   // Open centered popup
   const width = 600
@@ -167,9 +175,10 @@ function connectToGarmin() {
   }
 
   // Poll to detect if popup closes without completing OAuth
-  const pollInterval = setInterval(() => {
+  popupPollInterval = setInterval(() => {
     if (oauthPopup?.closed) {
-      clearInterval(pollInterval)
+      if (popupPollInterval) clearInterval(popupPollInterval)
+      popupPollInterval = null
       if (isWaitingForOAuth.value) {
         handleOAuthCancelled()
       }
@@ -182,7 +191,7 @@ async function handleOAuthMessage(event: MessageEvent) {
   if (event.origin !== window.location.origin) return
   if (event.data?.type !== 'garmin-oauth-callback') return
 
-  // Cleanup both listeners
+  // Cleanup
   window.removeEventListener('message', handleOAuthMessage)
   cleanupOAuthChannel()
   isWaitingForOAuth.value = false
@@ -202,20 +211,31 @@ async function handleOAuthMessage(event: MessageEvent) {
     return
   }
 
-  // Save tokens and start import
-  const { access_token, access_token_secret } = event.data
-  if (access_token && access_token_secret) {
-    await setTokens({ accessToken: access_token, accessTokenSecret: access_token_secret })
-    isConnected.value = true
+  // Exchange authorization code for tokens via Firebase proxy
+  const { code } = event.data
+  if (code) {
+    try {
+      const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
+      if (!codeVerifier) {
+        notifications.notify('Erreur: PKCE verifier manquant', { type: 'error' })
+        return
+      }
+      sessionStorage.removeItem('garmin_pkce_verifier')
 
-    // Enable the plugin so triggerRefresh() includes it
-    await plugins.enablePlugin('garmin')
+      const redirectUri = `${window.location.origin}/oauth/garmin/callback`
+      await exchangeCodeForTokens(code, codeVerifier, redirectUri)
+      isConnected.value = true
 
-    // Start initial import in background
-    const syncManager = getGarminSyncManager()
-    await syncManager.startInitialImportAsync()
+      await plugins.enablePlugin('garmin')
 
-    notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
+      const syncManager = getGarminSyncManager()
+      await syncManager.startInitialImportAsync()
+
+      notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur d'échange de token"
+      notifications.notify(`Garmin: ${message}`, { type: 'error' })
+    }
   }
 }
 
@@ -232,6 +252,7 @@ function handleOAuthCancelled() {
   cleanupOAuthChannel()
   isWaitingForOAuth.value = false
   sessionStorage.removeItem('garmin_oauth_state')
+  sessionStorage.removeItem('garmin_pkce_verifier')
 }
 
 function cleanupOAuthChannel() {
@@ -241,10 +262,22 @@ function cleanupOAuthChannel() {
   }
 }
 
-function connectWithRedirect() {
-  // Fallback: classic redirect method (may open in different browser on Samsung)
-  const redirect = encodeURIComponent(window.location.href)
-  window.location.href = `${baseURL}/auth/login?redirect_uri=${redirect}`
+async function connectWithRedirect() {
+  const codeVerifier = generateCodeVerifier()
+  const codeChallenge = await generateCodeChallenge(codeVerifier)
+  sessionStorage.setItem('garmin_pkce_verifier', codeVerifier)
+
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('garmin_oauth_state', state)
+
+  const redirectUri = `${window.location.origin}/oauth/garmin/callback`
+  window.location.href =
+    `${pluginEnv.garminAuthUrl}?client_id=${pluginEnv.clientId}` +
+    `&response_type=code` +
+    `&code_challenge=${codeChallenge}` +
+    `&code_challenge_method=S256` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${state}`
 }
 
 async function disconnectGarmin() {
@@ -350,39 +383,52 @@ onMounted(async () => {
   syncEmitter.addEventListener('sync-complete', handleSyncComplete)
   syncEmitter.addEventListener('sync-progress', handleSyncProgress)
 
-  // Check URL params for OAuth callback
+  // Check URL params for OAuth 2.0 redirect callback (fallback flow)
   const params = new URLSearchParams(window.location.search)
-  const token = params.get('access_token')
-  const secret = params.get('access_token_secret')
+  const code = params.get('code')
+  const state = params.get('state')
 
-  if (token && secret) {
-    // Fresh OAuth return - save tokens
-    await setTokens({ accessToken: token, accessTokenSecret: secret })
-    isConnected.value = true
+  if (code && state) {
+    const expectedState = sessionStorage.getItem('garmin_oauth_state')
+    if (state !== expectedState) {
+      notifications.notify('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
+      sessionStorage.removeItem('garmin_oauth_state')
+      sessionStorage.removeItem('garmin_pkce_verifier')
+    } else {
+      sessionStorage.removeItem('garmin_oauth_state')
 
-    // Enable the plugin so triggerRefresh() includes it
-    await plugins.enablePlugin('garmin')
+      try {
+        const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
+        if (!codeVerifier) throw new Error('PKCE verifier manquant')
+        sessionStorage.removeItem('garmin_pkce_verifier')
 
-    // Clean URL
+        const redirectUri = window.location.href.split('?')[0]
+        await exchangeCodeForTokens(code, codeVerifier, redirectUri)
+        isConnected.value = true
+
+        await plugins.enablePlugin('garmin')
+
+        const syncManager = getGarminSyncManager()
+        await syncManager.startInitialImportAsync()
+
+        notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
+      } catch (err: unknown) {
+        notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Erreur'}`, {
+          type: 'error'
+        })
+      }
+    }
+
     window.history.replaceState({}, '', window.location.pathname)
-
-    // Start initial import in background
-    const syncManager = getGarminSyncManager()
-    await syncManager.startInitialImportAsync()
-
-    notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
   } else {
     // Check existing tokens
     const tokens = await getTokens()
     if (tokens) {
       isConnected.value = true
-
-      // Ensure plugin is enabled (migrates old setups)
       await plugins.enablePlugin('garmin')
 
-      // Check if initial import needs to be resumed
-      const state = await getSyncState()
-      if (!state.initialImportDone && state.status !== 'syncing') {
+      const currentState = await getSyncState()
+      if (!currentState.initialImportDone && currentState.status !== 'syncing') {
         const syncManager = getGarminSyncManager()
         await syncManager.startInitialImportAsync()
       }
@@ -394,9 +440,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (popupPollInterval) clearInterval(popupPollInterval)
+  window.removeEventListener('message', handleOAuthMessage)
+  cleanupOAuthChannel()
   syncEmitter.removeEventListener('sync-complete', handleSyncComplete)
   syncEmitter.removeEventListener('sync-progress', handleSyncProgress)
-  cleanupOAuthChannel()
 })
 </script>
 
