@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy to Firebase Hosting
+    name: Deploy to Firebase Hosting & Functions
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Functions dependencies
+        run: cd functions && npm ci
+
       - name: Build production
         run: npm run build:prod
         env:
@@ -36,6 +39,7 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
           VITE_GOOGLE_DRIVE_API_KEY: ${{ secrets.VITE_GOOGLE_DRIVE_API_KEY }}
+          VITE_GARMIN_CLIENT_ID: ${{ secrets.VITE_GARMIN_CLIENT_ID }}
 
       - name: Deploy to Firebase Hosting (Live Channel)
         uses: FirebaseExtended/action-hosting-deploy@v0.10.0
@@ -44,6 +48,14 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
           channelId: live
           projectId: openstrive-edd63
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+
+      - name: Deploy Firebase Functions
+        run: npx firebase-tools deploy --only functions --project openstrive-edd63
 
       - name: Deployment summary
         run: |

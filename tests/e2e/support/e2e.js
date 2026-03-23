@@ -76,14 +76,29 @@ Cypress.Commands.add('setupTest', (path = '/') => {
 })
 
 /**
- * Mock Garmin API fetch requests
+ * Mock Garmin OAuth2 token exchange and API fetch requests
  * Usage: cy.mockGarminFetch()
  */
 Cypress.Commands.add('mockGarminFetch', () => {
+  cy.intercept('POST', '**/token', {
+    statusCode: 200,
+    body: {
+      access_token: 'mock-access-token',
+      refresh_token: 'mock-refresh-token',
+      expires_in: 3600,
+      refresh_token_expires_in: 7776000
+    }
+  }).as('tokenExchange')
+
   cy.fixture('garmin_activity').then(garminData => {
-    cy.intercept('**/activities/fetch**', {
+    cy.intercept('GET', '**/api/activityDetails**', {
       statusCode: 200,
       body: garminData
     }).as('garminFetch')
+
+    cy.intercept('GET', '**/api/backfill/activityDetails**', {
+      statusCode: 200,
+      body: garminData
+    }).as('garminBackfill')
   })
 })

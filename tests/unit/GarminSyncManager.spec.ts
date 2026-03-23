@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // Mock storage (tokens + sync state)
 const mockTokens = {
   accessToken: 'test-access-token',
-  accessTokenSecret: 'test-secret'
+  refreshToken: 'test-refresh-token',
+  expiresAt: Date.now() + 3600000,
+  refreshTokenExpiresAt: Date.now() + 90 * 24 * 3600000
 }
 let mockSyncState: Record<string, any> = {}
 
@@ -28,9 +30,14 @@ vi.mock('../../plugins/data-providers/GarminProvider/client/storage', () => ({
   })
 }))
 
+// Mock garminAuth
+vi.mock('../../plugins/data-providers/GarminProvider/client/garminAuth', () => ({
+  getValidAccessToken: vi.fn(() => Promise.resolve('test-access-token'))
+}))
+
 // Mock env
 vi.mock('../../plugins/data-providers/GarminProvider/client/env', () => ({
-  default: { apiUrl: 'https://api.test.com' }
+  default: { proxyUrl: 'https://proxy.test.com' }
 }))
 
 // Mock PluginContext
@@ -49,8 +56,14 @@ vi.mock('@/services/PluginContextFactory', () => ({
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
-import { GarminSyncManager, syncEmitter } from '../../plugins/data-providers/GarminProvider/client/GarminSyncManager'
-import { getTokens, updateSyncState } from '../../plugins/data-providers/GarminProvider/client/storage'
+import {
+  GarminSyncManager,
+  syncEmitter
+} from '../../plugins/data-providers/GarminProvider/client/GarminSyncManager'
+import {
+  getTokens,
+  updateSyncState
+} from '../../plugins/data-providers/GarminProvider/client/storage'
 
 // ---------- Fixtures ----------
 
@@ -154,12 +167,16 @@ describe('GarminSyncManager', () => {
       expect(mockFetch).toHaveBeenCalledTimes(7)
       expect(mockSaveActivitiesWithDetails).toHaveBeenCalledTimes(7)
 
-      // Verify URL structure: contains oauth_token, start_time, end_time, detail=1
-      const url = mockFetch.mock.calls[0][0] as string
-      expect(url).toContain('oauth_token=test-access-token')
-      expect(url).toContain('oauth_token_secret=test-secret')
-      expect(url).toContain('detail=1')
-      expect(url).not.toContain('backfill=1')
+      // Verify URL structure: Bearer auth via proxy, Unix seconds
+      const firstCall = mockFetch.mock.calls[0]
+      const url = firstCall[0] as string
+      const opts = firstCall[1] as RequestInit
+      expect(url).toContain('https://proxy.test.com/api/activityDetails')
+      expect(url).toContain('uploadStartTimeInSeconds=')
+      expect(url).toContain('uploadEndTimeInSeconds=')
+      expect(opts.headers).toEqual(
+        expect.objectContaining({ Authorization: 'Bearer test-access-token' })
+      )
     })
 
     it('returns 0 when no tokens are available', async () => {
@@ -214,13 +231,6 @@ describe('GarminSyncManager', () => {
   describe('rate limit retry', () => {
     it('retries on 429 with exponential backoff', async () => {
       mockFetch
-        .mockResolvedValueOnce(errorResponse(429, 'Rate limit'))
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1)))
-
-      // dailyRefresh will trigger fetchAndSaveActivities internally
-      // We test via dailyRefresh since fetchAndSaveActivities is private
-      // Only fetch days 0..6 but first one triggers retry
-      mockFetch
         .mockReset()
         .mockResolvedValueOnce(errorResponse(429, 'Too many requests'))
         .mockResolvedValue(okJsonResponse(garminApiResponse(1)))
@@ -234,23 +244,6 @@ describe('GarminSyncManager', () => {
 
       // First call: 429 + retry + success, then 6 more days
       expect(count).toBeGreaterThanOrEqual(1)
-    })
-
-    it('handles duplicate backfill error by re-fetching with timestamp', async () => {
-      const backfillTimestamp = '2026-01-15T10:00:00Z'
-      mockFetch
-        .mockResolvedValueOnce(
-          errorResponse(400, `duplicate backfill processed at ${backfillTimestamp}`)
-        )
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(2))) // backfill timestamp fetch
-        .mockResolvedValue(okJsonResponse([])) // remaining days
-
-      const count = await manager.dailyRefresh()
-
-      // Second fetch should be the backfill timestamp recovery
-      const secondUrl = mockFetch.mock.calls[1][0] as string
-      expect(secondUrl).not.toContain('backfill=1')
-      expect(count).toBe(2)
     })
   })
 
@@ -287,9 +280,7 @@ describe('GarminSyncManager', () => {
       await manager.startInitialImportAsync()
       await vi.advanceTimersByTimeAsync(200000)
 
-      expect(updateSyncState).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'idle' })
-      )
+      expect(updateSyncState).toHaveBeenCalledWith(expect.objectContaining({ status: 'idle' }))
     })
 
     it('emits sync-progress and sync-complete events', async () => {
@@ -331,7 +322,6 @@ describe('GarminSyncManager', () => {
       await vi.advanceTimersByTimeAsync(600000)
 
       // Should fetch for 6 months (each month triggers at least 1 fetch call)
-      // With 15s delay between months, all 6 should execute within 600s
       expect(updateSyncState).toHaveBeenCalled()
     })
   })
