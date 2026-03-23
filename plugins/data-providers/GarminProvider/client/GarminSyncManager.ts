@@ -339,6 +339,12 @@ export class GarminSyncManager {
     if (!res.ok) {
       const errorBody = await res.text()
 
+      // 409 = duplicate backfill already processed, skip silently
+      if (res.status === 409 && errorBody.includes('duplicate backfill')) {
+        console.log('[GarminSync] Backfill already requested for this period, skipping')
+        return 0
+      }
+
       // Check for rate limit in response body
       if (errorBody.includes('Rate limit') || errorBody.includes('Too many request')) {
         if (retryCount < MAX_RETRIES) {
