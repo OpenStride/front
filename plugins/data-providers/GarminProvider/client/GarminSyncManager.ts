@@ -388,7 +388,7 @@ export class GarminSyncManager {
     const startSeconds = Math.floor(startDate.getTime() / 1000)
     const endSeconds = Math.floor(endDate.getTime() / 1000)
 
-    const url = `${proxyUrl}/api/activityDetails?summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
+    const url = `${proxyUrl}/api/activityDetails?uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` }
