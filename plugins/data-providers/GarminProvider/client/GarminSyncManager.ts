@@ -378,35 +378,50 @@ export class GarminSyncManager {
   }
 
   /**
-   * Fetch activities via regular endpoint using summary time range.
+   * Fetch activities via regular endpoint, day by day (24h max per request).
    * Used as fallback when backfill returns 409 (already requested).
    */
   private async fetchActivitiesBySummaryTime(startDate: Date, endDate: Date): Promise<number> {
     const accessToken = await getValidAccessToken()
     const ctx = await getPluginContext()
+    let totalCount = 0
 
-    const startSeconds = Math.floor(startDate.getTime() / 1000)
-    const endSeconds = Math.floor(endDate.getTime() / 1000)
+    const current = new Date(startDate)
+    while (current < endDate) {
+      const dayEnd = new Date(current)
+      dayEnd.setDate(dayEnd.getDate() + 1)
+      if (dayEnd > endDate) dayEnd.setTime(endDate.getTime())
 
-    const url = `${proxyUrl}/api/activityDetails?summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
+      const startSeconds = Math.floor(current.getTime() / 1000)
+      const endSeconds = Math.floor(dayEnd.getTime() / 1000)
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    })
+      const url = `${proxyUrl}/api/activityDetails?uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
 
-    if (!res.ok) return 0
+      try {
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
 
-    const text = await res.text()
-    if (!text || text.trim() === '') return 0
+        if (res.ok) {
+          const text = await res.text()
+          if (text && text.trim() !== '') {
+            const raw = JSON.parse(text)
+            if (Array.isArray(raw) && raw.length > 0) {
+              const summaries = raw.map(adaptGarminSummary)
+              const details = raw.map(adaptGarminDetails)
+              await ctx.activity.saveActivitiesWithDetails(summaries, details)
+              totalCount += summaries.length
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[GarminSync] Fallback fetch failed for day:`, err)
+      }
 
-    const raw = JSON.parse(text)
-    if (!Array.isArray(raw) || raw.length === 0) return 0
+      current.setDate(current.getDate() + 1)
+    }
 
-    const summaries = raw.map(adaptGarminSummary)
-    const details = raw.map(adaptGarminDetails)
-
-    await ctx.activity.saveActivitiesWithDetails(summaries, details)
-    return summaries.length
+    return totalCount
   }
 
   /**
