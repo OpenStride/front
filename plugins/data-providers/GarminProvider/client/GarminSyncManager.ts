@@ -313,16 +313,23 @@ export class GarminSyncManager {
     const startSeconds = Math.floor(startDate.getTime() / 1000)
     const endSeconds = Math.floor(endDate.getTime() / 1000)
 
-    const endpoint = useBackfill ? 'backfill/activityDetails' : 'activityDetails'
-    const timeParams = useBackfill
-      ? `summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
-      : `uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
+    let url: string
+    let res: Response
 
-    const url = `${proxyUrl}/api/${endpoint}?${timeParams}`
-
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    })
+    if (useBackfill) {
+      // Backfill uses Bearer auth
+      const timeParams = `summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
+      url = `${proxyUrl}/api/backfill/activityDetails?${timeParams}`
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+    } else {
+      // Regular pull uses pull token as query param
+      const pullToken = await this.getPullToken()
+      const timeParams = `uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
+      url = `${proxyUrl}/api/activityDetails?token=${pullToken}&${timeParams}`
+      res = await fetch(url)
+    }
 
     // Handle rate limit errors with retry
     if (res.status === 429 || res.status === 503) {
@@ -378,11 +385,29 @@ export class GarminSyncManager {
   }
 
   /**
-   * Fetch activities via regular endpoint, day by day (24h max per request).
+   * Get a temporary pull token from Garmin for data pull requests.
+   */
+  private async getPullToken(): Promise<string> {
+    const accessToken = await getValidAccessToken()
+    const res = await fetch(`${proxyUrl}/api/pullToken`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+
+    if (!res.ok) {
+      throw new Error(`Failed to get pull token: ${res.status}`)
+    }
+
+    const data = await res.json()
+    return data.token
+  }
+
+  /**
+   * Fetch activities via pull endpoint, day by day (24h max per request).
+   * Uses Garmin pull token (passed as ?token= query param).
    * Used as fallback when backfill returns 409 (already requested).
    */
   private async fetchActivitiesBySummaryTime(startDate: Date, endDate: Date): Promise<number> {
-    const accessToken = await getValidAccessToken()
+    const pullToken = await this.getPullToken()
     const ctx = await getPluginContext()
     let totalCount = 0
 
@@ -395,12 +420,10 @@ export class GarminSyncManager {
       const startSeconds = Math.floor(current.getTime() / 1000)
       const endSeconds = Math.floor(dayEnd.getTime() / 1000)
 
-      const url = `${proxyUrl}/api/activityDetails?uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
+      const url = `${proxyUrl}/api/activityDetails?token=${pullToken}&uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
 
       try {
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
+        const res = await fetch(url)
 
         if (res.ok) {
           const text = await res.text()
@@ -415,7 +438,7 @@ export class GarminSyncManager {
           }
         }
       } catch (err) {
-        console.warn(`[GarminSync] Fallback fetch failed for day:`, err)
+        console.warn(`[GarminSync] Pull fetch failed for day:`, err)
       }
 
       current.setDate(current.getDate() + 1)

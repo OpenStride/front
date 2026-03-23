@@ -60,11 +60,12 @@ export const garminProxy = onRequest(
         const queryString = new URLSearchParams(req.query as Record<string, string>).toString()
         const garminUrl = `https://apis.garmin.com/wellness-api/rest/${garminPath}${queryString ? '?' + queryString : ''}`
 
-        const response = await fetch(garminUrl, {
-          headers: {
-            Authorization: req.headers.authorization || ''
-          }
-        })
+        const headers: Record<string, string> = {}
+        if (req.headers.authorization) {
+          headers['Authorization'] = req.headers.authorization
+        }
+
+        const response = await fetch(garminUrl, { headers })
 
         const data = await response.text()
         res.set(CORS_HEADERS).status(response.status).send(data)
