@@ -55,7 +55,7 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
 
       - name: Deploy Firebase Functions
-        run: npx firebase-tools deploy --only functions --project openstrive-edd63
+        run: npx firebase-tools deploy --only functions --project openstrive-edd63 --force
 
       - name: Deployment summary
         run: |
