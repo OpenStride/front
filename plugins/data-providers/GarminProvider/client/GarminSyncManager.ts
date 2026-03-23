@@ -339,10 +339,10 @@ export class GarminSyncManager {
     if (!res.ok) {
       const errorBody = await res.text()
 
-      // 409 = duplicate backfill already processed, skip silently
+      // 409 = duplicate backfill already processed, retry via regular endpoint
       if (res.status === 409 && errorBody.includes('duplicate backfill')) {
-        console.log('[GarminSync] Backfill already requested for this period, skipping')
-        return 0
+        console.log('[GarminSync] Backfill already requested, fetching via regular endpoint')
+        return this.fetchActivitiesBySummaryTime(startDate, endDate)
       }
 
       // Check for rate limit in response body
@@ -374,6 +374,38 @@ export class GarminSyncManager {
     // Atomic transaction: both succeed or both fail
     await ctx.activity.saveActivitiesWithDetails(summaries, details)
 
+    return summaries.length
+  }
+
+  /**
+   * Fetch activities via regular endpoint using summary time range.
+   * Used as fallback when backfill returns 409 (already requested).
+   */
+  private async fetchActivitiesBySummaryTime(startDate: Date, endDate: Date): Promise<number> {
+    const accessToken = await getValidAccessToken()
+    const ctx = await getPluginContext()
+
+    const startSeconds = Math.floor(startDate.getTime() / 1000)
+    const endSeconds = Math.floor(endDate.getTime() / 1000)
+
+    const url = `${proxyUrl}/api/activityDetails?summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+
+    if (!res.ok) return 0
+
+    const text = await res.text()
+    if (!text || text.trim() === '') return 0
+
+    const raw = JSON.parse(text)
+    if (!Array.isArray(raw) || raw.length === 0) return 0
+
+    const summaries = raw.map(adaptGarminSummary)
+    const details = raw.map(adaptGarminDetails)
+
+    await ctx.activity.saveActivitiesWithDetails(summaries, details)
     return summaries.length
   }
 
