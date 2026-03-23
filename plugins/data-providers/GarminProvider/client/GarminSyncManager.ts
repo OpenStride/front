@@ -353,7 +353,10 @@ export class GarminSyncManager {
       throw new Error(`Garmin API error: ${res.status} - ${errorBody.substring(0, 200)}`)
     }
 
-    const raw = await res.json()
+    const text = await res.text()
+    if (!text || text.trim() === '') return 0
+
+    const raw = JSON.parse(text)
 
     if (!Array.isArray(raw) || raw.length === 0) {
       return 0
