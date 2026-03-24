@@ -1,4 +1,4 @@
-import { getTokens, setTokens, type GarminTokens } from './storage'
+import { getTokens, setTokens, setGarminUserId, type GarminTokens } from './storage'
 import pluginEnv from './env'
 
 // 64 chars = power of 2, no modulo bias with Uint8Array (256 % 64 === 0)
@@ -60,6 +60,12 @@ export async function exchangeCodeForTokens(
   const data = await res.json()
   const tokens = parseTokenResponse(data)
   await setTokens(tokens)
+
+  // Store Garmin userId for ping/callback routing
+  if (data.userId) {
+    await setGarminUserId(data.userId)
+  }
+
   return tokens
 }
 
