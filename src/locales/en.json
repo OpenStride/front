@@ -179,12 +179,14 @@
   "dataProviders": {
     "title": "Connected Data Providers",
     "available": "Available Providers",
-    "noProviders": "No providers connected."
+    "noProviders": "No providers connected.",
+    "myProviders": "My Data Sources"
   },
   "storageProviders": {
     "title": "Connected File Plugins",
     "available": "Available plugins",
-    "noPlugins": "No File Plugin connected."
+    "noPlugins": "No File Plugin connected.",
+    "myPlugins": "My Cloud Backups"
   },
   "appExtensions": {
     "title": "App Extensions",

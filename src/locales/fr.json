@@ -179,12 +179,14 @@
   "dataProviders": {
     "title": "Fournisseurs de données connectés",
     "available": "Fournisseurs disponibles",
-    "noProviders": "Aucun fournisseur connecté."
+    "noProviders": "Aucun fournisseur connecté.",
+    "myProviders": "Mes sources de données"
   },
   "storageProviders": {
     "title": "Plugins de stockage connectés",
     "available": "Plugins disponibles",
-    "noPlugins": "Aucun plugin de stockage connecté."
+    "noPlugins": "Aucun plugin de stockage connecté.",
+    "myPlugins": "Mes sauvegardes cloud"
   },
   "appExtensions": {
     "title": "Extensions d'application",
