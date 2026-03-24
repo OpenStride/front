@@ -428,7 +428,8 @@ onMounted(async () => {
       await plugins.enablePlugin('garmin')
 
       const currentState = await getSyncState()
-      if (!currentState.initialImportDone && currentState.status !== 'syncing') {
+      if (!currentState.initialImportDone) {
+        // startInitialImportAsync handles stale 'syncing' state internally
         const syncManager = getGarminSyncManager()
         await syncManager.startInitialImportAsync()
       }
