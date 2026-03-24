@@ -1,5 +1,5 @@
 // plugins/data-providers/GarminProvider/client/GarminSyncManager.ts
-import { getTokens, getSyncState, updateSyncState } from './storage'
+import { getTokens, getSyncState, updateSyncState, getGarminUserId } from './storage'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
 import { getValidAccessToken } from './garminAuth'
 import { getPluginContext } from '@/services/PluginContextFactory'
@@ -339,10 +339,10 @@ export class GarminSyncManager {
     if (!res.ok) {
       const errorBody = await res.text()
 
-      // 409 = duplicate backfill already processed, retry via regular endpoint
+      // 409 = duplicate backfill already processed, poll callbacks from ping notifications
       if (res.status === 409 && errorBody.includes('duplicate backfill')) {
-        console.log('[GarminSync] Backfill already requested, fetching via regular endpoint')
-        return this.fetchActivitiesBySummaryTime(startDate, endDate)
+        console.log('[GarminSync] Backfill already done, polling callbacks')
+        return this.pollAndConsumeCallbacks()
       }
 
       // Check for rate limit in response body
@@ -378,47 +378,83 @@ export class GarminSyncManager {
   }
 
   /**
-   * Fetch activities via regular endpoint, day by day (24h max per request).
-   * Used as fallback when backfill returns 409 (already requested).
+   * Poll Firebase for pending Garmin ping callbacks, fetch data via proxy, save to IndexedDB.
+   * Retries up to 3 times with 5s delay if no callbacks found yet (backfill async).
    */
-  private async fetchActivitiesBySummaryTime(startDate: Date, endDate: Date): Promise<number> {
-    const accessToken = await getValidAccessToken()
+  private async pollAndConsumeCallbacks(maxRetries = 3): Promise<number> {
+    const userId = await getGarminUserId()
+    if (!userId) {
+      console.warn('[GarminSync] No Garmin userId stored, cannot poll callbacks')
+      return 0
+    }
+
     const ctx = await getPluginContext()
     let totalCount = 0
 
-    const current = new Date(startDate)
-    while (current < endDate) {
-      const dayEnd = new Date(current)
-      dayEnd.setDate(dayEnd.getDate() + 1)
-      if (dayEnd > endDate) dayEnd.setTime(endDate.getTime())
-
-      const startSeconds = Math.floor(current.getTime() / 1000)
-      const endSeconds = Math.floor(dayEnd.getTime() / 1000)
-
-      const url = `${proxyUrl}/api/activityDetails?uploadStartTimeInSeconds=${startSeconds}&uploadEndTimeInSeconds=${endSeconds}`
-
-      try {
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
-
-        if (res.ok) {
-          const text = await res.text()
-          if (text && text.trim() !== '') {
-            const raw = JSON.parse(text)
-            if (Array.isArray(raw) && raw.length > 0) {
-              const summaries = raw.map(adaptGarminSummary)
-              const details = raw.map(adaptGarminDetails)
-              await ctx.activity.saveActivitiesWithDetails(summaries, details)
-              totalCount += summaries.length
-            }
-          }
-        }
-      } catch (err) {
-        console.warn(`[GarminSync] Fallback fetch failed for day:`, err)
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Fetch pending callbacks for this user
+      const res = await fetch(`${proxyUrl}/callbacks/${userId}`)
+      if (!res.ok) {
+        console.warn(`[GarminSync] Failed to fetch callbacks: ${res.status}`)
+        return totalCount
       }
 
-      current.setDate(current.getDate() + 1)
+      const callbacks = await res.json()
+      if (!Array.isArray(callbacks) || callbacks.length === 0) {
+        if (attempt < maxRetries - 1) {
+          console.log(`[GarminSync] No callbacks yet, retry ${attempt + 1}/${maxRetries} in 5s`)
+          await this.sleep(5000)
+          continue
+        }
+        console.log('[GarminSync] No callbacks available after retries')
+        return totalCount
+      }
+
+      console.log(`[GarminSync] Found ${callbacks.length} callbacks to process`)
+      const consumedIds: string[] = []
+
+      for (const cb of callbacks) {
+        try {
+          // The callbackURL already contains the ?token= param
+          // Route it through our proxy to handle CORS
+          const callbackUrl = cb.callbackURL as string
+          const garminPath = callbackUrl.replace('https://apis.garmin.com/wellness-api/rest/', '')
+          const fetchUrl = `${proxyUrl}/api/${garminPath}`
+
+          const dataRes = await fetch(fetchUrl)
+          if (dataRes.ok) {
+            const text = await dataRes.text()
+            if (text && text.trim() !== '') {
+              const raw = JSON.parse(text)
+              if (Array.isArray(raw) && raw.length > 0) {
+                const summaries = raw.map(adaptGarminSummary)
+                const details = raw.map(adaptGarminDetails)
+                await ctx.activity.saveActivitiesWithDetails(summaries, details)
+                totalCount += summaries.length
+                console.log(
+                  `[GarminSync] Callback ${cb.summaryType}: ${summaries.length} activities`
+                )
+              }
+            }
+            consumedIds.push(cb.id)
+          } else {
+            console.warn(`[GarminSync] Callback fetch failed: ${dataRes.status}`)
+          }
+        } catch (err) {
+          console.warn('[GarminSync] Error processing callback:', err)
+        }
+      }
+
+      // Clean up consumed callbacks
+      if (consumedIds.length > 0) {
+        await fetch(`${proxyUrl}/callbacks/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: consumedIds })
+        })
+      }
+
+      break // got callbacks, done
     }
 
     return totalCount

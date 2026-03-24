@@ -63,6 +63,14 @@ export async function deleteTokens(): Promise<void> {
   return deletePluginData('tokens')
 }
 
+export async function getGarminUserId(): Promise<string | null> {
+  return getPluginData<string>('userId')
+}
+
+export async function setGarminUserId(userId: string): Promise<void> {
+  return setPluginData('userId', userId)
+}
+
 export async function getSyncState(): Promise<GarminSyncState> {
   const state = await getPluginData<GarminSyncState>('sync_state')
   return (
