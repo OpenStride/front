@@ -61,31 +61,35 @@ export const garminProxy = onRequest(
       return
     }
 
-    // POST /ping — Receive Garmin ping notifications
-    // Garmin sends: { "activityDetails": [{ "userId": "xxx", "callbackURL": "https://..." }] }
+    // POST /ping — Receive Garmin push notifications
+    // Garmin sends: { "activityDetails": [{ "userId": "xxx", "summaryId": "xxx", ... }] }
     if (req.path === '/ping' && req.method === 'POST') {
       try {
         const payload = req.body
-        console.log('[garminProxy] Ping received:', JSON.stringify(payload).substring(0, 500))
+        console.log('[garminProxy] Push received:', JSON.stringify(payload).substring(0, 500))
 
         const batch = db.batch()
         let count = 0
 
-        // Iterate all summary types in the ping notification
+        // Iterate all summary types in the push notification
         for (const [summaryType, entries] of Object.entries(payload)) {
           if (!Array.isArray(entries)) continue
 
           for (const entry of entries) {
-            const { userId, callbackURL } = entry as { userId: string; callbackURL: string }
-            if (!userId || !callbackURL) continue
+            const { userId, summaryId } = entry as { userId: string; summaryId?: string }
+            if (!userId) continue
 
-            const docRef = db.collection('garmin_callbacks').doc()
+            // Dedup key: userId_summaryType_summaryId — overwrites if same activity pushed again
+            const dedupId = summaryId
+              ? `${userId}_${summaryType}_${summaryId}`
+              : `${userId}_${summaryType}_${Date.now()}`
+
+            const docRef = db.collection('garmin_push').doc(dedupId)
             batch.set(docRef, {
               userId,
-              callbackURL,
               summaryType,
+              data: entry,
               createdAt: Date.now(),
-              // Auto-expire after 7 days (cleaned up by client or TTL policy)
               expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
             })
             count++
@@ -94,13 +98,13 @@ export const garminProxy = onRequest(
 
         if (count > 0) {
           await batch.commit()
-          console.log(`[garminProxy] Stored ${count} callbacks`)
+          console.log(`[garminProxy] Stored ${count} push entries (deduped)`)
         }
 
         // Garmin requires 200 OK response
         res.status(200).send('OK')
       } catch (error: unknown) {
-        console.error('[garminProxy] Ping error:', error)
+        console.error('[garminProxy] Push error:', error)
         res.status(200).send('OK') // Always 200 to Garmin to avoid retry storms
       }
       return
@@ -116,7 +120,7 @@ export const garminProxy = onRequest(
         }
 
         const snapshot = await db
-          .collection('garmin_callbacks')
+          .collection('garmin_push')
           .where('userId', '==', userId)
           .where('expiresAt', '>', Date.now())
           .orderBy('createdAt', 'asc')
@@ -151,14 +155,11 @@ export const garminProxy = onRequest(
         if (ids && Array.isArray(ids)) {
           const batch = db.batch()
           for (const id of ids) {
-            batch.delete(db.collection('garmin_callbacks').doc(id))
+            batch.delete(db.collection('garmin_push').doc(id))
           }
           await batch.commit()
         } else {
-          const snapshot = await db
-            .collection('garmin_callbacks')
-            .where('userId', '==', userId)
-            .get()
+          const snapshot = await db.collection('garmin_push').where('userId', '==', userId).get()
           const batch = db.batch()
           snapshot.docs.forEach(doc => batch.delete(doc.ref))
           await batch.commit()

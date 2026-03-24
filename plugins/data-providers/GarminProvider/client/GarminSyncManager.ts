@@ -392,60 +392,47 @@ export class GarminSyncManager {
     let totalCount = 0
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      // Fetch pending callbacks for this user
+      // Fetch pending push data for this user
       const res = await fetch(`${proxyUrl}/callbacks/${userId}`)
       if (!res.ok) {
-        console.warn(`[GarminSync] Failed to fetch callbacks: ${res.status}`)
+        console.warn(`[GarminSync] Failed to fetch push data: ${res.status}`)
         return totalCount
       }
 
-      const callbacks = await res.json()
-      if (!Array.isArray(callbacks) || callbacks.length === 0) {
+      const entries = await res.json()
+      if (!Array.isArray(entries) || entries.length === 0) {
         if (attempt < maxRetries - 1) {
-          console.log(`[GarminSync] No callbacks yet, retry ${attempt + 1}/${maxRetries} in 5s`)
+          console.log(`[GarminSync] No push data yet, retry ${attempt + 1}/${maxRetries} in 5s`)
           await this.sleep(5000)
           continue
         }
-        console.log('[GarminSync] No callbacks available after retries')
+        console.log('[GarminSync] No push data available after retries')
         return totalCount
       }
 
-      console.log(`[GarminSync] Found ${callbacks.length} callbacks to process`)
+      console.log(`[GarminSync] Found ${entries.length} push entries to process`)
       const consumedIds: string[] = []
 
-      for (const cb of callbacks) {
+      for (const entry of entries) {
         try {
-          // The callbackURL already contains the ?token= param
-          // Route it through our proxy to handle CORS
-          const callbackUrl = cb.callbackURL as string
-          const garminPath = callbackUrl.replace('https://apis.garmin.com/wellness-api/rest/', '')
-          const fetchUrl = `${proxyUrl}/api/${garminPath}`
+          // Push data is stored directly in entry.data (Garmin activity object)
+          const raw = entry.data
+          if (!raw) continue
 
-          const dataRes = await fetch(fetchUrl)
-          if (dataRes.ok) {
-            const text = await dataRes.text()
-            if (text && text.trim() !== '') {
-              const raw = JSON.parse(text)
-              if (Array.isArray(raw) && raw.length > 0) {
-                const summaries = raw.map(adaptGarminSummary)
-                const details = raw.map(adaptGarminDetails)
-                await ctx.activity.saveActivitiesWithDetails(summaries, details)
-                totalCount += summaries.length
-                console.log(
-                  `[GarminSync] Callback ${cb.summaryType}: ${summaries.length} activities`
-                )
-              }
-            }
-            consumedIds.push(cb.id)
-          } else {
-            console.warn(`[GarminSync] Callback fetch failed: ${dataRes.status}`)
-          }
+          // Wrap in array for adapter (expects array)
+          const items = Array.isArray(raw) ? raw : [raw]
+          const summaries = items.map(adaptGarminSummary)
+          const details = items.map(adaptGarminDetails)
+          await ctx.activity.saveActivitiesWithDetails(summaries, details)
+          totalCount += summaries.length
+          console.log(`[GarminSync] Push ${entry.summaryType}: ${summaries.length} activities`)
+          consumedIds.push(entry.id)
         } catch (err) {
-          console.warn('[GarminSync] Error processing callback:', err)
+          console.warn('[GarminSync] Error processing push entry:', err)
         }
       }
 
-      // Clean up consumed callbacks
+      // Clean up consumed entries
       if (consumedIds.length > 0) {
         await fetch(`${proxyUrl}/callbacks/${userId}`, {
           method: 'DELETE',
@@ -454,7 +441,7 @@ export class GarminSyncManager {
         })
       }
 
-      break // got callbacks, done
+      break // got data, done
     }
 
     return totalCount
