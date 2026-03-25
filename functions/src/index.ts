@@ -1,10 +1,10 @@
 import { onRequest } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
 import { initializeApp } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 
 initializeApp()
-const db = getFirestore()
+const bucket = getStorage().bucket()
 
 const GARMIN_CLIENT_ID = defineSecret('GARMIN_CLIENT_ID')
 const GARMIN_CLIENT_SECRET = defineSecret('GARMIN_CLIENT_SECRET')
@@ -16,19 +16,20 @@ const CORS_HEADERS: Record<string, string> = {
 }
 
 /**
- * Garmin OAuth2 proxy + ping receiver.
+ * Garmin OAuth2 proxy + push receiver.
  *
- * POST /token       → OAuth2 token exchange
- * GET  /api/*       → proxy wellness API calls
- * POST /ping        → receive Garmin ping notifications, store callback URLs
- * GET  /callbacks/* → client fetches pending callbacks for a userId
- * DELETE /callbacks/* → client cleans up consumed callbacks
+ * POST /token        → OAuth2 token exchange
+ * GET  /api/*        → proxy wellness API calls
+ * POST /ping         → receive Garmin push, store as JSON in Cloud Storage
+ * GET  /push/:userId → client lists pending push files
+ * DELETE /push/:userId → client cleans up consumed files
  */
 export const garminProxy = onRequest(
   {
     cors: true,
     secrets: [GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET],
-    region: 'europe-west1'
+    region: 'europe-west1',
+    memory: '1GiB'
   },
   async (req, res) => {
     // CORS preflight
@@ -37,7 +38,7 @@ export const garminProxy = onRequest(
       return
     }
 
-    // POST /token — OAuth2 token exchange (code → tokens, refresh → tokens)
+    // POST /token — OAuth2 token exchange
     if (req.path === '/token' && req.method === 'POST') {
       try {
         const body =
@@ -61,17 +62,16 @@ export const garminProxy = onRequest(
       return
     }
 
-    // POST /ping — Receive Garmin push notifications
-    // Garmin sends: { "activityDetails": [{ "userId": "xxx", "summaryId": "xxx", ... }] }
+    // POST /ping — Receive Garmin push notifications, store in Cloud Storage
     if (req.path === '/ping' && req.method === 'POST') {
       try {
         const payload = req.body
-        console.log('[garminProxy] Push received:', JSON.stringify(payload).substring(0, 500))
+        const types = Object.keys(payload)
+        const counts = types.map(t => `${t}:${Array.isArray(payload[t]) ? payload[t].length : '?'}`)
+        console.log(`[garminProxy] Push received: ${counts.join(', ')}`)
 
-        const batch = db.batch()
-        let count = 0
+        let stored = 0
 
-        // Iterate all summary types in the push notification
         for (const [summaryType, entries] of Object.entries(payload)) {
           if (!Array.isArray(entries)) continue
 
@@ -79,96 +79,106 @@ export const garminProxy = onRequest(
             const { userId, summaryId } = entry as { userId: string; summaryId?: string }
             if (!userId) continue
 
-            // Dedup key: userId_summaryType_summaryId — overwrites if same activity pushed again
-            const dedupId = summaryId
-              ? `${userId}_${summaryType}_${summaryId}`
-              : `${userId}_${summaryType}_${Date.now()}`
+            const fileName = summaryId
+              ? `garmin_push/${userId}/${summaryType}_${summaryId}.json`
+              : `garmin_push/${userId}/${summaryType}_${Date.now()}.json`
 
-            const docRef = db.collection('garmin_push').doc(dedupId)
-            batch.set(docRef, {
-              userId,
-              summaryType,
-              data: entry,
-              createdAt: Date.now(),
-              expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+            const file = bucket.file(fileName)
+            await file.save(JSON.stringify(entry), {
+              contentType: 'application/json',
+              metadata: { metadata: { userId, summaryType } }
             })
-            count++
+            stored++
           }
         }
 
-        if (count > 0) {
-          await batch.commit()
-          console.log(`[garminProxy] Stored ${count} push entries (deduped)`)
-        }
-
-        // Garmin requires 200 OK response
+        console.log(`[garminProxy] Stored ${stored} files in Cloud Storage`)
         res.status(200).send('OK')
       } catch (error: unknown) {
         console.error('[garminProxy] Push error:', error)
-        res.status(200).send('OK') // Always 200 to Garmin to avoid retry storms
+        res.status(200).send('OK')
       }
       return
     }
 
-    // GET /callbacks/:userId — Client fetches pending callback URLs
-    if (req.path.startsWith('/callbacks/') && req.method === 'GET') {
+    // GET /push/:userId — Client lists pending push files
+    if (req.path.startsWith('/push/') && req.method === 'GET') {
       try {
-        const userId = req.path.slice('/callbacks/'.length)
+        const userId = req.path.slice('/push/'.length)
         if (!userId) {
           res.set(CORS_HEADERS).status(400).json({ error: 'Missing userId' })
           return
         }
 
-        const snapshot = await db
-          .collection('garmin_push')
-          .where('userId', '==', userId)
-          .where('expiresAt', '>', Date.now())
-          .orderBy('createdAt', 'asc')
-          .limit(50)
-          .get()
+        const [files] = await bucket.getFiles({ prefix: `garmin_push/${userId}/` })
 
-        const callbacks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+        const result = await Promise.all(
+          files.map(async file => {
+            const [content] = await file.download()
+            return {
+              name: file.name,
+              data: JSON.parse(content.toString())
+            }
+          })
+        )
 
-        res.set(CORS_HEADERS).json(callbacks)
+        res.set(CORS_HEADERS).json(result)
       } catch (error: unknown) {
-        console.error('[garminProxy] Callbacks fetch error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to fetch callbacks' })
+        console.error('[garminProxy] Push list error:', error)
+        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to list push data' })
       }
       return
     }
 
-    // DELETE /callbacks/:userId — Client cleans up consumed callbacks
-    if (req.path.startsWith('/callbacks/') && req.method === 'DELETE') {
+    // DELETE /push/:userId — Client cleans up consumed files
+    if (req.path.startsWith('/push/') && req.method === 'DELETE') {
       try {
-        const userId = req.path.slice('/callbacks/'.length)
+        const userId = req.path.slice('/push/'.length)
         if (!userId) {
           res.set(CORS_HEADERS).status(400).json({ error: 'Missing userId' })
           return
         }
 
-        // Delete by specific IDs if provided, otherwise all for user
-        const ids = req.body?.ids as string[] | undefined
+        const fileNames = req.body?.files as string[] | undefined
 
-        if (ids && Array.isArray(ids)) {
-          const batch = db.batch()
-          for (const id of ids) {
-            batch.delete(db.collection('garmin_push').doc(id))
-          }
-          await batch.commit()
+        if (fileNames && Array.isArray(fileNames)) {
+          await Promise.all(
+            fileNames.map(f =>
+              bucket
+                .file(f)
+                .delete()
+                .catch(() => {})
+            )
+          )
         } else {
-          const snapshot = await db.collection('garmin_push').where('userId', '==', userId).get()
-          const batch = db.batch()
-          snapshot.docs.forEach(doc => batch.delete(doc.ref))
-          await batch.commit()
+          const [files] = await bucket.getFiles({ prefix: `garmin_push/${userId}/` })
+          await Promise.all(files.map(f => f.delete().catch(() => {})))
         }
 
         res.set(CORS_HEADERS).json({ ok: true })
       } catch (error: unknown) {
-        console.error('[garminProxy] Callbacks delete error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to delete callbacks' })
+        console.error('[garminProxy] Push delete error:', error)
+        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to delete push data' })
+      }
+      return
+    }
+
+    // GET /user-id — Resolve Garmin userId from stored push files
+    if (req.path === '/user-id' && req.method === 'GET') {
+      try {
+        const [files] = await bucket.getFiles({ prefix: 'garmin_push/', maxResults: 1 })
+        if (files.length > 0) {
+          // Extract userId from path: garmin_push/{userId}/...
+          const parts = files[0].name.split('/')
+          if (parts.length >= 2) {
+            res.set(CORS_HEADERS).json({ userId: parts[1] })
+            return
+          }
+        }
+        res.set(CORS_HEADERS).status(404).json({ error: 'No userId found' })
+      } catch (error: unknown) {
+        console.error('[garminProxy] User ID lookup error:', error)
+        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to resolve userId' })
       }
       return
     }

@@ -61,9 +61,19 @@ export async function exchangeCodeForTokens(
   const tokens = parseTokenResponse(data)
   await setTokens(tokens)
 
-  // Store Garmin userId for ping/callback routing
-  if (data.userId) {
-    await setGarminUserId(data.userId)
+  // Resolve and store Garmin userId from push data
+  try {
+    const userRes = await fetch(`${pluginEnv.proxyUrl}/user-id`, {
+      headers: { Authorization: `Bearer ${tokens.accessToken}` }
+    })
+    if (userRes.ok) {
+      const userData = await userRes.json()
+      if (userData.userId) {
+        await setGarminUserId(userData.userId)
+      }
+    }
+  } catch {
+    console.warn('[garminAuth] Could not resolve Garmin userId yet (will resolve on first push)')
   }
 
   return tokens

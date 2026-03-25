@@ -269,6 +269,53 @@ export class GarminSyncManager {
   }
 
   /**
+   * Fetch recent days via backfill + poll push data.
+   * Triggers a backfill for the given range, waits for Garmin to push, then polls.
+   */
+  async fetchRecentDays(days: number): Promise<number> {
+    const tokens = await getTokens()
+    if (!tokens) return 0
+
+    const accessToken = await getValidAccessToken()
+    const now = new Date()
+    const start = new Date(now)
+    start.setDate(start.getDate() - days)
+
+    const startSeconds = Math.floor(start.getTime() / 1000)
+    const endSeconds = Math.floor(now.getTime() / 1000)
+
+    console.log(`[GarminSync] Fetching last ${days} days via backfill`)
+
+    // Trigger backfill for the date range (best effort, don't block on error)
+    try {
+      const url = `${proxyUrl}/api/backfill/activityDetails?summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+
+      if (res.status === 202) {
+        console.log('[GarminSync] Backfill accepted, waiting for push...')
+      } else if (res.status === 409) {
+        console.log('[GarminSync] Backfill already done, checking for push data...')
+      } else {
+        const text = await res.text()
+        console.warn(`[GarminSync] Backfill returned ${res.status}: ${text.substring(0, 200)}`)
+      }
+    } catch (err) {
+      console.warn('[GarminSync] Backfill request failed, checking for existing push data:', err)
+    }
+
+    // Poll for push data (whether backfill just triggered or was already done)
+    console.log('[GarminSync] Polling for push data...')
+    await this.sleep(5000)
+    const count = await this.pollAndConsumeCallbacks(5) // 5 retries, 5s between each
+
+    await updateSyncState({ lastSyncDate: Date.now() })
+    console.log(`[GarminSync] Fetched ${count} activities for last ${days} days`)
+    return count
+  }
+
+  /**
    * Fetch activities from Garmin API and save to IndexedDB
    * Includes retry logic with exponential backoff for rate limit errors
    * Handles "duplicate backfill" by fetching with the backfill timestamp
@@ -355,9 +402,30 @@ export class GarminSyncManager {
    * Retries up to 3 times with 5s delay if no callbacks found yet (backfill async).
    */
   private async pollAndConsumeCallbacks(maxRetries = 3): Promise<number> {
-    const userId = await getGarminUserId()
+    let userId = await getGarminUserId()
+
+    // Try to resolve userId if not stored yet
     if (!userId) {
-      console.warn('[GarminSync] No Garmin userId stored, cannot poll callbacks')
+      try {
+        const accessToken = await getValidAccessToken()
+        const userRes = await fetch(`${proxyUrl}/user-id`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+        if (userRes.ok) {
+          const data = await userRes.json()
+          if (data.userId) {
+            const { setGarminUserId } = await import('./storage')
+            await setGarminUserId(data.userId)
+            userId = data.userId
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!userId) {
+      console.warn('[GarminSync] No Garmin userId available, cannot poll callbacks')
       return 0
     }
 
@@ -365,8 +433,8 @@ export class GarminSyncManager {
     let totalCount = 0
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      // Fetch pending push data for this user
-      const res = await fetch(`${proxyUrl}/callbacks/${userId}`)
+      // Fetch pending push files for this user
+      const res = await fetch(`${proxyUrl}/push/${userId}`)
       if (!res.ok) {
         console.warn(`[GarminSync] Failed to fetch push data: ${res.status}`)
         return totalCount
@@ -384,33 +452,33 @@ export class GarminSyncManager {
       }
 
       console.log(`[GarminSync] Found ${entries.length} push entries to process`)
-      const consumedIds: string[] = []
+      const consumedFiles: string[] = []
 
       for (const entry of entries) {
         try {
-          // Push data is stored directly in entry.data (Garmin activity object)
           const raw = entry.data
           if (!raw) continue
 
-          // Wrap in array for adapter (expects array)
+          // Push data: activity object directly
           const items = Array.isArray(raw) ? raw : [raw]
           const summaries = items.map(adaptGarminSummary)
           const details = items.map(adaptGarminDetails)
           await ctx.activity.saveActivitiesWithDetails(summaries, details)
           totalCount += summaries.length
-          console.log(`[GarminSync] Push ${entry.summaryType}: ${summaries.length} activities`)
-          consumedIds.push(entry.id)
+          console.log(`[GarminSync] Processed: ${summaries.length} activities`)
+
+          consumedFiles.push(entry.name)
         } catch (err) {
-          console.warn('[GarminSync] Error processing push entry:', err)
+          console.warn('[GarminSync] Error processing entry:', err)
         }
       }
 
-      // Clean up consumed entries
-      if (consumedIds.length > 0) {
-        await fetch(`${proxyUrl}/callbacks/${userId}`, {
+      // Clean up consumed files
+      if (consumedFiles.length > 0) {
+        await fetch(`${proxyUrl}/push/${userId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: consumedIds })
+          body: JSON.stringify({ files: consumedFiles })
         })
       }
 

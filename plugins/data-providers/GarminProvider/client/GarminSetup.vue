@@ -60,7 +60,7 @@
           <span v-else> Connecté · Import initial en attente </span>
         </p>
 
-        <!-- Manual refresh button (discreet) -->
+        <!-- Manual refresh button (polls Firestore for push data) -->
         <button
           @click="manualRefresh"
           :disabled="isRefreshing"
@@ -73,6 +73,20 @@
             aria-hidden="true"
           ></i>
           Actualiser
+        </button>
+
+        <!-- Fetch last 10 days via backfill -->
+        <button
+          @click="fetchLast10Days"
+          :disabled="isFetchingRecent"
+          class="text-sm text-gray-500 hover:text-gray-700 transition ml-4"
+        >
+          <i
+            class="fas fa-download mr-1"
+            :class="{ 'fa-spin': isFetchingRecent }"
+            aria-hidden="true"
+          ></i>
+          Récupérer les 10 derniers jours
         </button>
       </div>
     </div>
@@ -101,6 +115,7 @@ import pluginEnv from './env'
 
 const isConnected = ref(false)
 const isRefreshing = ref(false)
+const isFetchingRecent = ref(false)
 const isWaitingForOAuth = ref(false)
 const showFallbackRedirect = ref(false)
 // Plain variable — NOT a ref. Storing a cross-origin Window in a Vue ref
@@ -323,6 +338,22 @@ async function manualRefresh() {
   }
 }
 
+async function fetchLast10Days() {
+  isFetchingRecent.value = true
+  try {
+    const syncManager = getGarminSyncManager()
+    const count = await syncManager.fetchRecentDays(10)
+    notifications.notify(`Garmin: ${count} activités récupérées`, { type: 'success' })
+  } catch (err: unknown) {
+    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Erreur'}`, {
+      type: 'error'
+    })
+  } finally {
+    isFetchingRecent.value = false
+    Object.assign(syncState, await getSyncState())
+  }
+}
+
 // ============================================================================
 // Event Handlers
 // ============================================================================
@@ -427,17 +458,22 @@ onMounted(async () => {
       isConnected.value = true
       await plugins.enablePlugin('garmin')
 
-      const currentState = await getSyncState()
-      if (!currentState.initialImportDone) {
-        // startInitialImportAsync handles stale 'syncing' state internally
-        const syncManager = getGarminSyncManager()
-        await syncManager.startInitialImportAsync()
-      }
+      // Auto-import disabled for debugging — use manual buttons instead
+      // const currentState = await getSyncState()
+      // if (!currentState.initialImportDone) {
+      //   const syncManager = getGarminSyncManager()
+      //   await syncManager.startInitialImportAsync()
+      // }
     }
   }
 
-  // Load current sync state
-  Object.assign(syncState, await getSyncState())
+  // Load current sync state — reset stale 'syncing' status
+  const loadedState = await getSyncState()
+  if (loadedState.status === 'syncing') {
+    loadedState.status = 'idle'
+    await updateSyncState({ status: 'idle' })
+  }
+  Object.assign(syncState, loadedState)
 })
 
 onUnmounted(() => {
