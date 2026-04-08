@@ -2,24 +2,24 @@
   <div class="oauth-callback">
     <div v-if="status === 'processing'" class="status">
       <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-      <span>Connexion en cours...</span>
+      <span>Connecting...</span>
     </div>
     <div v-else-if="status === 'success'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
-      <span>Connecté ! Fermeture...</span>
+      <span>Connected! Closing...</span>
     </div>
     <div v-else-if="status === 'error'" class="status error">
       <i class="fas fa-times-circle" aria-hidden="true"></i>
-      <span>Erreur d'authentification</span>
+      <span>{{ errorMessage }}</span>
     </div>
     <div v-else-if="status === 'no-opener'" class="status warning">
       <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-      <p>Cette page s'est ouverte dans un autre navigateur.</p>
-      <p class="hint">Retournez dans votre navigateur principal (Chrome) et réessayez.</p>
+      <p>This page opened in another browser.</p>
+      <p class="hint">Go back to your main browser (Chrome) and try again.</p>
     </div>
     <div v-else-if="status === 'broadcast'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
-      <span>Connecté ! Redirection...</span>
+      <span>Connected! Redirecting...</span>
     </div>
   </div>
 </template>
@@ -28,12 +28,28 @@
 import { ref, onMounted } from 'vue'
 
 const status = ref<'processing' | 'success' | 'error' | 'no-opener' | 'broadcast'>('processing')
+const errorMessage = ref('Authentication error')
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
   const state = params.get('state')
   const error = params.get('error')
+
+  // No OAuth params at all — user navigated here directly
+  if (!code && !error) {
+    errorMessage.value = 'Missing OAuth parameters'
+    status.value = 'error'
+    return
+  }
+
+  // OAuth error (user denied access or provider error)
+  if (error) {
+    errorMessage.value =
+      error === 'access_denied'
+        ? 'Access denied. You can try again from the setup page.'
+        : `OAuth error: ${error}`
+  }
 
   const payload = {
     type: 'garmin-oauth-callback',
@@ -56,14 +72,25 @@ onMounted(() => {
     const channel = new BroadcastChannel('garmin-oauth')
     channel.postMessage(payload)
     channel.close()
-    status.value = error ? 'error' : 'broadcast'
-    // Redirect to Garmin setup page with code+state so it can exchange for tokens
-    setTimeout(() => {
-      const setupUrl = new URL('/data-provider/garmin', window.location.origin)
-      if (code) setupUrl.searchParams.set('code', code)
-      if (state) setupUrl.searchParams.set('state', state)
-      window.location.href = setupUrl.toString()
-    }, 1500)
+
+    if (error) {
+      status.value = 'error'
+      // Redirect to setup page with error so user sees feedback
+      setTimeout(() => {
+        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+        setupUrl.searchParams.set('oauth_error', error)
+        window.location.href = setupUrl.toString()
+      }, 2000)
+    } else {
+      status.value = 'broadcast'
+      // Redirect to Garmin setup page with code+state so it can exchange for tokens
+      setTimeout(() => {
+        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+        if (code) setupUrl.searchParams.set('code', code)
+        if (state) setupUrl.searchParams.set('state', state)
+        window.location.href = setupUrl.toString()
+      }, 1500)
+    }
   } catch {
     // BroadcastChannel not supported — true no-opener fallback
     status.value = 'no-opener'

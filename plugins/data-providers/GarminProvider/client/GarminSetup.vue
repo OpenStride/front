@@ -420,8 +420,17 @@ onMounted(async () => {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
   const state = params.get('state')
+  const oauthError = params.get('oauth_error')
 
-  if (code && state) {
+  // Handle OAuth error redirected from callback page
+  if (oauthError) {
+    const message =
+      oauthError === 'access_denied'
+        ? 'Garmin access denied. Please try again.'
+        : `Garmin OAuth error: ${oauthError}`
+    notifications.notify(message, { type: 'error' })
+    window.history.replaceState({}, '', window.location.pathname)
+  } else if (code && state) {
     const expectedState = sessionStorage.getItem('garmin_oauth_state')
     if (state !== expectedState) {
       notifications.notify('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
