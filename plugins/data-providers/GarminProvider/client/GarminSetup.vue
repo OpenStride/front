@@ -157,6 +157,7 @@ async function connectToGarmin() {
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
     `&state=${state}`
 
   // Open centered popup
@@ -292,6 +293,7 @@ async function connectWithRedirect() {
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
     `&state=${state}`
 }
 
