@@ -1,10 +1,16 @@
 import { onRequest } from 'firebase-functions/v2/https'
 import { defineSecret } from 'firebase-functions/params'
-import { initializeApp } from 'firebase-admin/app'
-import { getStorage } from 'firebase-admin/storage'
+import * as admin from 'firebase-admin'
 
-initializeApp()
-const bucket = getStorage().bucket()
+let _app: admin.app.App | null = null
+function getApp() {
+  if (!_app) _app = admin.initializeApp()
+  return _app
+}
+
+function getBucket() {
+  return admin.storage(getApp()).bucket()
+}
 
 const GARMIN_CLIENT_ID = defineSecret('GARMIN_CLIENT_ID')
 const GARMIN_CLIENT_SECRET = defineSecret('GARMIN_CLIENT_SECRET')
@@ -83,7 +89,7 @@ export const garminProxy = onRequest(
               ? `garmin_push/${userId}/${summaryType}_${summaryId}.json`
               : `garmin_push/${userId}/${summaryType}_${Date.now()}.json`
 
-            const file = bucket.file(fileName)
+            const file = getBucket().file(fileName)
             await file.save(JSON.stringify(entry), {
               contentType: 'application/json',
               metadata: { metadata: { userId, summaryType } }
@@ -110,7 +116,7 @@ export const garminProxy = onRequest(
           return
         }
 
-        const [files] = await bucket.getFiles({ prefix: `garmin_push/${userId}/` })
+        const [files] = await getBucket().getFiles({ prefix: `garmin_push/${userId}/` })
 
         const result = await Promise.all(
           files.map(async file => {
@@ -144,14 +150,14 @@ export const garminProxy = onRequest(
         if (fileNames && Array.isArray(fileNames)) {
           await Promise.all(
             fileNames.map(f =>
-              bucket
+              getBucket()
                 .file(f)
                 .delete()
                 .catch(() => {})
             )
           )
         } else {
-          const [files] = await bucket.getFiles({ prefix: `garmin_push/${userId}/` })
+          const [files] = await getBucket().getFiles({ prefix: `garmin_push/${userId}/` })
           await Promise.all(files.map(f => f.delete().catch(() => {})))
         }
 
@@ -166,7 +172,7 @@ export const garminProxy = onRequest(
     // GET /user-id — Resolve Garmin userId from stored push files
     if (req.path === '/user-id' && req.method === 'GET') {
       try {
-        const [files] = await bucket.getFiles({ prefix: 'garmin_push/', maxResults: 1 })
+        const [files] = await getBucket().getFiles({ prefix: 'garmin_push/', maxResults: 1 })
         if (files.length > 0) {
           // Extract userId from path: garmin_push/{userId}/...
           const parts = files[0].name.split('/')
