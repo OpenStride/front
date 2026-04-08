@@ -1,5 +1,11 @@
 // plugins/data-providers/GarminProvider/client/GarminSyncManager.ts
-import { getTokens, getSyncState, updateSyncState, getGarminUserId } from './storage'
+import {
+  getTokens,
+  getSyncState,
+  updateSyncState,
+  getGarminUserId,
+  setGarminUserId
+} from './storage'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
 import { getValidAccessToken } from './garminAuth'
 import { getPluginContext } from '@/services/PluginContextFactory'
@@ -388,6 +394,16 @@ export class GarminSyncManager {
       return 0
     }
 
+    // Extract and store the authenticated user's Garmin userId from API response
+    const firstSummary = raw[0]?.summary || raw[0]
+    if (firstSummary?.userId) {
+      const currentUserId = await getGarminUserId()
+      if (!currentUserId || currentUserId !== String(firstSummary.userId)) {
+        await setGarminUserId(String(firstSummary.userId))
+        console.log(`[GarminSync] Resolved userId from activity data: ${firstSummary.userId}`)
+      }
+    }
+
     const summaries = raw.map(adaptGarminSummary)
     const details = raw.map(adaptGarminDetails)
 
@@ -458,6 +474,14 @@ export class GarminSyncManager {
         try {
           const raw = entry.data
           if (!raw) continue
+
+          // Verify push data belongs to our user (defensive check)
+          if (raw.userId && String(raw.userId) !== userId) {
+            console.warn(
+              `[GarminSync] Push entry userId ${raw.userId} doesn't match expected ${userId}, skipping`
+            )
+            continue
+          }
 
           // Push data: activity object directly
           const items = Array.isArray(raw) ? raw : [raw]

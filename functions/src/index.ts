@@ -169,19 +169,40 @@ export const garminProxy = onRequest(
       return
     }
 
-    // GET /user-id — Resolve Garmin userId from stored push files
+    // GET /user-id — Resolve Garmin userId via Garmin API
+    // Previous implementation scanned all push files and returned the first userId found,
+    // which could be a different user's ID. Now uses the caller's access token to query
+    // the Garmin API directly.
     if (req.path === '/user-id' && req.method === 'GET') {
       try {
-        const [files] = await getBucket().getFiles({ prefix: 'garmin_push/', maxResults: 1 })
-        if (files.length > 0) {
-          // Extract userId from path: garmin_push/{userId}/...
-          const parts = files[0].name.split('/')
-          if (parts.length >= 2) {
-            res.set(CORS_HEADERS).json({ userId: parts[1] })
+        const authHeader = req.headers.authorization
+        if (!authHeader) {
+          res.set(CORS_HEADERS).status(401).json({ error: 'Authorization required' })
+          return
+        }
+
+        // Call Garmin API to get user-scoped data that includes userId
+        const now = Math.floor(Date.now() / 1000)
+        const oneDayAgo = now - 86400
+        const garminRes = await fetch(
+          `https://apis.garmin.com/wellness-api/rest/epochs?uploadStartTimeInSeconds=${oneDayAgo}&uploadEndTimeInSeconds=${now}`,
+          { headers: { Authorization: authHeader } }
+        )
+
+        if (garminRes.ok) {
+          const data = await garminRes.json()
+          if (Array.isArray(data) && data.length > 0 && data[0].userId) {
+            res.set(CORS_HEADERS).json({ userId: String(data[0].userId) })
             return
           }
         }
-        res.set(CORS_HEADERS).status(404).json({ error: 'No userId found' })
+
+        // No epoch data available. userId will be resolved from the first activity
+        // data response in GarminSyncManager.fetchAndSaveActivities() instead.
+        res
+          .set(CORS_HEADERS)
+          .status(404)
+          .json({ error: 'No user data available yet. userId will resolve on first sync.' })
       } catch (error: unknown) {
         console.error('[garminProxy] User ID lookup error:', error)
         res.set(CORS_HEADERS).status(500).json({ error: 'Failed to resolve userId' })
