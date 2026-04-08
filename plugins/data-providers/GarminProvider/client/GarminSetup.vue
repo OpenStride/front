@@ -99,6 +99,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 import {
   getTokens,
   deleteTokens,
+  deletePluginData,
   getSyncState,
   updateSyncState,
   type GarminSyncState
@@ -131,7 +132,8 @@ const syncState = reactive<GarminSyncState>({
   lastError: null
 })
 
-const { notifications, plugins } = usePluginContext()
+const ctx = usePluginContext()
+const { notifications, plugins } = ctx
 
 let oauthChannel: BroadcastChannel | null = null
 
@@ -297,7 +299,19 @@ async function connectWithRedirect() {
 }
 
 async function disconnectGarmin() {
+  // Purge all Garmin activities from local database
+  const allActivities = await ctx.activity.getAllActivities()
+  const garminActivities = allActivities.filter((a: { id: string }) => a.id.startsWith('garmin_'))
+  for (const activity of garminActivities) {
+    await ctx.activity.deleteActivity(activity.id)
+  }
+  if (garminActivities.length > 0) {
+    console.log(`[GarminSetup] Purged ${garminActivities.length} Garmin activities`)
+  }
+
+  // Clear plugin data
   await deleteTokens()
+  await deletePluginData('userId')
   await updateSyncState({
     status: 'idle',
     initialImportDone: false,
@@ -308,6 +322,10 @@ async function disconnectGarmin() {
   })
   isConnected.value = false
   Object.assign(syncState, await getSyncState())
+
+  notifications.notify(`Garmin disconnected. ${garminActivities.length} activities removed.`, {
+    type: 'info'
+  })
 }
 
 // ============================================================================
