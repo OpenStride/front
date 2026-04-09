@@ -1,4 +1,4 @@
-import { getTokens, setTokens, type GarminTokens } from './storage'
+import { getTokens, setTokens, setGarminUserId, type GarminTokens } from './storage'
 import pluginEnv from './env'
 
 // 64 chars = power of 2, no modulo bias with Uint8Array (256 % 64 === 0)
@@ -58,12 +58,18 @@ export async function exchangeCodeForTokens(
   }
 
   const data = await res.json()
+  console.log('[garminAuth] Token response keys:', Object.keys(data))
   const tokens = parseTokenResponse(data)
   await setTokens(tokens)
 
-  // userId is resolved automatically from the first API response in GarminSyncManager.
-  // The /user-id server endpoint is unreliable (returns first user in bucket, not the
-  // authenticated user), so we extract userId from actual Garmin activity data instead.
+  // Try to extract userId from token response (Garmin may include it)
+  const userId = data.userId || data.user_id || data.sub
+  if (userId) {
+    await setGarminUserId(String(userId))
+    console.log(`[garminAuth] userId from token response: ${userId}`)
+  } else {
+    console.warn('[garminAuth] No userId in token response. Keys:', Object.keys(data))
+  }
 
   return tokens
 }
