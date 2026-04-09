@@ -424,15 +424,35 @@ export class GarminSyncManager {
     if (!userId) {
       try {
         const accessToken = await getValidAccessToken()
-        const userRes = await fetch(`${proxyUrl}/user-id`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
-        if (userRes.ok) {
-          const data = await userRes.json()
-          if (data.userId) {
-            const { setGarminUserId } = await import('./storage')
-            await setGarminUserId(data.userId)
-            userId = data.userId
+
+        // Strategy 1: Call Garmin epochs API directly to get userId from user-scoped data
+        const now = Math.floor(Date.now() / 1000)
+        const oneDayAgo = now - 86400
+        const epochsRes = await fetch(
+          `${proxyUrl}/api/epochs?uploadStartTimeInSeconds=${oneDayAgo}&uploadEndTimeInSeconds=${now}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (epochsRes.ok) {
+          const epochs = await epochsRes.json()
+          if (Array.isArray(epochs) && epochs.length > 0 && epochs[0].userId) {
+            userId = String(epochs[0].userId)
+            await setGarminUserId(userId)
+            console.log(`[GarminSync] Resolved userId from epochs API: ${userId}`)
+          }
+        }
+
+        // Strategy 2: Fall back to server /user-id endpoint
+        if (!userId) {
+          const userRes = await fetch(`${proxyUrl}/user-id`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          })
+          if (userRes.ok) {
+            const data = await userRes.json()
+            if (data.userId) {
+              await setGarminUserId(data.userId)
+              userId = data.userId
+              console.log(`[GarminSync] Resolved userId from /user-id: ${userId}`)
+            }
           }
         }
       } catch {
