@@ -486,12 +486,15 @@ onMounted(async () => {
       isConnected.value = true
       await plugins.enablePlugin('garmin')
 
-      // Auto-import disabled for debugging — use manual buttons instead
-      // const currentState = await getSyncState()
-      // if (!currentState.initialImportDone) {
-      //   const syncManager = getGarminSyncManager()
-      //   await syncManager.startInitialImportAsync()
-      // }
+      // Resume the initial import if it never finished (e.g. tab was closed
+      // mid-import). startInitialImportAsync() is idempotent: it no-ops when an
+      // import is already running or already complete, and picks up from the
+      // saved per-month state otherwise.
+      const currentState = await getSyncState()
+      if (!currentState.initialImportDone) {
+        const syncManager = getGarminSyncManager()
+        void syncManager.startInitialImportAsync()
+      }
     }
   }
 

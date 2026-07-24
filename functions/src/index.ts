@@ -20,6 +20,10 @@ const GARMIN_WEBHOOK_SECRET = defineSecret('GARMIN_WEBHOOK_SECRET')
 
 const GARMIN_API = 'https://apis.garmin.com'
 const PUSH_PREFIX = 'garmin_push'
+// Max files returned per /push read. activityDetails files carry full sample
+// arrays, so returning the whole buffer at once blows the response size limit.
+// The client drains in a loop until the buffer is empty.
+const MAX_PUSH_FILES = 5
 
 // Browser origins allowed to call the proxy. This is defense-in-depth only —
 // the real access gate is the Garmin Bearer token, validated per request.
@@ -40,6 +44,13 @@ function corsHeaders(origin?: string): Record<string, string> {
   }
 }
 
+// In-memory token→userId cache (per function instance). During an import the client
+// polls /push many times with the same token; without this we'd hit Garmin's user/id
+// endpoint on every poll, get rate-limited, and hang until the function times out.
+const userIdCache = new Map<string, { userId: string; expires: number }>()
+const USER_ID_TTL_MS = 10 * 60 * 1000
+const USER_ID_TIMEOUT_MS = 10_000
+
 /**
  * Resolve the authoritative Garmin userId from the caller's OAuth2 Bearer token.
  *
@@ -47,19 +58,34 @@ function corsHeaders(origin?: string): Record<string, string> {
  * userId — we always derive it from the token by asking Garmin. This makes it
  * impossible for a user to read or delete another user's buffered data.
  *
+ * Cached per instance and bounded by a hard timeout so a slow/rate-limited Garmin
+ * call fails fast (→ 401 with CORS) instead of hanging into a CORS-less 500.
+ *
  * Returns null when the token is missing or invalid.
  */
 async function resolveUserId(authHeader?: string): Promise<string | null> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
+
+  const cached = userIdCache.get(authHeader)
+  if (cached && cached.expires > Date.now()) return cached.userId
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), USER_ID_TIMEOUT_MS)
   try {
     const res = await fetch(`${GARMIN_API}/partner-gateway/rest/user/id`, {
-      headers: { Authorization: authHeader }
+      headers: { Authorization: authHeader },
+      signal: controller.signal
     })
     if (!res.ok) return null
     const data = (await res.json()) as { userId?: string | number }
-    return data.userId != null ? String(data.userId) : null
+    if (data.userId == null) return null
+    const userId = String(data.userId)
+    userIdCache.set(authHeader, { userId, expires: Date.now() + USER_ID_TTL_MS })
+    return userId
   } catch {
     return null
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -172,8 +198,11 @@ export const garminProxy = onRequest(
       }
 
       try {
-        const [files] = await getBucket().getFiles({ prefix: `${PUSH_PREFIX}/${userId}/` })
+        const [allFiles] = await getBucket().getFiles({ prefix: `${PUSH_PREFIX}/${userId}/` })
 
+        // Return at most MAX_PUSH_FILES per request to stay under the response size
+        // limit; the client keeps polling until the buffer drains to empty.
+        const files = allFiles.slice(0, MAX_PUSH_FILES)
         const result = await Promise.all(
           files.map(async file => {
             const [content] = await file.download()

@@ -155,9 +155,14 @@ describe('GarminSyncManager', () => {
   // ============================
   describe('dailyRefresh', () => {
     it('reads the owner-scoped push buffer, saves activities, and deletes consumed files', async () => {
+      let pushReads = 0
       mockFetch.mockImplementation((url: string) => {
         if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 2 }))
-        if (url.endsWith('/push')) return Promise.resolve(okJsonResponse(pushBuffer(2)))
+        if (url.endsWith('/push')) {
+          pushReads++
+          // First read returns the buffer; subsequent reads are empty (drained)
+          return Promise.resolve(okJsonResponse(pushReads === 1 ? pushBuffer(2) : []))
+        }
         return Promise.resolve(okJsonResponse([]))
       })
 
@@ -263,7 +268,7 @@ describe('GarminSyncManager', () => {
     })
 
     it('emits sync-progress and sync-complete events', async () => {
-      mockFetch.mockResolvedValue(okJsonResponse(pushBuffer(1)))
+      mockFetch.mockResolvedValue(okJsonResponse([]))
 
       const progressEvents: any[] = []
       const completeEvents: any[] = []

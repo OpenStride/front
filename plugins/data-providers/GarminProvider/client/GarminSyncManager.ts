@@ -422,8 +422,10 @@ export class GarminSyncManager {
   private async pollAndConsumeCallbacks(maxRetries = 3): Promise<number> {
     const ctx = await getPluginContext()
     let totalCount = 0
+    let waited = 0
+    const MAX_DRAIN_BATCHES = 500 // safety cap against an unexpected infinite loop
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    for (let i = 0; i < MAX_DRAIN_BATCHES; i++) {
       const accessToken = await getValidAccessToken()
 
       const res = await fetch(`${proxyUrl}/push`, {
@@ -441,16 +443,20 @@ export class GarminSyncManager {
 
       const entries = await res.json()
       if (!Array.isArray(entries) || entries.length === 0) {
-        if (attempt < maxRetries - 1) {
-          console.log(`[GarminSync] No push data yet, retry ${attempt + 1}/${maxRetries} in 5s`)
+        // Buffer empty. If we already drained some, we're done.
+        if (totalCount > 0) break
+        // Otherwise wait for Garmin's async backfill push to land.
+        if (waited < maxRetries - 1) {
+          waited++
+          console.log(`[GarminSync] No push data yet, retry ${waited}/${maxRetries} in 5s`)
           await this.sleep(5000)
           continue
         }
         console.log('[GarminSync] No push data available after retries')
-        return totalCount
+        break
       }
 
-      console.log(`[GarminSync] Found ${entries.length} push entries to process`)
+      console.log(`[GarminSync] Draining ${entries.length} push entries`)
       const consumedFiles: string[] = []
 
       for (const entry of entries) {
@@ -464,7 +470,6 @@ export class GarminSyncManager {
           const details = items.map(adaptGarminDetails)
           await ctx.activity.saveActivitiesWithDetails(summaries, details)
           totalCount += summaries.length
-          console.log(`[GarminSync] Processed: ${summaries.length} activities`)
 
           consumedFiles.push(entry.name)
         } catch (err) {
@@ -472,7 +477,8 @@ export class GarminSyncManager {
         }
       }
 
-      // Delete consumed files immediately (owner-scoped, verified server-side).
+      // Delete consumed files immediately (owner-scoped, verified server-side),
+      // then loop to drain the next capped batch.
       if (consumedFiles.length > 0) {
         await fetch(`${proxyUrl}/push/consume`, {
           method: 'POST',
@@ -482,9 +488,10 @@ export class GarminSyncManager {
           },
           body: JSON.stringify({ files: consumedFiles })
         })
+      } else {
+        // Nothing consumable in a non-empty batch (all errored) — stop to avoid a loop.
+        break
       }
-
-      break // got data, done
     }
 
     return totalCount
