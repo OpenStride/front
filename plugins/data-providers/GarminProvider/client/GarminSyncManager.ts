@@ -1,11 +1,5 @@
 // plugins/data-providers/GarminProvider/client/GarminSyncManager.ts
-import {
-  getTokens,
-  getSyncState,
-  updateSyncState,
-  getGarminUserId,
-  setGarminUserId
-} from './storage'
+import { getTokens, getSyncState, updateSyncState } from './storage'
 import { adaptGarminSummary, adaptGarminDetails } from './adapter'
 import { getValidAccessToken } from './garminAuth'
 import { getPluginContext } from '@/services/PluginContextFactory'
@@ -386,22 +380,24 @@ export class GarminSyncManager {
     }
 
     const text = await res.text()
+
+    // Backfill is asynchronous: Garmin returns 202 with an empty body and pushes
+    // the data later to our /ping endpoint. There is no inline data to parse — we
+    // must poll the push bucket to consume what Garmin has delivered so far.
+    if (useBackfill && (res.status === 202 || !text || text.trim() === '')) {
+      console.log('[GarminSync] Backfill accepted (async), polling push data...')
+      await this.sleep(5000)
+      return this.pollAndConsumeCallbacks(5)
+    }
+
     if (!text || text.trim() === '') return 0
 
     const raw = JSON.parse(text)
 
     if (!Array.isArray(raw) || raw.length === 0) {
+      // Backfill may also acknowledge with an empty array; data still comes via push.
+      if (useBackfill) return this.pollAndConsumeCallbacks(5)
       return 0
-    }
-
-    // Extract and store the authenticated user's Garmin userId from API response
-    const firstSummary = raw[0]?.summary || raw[0]
-    if (firstSummary?.userId) {
-      const currentUserId = await getGarminUserId()
-      if (!currentUserId || currentUserId !== String(firstSummary.userId)) {
-        await setGarminUserId(String(firstSummary.userId))
-        console.log(`[GarminSync] Resolved userId from activity data: ${firstSummary.userId}`)
-      }
     }
 
     const summaries = raw.map(adaptGarminSummary)
@@ -414,63 +410,30 @@ export class GarminSyncManager {
   }
 
   /**
-   * Poll Firebase for pending Garmin ping callbacks, fetch data via proxy, save to IndexedDB.
-   * Retries up to 3 times with 5s delay if no callbacks found yet (backfill async).
+   * Fetch pending Garmin push data from the buffer and save it to IndexedDB.
+   *
+   * Access is owner-scoped by the OAuth Bearer token: the proxy derives the userId
+   * from the token server-side, so we never send a userId and can only ever receive
+   * our own data. Consumed files are deleted immediately via /push/consume.
+   *
+   * Retries up to `maxRetries` times with a 5s delay when no data is buffered yet
+   * (Garmin's backfill push is asynchronous).
    */
   private async pollAndConsumeCallbacks(maxRetries = 3): Promise<number> {
-    let userId = await getGarminUserId()
-
-    // Try to resolve userId if not stored yet
-    if (!userId) {
-      try {
-        const accessToken = await getValidAccessToken()
-
-        // Strategy 1: Call Garmin epochs API directly to get userId from user-scoped data
-        const now = Math.floor(Date.now() / 1000)
-        const oneDayAgo = now - 86400
-        const epochsRes = await fetch(
-          `${proxyUrl}/api/epochs?uploadStartTimeInSeconds=${oneDayAgo}&uploadEndTimeInSeconds=${now}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        )
-        if (epochsRes.ok) {
-          const epochs = await epochsRes.json()
-          if (Array.isArray(epochs) && epochs.length > 0 && epochs[0].userId) {
-            userId = String(epochs[0].userId)
-            await setGarminUserId(userId)
-            console.log(`[GarminSync] Resolved userId from epochs API: ${userId}`)
-          }
-        }
-
-        // Strategy 2: Fall back to server /user-id endpoint
-        if (!userId) {
-          const userRes = await fetch(`${proxyUrl}/user-id`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          })
-          if (userRes.ok) {
-            const data = await userRes.json()
-            if (data.userId) {
-              await setGarminUserId(data.userId)
-              userId = data.userId
-              console.log(`[GarminSync] Resolved userId from /user-id: ${userId}`)
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    if (!userId) {
-      console.warn('[GarminSync] No Garmin userId available, cannot poll callbacks')
-      return 0
-    }
-
     const ctx = await getPluginContext()
     let totalCount = 0
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      // Fetch pending push files for this user
-      const res = await fetch(`${proxyUrl}/push/${userId}`)
+      const accessToken = await getValidAccessToken()
+
+      const res = await fetch(`${proxyUrl}/push`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+
+      if (res.status === 401) {
+        console.warn('[GarminSync] Unauthorized when reading push buffer')
+        return totalCount
+      }
       if (!res.ok) {
         console.warn(`[GarminSync] Failed to fetch push data: ${res.status}`)
         return totalCount
@@ -495,15 +458,7 @@ export class GarminSyncManager {
           const raw = entry.data
           if (!raw) continue
 
-          // Verify push data belongs to our user (defensive check)
-          if (raw.userId && String(raw.userId) !== userId) {
-            console.warn(
-              `[GarminSync] Push entry userId ${raw.userId} doesn't match expected ${userId}, skipping`
-            )
-            continue
-          }
-
-          // Push data: activity object directly
+          // Push data: activity object directly (ownership already enforced server-side)
           const items = Array.isArray(raw) ? raw : [raw]
           const summaries = items.map(adaptGarminSummary)
           const details = items.map(adaptGarminDetails)
@@ -517,11 +472,14 @@ export class GarminSyncManager {
         }
       }
 
-      // Clean up consumed files
+      // Delete consumed files immediately (owner-scoped, verified server-side).
       if (consumedFiles.length > 0) {
-        await fetch(`${proxyUrl}/push/${userId}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch(`${proxyUrl}/push/consume`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`
+          },
           body: JSON.stringify({ files: consumedFiles })
         })
       }

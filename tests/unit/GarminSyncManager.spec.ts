@@ -67,9 +67,9 @@ import {
 
 // ---------- Fixtures ----------
 
-/** Garmin API raw response for one activity */
-function garminApiResponse(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
+/** Garmin raw activity (as delivered via push) */
+function garminActivity(i: number) {
+  return {
     activityId: `act-${i + 1}`,
     summary: {
       activityId: `act-${i + 1}`,
@@ -93,16 +93,6 @@ function garminApiResponse(count: number) {
         heartRate: 140,
         stepsPerMinute: 170,
         speedMetersPerSecond: 3.3
-      },
-      {
-        startTimeInSeconds: 1700000000 + i * 3600 + 30,
-        totalDistanceInMeters: 100,
-        latitudeInDegree: 48.851,
-        longitudeInDegree: 2.351,
-        elevationInMeters: 51,
-        heartRate: 145,
-        stepsPerMinute: 172,
-        speedMetersPerSecond: 3.4
       }
     ],
     laps: [
@@ -112,7 +102,15 @@ function garminApiResponse(count: number) {
         totalDistanceInMeters: 2500
       }
     ]
-  }))
+  }
+}
+
+/** A /push buffer listing: [{ name, data }] where data is a raw Garmin activity */
+function pushBuffer(count: number) {
+  return Array.from({ length: count }, (_, i) => {
+    const a = garminActivity(i)
+    return { name: `garmin_push/u1/activityDetails_${a.activityId}.json`, data: a }
+  })
 }
 
 function okJsonResponse(data: any) {
@@ -153,30 +151,41 @@ describe('GarminSyncManager', () => {
   })
 
   // ============================
-  // dailyRefresh
+  // dailyRefresh — reads the owner-scoped push buffer
   // ============================
   describe('dailyRefresh', () => {
-    it('fetches last 7 days one by one and saves activities', async () => {
-      const activities = garminApiResponse(2)
-      mockFetch.mockResolvedValue(okJsonResponse(activities))
+    it('reads the owner-scoped push buffer, saves activities, and deletes consumed files', async () => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 2 }))
+        if (url.endsWith('/push')) return Promise.resolve(okJsonResponse(pushBuffer(2)))
+        return Promise.resolve(okJsonResponse([]))
+      })
 
       const count = await manager.dailyRefresh()
 
-      // 7 days x 2 activities per call = 14
-      expect(count).toBe(14)
-      expect(mockFetch).toHaveBeenCalledTimes(7)
-      expect(mockSaveActivitiesWithDetails).toHaveBeenCalledTimes(7)
+      expect(count).toBe(2)
+      // One save per buffered entry
+      expect(mockSaveActivitiesWithDetails).toHaveBeenCalledTimes(2)
 
-      // Verify URL structure: Bearer auth via proxy, Unix seconds
-      const firstCall = mockFetch.mock.calls[0]
-      const url = firstCall[0] as string
-      const opts = firstCall[1] as RequestInit
-      expect(url).toContain('https://proxy.test.com/api/activityDetails')
-      expect(url).toContain('uploadStartTimeInSeconds=')
-      expect(url).toContain('uploadEndTimeInSeconds=')
-      expect(opts.headers).toEqual(
+      // GET /push carries the Bearer token and never names a userId in the URL
+      const getCall = mockFetch.mock.calls.find(c => (c[0] as string).endsWith('/push'))
+      expect(getCall).toBeTruthy()
+      expect(getCall![0]).toBe('https://proxy.test.com/push')
+      expect((getCall![1] as RequestInit).headers).toEqual(
         expect.objectContaining({ Authorization: 'Bearer test-access-token' })
       )
+
+      // Consumed files are deleted via authenticated POST /push/consume
+      const consumeCall = mockFetch.mock.calls.find(c =>
+        (c[0] as string).endsWith('/push/consume')
+      )
+      expect(consumeCall).toBeTruthy()
+      const consumeOpts = consumeCall![1] as RequestInit
+      expect(consumeOpts.method).toBe('POST')
+      expect(consumeOpts.headers).toEqual(
+        expect.objectContaining({ Authorization: 'Bearer test-access-token' })
+      )
+      expect(JSON.parse(consumeOpts.body as string).files).toHaveLength(2)
     })
 
     it('returns 0 when no tokens are available', async () => {
@@ -188,25 +197,17 @@ describe('GarminSyncManager', () => {
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
-    it('continues with other days when one day fails', async () => {
-      mockFetch
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1))) // day 1 ok
-        .mockRejectedValueOnce(new Error('Network error')) // day 2 fail
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1))) // day 3 ok
-        .mockResolvedValueOnce(okJsonResponse([])) // day 4 empty
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1))) // day 5
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1))) // day 6
-        .mockResolvedValueOnce(okJsonResponse(garminApiResponse(1))) // day 7
+    it('returns 0 and saves nothing when the buffer is empty', async () => {
+      mockFetch.mockResolvedValue(okJsonResponse([]))
 
       const count = await manager.dailyRefresh()
 
-      // 5 successful days x 1 activity each
-      expect(count).toBe(5)
-      expect(mockFetch).toHaveBeenCalledTimes(7)
+      expect(count).toBe(0)
+      expect(mockSaveActivitiesWithDetails).not.toHaveBeenCalled()
     })
 
-    it('returns 0 when API returns empty arrays', async () => {
-      mockFetch.mockResolvedValue(okJsonResponse([]))
+    it('returns 0 and saves nothing on unauthorized buffer read', async () => {
+      mockFetch.mockResolvedValue(errorResponse(401, 'Unauthorized'))
 
       const count = await manager.dailyRefresh()
 
@@ -222,28 +223,6 @@ describe('GarminSyncManager', () => {
       expect(updateSyncState).toHaveBeenCalledWith(
         expect.objectContaining({ lastSyncDate: expect.any(Number) })
       )
-    })
-  })
-
-  // ============================
-  // fetchAndSaveActivities — retry logic
-  // ============================
-  describe('rate limit retry', () => {
-    it('retries on 429 with exponential backoff', async () => {
-      mockFetch
-        .mockReset()
-        .mockResolvedValueOnce(errorResponse(429, 'Too many requests'))
-        .mockResolvedValue(okJsonResponse(garminApiResponse(1)))
-
-      const countPromise = manager.dailyRefresh()
-
-      // Advance past the 60s backoff (2^1 * 30000 = 60000ms)
-      await vi.advanceTimersByTimeAsync(70000)
-
-      const count = await countPromise
-
-      // First call: 429 + retry + success, then 6 more days
-      expect(count).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -284,7 +263,7 @@ describe('GarminSyncManager', () => {
     })
 
     it('emits sync-progress and sync-complete events', async () => {
-      mockFetch.mockResolvedValue(okJsonResponse(garminApiResponse(1)))
+      mockFetch.mockResolvedValue(okJsonResponse(pushBuffer(1)))
 
       const progressEvents: any[] = []
       const completeEvents: any[] = []
@@ -297,7 +276,7 @@ describe('GarminSyncManager', () => {
 
       manager.startInitialImportAsync()
 
-      // Advance enough for all 6 months x 15s delays
+      // Advance enough for all 6 months x delays
       await vi.advanceTimersByTimeAsync(600000)
 
       // Should have received started + progress events

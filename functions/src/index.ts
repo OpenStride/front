@@ -14,33 +14,78 @@ function getBucket() {
 
 const GARMIN_CLIENT_ID = defineSecret('GARMIN_CLIENT_ID')
 const GARMIN_CLIENT_SECRET = defineSecret('GARMIN_CLIENT_SECRET')
+// Shared secret embedded in the Garmin push callback URL (/ping/<secret>).
+// Only Garmin's registered callback knows it → blocks spoofed pushes.
+const GARMIN_WEBHOOK_SECRET = defineSecret('GARMIN_WEBHOOK_SECRET')
 
-const CORS_HEADERS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+const GARMIN_API = 'https://apis.garmin.com'
+const PUSH_PREFIX = 'garmin_push'
+
+// Browser origins allowed to call the proxy. This is defense-in-depth only —
+// the real access gate is the Garmin Bearer token, validated per request.
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000',
+  'https://openstride.org',
+  'https://openstrive-edd63.web.app',
+  'https://openstrive-edd63.firebaseapp.com'
+])
+
+function corsHeaders(origin?: string): Record<string, string> {
+  const allow = origin && ALLOWED_ORIGINS.has(origin) ? origin : 'http://localhost:3000'
+  return {
+    'Access-Control-Allow-Origin': allow,
+    Vary: 'Origin',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  }
 }
 
 /**
- * Garmin OAuth2 proxy + push receiver.
+ * Resolve the authoritative Garmin userId from the caller's OAuth2 Bearer token.
  *
- * POST /token        → OAuth2 token exchange
- * GET  /api/*        → proxy wellness API calls
- * POST /ping         → receive Garmin push, store as JSON in Cloud Storage
- * GET  /push/:userId → client lists pending push files
- * DELETE /push/:userId → client cleans up consumed files
+ * This is the ONLY source of truth for identity. A client never supplies its own
+ * userId — we always derive it from the token by asking Garmin. This makes it
+ * impossible for a user to read or delete another user's buffered data.
+ *
+ * Returns null when the token is missing or invalid.
+ */
+async function resolveUserId(authHeader?: string): Promise<string | null> {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null
+  try {
+    const res = await fetch(`${GARMIN_API}/partner-gateway/rest/user/id`, {
+      headers: { Authorization: authHeader }
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { userId?: string | number }
+    return data.userId != null ? String(data.userId) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Garmin OAuth2 proxy + secured push buffer.
+ *
+ * POST /token          → OAuth2 token exchange (injects client secret)
+ * GET  /api/*          → proxy Garmin API calls (e.g. backfill trigger)
+ * POST /ping/<secret>  → receive Garmin push, buffer as JSON in Cloud Storage
+ * GET  /push           → owner-only: list this user's buffered push data (Bearer)
+ * POST /push/consume   → owner-only: delete consumed files (Bearer)
  */
 export const garminProxy = onRequest(
   {
     cors: true,
-    secrets: [GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET],
+    secrets: [GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET, GARMIN_WEBHOOK_SECRET],
     region: 'europe-west1',
     memory: '1GiB'
   },
   async (req, res) => {
+    const origin = req.headers.origin
+    const cors = corsHeaders(origin)
+
     // CORS preflight
     if (req.method === 'OPTIONS') {
-      res.set(CORS_HEADERS).status(204).send('')
+      res.set(cors).status(204).send('')
       return
     }
 
@@ -60,16 +105,25 @@ export const garminProxy = onRequest(
         })
 
         const data = await response.text()
-        res.set(CORS_HEADERS).status(response.status).send(data)
+        res.set(cors).status(response.status).send(data)
       } catch (error: unknown) {
         console.error('[garminProxy] Token exchange error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Token exchange failed' })
+        res.set(cors).status(500).json({ error: 'Token exchange failed' })
       }
       return
     }
 
-    // POST /ping — Receive Garmin push notifications, store in Cloud Storage
-    if (req.path === '/ping' && req.method === 'POST') {
+    // POST /ping/<secret> — Receive Garmin push notifications (server-to-server).
+    // Guarded by a shared secret in the path so only Garmin's registered callback
+    // can write to the buffer. No CORS (not a browser caller).
+    if (req.path.startsWith('/ping') && req.method === 'POST') {
+      const providedSecret = req.path.slice('/ping'.length).replace(/^\//, '')
+      if (!providedSecret || providedSecret !== GARMIN_WEBHOOK_SECRET.value()) {
+        console.warn('[garminProxy] Rejected push with invalid webhook secret')
+        res.status(403).send('Forbidden')
+        return
+      }
+
       try {
         const payload = req.body
         const types = Object.keys(payload)
@@ -82,160 +136,117 @@ export const garminProxy = onRequest(
           if (!Array.isArray(entries)) continue
 
           for (const entry of entries) {
-            const { userId, summaryId } = entry as { userId: string; summaryId?: string }
+            const { userId, summaryId } = entry as { userId?: string; summaryId?: string }
             if (!userId) continue
 
             const fileName = summaryId
-              ? `garmin_push/${userId}/${summaryType}_${summaryId}.json`
-              : `garmin_push/${userId}/${summaryType}_${Date.now()}.json`
+              ? `${PUSH_PREFIX}/${userId}/${summaryType}_${summaryId}.json`
+              : `${PUSH_PREFIX}/${userId}/${summaryType}_${Date.now()}.json`
 
             const file = getBucket().file(fileName)
             await file.save(JSON.stringify(entry), {
               contentType: 'application/json',
-              metadata: { metadata: { userId, summaryType } }
+              metadata: { metadata: { userId, summaryType, receivedAt: String(Date.now()) } }
             })
             stored++
           }
         }
 
-        console.log(`[garminProxy] Stored ${stored} files in Cloud Storage`)
+        console.log(`[garminProxy] Buffered ${stored} files`)
         res.status(200).send('OK')
       } catch (error: unknown) {
         console.error('[garminProxy] Push error:', error)
+        // Always 200 so Garmin does not retry-storm on our internal errors.
         res.status(200).send('OK')
       }
       return
     }
 
-    // GET /push/:userId — Client lists pending push files
-    if (req.path.startsWith('/push/') && req.method === 'GET') {
-      try {
-        const userId = req.path.slice('/push/'.length)
-        if (!userId) {
-          res.set(CORS_HEADERS).status(400).json({ error: 'Missing userId' })
-          return
-        }
+    // GET /push — Owner-only listing. The userId is derived from the Bearer token,
+    // never taken from the request, so a caller can only ever see their own data.
+    if (req.path === '/push' && req.method === 'GET') {
+      const userId = await resolveUserId(req.headers.authorization)
+      if (!userId) {
+        res.set(cors).status(401).json({ error: 'Unauthorized' })
+        return
+      }
 
-        const [files] = await getBucket().getFiles({ prefix: `garmin_push/${userId}/` })
+      try {
+        const [files] = await getBucket().getFiles({ prefix: `${PUSH_PREFIX}/${userId}/` })
 
         const result = await Promise.all(
           files.map(async file => {
             const [content] = await file.download()
-            return {
-              name: file.name,
-              data: JSON.parse(content.toString())
-            }
+            return { name: file.name, data: JSON.parse(content.toString()) }
           })
         )
 
-        res.set(CORS_HEADERS).json(result)
+        res.set(cors).json(result)
       } catch (error: unknown) {
         console.error('[garminProxy] Push list error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to list push data' })
+        res.set(cors).status(500).json({ error: 'Failed to list push data' })
       }
       return
     }
 
-    // DELETE /push/:userId — Client cleans up consumed files
-    if (req.path.startsWith('/push/') && req.method === 'DELETE') {
+    // POST /push/consume — Owner-only delete of consumed files. Body: { files: string[] }.
+    // Every filename is re-checked against the caller's own prefix, so the token
+    // owner can only ever delete their own buffered data.
+    if (req.path === '/push/consume' && req.method === 'POST') {
+      const userId = await resolveUserId(req.headers.authorization)
+      if (!userId) {
+        res.set(cors).status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
       try {
-        const userId = req.path.slice('/push/'.length)
-        if (!userId) {
-          res.set(CORS_HEADERS).status(400).json({ error: 'Missing userId' })
-          return
-        }
+        const ownPrefix = `${PUSH_PREFIX}/${userId}/`
+        const requested = (req.body?.files as unknown) as string[] | undefined
+        const safe = Array.isArray(requested)
+          ? requested.filter(f => typeof f === 'string' && f.startsWith(ownPrefix))
+          : []
 
-        const fileNames = req.body?.files as string[] | undefined
-
-        if (fileNames && Array.isArray(fileNames)) {
-          await Promise.all(
-            fileNames.map(f =>
-              getBucket()
-                .file(f)
-                .delete()
-                .catch(() => {})
-            )
+        await Promise.all(
+          safe.map(f =>
+            getBucket()
+              .file(f)
+              .delete()
+              .catch(() => {})
           )
-        } else {
-          const [files] = await getBucket().getFiles({ prefix: `garmin_push/${userId}/` })
-          await Promise.all(files.map(f => f.delete().catch(() => {})))
-        }
-
-        res.set(CORS_HEADERS).json({ ok: true })
-      } catch (error: unknown) {
-        console.error('[garminProxy] Push delete error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to delete push data' })
-      }
-      return
-    }
-
-    // GET /user-id — Resolve Garmin userId via Garmin API
-    // Previous implementation scanned all push files and returned the first userId found,
-    // which could be a different user's ID. Now uses the caller's access token to query
-    // the Garmin API directly.
-    if (req.path === '/user-id' && req.method === 'GET') {
-      try {
-        const authHeader = req.headers.authorization
-        if (!authHeader) {
-          res.set(CORS_HEADERS).status(401).json({ error: 'Authorization required' })
-          return
-        }
-
-        // Call Garmin API to get user-scoped data that includes userId
-        const now = Math.floor(Date.now() / 1000)
-        const oneDayAgo = now - 86400
-        const garminRes = await fetch(
-          `https://apis.garmin.com/wellness-api/rest/epochs?uploadStartTimeInSeconds=${oneDayAgo}&uploadEndTimeInSeconds=${now}`,
-          { headers: { Authorization: authHeader } }
         )
 
-        if (garminRes.ok) {
-          const data = await garminRes.json()
-          if (Array.isArray(data) && data.length > 0 && data[0].userId) {
-            res.set(CORS_HEADERS).json({ userId: String(data[0].userId) })
-            return
-          }
-        }
-
-        // No epoch data available. userId will be resolved from the first activity
-        // data response in GarminSyncManager.fetchAndSaveActivities() instead.
-        res
-          .set(CORS_HEADERS)
-          .status(404)
-          .json({ error: 'No user data available yet. userId will resolve on first sync.' })
+        res.set(cors).json({ deleted: safe.length })
       } catch (error: unknown) {
-        console.error('[garminProxy] User ID lookup error:', error)
-        res.set(CORS_HEADERS).status(500).json({ error: 'Failed to resolve userId' })
+        console.error('[garminProxy] Push consume error:', error)
+        res.set(cors).status(500).json({ error: 'Failed to delete push data' })
       }
       return
     }
 
-    // GET /api/* — Proxy wellness API calls
+    // GET /api/* — Proxy Garmin API calls (e.g. backfill trigger). Token-gated by
+    // Garmin itself; we only forward the caller's Authorization header.
     if (req.path.startsWith('/api/') && req.method === 'GET') {
       try {
         const garminPath = req.path.slice('/api/'.length)
         const queryString = new URLSearchParams(req.query as Record<string, string>).toString()
-        const garminUrl = `https://apis.garmin.com/wellness-api/rest/${garminPath}${queryString ? '?' + queryString : ''}`
+        const garminUrl = `${GARMIN_API}/wellness-api/rest/${garminPath}${queryString ? '?' + queryString : ''}`
 
         const headers: Record<string, string> = {}
         if (req.headers.authorization) {
           headers['Authorization'] = req.headers.authorization
         }
 
-        console.log(`[garminProxy] GET ${garminUrl} auth=${!!req.headers.authorization}`)
-
         const response = await fetch(garminUrl, { headers })
-
         const data = await response.text()
-        console.log(`[garminProxy] Response: ${response.status} ${data.substring(0, 200)}`)
-        res.set(CORS_HEADERS).status(response.status).send(data)
+        console.log(`[garminProxy] GET ${garminUrl} → ${response.status}`)
+        res.set(cors).status(response.status).send(data)
       } catch (error: unknown) {
         console.error('[garminProxy] API proxy error:', error)
-        res.set(CORS_HEADERS).status(502).json({ error: 'Garmin API proxy failed' })
+        res.set(cors).status(502).json({ error: 'Garmin API proxy failed' })
       }
       return
     }
 
-    res.set(CORS_HEADERS).status(404).send('Not Found')
+    res.set(cors).status(404).send('Not Found')
   }
 )
