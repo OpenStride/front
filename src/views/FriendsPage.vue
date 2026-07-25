@@ -3,7 +3,7 @@
     <!-- Header with actions -->
     <div class="page-header">
       <h2 class="page-title">{{ t('friends.title') }}</h2>
-      <button @click="openScanner" class="add-btn icon-only" title="Ajouter un ami">
+      <button @click="openScanner" class="add-btn icon-only" :title="t('friends.addFriend')">
         <i class="fas fa-user-plus" aria-hidden="true"></i>
       </button>
     </div>

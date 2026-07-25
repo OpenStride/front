@@ -1,18 +1,19 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="zip-import-provider">
-    <h3>Importer un export ZIP d'activités</h3>
+    <h3>{{ t('zipImport.title') }}</h3>
     <input type="file" accept=".zip" @change="onFileChange" />
     <div v-if="importing">
-      <span>Import en cours...</span>
+      <span>{{ t('zipImport.importing') }}</span>
       <span v-if="totalToImport > 0"> ({{ importedCount }}/{{ totalToImport }})</span>
     </div>
     <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="success" class="success">Import terminé !</div>
+    <div v-if="success" class="success">{{ t('zipImport.done') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import { ref } from 'vue'
 import JSZip from 'jszip'
@@ -21,6 +22,8 @@ import FitFileParser from 'fit-file-parser'
 import pako from 'pako'
 import { adaptZipSummary, adaptZipDetails } from './adapter'
 import type { Activity, ActivityDetails } from '@/types/activity'
+
+const { t } = useI18n()
 
 interface CsvRow extends Record<string, unknown> {
   id?: string

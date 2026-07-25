@@ -1,14 +1,17 @@
 <template>
   <div class="bg-white rounded-lg shadow p-4">
-    <h3 class="text-lg font-semibold mb-2">Allure Moyenne par Km & Altitude</h3>
+    <h3 class="text-lg font-semibold mb-2">{{ t('graphs.avgPacePerKm') }}</h3>
     <canvas ref="canvas" height="240"></canvas>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { onMounted, ref, computed } from 'vue'
 import Chart from 'chart.js/auto'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback

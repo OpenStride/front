@@ -2,14 +2,19 @@
   <div class="toast-container">
     <div v-for="t in toasts" :key="t.id" :class="['toast', t.type]" @click="dismiss(t.id)">
       <span class="msg">{{ t.message }}</span>
-      <button class="close" aria-label="Fermer" @click.stop="dismiss(t.id)">×</button>
+      <button class="close" :aria-label="translate('app.close')" @click.stop="dismiss(t.id)">
+        ×
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ToastService } from '@/services/ToastService'
 import { computed } from 'vue'
+
+const { t: translate } = useI18n()
 const toasts = computed(() => ToastService.toasts)
 const dismiss = (id: number) => ToastService.remove(id)
 </script>

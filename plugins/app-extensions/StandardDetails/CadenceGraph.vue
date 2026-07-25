@@ -1,15 +1,10 @@
 <template>
-  <GraphCard title="Cadence" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
+  <GraphCard :title="t('graphs.cadence')" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
     <template #actions>
       <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
       <label v-if="granularity !== 'laps'" class="graph-check">
-        <input
-          type="checkbox"
-          v-model="useSlope"
-          @change="onUseSlopeChange"
-          class="accent-cyan"
-        />
-        Variation&nbsp;de&nbsp;pente
+        <input type="checkbox" v-model="useSlope" @change="onUseSlopeChange" class="accent-cyan" />
+        {{ t('graphs.slopeVariation') }}
       </label>
 
       <!-- Sélecteur de granularité -->
@@ -29,20 +24,27 @@
       :style="tooltip.style"
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
-      <div><strong>Distance :</strong> {{ tooltip.distance.toFixed(0) }} m</div>
-      <div><strong>Cadence :</strong> {{ tooltip.cadence }} pas/min</div>
+      <div>
+        <strong>{{ t('graphs.distance') }} :</strong> {{ tooltip.distance.toFixed(0) }} m
+      </div>
+      <div>
+        <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
+      </div>
       <div v-if="tooltip.slope !== null">
-        <strong>Pente :</strong> {{ tooltip.slope.toFixed(1) }} %
+        <strong>{{ t('graphs.slope') }} :</strong> {{ tooltip.slope.toFixed(1) }} %
       </div>
     </div>
   </GraphCard>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback

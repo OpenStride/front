@@ -141,7 +141,12 @@
       "bestTimes": "Best times"
     },
     "window": "Window",
-    "windows": { "all": "All", "12m": "12 months", "6m": "6 months", "3m": "3 months" },
+    "windows": {
+      "all": "All",
+      "12m": "12 months",
+      "6m": "6 months",
+      "3m": "3 months"
+    },
     "granularities": {
       "activity": "Per outing",
       "week": "Week",
@@ -544,5 +549,130 @@
       "10": "November",
       "11": "December"
     }
+  },
+  "graphs": {
+    "heartRate": "Heart rate",
+    "heartZones": "HR zones",
+    "cadence": "Cadence",
+    "pace": "Pace",
+    "elevationProfile": "Elevation profile",
+    "comingSoon": "Chart coming soon",
+    "avgPacePerKm": "Average pace per km & elevation",
+    "noHeartRate": "No heart rate data available",
+    "average": "Average",
+    "maxHr": "Max HR",
+    "slopeVariation": "Slope variation",
+    "zone": "Zone",
+    "distance": "Distance",
+    "speed": "Speed",
+    "slope": "Slope",
+    "colDistance": "Dist.",
+    "colPace": "Pace",
+    "colPaceValue": "min/km",
+    "colHeartRate": "HR",
+    "colSlope": "Slope"
+  },
+  "bests": {
+    "title": "Session bests",
+    "distance": "Distance",
+    "time": "Time",
+    "pace": "Pace",
+    "speed": "Speed",
+    "graph": "Chart",
+    "viewProgress": "See how this distance evolves"
+  },
+  "privacy": {
+    "title": "Privacy",
+    "isPublic": "This activity is public",
+    "isPrivate": "This activity is private",
+    "public": "Public",
+    "private": "Private"
+  },
+  "aggregatedProgress": {
+    "title": "Progress",
+    "recompute": "Rebuild aggregates"
+  },
+  "addFriend": {
+    "adding": "Adding your friend...",
+    "added": "{name} added!",
+    "redirecting": "Redirecting to your friends...",
+    "error": "Error",
+    "retry": "Try again",
+    "backToFriends": "Back to friends",
+    "invalidLink": "Invalid link",
+    "invalidLinkHelp": "This share link is not valid or has expired."
+  },
+  "callback": {
+    "connecting": "Connecting...",
+    "error": "Error"
+  },
+  "setup": {
+    "providerNotFound": "Provider not found."
+  },
+  "qrScanner": {
+    "title": "Scan a QR code",
+    "enableCamera": "Enable the camera",
+    "permissionHelp": "Please allow access in your browser settings",
+    "enterManually": "Enter the URL manually",
+    "frameHint": "Line the QR code up with the frame",
+    "friendUrl": "Your friend's public URL:",
+    "manualEntry": "Enter manually",
+    "cameraNeeded": "Camera access is required",
+    "cameraDenied": "Camera access denied"
+  },
+  "interactions": {
+    "comment": "Comment",
+    "addComment": "Add a comment...",
+    "mutualRequired": "Mutual friendship required to interact",
+    "publishRequired": "Publish your data to interact",
+    "none": "No interactions yet",
+    "sending": "Sending...",
+    "publish": "Post",
+    "shareProfile": "Share my profile",
+    "delete": "Delete"
+  },
+  "friendsList": {
+    "empty": "No friend added",
+    "emptyHelp": "Scan a friend's QR code to start following their activities",
+    "scanQr": "Scan a QR code",
+    "sync": "Sync",
+    "syncFull": "Sync the full history",
+    "syncedFull": "Full history synced",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}?",
+    "removeHelp": "Their activities will also be removed from your device."
+  },
+  "activityDetailPage": {
+    "friendActivity": "Activity by",
+    "notFound": "Activity not found."
+  },
+  "app": {
+    "refresh": "Refresh",
+    "close": "Close",
+    "logo": "Logo",
+    "forceUpdate": "Click to force an update",
+    "profileSections": "Profile sections",
+    "providerLogo": "Provider logo"
+  },
+  "notifications": {
+    "title": "Push notifications",
+    "unsupported": "Your browser does not support push notifications",
+    "notConfigured": "Firebase is not configured. See the plugin README.",
+    "enable": "Enable notifications",
+    "status": "Status:",
+    "token": "FCM token:"
+  },
+  "zipImport": {
+    "title": "Import an activity ZIP export",
+    "importing": "Importing...",
+    "done": "Import complete!"
+  },
+  "gdrive": {
+    "checking": "Checking the Google Drive connection...",
+    "verifying": "Checking..."
+  },
+  "legal": {
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Service"
   }
 }

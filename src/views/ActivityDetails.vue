@@ -1,12 +1,12 @@
 <template>
   <div class="activity-details">
-    <div v-if="loading">Chargement...</div>
+    <div v-if="loading">{{ t('common.loading') }}</div>
     <div v-else-if="activity">
       <!-- Friend activity banner -->
       <div v-if="isFriendActivity" class="friend-banner">
         <i class="fas fa-user-friends" aria-hidden="true"></i>
         <span
-          >Activité de <strong>{{ friendUsername }}</strong></span
+          >{{ t('activityDetailPage.friendActivity') }} <strong>{{ friendUsername }}</strong></span
         >
       </div>
 
@@ -40,16 +40,19 @@
       />
     </div>
     <div v-else>
-      <p>Activité introuvable.</p>
+      <p>{{ t('activityDetailPage.notFound') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed, onMounted } from 'vue'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
 import InteractionList from '@/components/InteractionList.vue'
+
+const { t } = useI18n()
 
 const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets')
 const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top')

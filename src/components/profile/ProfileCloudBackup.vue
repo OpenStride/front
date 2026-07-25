@@ -14,7 +14,7 @@
           class="flex items-center justify-between bg-white p-4 rounded-lg shadow hover:shadow-md transition"
         >
           <div class="flex items-center space-x-3">
-            <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
+            <img :src="plugin.icon" :alt="t('app.providerLogo')" class="w-6 h-6" />
             <span class="font-semibold">{{ plugin.label }}</span>
           </div>
           <router-link
@@ -41,7 +41,7 @@
           class="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
         >
           <div class="flex items-center space-x-3">
-            <img :src="plugin.icon" alt="logo" class="w-6 h-6" />
+            <img :src="plugin.icon" :alt="t('app.providerLogo')" class="w-6 h-6" />
             <span>{{ plugin.label }}</span>
           </div>
           <button

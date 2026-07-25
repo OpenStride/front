@@ -1,7 +1,7 @@
 <template>
-  <GraphCard title="Zones de FC" icon="fa-layer-group" accent="var(--color-orange-500)">
+  <GraphCard :title="t('graphs.heartZones')" icon="fa-layer-group" accent="var(--color-orange-500)">
     <template #actions>
-      <label for="maxHrInput">FCMax</label>
+      <label for="maxHrInput">{{ t('graphs.maxHr') }}</label>
       <input
         id="maxHrInput"
         type="number"
@@ -15,7 +15,7 @@
       <div v-for="(zone, index) in zones" :key="index" class="flex items-center gap-2 mb-2">
         <div class="flex-1">
           <div class="text-sm font-medium">
-            Zone {{ zone.zone }} ({{ zone.label }})
+            {{ t('graphs.zone') }} {{ zone.zone }} ({{ zone.label }})
             <span class="text-gray-500 text-xs ml-2">
               [{{ zone.fcMin }}–{{ zone.fcMax }} bpm]
             </span>
@@ -33,15 +33,18 @@
         </div>
       </div>
     </div>
-    <p v-else class="graph-empty">Aucune donnée de fréquence cardiaque disponible.</p>
+    <p v-else class="graph-empty">{{ t('graphs.noHeartRate') }}</p>
   </GraphCard>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback

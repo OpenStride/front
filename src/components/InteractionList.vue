@@ -8,7 +8,7 @@
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
       <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-      <span>Chargement...</span>
+      <span>{{ t('common.loading') }}</span>
     </div>
 
     <!-- Error state -->
@@ -55,7 +55,7 @@
               v-if="comment.authorId === myUserId"
               @click="deleteComment(comment.id)"
               class="delete-btn"
-              title="Supprimer"
+              :title="t('interactions.delete')"
               :disabled="deleting === comment.id"
             >
               <i class="fas fa-trash-alt" aria-hidden="true"></i>
@@ -72,7 +72,7 @@
       class="empty-state"
     >
       <i class="far fa-comment-dots" aria-hidden="true"></i>
-      <p>Aucune interaction pour le moment</p>
+      <p>{{ t('interactions.none') }}</p>
     </div>
 
     <!-- Interaction bar at bottom -->
@@ -87,10 +87,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import InteractionBar from './InteractionBar.vue'
 import type { Interaction, InteractionServiceEvent } from '@/types/interaction'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   activityId: string

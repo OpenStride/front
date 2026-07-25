@@ -1,5 +1,5 @@
 <template>
-  <GraphCard title="Allure" icon="fa-gauge-high" accent="var(--color-green-500)">
+  <GraphCard :title="t('graphs.pace')" icon="fa-gauge-high" accent="var(--color-green-500)">
     <template #actions>
       <!-- Masque la case si on est en mode “laps” -->
       <label v-if="slopeGranularity !== 'laps'" class="graph-check">
@@ -8,7 +8,7 @@
           v-model="useSlope"
           @change="onUseSlopeChange"
           class="accent-green"
-        />Variation de pente
+        />{{ t('graphs.slopeVariation') }}
       </label>
       <select v-model="slopeGranularity" @change="onGranularityChange" class="graph-select">
         <option v-for="option in granularities" :key="option.value" :value="option.value">
@@ -22,8 +22,12 @@
       :style="tooltip.style"
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
-      <div><strong>Distance :</strong> {{ tooltip.distance.toFixed(2) }} m</div>
-      <div><strong>Vitesse :</strong> {{ tooltip.pace }} min/km</div>
+      <div>
+        <strong>{{ t('graphs.distance') }} :</strong> {{ tooltip.distance.toFixed(2) }} m
+      </div>
+      <div>
+        <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} min/km
+      </div>
       <div>
         <strong>{{ tooltip.slopeLabel }}</strong
         >({{ tooltip.slope.toFixed(1) }}%)
@@ -33,11 +37,11 @@
     <!-- ===== Tableau récapitulatif ===== -->
     <div class="mt-6">
       <div class="flex text-xs sm:text-sm font-semibold border-b pb-1 mb-1">
-        <span class="w-16">Dist.</span>
-        <span class="flex-1">Allure</span>
-        <span class="w-10 text-right">Pace</span>
-        <span class="w-12 text-right">FC</span>
-        <span class="w-20 text-right">Pente</span>
+        <span class="w-16">{{ t('graphs.colDistance') }}</span>
+        <span class="flex-1">{{ t('graphs.colPace') }}</span>
+        <span class="w-10 text-right">{{ t('graphs.colPaceValue') }}</span>
+        <span class="w-12 text-right">{{ t('graphs.colHeartRate') }}</span>
+        <span class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
       </div>
 
       <div v-for="(s, i) in samples" :key="i" class="flex items-center py-1 text-xs sm:text-sm">
@@ -68,10 +72,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback

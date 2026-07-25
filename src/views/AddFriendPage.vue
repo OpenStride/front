@@ -3,29 +3,29 @@
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <i class="fas fa-spinner fa-spin loading-icon" aria-hidden="true"></i>
-      <p class="loading-text">Ajout de votre ami...</p>
+      <p class="loading-text">{{ t('addFriend.adding') }}</p>
     </div>
 
     <!-- Success State -->
     <div v-else-if="success" class="success-container">
       <i class="fas fa-check-circle success-icon" aria-hidden="true"></i>
-      <h2>{{ friendName }} ajouté !</h2>
-      <p class="redirect-text">Redirection vers vos amis...</p>
+      <h2>{{ t('addFriend.added', { name: friendName }) }}</h2>
+      <p class="redirect-text">{{ t('addFriend.redirecting') }}</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="error-container">
       <i class="fas fa-exclamation-circle error-icon" aria-hidden="true"></i>
-      <h2>Erreur</h2>
+      <h2>{{ t('addFriend.error') }}</h2>
       <p class="error-message">{{ errorMessage }}</p>
       <div class="error-actions">
         <button @click="retry" class="retry-btn">
           <i class="fas fa-redo" aria-hidden="true"></i>
-          Réessayer
+          {{ t('addFriend.retry') }}
         </button>
         <button @click="goToFriends" class="back-btn">
           <i class="fas fa-arrow-left" aria-hidden="true"></i>
-          Retour
+          {{ t('common.back') }}
         </button>
       </div>
     </div>
@@ -33,23 +33,26 @@
     <!-- Invalid Link State -->
     <div v-else-if="invalidLink" class="invalid-container">
       <i class="fas fa-link-slash error-icon" aria-hidden="true"></i>
-      <h2>Lien invalide</h2>
-      <p class="invalid-text">Ce lien de partage n'est pas valide ou a expiré.</p>
+      <h2>{{ t('addFriend.invalidLink') }}</h2>
+      <p class="invalid-text">{{ t('addFriend.invalidLinkHelp') }}</p>
       <button @click="goToFriends" class="back-btn">
         <i class="fas fa-users" aria-hidden="true"></i>
-        Retour aux amis
+        {{ t('addFriend.backToFriends') }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
 import { ShareUrlService } from '@/services/ShareUrlService'
 import type { FriendServiceEvent } from '@/types/friend'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const router = useRouter()

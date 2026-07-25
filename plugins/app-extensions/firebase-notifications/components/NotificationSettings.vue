@@ -2,26 +2,26 @@
   <div class="notification-settings">
     <div class="setting-header">
       <i class="fas fa-bell" aria-hidden="true"></i>
-      <h3>Notifications Push</h3>
+      <h3>{{ t('notifications.title') }}</h3>
     </div>
 
     <!-- Not supported warning -->
     <div v-if="!browserSupportsNotifications" class="warning-message">
       <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-      <span>Votre navigateur ne supporte pas les notifications push</span>
+      <span>{{ t('notifications.unsupported') }}</span>
     </div>
 
     <!-- Firebase not configured warning -->
     <div v-else-if="!isFirebaseConfigured" class="warning-message">
       <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-      <span>Firebase n'est pas configuré. Consultez le README du plugin.</span>
+      <span>{{ t('notifications.notConfigured') }}</span>
     </div>
 
     <!-- Main controls -->
     <div v-else class="setting-controls">
       <div class="setting-row">
         <div class="setting-info">
-          <label>Activer les notifications</label>
+          <label>{{ t('notifications.enable') }}</label>
           <p class="setting-description">
             Recevoir une notification quand de nouvelles activités sont importées
           </p>
@@ -40,13 +40,13 @@
       <!-- Permission status -->
       <div v-if="state.enabled" class="status-info">
         <div class="status-row">
-          <span class="status-label">Statut:</span>
+          <span class="status-label">{{ t('notifications.status') }}</span>
           <span :class="['status-badge', permissionClass]">
             {{ permissionText }}
           </span>
         </div>
         <div v-if="state.token" class="status-row token-info">
-          <span class="status-label">Token FCM:</span>
+          <span class="status-label">{{ t('notifications.token') }}</span>
           <code class="token-display">{{ truncatedToken }}</code>
         </div>
       </div>
@@ -67,9 +67,12 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, computed } from 'vue'
 import { NotificationService, type NotificationState } from '../services/NotificationService'
 import { isFirebaseConfigured } from '../lib/firebase'
+
+const { t } = useI18n()
 
 const notificationService = NotificationService.getInstance()
 const browserSupportsNotifications = 'Notification' in window

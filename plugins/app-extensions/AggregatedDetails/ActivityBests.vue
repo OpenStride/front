@@ -2,18 +2,18 @@
   <div v-if="bestRows.length > 0" class="bg-white rounded-lg shadow p-4">
     <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
       <i class="fas fa-chart-line text-green-500" aria-hidden="true"></i>
-      Bests de la séance
+      {{ t('bests.title') }}
     </h3>
 
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead>
           <tr class="text-gray-600 text-xs uppercase tracking-wide">
-            <th class="pb-2 text-left">Distance</th>
-            <th class="pb-2 text-right">Temps</th>
-            <th class="pb-2 text-right">Allure</th>
-            <th class="pb-2 text-right hidden md:table-cell">Vitesse</th>
-            <th class="pb-2 text-center">Graph</th>
+            <th class="pb-2 text-left">{{ t('bests.distance') }}</th>
+            <th class="pb-2 text-right">{{ t('bests.time') }}</th>
+            <th class="pb-2 text-right">{{ t('bests.pace') }}</th>
+            <th class="pb-2 text-right hidden md:table-cell">{{ t('bests.speed') }}</th>
+            <th class="pb-2 text-center">{{ t('bests.graph') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@
                 class="text-green-600 hover:text-green-800 inline-flex items-center gap-1"
               >
                 <i class="fas fa-chart-area" aria-hidden="true"></i>
-                <span class="sr-only">Voir l'évolution sur cette distance</span>
+                <span class="sr-only">{{ t('bests.viewProgress') }}</span>
               </RouterLink>
             </td>
           </tr>
@@ -63,10 +63,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
+
+const { t } = useI18n()
 
 /* ===== Props et constructeur ================================= */
 const props = defineProps<{

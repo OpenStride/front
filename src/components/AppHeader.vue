@@ -8,7 +8,7 @@
       role="button"
       tabindex="0"
     >
-      <img src="@/assets/logo.svg" alt="Logo" />
+      <img src="@/assets/logo.svg" :alt="t('app.logo')" />
       <h1 class="brand-name">
         <span class="normal">open</span><span class="secondary">Stride</span>
       </h1>
@@ -20,8 +20,8 @@
         class="refresh-icon-btn"
         @click="onRefresh"
         :disabled="refreshing"
-        aria-label="Refresh"
-        title="Refresh"
+        :aria-label="t('app.refresh')"
+        :title="t('app.refresh')"
       >
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
           <svg
@@ -52,7 +52,7 @@
       </div>
     </div>
     <nav :class="['nav-menu', { active: isMenuOpen }]">
-      <button class="close-menu" @click="closeMenu" aria-label="Fermer">
+      <button class="close-menu" @click="closeMenu" :aria-label="t('app.close')">
         <i class="fas fa-times" aria-hidden="true"></i>
       </button>
       <router-link to="/my-activities" @click="closeMenu">{{

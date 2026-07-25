@@ -1,20 +1,25 @@
 <template>
-  <GraphCard title="Fréquence cardiaque" icon="fa-heart-pulse" accent="var(--color-red-500)">
+  <GraphCard :title="t('graphs.heartRate')" icon="fa-heart-pulse" accent="var(--color-red-500)">
     <template v-if="hasData" #actions>
-      <span>Moyenne <strong>{{ Math.round(meanBPM) }}</strong> bpm</span>
+      <span
+        >{{ t('graphs.average') }} <strong>{{ Math.round(meanBPM) }}</strong> bpm</span
+      >
     </template>
     <div v-if="hasData">
       <canvas ref="canvas" height="180"></canvas>
     </div>
-    <p v-else class="graph-empty">Aucune donnée de fréquence cardiaque disponible.</p>
+    <p v-else class="graph-empty">{{ t('graphs.noHeartRate') }}</p>
   </GraphCard>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
 import Chart from 'chart.js/auto'
 import { Activity, ActivityDetails } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback

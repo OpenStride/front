@@ -1,8 +1,7 @@
 <template>
   <div
     v-if="
-      sharingPluginActive &&
-      (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
+      sharingPluginActive && (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
   >
@@ -34,10 +33,10 @@
         @click="showCommentInput = !showCommentInput"
         class="action-btn comment-btn"
         :disabled="!canInteract"
-        title="Commenter"
+        :title="t('interactions.comment')"
       >
         <i class="far fa-comment" aria-hidden="true"></i>
-        <span class="btn-label">Commenter</span>
+        <span class="btn-label">{{ t('interactions.comment') }}</span>
       </button>
     </div>
 
@@ -52,7 +51,7 @@
       <textarea
         v-model="commentText"
         class="comment-textarea"
-        placeholder="Ajouter un commentaire..."
+        :placeholder="t('interactions.addComment')"
         maxlength="280"
         rows="2"
         @keydown.enter.ctrl="submitComment"
@@ -66,7 +65,7 @@
           class="submit-btn"
           :disabled="!commentText.trim() || submitting"
         >
-          {{ submitting ? 'Envoi...' : 'Publier' }}
+          {{ submitting ? t('interactions.sending') : t('interactions.publish') }}
         </button>
       </div>
     </div>
@@ -75,25 +74,28 @@
     <div v-else-if="needsMutualFriendship && showWarning" class="mutual-required-message">
       <i class="fas fa-user-friends" aria-hidden="true"></i>
       <div class="message-content">
-        <span>Amitié mutuelle requise pour interagir</span>
+        <span>{{ t('interactions.mutualRequired') }}</span>
         <button @click="copyShareUrl" class="share-btn">
           <i class="fas fa-share-alt" aria-hidden="true"></i>
-          Partager mon profil
+          {{ t('interactions.shareProfile') }}
         </button>
       </div>
     </div>
     <!-- Not published warning (only for friend activities) -->
     <div v-else-if="!canInteract && showWarning" class="warning-message">
       <i class="fas fa-info-circle" aria-hidden="true"></i>
-      <span>Publiez vos données pour interagir</span>
+      <span>{{ t('interactions.publishRequired') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import type { InteractionSummary, InteractionServiceEvent } from '@/types/interaction'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   activityId: string

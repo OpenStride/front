@@ -141,7 +141,12 @@
       "bestTimes": "Meilleurs temps"
     },
     "window": "Fenêtre",
-    "windows": { "all": "Tout", "12m": "12 mois", "6m": "6 mois", "3m": "3 mois" },
+    "windows": {
+      "all": "Tout",
+      "12m": "12 mois",
+      "6m": "6 mois",
+      "3m": "3 mois"
+    },
     "granularities": {
       "activity": "Par sortie",
       "week": "Semaine",
@@ -544,5 +549,130 @@
       "10": "Novembre",
       "11": "Décembre"
     }
+  },
+  "graphs": {
+    "heartRate": "Fréquence cardiaque",
+    "heartZones": "Zones de FC",
+    "cadence": "Cadence",
+    "pace": "Allure",
+    "elevationProfile": "Profil d'altitude",
+    "comingSoon": "Graphique à venir",
+    "avgPacePerKm": "Allure moyenne par km & altitude",
+    "noHeartRate": "Aucune donnée de fréquence cardiaque disponible",
+    "average": "Moyenne",
+    "maxHr": "FC max",
+    "slopeVariation": "Variation de pente",
+    "zone": "Zone",
+    "distance": "Distance",
+    "speed": "Vitesse",
+    "slope": "Pente",
+    "colDistance": "Dist.",
+    "colPace": "Allure",
+    "colPaceValue": "min/km",
+    "colHeartRate": "FC",
+    "colSlope": "Pente"
+  },
+  "bests": {
+    "title": "Bests de la séance",
+    "distance": "Distance",
+    "time": "Temps",
+    "pace": "Allure",
+    "speed": "Vitesse",
+    "graph": "Graph",
+    "viewProgress": "Voir l'évolution sur cette distance"
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "isPublic": "Cette activité est publique",
+    "isPrivate": "Cette activité est privée",
+    "public": "Public",
+    "private": "Privé"
+  },
+  "aggregatedProgress": {
+    "title": "Progression",
+    "recompute": "Recalculer les agrégats"
+  },
+  "addFriend": {
+    "adding": "Ajout de votre ami...",
+    "added": "{name} ajouté !",
+    "redirecting": "Redirection vers vos amis...",
+    "error": "Erreur",
+    "retry": "Réessayer",
+    "backToFriends": "Retour aux amis",
+    "invalidLink": "Lien invalide",
+    "invalidLinkHelp": "Ce lien de partage n'est pas valide ou a expiré."
+  },
+  "callback": {
+    "connecting": "Connexion en cours...",
+    "error": "Erreur"
+  },
+  "setup": {
+    "providerNotFound": "Fournisseur introuvable."
+  },
+  "qrScanner": {
+    "title": "Scanner un QR Code",
+    "enableCamera": "Activer la caméra",
+    "permissionHelp": "Veuillez autoriser l'accès dans les paramètres de votre navigateur",
+    "enterManually": "Saisir l'URL manuellement",
+    "frameHint": "Positionnez le QR code dans le cadre",
+    "friendUrl": "URL publique de votre ami :",
+    "manualEntry": "Saisir manuellement",
+    "cameraNeeded": "L'accès à la caméra est nécessaire",
+    "cameraDenied": "Accès caméra refusé"
+  },
+  "interactions": {
+    "comment": "Commenter",
+    "addComment": "Ajouter un commentaire...",
+    "mutualRequired": "Amitié mutuelle requise pour interagir",
+    "publishRequired": "Publiez vos données pour interagir",
+    "none": "Aucune interaction pour le moment",
+    "sending": "Envoi...",
+    "publish": "Publier",
+    "shareProfile": "Partager mon profil",
+    "delete": "Supprimer"
+  },
+  "friendsList": {
+    "empty": "Aucun ami ajouté",
+    "emptyHelp": "Scannez le QR code d'un ami pour commencer à suivre ses activités",
+    "scanQr": "Scanner un QR Code",
+    "sync": "Synchroniser",
+    "syncFull": "Synchroniser l'historique complet",
+    "syncedFull": "Historique complet synchronisé",
+    "remove": "Supprimer",
+    "removeTitle": "Supprimer {name} ?",
+    "removeHelp": "Ses activités seront également supprimées de votre appareil."
+  },
+  "activityDetailPage": {
+    "friendActivity": "Activité de",
+    "notFound": "Activité introuvable."
+  },
+  "app": {
+    "refresh": "Actualiser",
+    "close": "Fermer",
+    "logo": "Logo",
+    "forceUpdate": "Cliquer pour forcer la mise à jour",
+    "profileSections": "Sections du profil",
+    "providerLogo": "Logo du fournisseur"
+  },
+  "notifications": {
+    "title": "Notifications push",
+    "unsupported": "Votre navigateur ne supporte pas les notifications push",
+    "notConfigured": "Firebase n'est pas configuré. Consultez le README du plugin.",
+    "enable": "Activer les notifications",
+    "status": "Statut :",
+    "token": "Token FCM :"
+  },
+  "zipImport": {
+    "title": "Importer un export ZIP d'activités",
+    "importing": "Import en cours...",
+    "done": "Import terminé !"
+  },
+  "gdrive": {
+    "checking": "Vérification de la connexion à Google Drive...",
+    "verifying": "Vérification en cours..."
+  },
+  "legal": {
+    "privacyPolicy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation"
   }
 }

@@ -44,7 +44,8 @@
           <div class="acard__metric acard__metric--accent">
             <span class="acard__label">{{ primaryMetric.label }}</span>
             <span class="acard__value">
-              {{ primaryMetric.value }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
+              {{ primaryMetric.value
+              }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
             </span>
           </div>
         </div>
@@ -104,14 +105,20 @@ const formatDuration = (sec?: number) => {
 const distanceValue = computed(() => ((props.activity.distance ?? 0) / 1000).toFixed(2))
 
 // Pace (min/km) for foot sports, speed (km/h) for cycling
-const isCycling = computed(() => /cycl|bike|bik|velo|vélo|vtt|ride/i.test(props.activity.type || ''))
+const isCycling = computed(() =>
+  /cycl|bike|bik|velo|vélo|vtt|ride/i.test(props.activity.type || '')
+)
 
 const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
   const dist = props.activity.distance ?? 0
   const dur = props.activity.duration ?? 0
   if (isCycling.value) {
     const kmh = dur > 0 ? dist / 1000 / (dur / 3600) : 0
-    return { label: t('activityCard.speed', 'Speed'), value: kmh > 0 ? kmh.toFixed(1) : '—', unit: 'km/h' }
+    return {
+      label: t('activityCard.speed', 'Speed'),
+      value: kmh > 0 ? kmh.toFixed(1) : '—',
+      unit: 'km/h'
+    }
   }
   if (!dist || !dur) return { label: t('activityCard.pace', 'Pace'), value: '—', unit: '' }
   const secPerKm = dur / (dist / 1000)
@@ -215,7 +222,9 @@ const showDetails = () => {
   box-shadow: var(--shadow-card);
   margin-bottom: 1.25rem;
   width: 100%;
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 .acard:hover {
   box-shadow: 0 14px 34px -18px rgba(30, 30, 46, 0.28);
@@ -243,11 +252,8 @@ const showDetails = () => {
 }
 .acard__map--empty {
   background: var(--surface-muted);
-  background-image: repeating-linear-gradient(
-      0deg,
-      rgba(30, 30, 46, 0.05) 0 1px,
-      transparent 1px 38px
-    ),
+  background-image:
+    repeating-linear-gradient(0deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px),
     repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px);
 }
 .acard__datechip {

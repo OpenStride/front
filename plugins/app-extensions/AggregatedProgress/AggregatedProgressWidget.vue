@@ -1,7 +1,7 @@
 <template>
   <div class="aggregated-progress-widget">
     <div class="header-row">
-      <h3 class="title">Progression</h3>
+      <h3 class="title">{{ t('aggregatedProgress.title') }}</h3>
       <div class="select-row">
         <select :value="selectedPeriod" @change="onPeriodChange">
           <option v-for="period in availablePeriods" :key="period" :value="period">
@@ -17,7 +17,7 @@
           class="refresh-btn"
           @click="onRefresh"
           :disabled="refreshing"
-          title="Recalculer les agrégats"
+          :title="t('aggregatedProgress.recompute')"
         >
           <i v-if="!refreshing" class="fas fa-sync-alt" aria-hidden="true"></i>
           <span v-else>…</span>
@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, watch } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 
@@ -125,6 +126,8 @@ function onMetricChanged(e: Event) {
 const availableMetrics = ref<AggregationMetricDefinition[]>([])
 import AggregatedProgressChart from './AggregatedProgressChart.vue'
 import type { AggregationMetricDefinition } from '@/types/aggregation'
+
+const { t } = useI18n()
 
 const metrics = ref<Array<{ def: AggregationMetricDefinition; value: number }>>([])
 const metricsCache = ref<

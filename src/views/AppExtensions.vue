@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-3xl mx-auto py-10 px-4">
     <section>
-      <h1 class="text-2xl font-bold mb-2">App Extensions</h1>
-      <p class="text-gray-600 mb-6">Manage widgets and features displayed throughout the app</p>
+      <h1 class="text-2xl font-bold mb-2">{{ t('appExtensions.title') }}</h1>
+      <p class="text-gray-600 mb-6">{{ t('appExtensions.description') }}</p>
 
       <ul v-if="!loading" class="space-y-4">
         <li
@@ -50,17 +50,20 @@
 
       <div v-else class="text-center text-gray-500 py-8">
         <i class="fas fa-spinner fa-spin text-2xl mb-2" aria-hidden="true"></i>
-        <p>Loading extensions...</p>
+        <p>{{ t('common.loading') }}</p>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted } from 'vue'
 import { allAppPlugins } from '@/services/ExtensionPluginRegistry'
 import type { ExtensionPlugin } from '@/types/extension'
 import { AppExtensionPluginManager } from '@/services/AppExtensionPluginManager'
+
+const { t } = useI18n()
 
 const manager = AppExtensionPluginManager.getInstance()
 const allPlugins = ref<ExtensionPlugin[]>(allAppPlugins)

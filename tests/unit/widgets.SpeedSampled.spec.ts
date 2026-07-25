@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import en from '@/locales/en.json'
 import SpeedSampled from '@plugins/app-extensions/StandardDetails/SpeedSampled.vue'
 
 // Mock PluginContext with analyzer and storage
@@ -44,7 +45,7 @@ describe('SpeedSampled widget', () => {
     })
     // attendre onMounted
     await Promise.resolve()
-    expect(wrapper.text()).toMatch(/Allure/i)
+    expect(wrapper.text()).toContain(en.graphs.colPace)
     // Vérifie colonnes header (Dist., Pace, FC, Pente)
     expect(wrapper.text()).toMatch(/Dist\./)
     expect(wrapper.text()).toMatch(/Pace/i)

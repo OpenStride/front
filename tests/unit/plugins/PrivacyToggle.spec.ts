@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PrivacyToggle from '@plugins/app-extensions/ActivityPrivacy/PrivacyToggle.vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
+import en from '@/locales/en.json'
 
 describe('PrivacyToggle.vue', () => {
   const mockActivity: Activity = {
@@ -80,7 +81,7 @@ describe('PrivacyToggle.vue', () => {
 
     // Should show privacy card
     expect(wrapper.find('.privacy-card').exists()).toBe(true)
-    expect(wrapper.find('.privacy-title').text()).toBe('Confidentialité')
+    expect(wrapper.find('.privacy-title').text()).toBe(en.privacy.title)
   })
 
   it('handles undefined activity gracefully', () => {
@@ -171,7 +172,7 @@ describe('PrivacyToggle.vue', () => {
     expect(wrapper.find('.fa-lock').exists()).toBe(false)
 
     // Should display public text
-    expect(wrapper.text()).toContain('Cette activité est publique')
+    expect(wrapper.text()).toContain(en.privacy.isPublic)
   })
 
   it('displays private state correctly', async () => {
@@ -195,7 +196,7 @@ describe('PrivacyToggle.vue', () => {
     expect(wrapper.find('.fa-globe').exists()).toBe(false)
 
     // Should display private text
-    expect(wrapper.text()).toContain('Cette activité est privée')
+    expect(wrapper.text()).toContain(en.privacy.isPrivate)
   })
 
   it('toggles privacy when button clicked', async () => {

@@ -42,7 +42,6 @@ export function getRecordPeriodRange(
 
 export { toMs } from '@/utils/timeRange'
 
-
 export type HeatmapMetric = 'distance' | 'duration' | 'count'
 
 export interface PeriodData {

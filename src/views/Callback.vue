@@ -1,15 +1,18 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="p-4 text-gray-700">
-    <p v-if="error">Erreur : {{ error }}</p>
-    <p v-else>Connexion en cours...</p>
+    <p v-if="error">{{ t('callback.error') }} : {{ error }}</p>
+    <p v-else>{{ t('callback.connecting') }}</p>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IndexedDBService } from '@/services/IndexedDBService'
+
+const { t } = useI18n()
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string
 const REDIRECT_PATH = '/callback'

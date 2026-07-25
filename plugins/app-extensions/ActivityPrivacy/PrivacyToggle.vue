@@ -7,9 +7,9 @@
           <i v-else class="fas fa-lock" aria-hidden="true"></i>
         </div>
         <div class="privacy-info">
-          <h4 class="privacy-title">Confidentialité</h4>
+          <h4 class="privacy-title">{{ t('privacy.title') }}</h4>
           <p class="privacy-description">
-            {{ isPublic ? 'Cette activité est publique' : 'Cette activité est privée' }}
+            {{ isPublic ? t('privacy.isPublic') : t('privacy.isPrivate') }}
           </p>
         </div>
       </div>
@@ -22,17 +22,20 @@
         >
           <span class="toggle-slider"></span>
         </button>
-        <span class="toggle-label">{{ isPublic ? 'Public' : 'Privé' }}</span>
+        <span class="toggle-label">{{ isPublic ? t('privacy.public') : t('privacy.private') }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import type { FriendServiceEvent } from '@/types/friend'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }

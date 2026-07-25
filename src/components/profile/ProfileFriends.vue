@@ -14,20 +14,20 @@
     </div>
 
     <div v-if="loading" class="loading">
-      <p>Chargement...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
 
     <div v-else-if="friends.length === 0" class="empty-state">
       <div class="empty-icon">
         <i class="fas fa-user-friends" aria-hidden="true"></i>
       </div>
-      <p class="empty-title">Aucun ami ajouté</p>
+      <p class="empty-title">{{ t('friendsList.empty') }}</p>
       <p class="empty-description">
-        Scannez le QR code d'un ami pour commencer à suivre ses activités
+        {{ t('friendsList.emptyHelp') }}
       </p>
       <button @click="openScanner" class="empty-action-btn">
         <i class="fas fa-qrcode" aria-hidden="true"></i>
-        Scanner un QR Code
+        {{ t('friendsList.scanQr') }}
       </button>
     </div>
 
@@ -61,7 +61,7 @@
             @click="refreshFriend(friend.id)"
             :disabled="refreshingFriend === friend.id"
             class="action-btn refresh"
-            title="Synchroniser"
+            :title="t('friendsList.sync')"
           >
             <i
               :class="['fas fa-sync icon-sm', { spinning: refreshingFriend === friend.id }]"
@@ -75,7 +75,7 @@
             @click="syncAllActivities(friend.id)"
             :disabled="syncingFriendId === friend.id"
             class="action-btn sync-all"
-            title="Synchroniser l'historique complet"
+            :title="t('friendsList.syncFull')"
           >
             <i
               v-if="syncingFriendId === friend.id"
@@ -89,12 +89,16 @@
           <span
             v-if="friend.fullySynced"
             class="fully-synced-badge"
-            title="Historique complet synchronisé"
+            :title="t('friendsList.syncedFull')"
           >
             <i class="fas fa-check-circle" aria-hidden="true"></i>
           </span>
 
-          <button @click="confirmRemove(friend)" class="action-btn remove" title="Supprimer">
+          <button
+            @click="confirmRemove(friend)"
+            class="action-btn remove"
+            :title="t('friendsList.remove')"
+          >
             <i class="fas fa-trash-alt" aria-hidden="true"></i>
           </button>
         </div>
@@ -107,11 +111,13 @@
     <!-- Remove Confirmation Modal -->
     <div v-if="friendToRemove" class="modal-overlay" @click.self="friendToRemove = null">
       <div class="modal-content">
-        <h3>Supprimer {{ friendToRemove.username }} ?</h3>
-        <p>Ses activités seront également supprimées de votre appareil.</p>
+        <h3>{{ t('friendsList.removeTitle', { name: friendToRemove.username }) }}</h3>
+        <p>{{ t('friendsList.removeHelp') }}</p>
         <div class="modal-actions">
-          <button @click="friendToRemove = null" class="cancel-btn">Annuler</button>
-          <button @click="removeFriend" class="confirm-btn">Supprimer</button>
+          <button @click="friendToRemove = null" class="cancel-btn">
+            {{ t('common.cancel') }}
+          </button>
+          <button @click="removeFriend" class="confirm-btn">{{ t('common.delete') }}</button>
         </div>
       </div>
     </div>
@@ -119,11 +125,14 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
 import QRScanner from '@/components/QRScanner.vue'
 import type { Friend, FriendServiceEvent } from '@/types/friend'
+
+const { t } = useI18n()
 
 const friendService = FriendService.getInstance()
 

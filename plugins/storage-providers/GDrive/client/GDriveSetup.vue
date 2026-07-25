@@ -6,7 +6,7 @@
     </div>
     <div v-if="isConnected == 0" class="mt-6 text-center space-y-4">
       <!-- loading -->
-      <p class="text-sm text-gray-600">Vérification de la connexion à Google Drive...</p>
+      <p class="text-sm text-gray-600">{{ t('gdrive.checking') }}</p>
     </div>
     <div v-else-if="isConnected == 1" class="mt-6 space-y-4">
       <div v-if="backupFilePresent == 1" class="text-sm text-gray-600">
@@ -16,7 +16,7 @@
         </p>
       </div>
       <div v-if="backupFilePresent == 0" class="text-sm text-gray-600">
-        <p>verification en cours...</p>
+        <p>{{ t('gdrive.verifying') }}</p>
       </div>
       <div v-else-if="backupFilePresent == -1" class="text-sm text-gray-600">
         <button
@@ -82,7 +82,9 @@
             class="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition"
           >
             <i class="fas fa-rotate" :class="{ 'animate-spin': isForcing }" aria-hidden="true"></i>
-            <span>{{ isForcing ? 'Resynchronisation…' : 'Forcer une resynchronisation complète' }}</span>
+            <span>{{
+              isForcing ? 'Resynchronisation…' : 'Forcer une resynchronisation complète'
+            }}</span>
           </button>
           <p class="text-xs text-gray-400 mt-1">
             Ignore l'optimisation et relit l'intégralité des données distantes.
@@ -102,11 +104,14 @@
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n'
 import { onMounted, ref } from 'vue'
 
 import { GoogleDriveAuthService } from './GoogleDriveAuthService'
 import { GoogleDriveFileService } from './GoogleDriveFileService'
 import { usePluginContext } from '@/composables/usePluginContext'
+
+const { t } = useI18n()
 
 const isRefreshing = ref(false)
 const isRefreshed = ref(false)

@@ -2,7 +2,7 @@
   <div class="qr-scanner-modal" v-if="isOpen" @click.self="close">
     <div class="scanner-container">
       <div class="scanner-header">
-        <h3>Scanner un QR Code</h3>
+        <h3>{{ t('qrScanner.title') }}</h3>
         <button @click="close" class="close-btn">
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
@@ -12,27 +12,31 @@
         <div v-if="!hasPermission && !permissionDenied" class="permission-request">
           <p>
             <i class="fas fa-camera permission-icon" aria-hidden="true"></i>
-            L'accès à la caméra est nécessaire
+            {{ t('qrScanner.cameraNeeded') }}
           </p>
-          <button @click="startScanning" class="start-btn">Activer la caméra</button>
+          <button @click="startScanning" class="start-btn">
+            {{ t('qrScanner.enableCamera') }}
+          </button>
         </div>
 
         <div v-if="permissionDenied" class="permission-denied">
           <p>
             <i class="fas fa-times-circle permission-icon error" aria-hidden="true"></i>
-            Accès caméra refusé
+            {{ t('qrScanner.cameraDenied') }}
           </p>
-          <p class="text-sm">Veuillez autoriser l'accès dans les paramètres de votre navigateur</p>
-          <button @click="switchToManual" class="manual-btn">Saisir l'URL manuellement</button>
+          <p class="text-sm">{{ t('qrScanner.permissionHelp') }}</p>
+          <button @click="switchToManual" class="manual-btn">
+            {{ t('qrScanner.enterManually') }}
+          </button>
         </div>
 
         <div v-if="scanning" class="scanner-viewport">
           <div id="qr-reader"></div>
-          <p class="scanner-hint">Positionnez le QR code dans le cadre</p>
+          <p class="scanner-hint">{{ t('qrScanner.frameHint') }}</p>
         </div>
 
         <div v-if="showManualInput" class="manual-input">
-          <label for="friend-public-url">URL publique de votre ami:</label>
+          <label for="friend-public-url">{{ t('qrScanner.friendUrl') }}</label>
           <input
             id="friend-public-url"
             v-model="manualUrl"
@@ -40,11 +44,15 @@
             placeholder="https://drive.google.com/..."
             class="url-input"
           />
-          <button @click="addManually" class="add-btn" :disabled="!manualUrl">Ajouter</button>
+          <button @click="addManually" class="add-btn" :disabled="!manualUrl">
+            {{ t('common.add') }}
+          </button>
         </div>
 
         <div v-if="scanning" class="scanner-actions">
-          <button @click="switchToManual" class="secondary-btn">Saisir manuellement</button>
+          <button @click="switchToManual" class="secondary-btn">
+            {{ t('qrScanner.manualEntry') }}
+          </button>
         </div>
       </div>
     </div>
@@ -52,11 +60,14 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
 import type { FriendServiceEvent } from '@/types/friend'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   isOpen: boolean

@@ -1,7 +1,7 @@
 <template>
   <div class="profile-container">
     <!-- Tabs Navigation -->
-    <nav class="profile-tabs" role="tablist" aria-label="Profile sections">
+    <nav class="profile-tabs" role="tablist" :aria-label="t('app.profileSections')">
       <button
         v-for="tab in allTabs"
         :key="tab.id"
