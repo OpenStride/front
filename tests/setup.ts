@@ -1,4 +1,11 @@
 import { vi } from 'vitest'
+import { config } from '@vue/test-utils'
+import i18n from '@/locales'
+
+// Install the real i18n globally for every mounted component, so components that
+// call useI18n() work without each test wiring it up. Tests that pass their own
+// i18n via mount({ global: { plugins: [...] } }) still override this per-mount.
+config.global.plugins = [...(config.global.plugins ?? []), i18n]
 
 // Mock Chart.js to avoid fetch errors in test environment
 vi.mock('chart.js/auto', () => ({
