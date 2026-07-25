@@ -12,16 +12,15 @@
     <div v-if="showFallbackRedirect" class="fallback-section">
       <p class="fallback-text">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        La fenêtre popup a été bloquée. Vous pouvez autoriser les popups ou utiliser la méthode
-        alternative.
+        Popup was blocked. Allow popups or use the alternative method.
       </p>
       <button @click="connectWithRedirect" class="fallback-button">
         <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-        Connexion via redirection
+        Connect via redirect
       </button>
       <p class="fallback-warning">
         <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-        Sur Samsung Android, la redirection peut ouvrir un autre navigateur.
+        On Samsung Android, the redirect may open a different browser.
       </p>
     </div>
 
@@ -35,15 +34,15 @@
             syncProgress.total
           }})
         </span>
-        <span v-else>Import en cours...</span>
+        <span v-else>Importing...</span>
       </div>
 
       <!-- Error state -->
       <div v-else-if="syncState.status === 'error'" class="text-red-600">
         <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
-        <span>Erreur: {{ syncState.lastError }}</span>
+        <span>Error: {{ syncState.lastError }}</span>
         <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">
-          Réessayer
+          Retry
         </button>
       </div>
 
@@ -52,15 +51,15 @@
         <p class="text-gray-700">
           <i class="fas fa-check-circle text-green-600 mr-2" aria-hidden="true"></i>
           <span v-if="syncState.initialImportDone">
-            Synchronisé
+            Synced
             <span v-if="syncState.lastSyncDate" class="text-gray-500">
               · {{ formatLastSync(syncState.lastSyncDate) }}
             </span>
           </span>
-          <span v-else> Connecté · Import initial en attente </span>
+          <span v-else> Connected · Initial import pending </span>
         </p>
 
-        <!-- Manual refresh button (discreet) -->
+        <!-- Manual refresh button (polls Firestore for push data) -->
         <button
           @click="manualRefresh"
           :disabled="isRefreshing"
@@ -72,7 +71,21 @@
             :class="{ 'fa-spin': isRefreshing }"
             aria-hidden="true"
           ></i>
-          Actualiser
+          Refresh
+        </button>
+
+        <!-- Fetch last 10 days via backfill -->
+        <button
+          @click="fetchLast10Days"
+          :disabled="isFetchingRecent"
+          class="text-sm text-gray-500 hover:text-gray-700 transition ml-4"
+        >
+          <i
+            class="fas fa-download mr-1"
+            :class="{ 'fa-spin': isFetchingRecent }"
+            aria-hidden="true"
+          ></i>
+          Fetch last 10 days
         </button>
       </div>
     </div>
@@ -86,6 +99,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 import {
   getTokens,
   deleteTokens,
+  deletePluginData,
   getSyncState,
   updateSyncState,
   type GarminSyncState
@@ -101,6 +115,7 @@ import pluginEnv from './env'
 
 const isConnected = ref(false)
 const isRefreshing = ref(false)
+const isFetchingRecent = ref(false)
 const isWaitingForOAuth = ref(false)
 const showFallbackRedirect = ref(false)
 // Plain variable — NOT a ref. Storing a cross-origin Window in a Vue ref
@@ -117,7 +132,8 @@ const syncState = reactive<GarminSyncState>({
   lastError: null
 })
 
-const { notifications, plugins } = usePluginContext()
+const ctx = usePluginContext()
+const { notifications, plugins } = ctx
 
 let oauthChannel: BroadcastChannel | null = null
 
@@ -142,6 +158,7 @@ async function connectToGarmin() {
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
     `&state=${state}`
 
   // Open centered popup
@@ -200,7 +217,7 @@ async function handleOAuthMessage(event: MessageEvent) {
   // Validate state (CSRF protection)
   const expectedState = sessionStorage.getItem('garmin_oauth_state')
   if (event.data.state !== expectedState) {
-    notifications.notify('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
+    notifications.notify('OAuth security error (state mismatch)', { type: 'error' })
     return
   }
   sessionStorage.removeItem('garmin_oauth_state')
@@ -217,7 +234,7 @@ async function handleOAuthMessage(event: MessageEvent) {
     try {
       const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
       if (!codeVerifier) {
-        notifications.notify('Erreur: PKCE verifier manquant', { type: 'error' })
+        notifications.notify('Error: PKCE verifier missing', { type: 'error' })
         return
       }
       sessionStorage.removeItem('garmin_pkce_verifier')
@@ -231,9 +248,9 @@ async function handleOAuthMessage(event: MessageEvent) {
       const syncManager = getGarminSyncManager()
       await syncManager.startInitialImportAsync()
 
-      notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
+      notifications.notify('Garmin connected! Importing...', { type: 'info' })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur d'échange de token"
+      const message = err instanceof Error ? err.message : 'Token exchange error'
       notifications.notify(`Garmin: ${message}`, { type: 'error' })
     }
   }
@@ -242,7 +259,7 @@ async function handleOAuthMessage(event: MessageEvent) {
 function handlePopupBlocked() {
   isWaitingForOAuth.value = false
   showFallbackRedirect.value = true
-  notifications.notify('Popup bloquée. Autorisez les popups ou utilisez le fallback.', {
+  notifications.notify('Popup blocked. Allow popups or use the fallback below.', {
     type: 'warning'
   })
 }
@@ -277,11 +294,24 @@ async function connectWithRedirect() {
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
     `&state=${state}`
 }
 
 async function disconnectGarmin() {
+  // Purge all Garmin activities from local database
+  const allActivities = await ctx.activity.getAllActivities()
+  const garminActivities = allActivities.filter((a: { id: string }) => a.id.startsWith('garmin_'))
+  for (const activity of garminActivities) {
+    await ctx.activity.deleteActivity(activity.id)
+  }
+  if (garminActivities.length > 0) {
+    console.log(`[GarminSetup] Purged ${garminActivities.length} Garmin activities`)
+  }
+
+  // Clear plugin data
   await deleteTokens()
+  await deletePluginData('userId')
   await updateSyncState({
     status: 'idle',
     initialImportDone: false,
@@ -292,6 +322,10 @@ async function disconnectGarmin() {
   })
   isConnected.value = false
   Object.assign(syncState, await getSyncState())
+
+  notifications.notify(`Garmin disconnected. ${garminActivities.length} activities removed.`, {
+    type: 'info'
+  })
 }
 
 // ============================================================================
@@ -312,13 +346,29 @@ async function manualRefresh() {
   try {
     const syncManager = getGarminSyncManager()
     const count = await syncManager.dailyRefresh()
-    notifications.notify(`Garmin: ${count} activités synchronisées`, { type: 'success' })
+    notifications.notify(`Garmin: ${count} activities synced`, { type: 'success' })
   } catch (err: unknown) {
-    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Erreur'}`, {
+    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
       type: 'error'
     })
   } finally {
     isRefreshing.value = false
+    Object.assign(syncState, await getSyncState())
+  }
+}
+
+async function fetchLast10Days() {
+  isFetchingRecent.value = true
+  try {
+    const syncManager = getGarminSyncManager()
+    const count = await syncManager.fetchRecentDays(10)
+    notifications.notify(`Garmin: ${count} activities fetched`, { type: 'success' })
+  } catch (err: unknown) {
+    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
+      type: 'error'
+    })
+  } finally {
+    isFetchingRecent.value = false
     Object.assign(syncState, await getSyncState())
   }
 }
@@ -331,9 +381,9 @@ function handleSyncComplete(event: Event) {
   const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
 
   if (success) {
-    notifications.notify(`Garmin: ${count} activités importées`, { type: 'success' })
+    notifications.notify(`Garmin: ${count} activities imported`, { type: 'success' })
   } else {
-    notifications.notify(`Garmin: ${error || "Erreur d'import"}`, { type: 'error' })
+    notifications.notify(`Garmin: ${error || 'Import error'}`, { type: 'error' })
   }
 
   // Clear progress and refresh state
@@ -368,10 +418,10 @@ function formatLastSync(timestamp: number): string {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return 'il y a quelques secondes'
-  if (minutes < 60) return `il y a ${minutes} min`
-  if (hours < 24) return `il y a ${hours}h`
-  return `il y a ${days}j`
+  if (minutes < 1) return 'a few seconds ago'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  return `${days}d ago`
 }
 
 // ============================================================================
@@ -387,11 +437,20 @@ onMounted(async () => {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
   const state = params.get('state')
+  const oauthError = params.get('oauth_error')
 
-  if (code && state) {
+  // Handle OAuth error redirected from callback page
+  if (oauthError) {
+    const message =
+      oauthError === 'access_denied'
+        ? 'Garmin access denied. Please try again.'
+        : `Garmin OAuth error: ${oauthError}`
+    notifications.notify(message, { type: 'error' })
+    window.history.replaceState({}, '', window.location.pathname)
+  } else if (code && state) {
     const expectedState = sessionStorage.getItem('garmin_oauth_state')
     if (state !== expectedState) {
-      notifications.notify('Erreur de sécurité OAuth (state mismatch)', { type: 'error' })
+      notifications.notify('OAuth security error (state mismatch)', { type: 'error' })
       sessionStorage.removeItem('garmin_oauth_state')
       sessionStorage.removeItem('garmin_pkce_verifier')
     } else {
@@ -399,7 +458,7 @@ onMounted(async () => {
 
       try {
         const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
-        if (!codeVerifier) throw new Error('PKCE verifier manquant')
+        if (!codeVerifier) throw new Error('PKCE verifier missing')
         sessionStorage.removeItem('garmin_pkce_verifier')
 
         const redirectUri = window.location.href.split('?')[0]
@@ -411,9 +470,9 @@ onMounted(async () => {
         const syncManager = getGarminSyncManager()
         await syncManager.startInitialImportAsync()
 
-        notifications.notify('Garmin connecté ! Import en cours...', { type: 'info' })
+        notifications.notify('Garmin connected! Importing...', { type: 'info' })
       } catch (err: unknown) {
-        notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Erreur'}`, {
+        notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
           type: 'error'
         })
       }
@@ -427,17 +486,25 @@ onMounted(async () => {
       isConnected.value = true
       await plugins.enablePlugin('garmin')
 
+      // Resume the initial import if it never finished (e.g. tab was closed
+      // mid-import). startInitialImportAsync() is idempotent: it no-ops when an
+      // import is already running or already complete, and picks up from the
+      // saved per-month state otherwise.
       const currentState = await getSyncState()
       if (!currentState.initialImportDone) {
-        // startInitialImportAsync handles stale 'syncing' state internally
         const syncManager = getGarminSyncManager()
-        await syncManager.startInitialImportAsync()
+        void syncManager.startInitialImportAsync()
       }
     }
   }
 
-  // Load current sync state
-  Object.assign(syncState, await getSyncState())
+  // Load current sync state — reset stale 'syncing' status
+  const loadedState = await getSyncState()
+  if (loadedState.status === 'syncing') {
+    loadedState.status = 'idle'
+    await updateSyncState({ status: 'idle' })
+  }
+  Object.assign(syncState, loadedState)
 })
 
 onUnmounted(() => {

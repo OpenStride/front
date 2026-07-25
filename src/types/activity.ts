@@ -1,3 +1,5 @@
+import type { SportType } from './sport'
+
 /**
  * Base interface for all stored records with sync metadata
  */
@@ -14,7 +16,9 @@ export interface Activity extends Timestamped {
   startTime: number
   duration: number
   distance: number
-  type: 'run' | 'bike' | 'swim' | 'walk' | 'hike' | string
+  // Canonical SportType (see src/types/sport.ts); `string` is kept for legacy /
+  // not-yet-mapped values while preserving SportType autocomplete.
+  type: SportType | (string & {})
   title?: string
   mapPolyline?: [number, number][] // tableau de [lat, lng] réduit
 }
@@ -28,6 +32,8 @@ export interface Sample {
   heartRate?: number // en bpm
   cadence?: number // steps/min
   speed?: number
+  power?: number // en watts
+  temperature?: number // en °C
 }
 
 export interface ActivityDetails extends Timestamped {

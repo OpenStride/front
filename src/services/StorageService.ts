@@ -1,6 +1,5 @@
 import { StoragePluginManager } from '@/services/StoragePluginManager'
 import { IndexedDBService } from '@/services/IndexedDBService'
-import { sha256Hex, stableStoreString } from '@/utils/hash'
 
 /** A generic record coming from or going to an IndexedDB object store. */
 type StoreRecord = Record<string, unknown>
@@ -14,11 +13,20 @@ export interface StorageServiceEvent {
   error?: Error
 }
 
+/**
+ * Stores whose sync is owned by SyncService (version-based, conflict-aware).
+ * StorageService must not touch them, to avoid two engines writing the same
+ * remote files with divergent merge strategies.
+ */
+const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details']
+
 export class StorageService {
   private static instance: StorageService
   private pluginManager = StoragePluginManager.getInstance()
   private suppressBackupsUntil = 0 // timestamp ms; while in hydration/import we ignore backup triggers
   private lastBackupToastAt = 0
+  private backupInFlight = false // mutex: only one backup runs at a time
+  private pendingBackupStores: Set<string> | null = null // coalesced follow-up run
   public emitter = new EventTarget()
   private constructor() {
     /* singleton */
@@ -42,6 +50,32 @@ export class StorageService {
       d => !(d.store === 'settings' && d.key === 'lastStorageManifestSummary')
     )
     if (details.length === 0) return // nothing meaningful
+
+    // Coalesce: if a backup is already running, queue the stores for a single
+    // follow-up run instead of overlapping (prevents flood on setting bursts).
+    if (this.backupInFlight) {
+      this.pendingBackupStores ??= new Set<string>()
+      details.forEach(d => this.pendingBackupStores!.add(d.store))
+      console.log('[StorageService] Backup already running, coalescing request')
+      return
+    }
+
+    this.backupInFlight = true
+    try {
+      await this.runBackup(details)
+
+      // Drain any requests that arrived while we were running (one extra pass)
+      while (this.pendingBackupStores && this.pendingBackupStores.size > 0) {
+        const stores = [...this.pendingBackupStores]
+        this.pendingBackupStores = null
+        await this.runBackup(stores.map(store => ({ store, key: '' })))
+      }
+    } finally {
+      this.backupInFlight = false
+    }
+  }
+
+  private async runBackup(details: Array<{ store: string; key: string }>): Promise<void> {
     try {
       let uniqueStores = Array.from(new Set(details.map(detail => detail.store)))
 
@@ -59,6 +93,10 @@ export class StorageService {
           /* ignore */
         }
       }
+
+      // Never touch stores owned by SyncService (activities / activity_details)
+      uniqueStores = uniqueStores.filter(s => !SYNC_SERVICE_OWNED_STORES.includes(s))
+      if (uniqueStores.length === 0) return
 
       const changed = await this.syncStores(uniqueStores.map(store => ({ store, key: '' })))
       console.log('✅ Backup completed')
@@ -94,16 +132,6 @@ export class StorageService {
     for (const plugin of plugins) {
       console.log(`🔄 Sync with ${plugin.label}`)
       for (const store of uniqueStores) {
-        // Lightweight hash comparison via plugin manifest (if provided)
-        let remoteHash: string | null = null
-        if (plugin.getRemoteManifest) {
-          try {
-            const mf = await plugin.getRemoteManifest()
-            remoteHash = mf?.stores?.find(s => s.name === store)?.contentHash || null
-          } catch {
-            /* ignore */
-          }
-        }
         const keyFn = (item: StoreRecord) =>
           (item.key as string) ||
           (item.id as string) ||
@@ -122,26 +150,6 @@ export class StorageService {
 
         try {
           const localData = (await dbService.exportDB(store)) as StoreRecord[]
-          // Compute local hash early to possibly skip remote read
-          let localHash: string | null = null
-          try {
-            const keyFn2 = (it: StoreRecord) =>
-              (it?.key as string) || (it?.id as string) || (it?.activityId as string) || ''
-            const str = stableStoreString(
-              store === 'settings'
-                ? localData.filter((i: StoreRecord) => i?.key !== 'lastStorageManifestSummary')
-                : localData,
-              keyFn2
-            )
-            localHash = `sha256:${await sha256Hex(str)}`
-          } catch {
-            /* ignore */
-          }
-
-          if (remoteHash && localHash && remoteHash === localHash) {
-            console.log(`[StorageService][skip] store="${store}" hash match (${localHash})`)
-            continue // skip this store entirely (no change)
-          }
           const remoteData = (await plugin.readRemote(store)) as StoreRecord[]
 
           const localMap = new Map(localData.map((item: StoreRecord) => [keyFn(item), item]))
@@ -198,81 +206,7 @@ export class StorageService {
         }
       }
     }
-    // Generic per-plugin manifest update hook
-    if (plugins.some(p => p.updateManifest)) {
-      try {
-        await this.computeManifest(dbService, plugins)
-      } catch (err) {
-        console.warn('[StorageService] Manifest hook failed', err)
-      }
-    }
     return anyChanges
-  }
-
-  /**
-   * Build a manifest summarising every IndexedDB store (item count, last-modified
-   * timestamp, content hash) and push it to storage plugins whose `updateManifest`
-   * hook is defined.  A previous aggregate hash is compared first so that plugins
-   * are only notified when something actually changed.
-   */
-  private async computeManifest(
-    dbService: IndexedDBService,
-    plugins: Awaited<ReturnType<StoragePluginManager['getMyStoragePlugins']>>
-  ): Promise<void> {
-    const dbStores = await dbService.getObjectStoresNames()
-    const summary: Array<{
-      name: string
-      itemCount: number
-      lastModified: number
-      contentHash: string
-    }> = []
-    for (const store of dbStores) {
-      let items = (await dbService.exportDB(store).catch(() => [])) as StoreRecord[]
-      // Exclude internal manifest summary record from hashing & counts
-      if (store === 'settings') {
-        items = items.filter((it: StoreRecord) => it?.key !== 'lastStorageManifestSummary')
-      }
-      const keyFn = (it: StoreRecord) =>
-        (it?.key as string) || (it?.id as string) || (it?.activityId as string) || ''
-      const str = stableStoreString(items, keyFn)
-      const hash = await sha256Hex(str)
-      let lastModified = 0
-      items.forEach((i: StoreRecord) => {
-        if (i && i.lastModified && (i.lastModified as number) > lastModified)
-          lastModified = i.lastModified as number
-      })
-      summary.push({
-        name: store,
-        itemCount: items.length,
-        lastModified,
-        contentHash: `sha256:${hash}`
-      })
-    }
-    const aggregate = await sha256Hex(JSON.stringify(summary.map(s => s.contentHash).sort()))
-    const aggregateHash = `sha256:${aggregate}`
-    // Check previous snapshot to avoid constant churn
-    let previousAggregate: string | null = null
-    try {
-      const prev = await dbService.getData<{ aggregateHash: string }>('lastStorageManifestSummary')
-      previousAggregate = prev?.aggregateHash || null
-    } catch {
-      /* ignore */
-    }
-
-    if (previousAggregate !== aggregateHash) {
-      try {
-        await dbService.saveData('lastStorageManifestSummary', {
-          stores: summary,
-          aggregateHash,
-          savedAt: Date.now()
-        })
-      } catch (e) {
-        console.warn('[StorageService] Failed to persist local manifest summary', e)
-      }
-      await Promise.all(
-        plugins.filter(p => p.updateManifest).map(p => p.updateManifest!(summary, aggregateHash))
-      )
-    }
   }
 
   /**
@@ -303,14 +237,6 @@ export class StorageService {
         console.log(
           `⬇️  Import from remote (${plugin.label}) for stores: ${targetStores.join(', ')}`
         )
-        // Plugin-specific optimization hook
-        if (plugin.optimizeImport) {
-          try {
-            targetStores = await plugin.optimizeImport(targetStores)
-          } catch {
-            /* ignore */
-          }
-        }
         for (const store of targetStores) {
           try {
             const [localData, remoteData] = (await Promise.all([

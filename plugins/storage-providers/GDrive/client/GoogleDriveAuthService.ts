@@ -19,6 +19,12 @@ const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 export class GoogleDriveAuthService {
   private static instance: GoogleDriveAuthService
   private dbService: IPluginStorageService | null = null
+  // Dedup concurrent silent refreshes so a burst of Drive calls with an expired
+  // token results in ONE token POST, not one per call.
+  private refreshInFlight: Promise<string | null> | null = null
+  // Hydration from remote must happen at most once per session, not on every
+  // token refresh (getAccessToken runs on every Drive fetch).
+  private hydrationDone = false
 
   private constructor() {
     /* singleton */
@@ -55,39 +61,67 @@ export class GoogleDriveAuthService {
     ) {
       return accessToken
     } else if (refreshToken) {
-      const tokenResponse = await fetch(TOKEN_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          client_id: CLIENT_ID,
-          client_secret: CLIENT_SECRET,
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token'
-        })
-      })
+      return this.refreshAccessToken(refreshToken)
+    } else {
+      console.error('No valid access token or refresh token found.')
+      return null
+    }
+  }
 
-      if (tokenResponse.ok) {
+  /**
+   * Exchange the refresh token for a fresh access token.
+   * Concurrent callers share a single in-flight request.
+   */
+  private async refreshAccessToken(refreshToken: string): Promise<string | null> {
+    if (this.refreshInFlight) return this.refreshInFlight
+
+    this.refreshInFlight = (async () => {
+      try {
+        const tokenResponse = await fetch(TOKEN_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token'
+          })
+        })
+
+        if (!tokenResponse.ok) {
+          console.error('Error refreshing access token:', await tokenResponse.text())
+          return null
+        }
+
         const tokenData = await tokenResponse.json()
         await this.dbService?.saveData('gdrive_access_token', tokenData.access_token)
         await this.dbService?.saveData(
           'gdrive_access_token_expire_timestamp',
           tokenData.expires_in * 1000 + Date.now()
         )
-        // Attempt initial hydration after silent refresh
-        this.dbService
-          ?.importFromRemote(['activities', 'activity_details', 'settings'])
-          .catch((err: unknown) => console.warn('[GDrive] hydration after refresh failed', err))
+        // Hydrate a returning user's local DB once per session (not per refresh).
+        this.hydrateOnce()
         return tokenData.access_token
-      } else {
-        console.error('Error refreshing access token:', await tokenResponse.text())
-        return null
+      } finally {
+        this.refreshInFlight = null
       }
-    } else {
-      console.error('No valid access token or refresh token found.')
-      return null
-    }
+    })()
+
+    return this.refreshInFlight
+  }
+
+  /**
+   * One-way import from remote to hydrate local stores. Runs at most once per
+   * session — auth must not drive a full sync on every token refresh.
+   */
+  private hydrateOnce() {
+    if (this.hydrationDone) return
+    this.hydrationDone = true
+    this.dbService
+      ?.importFromRemote(['activities', 'activity_details', 'settings'])
+      .catch((err: unknown) => console.warn('[GDrive] hydration after refresh failed', err))
   }
 
   async getAccessTokenFromCode(code: string): Promise<string | null> {
@@ -126,10 +160,8 @@ export class GoogleDriveAuthService {
 
       window.history.replaceState({}, document.title, window.location.pathname)
 
-      // Hydrate local stores now that we have first access token
-      this.dbService
-        ?.importFromRemote(['activities', 'activity_details', 'settings'])
-        .catch((err: unknown) => console.warn('[GDrive] initial hydration failed', err))
+      // Hydrate local stores now that we have first access token (once per session)
+      this.hydrateOnce()
 
       return tokenData.access_token
     } else {
@@ -175,6 +207,9 @@ export class GoogleDriveAuthService {
 
   async disconnect() {
     if (!this.dbService) return
+    // Allow a fresh hydration on the next reconnect
+    this.hydrationDone = false
+    this.refreshInFlight = null
     await this.dbService.deleteData('gdrive_access_token')
     await this.dbService.deleteData('gdrive_refresh_token')
     await this.dbService.deleteData('gdrive_access_token_expire_timestamp')

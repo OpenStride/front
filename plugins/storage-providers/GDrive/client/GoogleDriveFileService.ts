@@ -12,7 +12,10 @@ export class GoogleDriveFileService {
   private static instance: GoogleDriveFileService
   private authService: GoogleDriveAuthService | null = null
   private folderId: string | null = null // ID du dossier OpenStride
-  private manifestFileId: string | null = null
+  // Cache filename -> fileId to avoid a Drive search on every read/write.
+  // Files are only ever created/trashed by this app, so staleness is rare;
+  // a stale id surfaces as a 404 which is handled gracefully upstream.
+  private backupFileIds = new Map<string, string>()
 
   private constructor() {
     /* singleton */
@@ -85,6 +88,10 @@ export class GoogleDriveFileService {
 
   // ✅ 2. Vérifier ou créer le fichier de backup
   async ensureBackupFile(filename: string): Promise<string | null> {
+    // ✅ Réutiliser l'ID mis en cache pour éviter une recherche Drive répétée
+    const cached = this.backupFileIds.get(filename)
+    if (cached) return cached
+
     const accessToken = await this.authService?.getAccessToken()
     if (!accessToken) {
       console.error('Not authenticated with Google Drive.')
@@ -94,12 +101,14 @@ export class GoogleDriveFileService {
     // ✅ Vérifier si le fichier existe dans le dossier
     const fileId = await this.findBackupFile(filename, accessToken)
     if (fileId) {
+      this.backupFileIds.set(filename, fileId)
       return fileId
     }
 
     // ✅ Créer le fichier s'il n'existe pas
     const newFileId = await this.createBackupFile(filename, accessToken)
     console.log('Backup file created:', newFileId)
+    if (newFileId) this.backupFileIds.set(filename, newFileId)
     return newFileId
   }
 
@@ -256,38 +265,35 @@ export class GoogleDriveFileService {
     return await resp.json()
   }
 
-  // Manifest helpers
-  public async ensureManifest(): Promise<string | null> {
-    if (this.manifestFileId) return this.manifestFileId
+  /**
+   * Cheap change-detection: fetch only the file metadata (md5Checksum /
+   * modifiedTime) WITHOUT downloading the content. Returns null when the file
+   * does not exist yet (does NOT create it) or when not authenticated.
+   */
+  public async getBackupFileMeta(
+    filename: string
+  ): Promise<{ md5?: string; modifiedTime?: string } | null> {
     const accessToken = await this.authService?.getAccessToken()
     if (!accessToken) return null
-    const id = await this.findBackupFile('stores_index.json', accessToken)
-    if (id) {
-      this.manifestFileId = id
-      return id
-    }
-    const created = await this.createBackupFile('stores_index.json', accessToken)
-    this.manifestFileId = created
-    return created
-  }
 
-  public async readManifest(): Promise<unknown> {
-    const id = await this.ensureManifest()
-    if (!id) return null
-    try {
-      return await this.readBackupFileContent(id)
-    } catch {
+    // Resolve id from cache or a search, but never create the file for a read-only check
+    let fileId = this.backupFileIds.get(filename) || null
+    if (!fileId) {
+      fileId = await this.findBackupFile(filename, accessToken)
+      if (fileId) this.backupFileIds.set(filename, fileId)
+    }
+    if (!fileId) return null
+
+    const resp = await fetch(
+      `${DRIVE_API_ENDPOINT}/${fileId}?fields=md5Checksum,modifiedTime`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    if (!resp.ok) {
+      console.warn('[GDrive] Failed to read file metadata, status', resp.status)
       return null
     }
-  }
-
-  public async writeManifest(manifest: unknown): Promise<void> {
-    const id = await this.ensureManifest()
-    if (!id) {
-      console.warn('[GDrive] cannot write manifest')
-      return
-    }
-    await this.writeBackupFileByFileId(id, manifest)
+    const data = await resp.json()
+    return { md5: data.md5Checksum, modifiedTime: data.modifiedTime }
   }
 
   // ========== PUBLIC FILE SHARING METHODS ==========
@@ -539,6 +545,11 @@ export class GoogleDriveFileService {
       if (!response.ok) {
         console.error('[GDrive] Failed to delete file:', await response.text())
         return false
+      }
+
+      // Drop any cached filename -> id mapping pointing at the deleted file
+      for (const [name, id] of this.backupFileIds) {
+        if (id === fileId) this.backupFileIds.delete(name)
       }
 
       return true

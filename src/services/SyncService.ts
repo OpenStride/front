@@ -30,6 +30,14 @@ export interface SyncServiceEvent {
  * - Conflict detection via version counter
  * - LWW resolution with user notification
  */
+// Stores whose remote change is tracked to skip full reads. Both make up the
+// activity dataset; a change in either warrants a pull.
+const TRACKED_STORES = ['activities', 'activity_details']
+// Device-local bookkeeping (never synced): last remote change-token seen per
+// plugin+store. Kept in localStorage so it survives reloads without triggering
+// a settings backup.
+const CHANGE_TOKENS_KEY = 'openstride:sync:changeTokens'
+
 export class SyncService {
   private static instance: SyncService
   private pluginManager = StoragePluginManager.getInstance()
@@ -52,7 +60,7 @@ export class SyncService {
   /**
    * Main entry point: Sync all stores with all enabled storage plugins
    */
-  public async syncNow(): Promise<{
+  public async syncNow(opts: { force?: boolean } = {}): Promise<{
     success: boolean
     activitiesSynced: number
     errors: string[]
@@ -101,7 +109,7 @@ export class SyncService {
       // Sync activities with each plugin
       for (const plugin of plugins) {
         try {
-          const result = await this.syncActivities(plugin)
+          const result = await this.syncActivities(plugin, opts)
           totalSynced += result.activitiesSynced
           if (result.errors.length > 0) {
             errors.push(...result.errors)
@@ -168,16 +176,31 @@ export class SyncService {
    * Sync activities store with a specific plugin
    */
   private async syncActivities(
-    plugin: StoragePlugin
+    plugin: StoragePlugin,
+    opts: { force?: boolean } = {}
   ): Promise<{ activitiesSynced: number; errors: string[] }> {
     console.log(`[SyncService] Syncing activities with ${plugin.label}`)
     const errors: string[] = []
     const activityService = await getActivityService()
 
     try {
-      // 1. Get unsynced local activities
+      // 1. Get unsynced local activities (purely local, no IO)
       const unsyncedActivities = await activityService.getUnsyncedActivities()
       console.log(`[SyncService] Found ${unsyncedActivities.length} unsynced activities`)
+
+      // 1b. Change-token short-circuit: if there is nothing local to push AND the
+      // remote hasn't changed since we last saw it, skip the (potentially large)
+      // full remote read entirely. `force` bypasses this optimization.
+      const remoteTokens = await this.getRemoteTokens(plugin)
+      if (
+        !opts.force &&
+        unsyncedActivities.length === 0 &&
+        remoteTokens &&
+        !this.remoteChanged(plugin.id, remoteTokens)
+      ) {
+        console.log(`[SyncService] Skip ${plugin.label}: no local changes, remote unchanged`)
+        return { activitiesSynced: 0, errors: [] }
+      }
 
       // 2. Get remote activities
       const remoteActivities = (await plugin.readRemote('activities')) as Activity[]
@@ -280,7 +303,12 @@ export class SyncService {
         }
 
         if (activitiesToSave.length > 0) {
-          await activityService.saveActivitiesWithDetails(activitiesToSave, detailsToSave)
+          // fromSync: preserve remote synced/version/lastModified so pulled
+          // activities are not re-marked unsynced (which would re-push them and
+          // raise false conflicts on the next sync round).
+          await activityService.saveActivitiesWithDetails(activitiesToSave, detailsToSave, {
+            fromSync: true
+          })
         }
 
         console.log(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)
@@ -319,6 +347,10 @@ export class SyncService {
         const pushedIds = toPush.map(a => a.id)
         await activityService.markAsSynced(pushedIds)
       }
+
+      // Re-baseline the change tokens so the next idle sync can short-circuit.
+      // Re-fetched AFTER any push so our own write is reflected in the token.
+      await this.persistRemoteTokens(plugin)
 
       return { activitiesSynced: toPush.length + toPull.length, errors }
     } catch (error) {
@@ -362,6 +394,77 @@ export class SyncService {
     )
 
     return winner
+  }
+
+  // ========== Remote change-token bookkeeping (device-local) ==========
+
+  /** Read the persisted per-plugin/per-store last-seen tokens. */
+  private readTokenMap(): Record<string, Record<string, string>> {
+    try {
+      return JSON.parse(localStorage.getItem(CHANGE_TOKENS_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  private writeTokenMap(map: Record<string, Record<string, string>>): void {
+    try {
+      localStorage.setItem(CHANGE_TOKENS_KEY, JSON.stringify(map))
+    } catch {
+      /* localStorage unavailable — optimization simply won't persist */
+    }
+  }
+
+  /**
+   * Fetch the current remote change-token for each tracked store. Returns null
+   * when the plugin can't provide tokens (caller then does a full read).
+   */
+  private async getRemoteTokens(
+    plugin: StoragePlugin
+  ): Promise<Record<string, string | null> | null> {
+    if (!plugin.getRemoteChangeToken) return null
+    const out: Record<string, string | null> = {}
+    for (const store of TRACKED_STORES) {
+      try {
+        out[store] = await plugin.getRemoteChangeToken(store)
+      } catch {
+        out[store] = null
+      }
+    }
+    return out
+  }
+
+  /**
+   * True if any tracked store's remote token differs from what we last saw.
+   * A null remote token (missing/unreadable file) never counts as a change.
+   */
+  private remoteChanged(pluginId: string, remoteTokens: Record<string, string | null>): boolean {
+    const seen = this.readTokenMap()[pluginId] || {}
+    for (const store of TRACKED_STORES) {
+      const rt = remoteTokens[store]
+      if (rt != null && rt !== seen[store]) return true
+    }
+    return false
+  }
+
+  /**
+   * Re-read and persist the current remote tokens as the new baseline. Called
+   * after a completed sync (post-push) so the next idle sync can short-circuit.
+   */
+  private async persistRemoteTokens(plugin: StoragePlugin): Promise<void> {
+    if (!plugin.getRemoteChangeToken) return
+    const fresh: Record<string, string> = {}
+    for (const store of TRACKED_STORES) {
+      try {
+        const t = await plugin.getRemoteChangeToken(store)
+        if (t != null) fresh[store] = t
+      } catch {
+        /* ignore — a missing token just means no short-circuit next time */
+      }
+    }
+    const map = this.readTokenMap()
+    map[plugin.id] = { ...(map[plugin.id] || {}), ...fresh }
+    this.writeTokenMap(map)
   }
 
   /**

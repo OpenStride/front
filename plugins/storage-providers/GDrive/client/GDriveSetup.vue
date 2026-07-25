@@ -73,6 +73,21 @@
             Disconnect
           </button>
         </div>
+
+        <!-- Action avancée : forcer une resynchronisation complète -->
+        <div class="pt-3 mt-2 border-t border-gray-100">
+          <button
+            @click="onForceResync"
+            :disabled="isForcing"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition"
+          >
+            <i class="fas fa-rotate" :class="{ 'animate-spin': isForcing }" aria-hidden="true"></i>
+            <span>{{ isForcing ? 'Resynchronisation…' : 'Forcer une resynchronisation complète' }}</span>
+          </button>
+          <p class="text-xs text-gray-400 mt-1">
+            Ignore l'optimisation et relit l'intégralité des données distantes.
+          </p>
+        </div>
       </div>
     </div>
     <div v-else-if="isConnected == -1" class="mt-6 text-center space-y-4">
@@ -95,6 +110,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 
 const isRefreshing = ref(false)
 const isRefreshed = ref(false)
+const isForcing = ref(false)
 
 const { storage, sync } = usePluginContext()
 
@@ -135,6 +151,17 @@ async function onRefresh() {
 
 const refreshFromGoogleDrive = async () => {
   await sync.syncNow()
+}
+
+async function onForceResync() {
+  isForcing.value = true
+  try {
+    await sync.syncNow({ force: true })
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isForcing.value = false
+  }
 }
 
 const disconnectGoogleDrive = async () => {

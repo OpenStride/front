@@ -1,4 +1,4 @@
-import { getTokens, setTokens, setGarminUserId, type GarminTokens } from './storage'
+import { getTokens, setTokens, type GarminTokens } from './storage'
 import pluginEnv from './env'
 
 // 64 chars = power of 2, no modulo bias with Uint8Array (256 % 64 === 0)
@@ -61,11 +61,9 @@ export async function exchangeCodeForTokens(
   const tokens = parseTokenResponse(data)
   await setTokens(tokens)
 
-  // Store Garmin userId for ping/callback routing
-  if (data.userId) {
-    await setGarminUserId(data.userId)
-  }
-
+  // Note: the Garmin userId is no longer resolved or stored client-side. The proxy
+  // derives it from the Bearer token on every push read/delete, so the client never
+  // handles a userId — this is what guarantees owner-only access to buffered data.
   return tokens
 }
 
