@@ -316,6 +316,16 @@
     "notFound": "Not found."
   },
   "providers": {
+    "health": {
+      "intro": "Import your workouts from your device's health store. Everything stays on your device.",
+      "authorize": "Allow access",
+      "authorizing": "Requesting access…",
+      "connected": "Access granted",
+      "import": "Import workouts",
+      "importing": "Importing… {done}/{total}",
+      "done": "Imported {count} activities.",
+      "error": "Error: {message}"
+    },
     "setup": {
       "title": "{provider} – Connection",
       "connected": "Connected to {provider}",

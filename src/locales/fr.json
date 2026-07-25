@@ -316,6 +316,16 @@
     "notFound": "Non trouvé."
   },
   "providers": {
+    "health": {
+      "intro": "Importe tes entraînements depuis le hub santé de ton appareil. Tout reste sur ton appareil.",
+      "authorize": "Autoriser l'accès",
+      "authorizing": "Demande d'accès…",
+      "connected": "Accès autorisé",
+      "import": "Importer les entraînements",
+      "importing": "Import en cours… {done}/{total}",
+      "done": "{count} activités importées.",
+      "error": "Erreur : {message}"
+    },
     "setup": {
       "title": "{provider} – Connexion",
       "connected": "Connecté à {provider}",
