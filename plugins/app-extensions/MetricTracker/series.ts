@@ -114,6 +114,42 @@ export function buildSeries(
     .sort((a, b) => a.startTime - b.startTime)
 }
 
+const DAY_MS = 86_400_000
+
+/**
+ * Least-squares trend over the points that carry a value.
+ *
+ * The fit runs on real timestamps rather than on the point index, so a burst of
+ * outings in one week and a six-month gap don't weigh the same. Returns one
+ * value per point — including the gaps — so the line spans the whole chart.
+ * Null everywhere when there is nothing to fit.
+ */
+export function trendLine(points: SeriesPoint[]): (number | null)[] {
+  const valued = points.filter((p): p is SeriesPoint & { value: number } => p.value !== null)
+  if (valued.length < 2) return points.map(() => null)
+
+  // Days since the first point: keeps the numbers small enough to stay precise
+  const origin = valued[0].startTime
+  const days = (startTime: number) => (startTime - origin) / DAY_MS
+
+  const meanX = valued.reduce((sum, p) => sum + days(p.startTime), 0) / valued.length
+  const meanY = valued.reduce((sum, p) => sum + p.value, 0) / valued.length
+
+  let covariance = 0
+  let variance = 0
+  for (const point of valued) {
+    const dx = days(point.startTime) - meanX
+    covariance += dx * (point.value - meanY)
+    variance += dx * dx
+  }
+
+  // Every point on the same day — no slope to speak of
+  if (variance === 0) return points.map(() => meanY)
+
+  const slope = covariance / variance
+  return points.map(p => meanY + slope * (days(p.startTime) - meanX))
+}
+
 /** Best / average of the points that carry a value, in display unit */
 export function summarize(points: SeriesPoint[], metric: MetricDefinition) {
   const values = points.map(p => p.value).filter((v): v is number => v !== null)

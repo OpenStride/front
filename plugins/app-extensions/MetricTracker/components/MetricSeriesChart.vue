@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
+import { trendLine } from '../series'
 import type { MetricDefinition, SeriesPoint } from '../types'
 
 const props = defineProps<{
@@ -18,19 +19,31 @@ const props = defineProps<{
 const canvas = ref<HTMLCanvasElement | null>(null)
 let chart: Chart | null = null
 
+/** Dense series need smaller dots to stay readable */
+function pointRadius(count: number): number {
+  if (count > 200) return 1.5
+  if (count > 60) return 2
+  return 3
+}
+
+function cssVar(name: string, fallback: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
+
 function createOrUpdate() {
-  const data = props.points.map(p => p.value)
-  const style = getComputedStyle(document.documentElement)
-  const green500 = style.getPropertyValue('--color-green-500').trim() || '#88aa00'
+  const values = props.points.map(p => p.value)
+  const trend = trendLine(props.points)
+  const green500 = cssVar('--color-green-500', '#88aa00')
+  const green300 = cssVar('--color-green-300', '#cbe56d')
 
   if (chart) {
     chart.data.labels = props.labels
-    chart.data.datasets[0].data = data
-    // The axis direction and the tick format belong to the metric, so both are
-    // rebuilt whenever the user switches metric
+    chart.data.datasets[0].data = values
+    chart.data.datasets[0].pointRadius = pointRadius(props.points.length)
+    chart.data.datasets[1].data = trend
+    // The axis direction belongs to the metric, so it follows the selection
     const scales = chart.options.scales as Record<string, Record<string, unknown>>
     scales.y.reverse = !!props.metric.betterIsLower
-    scales.y.beginAtZero = false
     chart.update()
     return
   }
@@ -43,24 +56,39 @@ function createOrUpdate() {
       labels: props.labels,
       datasets: [
         {
-          label: '',
-          data,
-          borderColor: green500,
-          backgroundColor: `${green500}1a`,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          // Missing values break the line instead of being interpolated over
-          spanGaps: false
+          label: 'points',
+          data: values,
+          // Consecutive outings are not a continuum — plotting them as a cloud
+          // and reading the direction off the trend line is far more legible
+          // than a line zigzagging between them
+          showLine: false,
+          pointRadius: pointRadius(props.points.length),
+          pointHoverRadius: 5,
+          pointBackgroundColor: green500,
+          borderColor: green500
+        },
+        {
+          label: 'trend',
+          data: trend,
+          borderColor: green300,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+          // The fit covers the gaps, so the line must cross them
+          spanGaps: true
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
+          filter: item => item.datasetIndex === 0,
           callbacks: {
             label: ctx =>
               typeof ctx.parsed.y === 'number' ? props.metric.format(ctx.parsed.y) : '-'
@@ -68,7 +96,10 @@ function createOrUpdate() {
         }
       },
       scales: {
-        x: { grid: { display: false } },
+        x: {
+          grid: { display: false },
+          ticks: { autoSkip: true, maxTicksLimit: 12, maxRotation: 0 }
+        },
         y: {
           reverse: !!props.metric.betterIsLower,
           beginAtZero: false,

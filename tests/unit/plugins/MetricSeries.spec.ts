@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { Activity } from '@/types/activity'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
-import { buildSeries, summarize } from '@plugins/app-extensions/MetricTracker/series'
+import { buildSeries, summarize, trendLine } from '@plugins/app-extensions/MetricTracker/series'
 import {
   METRICS,
   DIRECT_METRICS,
@@ -203,6 +203,125 @@ describe('summarize', () => {
 
     expect(points.every(p => p.value === null)).toBe(true)
     expect(summarize(points, getMetric('calories'))).toBeNull()
+  })
+})
+
+describe('trendLine', () => {
+  function pointsFrom(entries: [string, number | null][]) {
+    return entries.map(([isoDate, value]) => ({
+      key: isoDate,
+      startTime: new Date(isoDate).getTime(),
+      value,
+      count: value === null ? 0 : 1
+    }))
+  }
+
+  it('fits a descending trend on improving values', () => {
+    const points = pointsFrom([
+      ['2026-01-01T00:00:00Z', 1400],
+      ['2026-02-01T00:00:00Z', 1350],
+      ['2026-03-01T00:00:00Z', 1300]
+    ])
+
+    const trend = trendLine(points)
+
+    expect(trend[0]! > trend[1]!).toBe(true)
+    expect(trend[1]! > trend[2]!).toBe(true)
+  })
+
+  it('reproduces a series that is linear in time exactly', () => {
+    // 10 days apart — unlike calendar months, which are not equal
+    const points = pointsFrom([
+      ['2026-01-01T00:00:00Z', 1400],
+      ['2026-01-11T00:00:00Z', 1350],
+      ['2026-01-21T00:00:00Z', 1300]
+    ])
+
+    const trend = trendLine(points)
+
+    expect(trend[0]).toBeCloseTo(1400, 6)
+    expect(trend[1]).toBeCloseTo(1350, 6)
+    expect(trend[2]).toBeCloseTo(1300, 6)
+  })
+
+  it('does not treat unequal calendar months as equal steps', () => {
+    // January is 31 days, February 28: a fit on the point index would land the
+    // middle point on the midpoint, a fit on real time cannot
+    const points = pointsFrom([
+      ['2026-01-01T00:00:00Z', 1400],
+      ['2026-02-01T00:00:00Z', 1350],
+      ['2026-03-01T00:00:00Z', 1300]
+    ])
+
+    expect(trendLine(points)[1]).not.toBeCloseTo(1350, 1)
+  })
+
+  it('spans the gaps so the line covers the whole chart', () => {
+    const points = pointsFrom([
+      ['2026-01-01T00:00:00Z', 100],
+      ['2026-02-01T00:00:00Z', null],
+      ['2026-03-01T00:00:00Z', 200]
+    ])
+
+    const trend = trendLine(points)
+
+    expect(trend.every(v => v !== null)).toBe(true)
+    expect(trend[1]).toBeGreaterThan(trend[0]!)
+    expect(trend[1]).toBeLessThan(trend[2]!)
+  })
+
+  it('weights by real time rather than by point order', () => {
+    // Three points in one week, then one far later: an index-based fit would
+    // read the cluster as three quarters of the timeline
+    const clustered = pointsFrom([
+      ['2026-01-01T00:00:00Z', 100],
+      ['2026-01-02T00:00:00Z', 100],
+      ['2026-01-03T00:00:00Z', 100],
+      ['2026-12-31T00:00:00Z', 200]
+    ])
+
+    const trend = trendLine(clustered)
+
+    // The cluster pins the start of the trend near its own value
+    expect(trend[0]).toBeGreaterThan(95)
+    expect(trend[0]).toBeLessThan(110)
+    expect(trend[3]).toBeGreaterThan(180)
+  })
+
+  it('returns a flat line when every point shares one date', () => {
+    const sameDay = pointsFrom([
+      ['2026-01-01T00:00:00Z', 100],
+      ['2026-01-01T00:00:00Z', 200]
+    ])
+
+    expect(trendLine(sameDay)).toEqual([150, 150])
+  })
+
+  it('has nothing to fit below two values', () => {
+    expect(trendLine(pointsFrom([['2026-01-01T00:00:00Z', 100]]))).toEqual([null])
+    expect(
+      trendLine(
+        pointsFrom([
+          ['2026-01-01T00:00:00Z', null],
+          ['2026-02-01T00:00:00Z', 100]
+        ])
+      )
+    ).toEqual([null, null])
+  })
+
+  it('produces one trend value per point, gaps included', () => {
+    const points = buildSeries(
+      [
+        makeActivity('a', '2026-01-05T08:00:00Z'),
+        makeActivity('b', '2026-02-05T08:00:00Z'),
+        makeActivity('c', '2026-03-05T08:00:00Z')
+      ],
+      noSources,
+      getMetric('distance'),
+      'activity'
+    )
+
+    expect(trendLine(points)).toHaveLength(points.length)
   })
 })
 
