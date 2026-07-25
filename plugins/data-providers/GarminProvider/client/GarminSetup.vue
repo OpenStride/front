@@ -12,15 +12,15 @@
     <div v-if="showFallbackRedirect" class="fallback-section">
       <p class="fallback-text">
         <i class="fas fa-info-circle" aria-hidden="true"></i>
-        Popup was blocked. Allow popups or use the alternative method.
+        {{ t('providers.popup.blocked') }}
       </p>
       <button @click="connectWithRedirect" class="fallback-button">
         <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-        Connect via redirect
+        {{ t('providers.popup.connectViaRedirect') }}
       </button>
       <p class="fallback-warning">
         <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-        On Samsung Android, the redirect may open a different browser.
+        {{ t('providers.popup.samsungWarning') }}
       </p>
     </div>
 
@@ -30,19 +30,23 @@
       <div v-if="syncState.status === 'syncing'" class="text-gray-600">
         <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
         <span v-if="syncProgress">
-          Import {{ syncProgress.month }} ({{ syncProgress.completed + 1 }}/{{
-            syncProgress.total
-          }})
+          {{
+            t('providers.importProgress', {
+              month: syncProgress.month,
+              current: syncProgress.completed + 1,
+              total: syncProgress.total
+            })
+          }}
         </span>
-        <span v-else>Importing...</span>
+        <span v-else>{{ t('providers.importing') }}</span>
       </div>
 
       <!-- Error state -->
       <div v-else-if="syncState.status === 'error'" class="text-red-600">
         <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
-        <span>Error: {{ syncState.lastError }}</span>
+        <span>{{ t('providers.errorLabel', { message: syncState.lastError }) }}</span>
         <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">
-          Retry
+          {{ t('providers.retry') }}
         </button>
       </div>
 
@@ -51,12 +55,12 @@
         <p class="text-gray-700">
           <i class="fas fa-check-circle text-green-600 mr-2" aria-hidden="true"></i>
           <span v-if="syncState.initialImportDone">
-            Synced
+            {{ t('providers.synced') }}
             <span v-if="syncState.lastSyncDate" class="text-gray-500">
               · {{ formatLastSync(syncState.lastSyncDate) }}
             </span>
           </span>
-          <span v-else> Connected · Initial import pending </span>
+          <span v-else> {{ t('providers.connectedPending') }} </span>
         </p>
 
         <!-- Manual refresh button (polls Firestore for push data) -->
@@ -71,7 +75,7 @@
             :class="{ 'fa-spin': isRefreshing }"
             aria-hidden="true"
           ></i>
-          Refresh
+          {{ t('common.refresh') }}
         </button>
 
         <!-- Fetch last 10 days via backfill -->
@@ -85,7 +89,7 @@
             :class="{ 'fa-spin': isFetchingRecent }"
             aria-hidden="true"
           ></i>
-          Fetch last 10 days
+          {{ t('providers.fetchRecent') }}
         </button>
       </div>
     </div>
@@ -94,6 +98,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import {
@@ -134,6 +139,7 @@ const syncState = reactive<GarminSyncState>({
 
 const ctx = usePluginContext()
 const { notifications, plugins } = ctx
+const { t } = useI18n()
 
 let oauthChannel: BroadcastChannel | null = null
 
@@ -217,14 +223,17 @@ async function handleOAuthMessage(event: MessageEvent) {
   // Validate state (CSRF protection)
   const expectedState = sessionStorage.getItem('garmin_oauth_state')
   if (event.data.state !== expectedState) {
-    notifications.notify('OAuth security error (state mismatch)', { type: 'error' })
+    notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
     return
   }
   sessionStorage.removeItem('garmin_oauth_state')
 
   // Handle error from OAuth provider
   if (event.data.error) {
-    notifications.notify(`Garmin: ${event.data.error}`, { type: 'error' })
+    notifications.notify(
+      t('providers.notify.generic', { provider: 'Garmin', message: event.data.error }),
+      { type: 'error' }
+    )
     return
   }
 
@@ -234,7 +243,7 @@ async function handleOAuthMessage(event: MessageEvent) {
     try {
       const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
       if (!codeVerifier) {
-        notifications.notify('Error: PKCE verifier missing', { type: 'error' })
+        notifications.notify(t('providers.notify.pkceMissing'), { type: 'error' })
         return
       }
       sessionStorage.removeItem('garmin_pkce_verifier')
@@ -248,10 +257,12 @@ async function handleOAuthMessage(event: MessageEvent) {
       const syncManager = getGarminSyncManager()
       await syncManager.startInitialImportAsync()
 
-      notifications.notify('Garmin connected! Importing...', { type: 'info' })
+      notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), { type: 'info' })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Token exchange error'
-      notifications.notify(`Garmin: ${message}`, { type: 'error' })
+      notifications.notify(t('providers.notify.generic', { provider: 'Garmin', message }), {
+        type: 'error'
+      })
     }
   }
 }
@@ -259,7 +270,7 @@ async function handleOAuthMessage(event: MessageEvent) {
 function handlePopupBlocked() {
   isWaitingForOAuth.value = false
   showFallbackRedirect.value = true
-  notifications.notify('Popup blocked. Allow popups or use the fallback below.', {
+  notifications.notify(t('providers.notify.popupBlocked'), {
     type: 'warning'
   })
 }
@@ -323,9 +334,15 @@ async function disconnectGarmin() {
   isConnected.value = false
   Object.assign(syncState, await getSyncState())
 
-  notifications.notify(`Garmin disconnected. ${garminActivities.length} activities removed.`, {
-    type: 'info'
-  })
+  notifications.notify(
+    t('providers.notify.disconnected', {
+      provider: 'Garmin',
+      count: garminActivities.length
+    }),
+    {
+      type: 'info'
+    }
+  )
 }
 
 // ============================================================================
@@ -346,11 +363,19 @@ async function manualRefresh() {
   try {
     const syncManager = getGarminSyncManager()
     const count = await syncManager.dailyRefresh()
-    notifications.notify(`Garmin: ${count} activities synced`, { type: 'success' })
-  } catch (err: unknown) {
-    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
-      type: 'error'
+    notifications.notify(t('providers.notify.synced', { provider: 'Garmin', count }), {
+      type: 'success'
     })
+  } catch (err: unknown) {
+    notifications.notify(
+      t('providers.notify.generic', {
+        provider: 'Garmin',
+        message: err instanceof Error ? err.message : 'Error'
+      }),
+      {
+        type: 'error'
+      }
+    )
   } finally {
     isRefreshing.value = false
     Object.assign(syncState, await getSyncState())
@@ -362,11 +387,19 @@ async function fetchLast10Days() {
   try {
     const syncManager = getGarminSyncManager()
     const count = await syncManager.fetchRecentDays(10)
-    notifications.notify(`Garmin: ${count} activities fetched`, { type: 'success' })
-  } catch (err: unknown) {
-    notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
-      type: 'error'
+    notifications.notify(t('providers.notify.fetched', { provider: 'Garmin', count }), {
+      type: 'success'
     })
+  } catch (err: unknown) {
+    notifications.notify(
+      t('providers.notify.generic', {
+        provider: 'Garmin',
+        message: err instanceof Error ? err.message : 'Error'
+      }),
+      {
+        type: 'error'
+      }
+    )
   } finally {
     isFetchingRecent.value = false
     Object.assign(syncState, await getSyncState())
@@ -381,9 +414,17 @@ function handleSyncComplete(event: Event) {
   const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
 
   if (success) {
-    notifications.notify(`Garmin: ${count} activities imported`, { type: 'success' })
+    notifications.notify(t('providers.notify.imported', { provider: 'Garmin', count }), {
+      type: 'success'
+    })
   } else {
-    notifications.notify(`Garmin: ${error || 'Import error'}`, { type: 'error' })
+    notifications.notify(
+      t('providers.notify.generic', {
+        provider: 'Garmin',
+        message: error || t('providers.notify.importError')
+      }),
+      { type: 'error' }
+    )
   }
 
   // Clear progress and refresh state
@@ -443,14 +484,14 @@ onMounted(async () => {
   if (oauthError) {
     const message =
       oauthError === 'access_denied'
-        ? 'Garmin access denied. Please try again.'
-        : `Garmin OAuth error: ${oauthError}`
+        ? t('providers.notify.accessDenied', { provider: 'Garmin' })
+        : t('providers.notify.oauthError', { provider: 'Garmin', error: oauthError })
     notifications.notify(message, { type: 'error' })
     window.history.replaceState({}, '', window.location.pathname)
   } else if (code && state) {
     const expectedState = sessionStorage.getItem('garmin_oauth_state')
     if (state !== expectedState) {
-      notifications.notify('OAuth security error (state mismatch)', { type: 'error' })
+      notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
       sessionStorage.removeItem('garmin_oauth_state')
       sessionStorage.removeItem('garmin_pkce_verifier')
     } else {
@@ -470,11 +511,17 @@ onMounted(async () => {
         const syncManager = getGarminSyncManager()
         await syncManager.startInitialImportAsync()
 
-        notifications.notify('Garmin connected! Importing...', { type: 'info' })
+        notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), { type: 'info' })
       } catch (err: unknown) {
-        notifications.notify(`Garmin: ${err instanceof Error ? err.message : 'Error'}`, {
-          type: 'error'
-        })
+        notifications.notify(
+          t('providers.notify.generic', {
+            provider: 'Garmin',
+            message: err instanceof Error ? err.message : 'Error'
+          }),
+          {
+            type: 'error'
+          }
+        )
       }
     }
 

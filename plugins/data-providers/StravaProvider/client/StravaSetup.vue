@@ -12,18 +12,24 @@
     <div v-if="isConnected" class="mt-6 text-center" data-test="strava-status-section">
       <div v-if="syncState.status === 'syncing'" class="text-gray-600">
         <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
-        <span>Importing{{ syncProgress ? ` (${syncProgress} activities)` : '' }}...</span>
+        <span>{{
+          syncProgress
+            ? t('providers.importingCount', { count: syncProgress })
+            : t('providers.importing')
+        }}</span>
       </div>
       <div v-else-if="syncState.status === 'error'" class="text-red-600">
         <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
-        <span>Error: {{ syncState.lastError }}</span>
-        <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">Retry</button>
+        <span>{{ t('providers.errorLabel', { message: syncState.lastError }) }}</span>
+        <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">
+          {{ t('providers.retry') }}
+        </button>
       </div>
       <div v-else class="space-y-2">
         <p class="text-gray-700">
           <i class="fas fa-check-circle text-green-600 mr-2" aria-hidden="true"></i>
-          <span v-if="syncState.initialImportDone">Synced</span>
-          <span v-else>Connected · Import pending</span>
+          <span v-if="syncState.initialImportDone">{{ t('providers.synced') }}</span>
+          <span v-else>{{ t('providers.connectedPending') }}</span>
         </p>
         <button
           @click="manualRefresh"
@@ -32,7 +38,7 @@
           data-test="strava-refresh-button"
         >
           <i class="fas fa-sync-alt mr-1" :class="{ 'fa-spin': isRefreshing }" aria-hidden="true"></i>
-          Refresh
+          {{ t('common.refresh') }}
         </button>
       </div>
     </div>
@@ -41,6 +47,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { getTokens, deleteTokens, getSyncState, updateSyncState, type StravaSyncState } from './storage'
@@ -70,6 +77,7 @@ const syncState = reactive<StravaSyncState>({
 
 const ctx = usePluginContext()
 const { notifications, plugins } = ctx
+const { t } = useI18n()
 
 function buildAuthUrl(state: string): string {
   const redirectUri = `${window.location.origin}/oauth/strava/callback`
@@ -121,13 +129,16 @@ async function handleOAuthMessage(event: MessageEvent) {
 
   const expectedState = sessionStorage.getItem('strava_oauth_state')
   if (event.data.state !== expectedState) {
-    notifications.notify('OAuth security error (state mismatch)', { type: 'error' })
+    notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
     return
   }
   sessionStorage.removeItem('strava_oauth_state')
 
   if (event.data.error) {
-    notifications.notify(`Strava: ${event.data.error}`, { type: 'error' })
+    notifications.notify(
+      t('providers.notify.generic', { provider: 'Strava', message: event.data.error }),
+      { type: 'error' }
+    )
     return
   }
 
@@ -141,9 +152,15 @@ async function completeConnection(code: string | null) {
     isConnected.value = true
     await plugins.enablePlugin('strava')
     getStravaSyncManager().startInitialImportAsync()
-    notifications.notify('Strava connected! Importing...', { type: 'info' })
+    notifications.notify(t('providers.notify.connected', { provider: 'Strava' }), { type: 'info' })
   } catch (err: unknown) {
-    notifications.notify(`Strava: ${err instanceof Error ? err.message : 'Error'}`, { type: 'error' })
+    notifications.notify(
+      t('providers.notify.generic', {
+        provider: 'Strava',
+        message: err instanceof Error ? err.message : 'Error'
+      }),
+      { type: 'error' }
+    )
   }
 }
 
@@ -169,9 +186,15 @@ async function disconnectStrava() {
   })
   isConnected.value = false
   Object.assign(syncState, await getSyncState())
-  notifications.notify(`Strava disconnected. ${stravaActivities.length} activities removed.`, {
-    type: 'info'
-  })
+  notifications.notify(
+    t('providers.notify.disconnected', {
+      provider: 'Strava',
+      count: stravaActivities.length
+    }),
+    {
+      type: 'info'
+    }
+  )
 }
 
 async function retryImport() {
@@ -184,9 +207,17 @@ async function manualRefresh() {
   isRefreshing.value = true
   try {
     const count = await getStravaSyncManager().dailyRefresh()
-    notifications.notify(`Strava: ${count} activities synced`, { type: 'success' })
+    notifications.notify(t('providers.notify.synced', { provider: 'Strava', count }), {
+      type: 'success'
+    })
   } catch (err: unknown) {
-    notifications.notify(`Strava: ${err instanceof Error ? err.message : 'Error'}`, { type: 'error' })
+    notifications.notify(
+      t('providers.notify.generic', {
+        provider: 'Strava',
+        message: err instanceof Error ? err.message : 'Error'
+      }),
+      { type: 'error' }
+    )
   } finally {
     isRefreshing.value = false
     Object.assign(syncState, await getSyncState())
@@ -196,7 +227,12 @@ async function manualRefresh() {
 function handleSyncComplete(event: Event) {
   const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
   notifications.notify(
-    success ? `Strava: ${count} activities imported` : `Strava: ${error || 'Import error'}`,
+    success
+      ? t('providers.notify.imported', { provider: 'Strava', count })
+      : t('providers.notify.generic', {
+          provider: 'Strava',
+          message: error || t('providers.notify.importError')
+        }),
     { type: success ? 'success' : 'error' }
   )
   syncProgress.value = null

@@ -2,11 +2,11 @@
   <div class="oauth-callback">
     <div v-if="status === 'processing'" class="status">
       <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-      <span>Connecting...</span>
+      <span>{{ t('providers.callback.connecting') }}</span>
     </div>
     <div v-else-if="status === 'success'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
-      <span>Connected! Closing...</span>
+      <span>{{ t('providers.callback.closing') }}</span>
     </div>
     <div v-else-if="status === 'error'" class="status error">
       <i class="fas fa-times-circle" aria-hidden="true"></i>
@@ -14,13 +14,16 @@
     </div>
     <div v-else-if="status === 'broadcast'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
-      <span>Connected! Redirecting...</span>
+      <span>{{ t('providers.callback.redirecting') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const status = ref<'processing' | 'success' | 'error' | 'broadcast'>('processing')
 const errorMessage = ref('Authentication error')
@@ -32,13 +35,15 @@ onMounted(() => {
   const error = params.get('error')
 
   if (!code && !error) {
-    errorMessage.value = 'Missing OAuth parameters'
+    errorMessage.value = t('providers.callback.missingParams')
     status.value = 'error'
     return
   }
   if (error) {
     errorMessage.value =
-      error === 'access_denied' ? 'Access denied. You can try again.' : `OAuth error: ${error}`
+      error === 'access_denied'
+        ? t('providers.callback.accessDenied')
+        : t('providers.callback.oauthError', { error })
   }
 
   const payload = { type: 'strava-oauth-callback', code, state, error }

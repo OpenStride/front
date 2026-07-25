@@ -261,12 +261,14 @@
   "dataProviders": {
     "title": "Fournisseurs de données connectés",
     "available": "Fournisseurs disponibles",
-    "noProviders": "Aucun fournisseur connecté."
+    "noProviders": "Aucun fournisseur connecté.",
+    "myProviders": "Mes sources de données"
   },
   "storageProviders": {
     "title": "Plugins de stockage connectés",
     "available": "Plugins disponibles",
-    "noPlugins": "Aucun plugin de stockage connecté."
+    "noPlugins": "Aucun plugin de stockage connecté.",
+    "myPlugins": "Mes sauvegardes cloud"
   },
   "appExtensions": {
     "title": "Extensions d'application",
@@ -311,6 +313,43 @@
       "reconnect": "Reconnecter {provider}",
       "disconnect": "Déconnecter",
       "connecting": "Connexion..."
+    },
+    "importing": "Import en cours…",
+    "importingCount": "Import en cours ({count} activités)…",
+    "importProgress": "Import de {month} ({current}/{total})",
+    "synced": "Synchronisé",
+    "connectedPending": "Connecté · Import en attente",
+    "retry": "Réessayer",
+    "fetchRecent": "Récupérer les 10 derniers jours",
+    "errorLabel": "Erreur : {message}",
+    "popup": {
+      "blocked": "La popup a été bloquée. Autorisez les popups ou utilisez la méthode alternative.",
+      "connectViaRedirect": "Se connecter par redirection",
+      "samsungWarning": "Sur Samsung Android, la redirection peut ouvrir un autre navigateur."
+    },
+    "notify": {
+      "connected": "{provider} connecté ! Import en cours…",
+      "disconnected": "{provider} déconnecté. {count} activités supprimées.",
+      "synced": "{provider} : {count} activités synchronisées",
+      "fetched": "{provider} : {count} activités récupérées",
+      "imported": "{provider} : {count} activités importées",
+      "importError": "Erreur d'import",
+      "stateMismatch": "Erreur de sécurité OAuth (state invalide)",
+      "popupBlocked": "Popup bloquée. Autorisez les popups ou utilisez l'option ci-dessous.",
+      "pkceMissing": "Erreur : vérificateur PKCE manquant",
+      "accessDenied": "Accès {provider} refusé. Veuillez réessayer.",
+      "oauthError": "Erreur OAuth {provider} : {error}",
+      "generic": "{provider} : {message}"
+    },
+    "callback": {
+      "connecting": "Connexion…",
+      "closing": "Connecté ! Fermeture…",
+      "redirecting": "Connecté ! Redirection…",
+      "missingParams": "Paramètres OAuth manquants",
+      "accessDenied": "Accès refusé. Vous pouvez réessayer depuis la page de configuration.",
+      "oauthError": "Erreur OAuth : {error}",
+      "wrongBrowser": "Cette page s'est ouverte dans un autre navigateur.",
+      "wrongBrowserHint": "Retournez sur votre navigateur principal (Chrome) et réessayez."
     }
   },
   "update": {
