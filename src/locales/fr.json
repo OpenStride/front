@@ -119,7 +119,41 @@
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
     "myActivities": "Mes activités",
-    "statistics": "Statistiques"
+    "statistics": "Statistiques",
+    "metricTracker": "Suivi de métriques"
+  },
+  "metricTracker": {
+    "title": "Suivi de métriques",
+    "metric": "Métrique",
+    "granularity": "Granularité",
+    "sport": "Sport",
+    "allSports": "Tous les sports",
+    "noData": "Aucune donnée disponible",
+    "noDataHint": "Importez des activités pour suivre vos métriques",
+    "noPoints": "Aucune valeur pour cette métrique",
+    "noPointsHint": "Aucune de vos activités ne porte cette donnée sur la sélection en cours",
+    "loadingStats": "Chargement des données détaillées...",
+    "granularities": {
+      "activity": "Par sortie",
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
+    },
+    "metrics": {
+      "distance": "Distance",
+      "duration": "Durée",
+      "pace": "Allure",
+      "speed": "Vitesse moyenne",
+      "maxHeartRate": "FC max",
+      "avgHeartRate": "FC moyenne",
+      "totalAscent": "Dénivelé +",
+      "calories": "Calories"
+    },
+    "summary": {
+      "best": "Meilleur",
+      "average": "Moyenne",
+      "points": "Points"
+    }
   },
   "profile": {
     "createProfile": "Créer un Profil",

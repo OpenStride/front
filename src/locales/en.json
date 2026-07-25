@@ -119,7 +119,41 @@
     "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
     "myActivities": "My Activities",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "metricTracker": "Metric Tracker"
+  },
+  "metricTracker": {
+    "title": "Metric Tracker",
+    "metric": "Metric",
+    "granularity": "Granularity",
+    "sport": "Sport",
+    "allSports": "All sports",
+    "noData": "No data available",
+    "noDataHint": "Import activities to track your metrics",
+    "noPoints": "No value for this metric",
+    "noPointsHint": "None of your activities carries this data for the current selection",
+    "loadingStats": "Loading detailed data...",
+    "granularities": {
+      "activity": "Per outing",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "metrics": {
+      "distance": "Distance",
+      "duration": "Duration",
+      "pace": "Pace",
+      "speed": "Average speed",
+      "maxHeartRate": "Max HR",
+      "avgHeartRate": "Avg HR",
+      "totalAscent": "Elevation +",
+      "calories": "Calories"
+    },
+    "summary": {
+      "best": "Best",
+      "average": "Average",
+      "points": "Points"
+    }
   },
   "profile": {
     "createProfile": "Create a Profile",
