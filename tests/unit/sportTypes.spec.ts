@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { SPORT_TYPES, isSportType } from '@/types/sport'
+import { SPORT_ICONS } from '@/utils/sportLabels'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
 import { mapGarminSport } from '../../plugins/data-providers/GarminProvider/client/sportTypes'
@@ -40,5 +41,38 @@ describe('provider sport mappers return canonical SportTypes', () => {
     expect(mapStravaSport('MountainBikeRide')).toBe('mountain_biking')
     expect(mapStravaSport('Nonsense')).toBe('other')
     expect(isSportType(mapStravaSport('Ride'))).toBe(true)
+  })
+})
+
+describe('sport icon coverage', () => {
+  // SportTypes with no dedicated FA6 Free icon — they intentionally use the
+  // fa-medal fallback. Adding a SportType forces a deliberate choice here:
+  // give it an icon in SPORT_ICONS, or add it to this list.
+  const EXPECTED_FALLBACK = [
+    'indoor_climbing',
+    'elliptical',
+    'snowmobiling',
+    'cricket',
+    'lacrosse',
+    'disc_sports',
+    'badminton',
+    'padel',
+    'pickleball',
+    'racquetball',
+    'squash',
+    'tennis',
+    'skateboarding',
+    'other'
+  ]
+
+  it('every SportType has an icon except the documented fallback set', () => {
+    const withoutIcon = SPORT_TYPES.filter(slug => !(slug in SPORT_ICONS)).sort()
+    expect(withoutIcon).toEqual([...EXPECTED_FALLBACK].sort())
+  })
+
+  it('has no icons for unknown (non-SportType) slugs', () => {
+    for (const slug of Object.keys(SPORT_ICONS)) {
+      expect(isSportType(slug), `SPORT_ICONS has non-SportType key "${slug}"`).toBe(true)
+    }
   })
 })
