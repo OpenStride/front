@@ -18,7 +18,7 @@
     "deploy:firebase": "firebase deploy --only hosting"
   },
   "dependencies": {
-    "@capacitor/core": "^7.6.8",
+    "@capacitor/core": "^8.4.2",
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-vue": "^5.2.3",
