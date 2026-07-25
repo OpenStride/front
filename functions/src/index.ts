@@ -34,12 +34,9 @@ interface ProviderConfig {
 }
 
 const PULL_PROVIDERS: Record<string, ProviderConfig> = {
-  strava: {
-    tokenUrl: 'https://www.strava.com/oauth/token',
-    apiBase: 'https://www.strava.com/api/v3',
-    clientId: () => process.env.STRAVA_CLIENT_ID,
-    clientSecret: () => process.env.STRAVA_CLIENT_SECRET
-  }
+  // Add OAuth2 REST pull providers here (e.g. Fitbit, Oura). Strava is NOT here:
+  // it's a client-side ZIP-export import (its API terms are incompatible with
+  // OpenStride), so it needs no relay.
 }
 
 const GARMIN_API = 'https://apis.garmin.com'

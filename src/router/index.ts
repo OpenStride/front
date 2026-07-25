@@ -8,7 +8,6 @@ import LegalPage from '@/views/LegalPage.vue'
 import CGUPage from '@/views/CGUPage.vue'
 import Callback from '@/views/Callback.vue'
 import GarminOAuthCallback from '@/views/GarminOAuthCallback.vue'
-import StravaOAuthCallback from '@/views/StravaOAuthCallback.vue'
 import FriendsPage from '@/views/FriendsPage.vue'
 import AddFriendPage from '@/views/AddFriendPage.vue'
 import { getActivityService } from '@/services/ActivityService'
@@ -24,11 +23,6 @@ const routes = [
     path: '/oauth/garmin/callback',
     name: 'GarminOAuthCallback',
     component: GarminOAuthCallback
-  },
-  {
-    path: '/oauth/strava/callback',
-    name: 'StravaOAuthCallback',
-    component: StravaOAuthCallback
   },
   { path: '/friends', component: FriendsPage },
   {
