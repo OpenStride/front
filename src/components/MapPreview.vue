@@ -86,7 +86,7 @@ onMounted(() => {
 
     // Start marker: white dot ringed with ink
     L.circleMarker(latlngs[0], {
-      radius: 6,
+      radius: 5,
       color: ink,
       weight: 3,
       fillColor: white,
@@ -95,7 +95,7 @@ onMounted(() => {
 
     // End marker: solid ink dot with a thin white ring
     L.circleMarker(latlngs[latlngs.length - 1], {
-      radius: 6,
+      radius: 5,
       color: white,
       weight: 2,
       fillColor: ink,
