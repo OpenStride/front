@@ -193,6 +193,11 @@ function onFiltersChange(newFilters: ActivityFilters) {
 .my-activities {
   max-width: 600px;
   margin: 2rem auto;
+  /* One rhythm for the whole column: the search row, the filter panel and the
+     list are spaced like the cards are spaced between themselves */
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 .my-activities:first-child {
   margin-top: 0;
@@ -201,13 +206,12 @@ function onFiltersChange(newFilters: ActivityFilters) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .result-count {
   font-size: 0.85rem;
   color: var(--color-gray-500);
-  margin: 0.75rem 0 0.25rem;
+  margin: 0;
 }
 
 .slide-enter-active,
@@ -220,13 +224,11 @@ function onFiltersChange(newFilters: ActivityFilters) {
 .slide-leave-to {
   opacity: 0;
   max-height: 0;
-  margin-top: 0;
 }
 
 .slide-enter-to,
 .slide-leave-from {
   opacity: 1;
   max-height: 500px;
-  margin-top: 0.75rem;
 }
 </style>

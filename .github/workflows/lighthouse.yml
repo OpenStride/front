@@ -29,7 +29,7 @@ jobs:
         with:
           urls: |
             https://openstride.org
-            https://openstride.org/activities
+            https://openstride.org/my-activities
           uploadArtifacts: true
           temporaryPublicStorage: true
           runs: 3
@@ -59,7 +59,7 @@ jobs:
 
             **Tested URLs:**
             - https://openstride.org
-            - https://openstride.org/activities
+            - https://openstride.org/my-activities
 
             ---
             *View detailed reports in workflow artifacts*`;
