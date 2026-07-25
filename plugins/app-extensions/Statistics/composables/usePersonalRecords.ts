@@ -1,6 +1,7 @@
 import { ref, watch, type Ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
+import type { PluginContext } from '@/types/plugin-context'
 import {
   getRecordPeriodRange,
   toMs,
@@ -31,6 +32,38 @@ const PR_LABELS: Record<number, string> = {
 
 function cacheKey(sport: string): string {
   return `statistics_pr_cache_${sport || 'all'}`
+}
+
+// exportDB('activity_details') deserializes the samples of the whole history. Below this many
+// activities, reading only the ones we need is cheaper and keeps short periods instant.
+const TARGETED_FETCH_MAX = 150
+
+// Parallel reads per batch when fetching details one by one
+const FETCH_BATCH_SIZE = 25
+
+async function loadDetails(
+  ctx: PluginContext,
+  acts: Activity[]
+): Promise<Map<string, ActivityDetails>> {
+  const detailsMap = new Map<string, ActivityDetails>()
+
+  if (acts.length > TARGETED_FETCH_MAX) {
+    const allDetails = (await ctx.storage.exportDB('activity_details')) as ActivityDetails[]
+    for (const d of allDetails) {
+      detailsMap.set(d.id, d)
+    }
+    return detailsMap
+  }
+
+  for (let i = 0; i < acts.length; i += FETCH_BATCH_SIZE) {
+    const batch = acts.slice(i, i + FETCH_BATCH_SIZE)
+    const loaded = await Promise.all(batch.map(a => ctx.activity.getDetails(a.id)))
+    for (const d of loaded) {
+      if (d) detailsMap.set(d.id, d)
+    }
+  }
+
+  return detailsMap
 }
 
 function inRange(activity: Activity, range: RecordPeriodRange): boolean {
@@ -109,14 +142,8 @@ export function usePersonalRecords(
     progress.value = 0
 
     try {
-      // Load all activity_details in one batch
-      const allDetails = (await ctx.storage.exportDB('activity_details')) as ActivityDetails[]
+      const detailsMap = await loadDetails(ctx, acts)
       if (run !== currentRun) return
-
-      const detailsMap = new Map<string, ActivityDetails>()
-      for (const d of allDetails) {
-        detailsMap.set(d.id, d)
-      }
 
       const best = new Map<number, PersonalRecord>()
       const chunkSize = 20
