@@ -1,5 +1,11 @@
 <template>
-  <div v-if="sharingPluginActive" class="interaction-bar">
+  <div
+    v-if="
+      sharingPluginActive &&
+      (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
+    "
+    class="interaction-bar"
+  >
     <!-- Counters -->
     <div class="interaction-counters">
       <span v-if="summary.likeCount > 0" class="counter like-counter">
@@ -12,8 +18,8 @@
       </span>
     </div>
 
-    <!-- Action buttons -->
-    <div class="interaction-actions">
+    <!-- Action buttons (hidden on your own activity — you can't like/comment it) -->
+    <div v-if="!isMyActivity" class="interaction-actions">
       <button
         @click="toggleLike"
         :class="['action-btn', 'like-btn', { liked: summary.hasLiked }]"
@@ -65,11 +71,6 @@
       </div>
     </div>
 
-    <!-- Info message for own activity (read-only mode) -->
-    <div v-if="isMyActivity" class="info-message">
-      <i class="fas fa-eye" aria-hidden="true"></i>
-      <span>Interactions reçues sur votre activité</span>
-    </div>
     <!-- Mutual friendship required message -->
     <div v-else-if="needsMutualFriendship && showWarning" class="mutual-required-message">
       <i class="fas fa-user-friends" aria-hidden="true"></i>
@@ -412,22 +413,6 @@ onUnmounted(() => {
 }
 
 /* Messages : discrets, pas de boîtes criardes */
-.info-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-condensed);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.info-message i {
-  color: var(--color-green-500);
-}
-
 .warning-message {
   display: flex;
   align-items: center;
