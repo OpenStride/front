@@ -333,6 +333,12 @@
     "retry": "Réessayer",
     "fetchRecent": "Récupérer les 10 derniers jours",
     "errorLabel": "Erreur : {message}",
+    "lastSync": {
+      "justNow": "à l'instant",
+      "minutes": "il y a {n} min",
+      "hours": "il y a {n} h",
+      "days": "il y a {n} j"
+    },
     "popup": {
       "blocked": "La popup a été bloquée. Autorisez les popups ou utilisez la méthode alternative.",
       "connectViaRedirect": "Se connecter par redirection",

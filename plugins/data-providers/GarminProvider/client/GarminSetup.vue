@@ -459,10 +459,10 @@ function formatLastSync(timestamp: number): string {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return 'a few seconds ago'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
+  if (minutes < 1) return t('providers.lastSync.justNow')
+  if (minutes < 60) return t('providers.lastSync.minutes', { n: minutes })
+  if (hours < 24) return t('providers.lastSync.hours', { n: hours })
+  return t('providers.lastSync.days', { n: days })
 }
 
 // ============================================================================
