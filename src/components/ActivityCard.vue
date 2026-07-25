@@ -234,6 +234,8 @@ const showDetails = () => {
 .acard__hero {
   position: relative;
   height: 186px;
+  /* Contain the map/chip z-indexes so they never rise above the sticky header */
+  isolation: isolate;
 }
 .acard__map {
   width: 100%;

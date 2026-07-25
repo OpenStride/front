@@ -197,6 +197,8 @@ const secondaryStats = computed<Stat[]>(() => {
 .atb__hero {
   position: relative;
   height: 260px;
+  /* Contain the map z-indexes so they never rise above the sticky header */
+  isolation: isolate;
 }
 .atb__map {
   width: 100%;
