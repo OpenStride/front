@@ -1,8 +1,10 @@
-// Strava sport_type (PascalCase) → OpenStride sport slug.
+import type { SportType } from '@/types/sport'
+
+// Strava sport_type (PascalCase) → OpenStride SportType.
 // Ported from Strava's SportType reference; slugs match the Garmin provider's so
-// icons/labels/filters are shared. Unknown → 'other'.
+// icons/labels/filters are shared (compiler-checked). Unknown → 'other'.
 // Source: https://developers.strava.com/docs/reference/#api-models-SportType
-const STRAVA_SPORT_MAP: Record<string, string> = {
+const STRAVA_SPORT_MAP: Record<string, SportType> = {
   // Running
   Run: 'running',
   TrailRun: 'trail_running',
@@ -65,8 +67,8 @@ const STRAVA_SPORT_MAP: Record<string, string> = {
   Wheelchair: 'wheelchair'
 }
 
-/** Map a Strava sport_type (or legacy type) to an OpenStride sport slug. */
-export function mapStravaSport(sportType: unknown): string {
+/** Map a Strava sport_type (or legacy type) to an OpenStride SportType. */
+export function mapStravaSport(sportType: unknown): SportType {
   if (typeof sportType !== 'string' || !sportType) return 'other'
   return STRAVA_SPORT_MAP[sportType] ?? 'other'
 }

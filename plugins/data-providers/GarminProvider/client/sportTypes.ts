@@ -1,10 +1,12 @@
-// Garmin activityType → OpenStride sport slug.
+import type { SportType } from '@/types/sport'
+
+// Garmin activityType → OpenStride SportType.
 //
 // Ported from Garmin's Health API Specification, Appendix A (activity types).
-// Garmin exposes ~150 granular types; we collapse them onto clean snake_case
-// slugs that `formatSportType` humanises for display and that drive icons/filters.
-// _V2 variants map to the same slug as their base. Unknown types → 'other'.
-const GARMIN_SPORT_MAP: Record<string, string> = {
+// Garmin exposes ~150 granular types; we collapse them onto the canonical
+// SportType vocabulary (compiler-checked). _V2 variants map to the same slug as
+// their base. Unknown types → 'other'.
+const GARMIN_SPORT_MAP: Record<string, SportType> = {
   // Running
   RUNNING: 'running',
   INDOOR_RUNNING: 'treadmill_running',
@@ -139,7 +141,7 @@ const GARMIN_SPORT_MAP: Record<string, string> = {
  * Map a raw Garmin activityType to an OpenStride sport slug.
  * Handles _V2 variants and unknown values (→ 'other').
  */
-export function mapGarminSport(activityType: unknown): string {
+export function mapGarminSport(activityType: unknown): SportType {
   if (typeof activityType !== 'string' || !activityType) return 'other'
   const normalized = activityType.toUpperCase().trim().replace(/_V2$/, '')
   return GARMIN_SPORT_MAP[normalized] ?? 'other'
