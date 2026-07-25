@@ -111,15 +111,24 @@ function getColorFromCadence(c: number, min: number, max: number): string {
 
 /* ===== Dessin du graphique ===== */
 function drawCanvas() {
-  const ctx = canvas.value?.getContext('2d')
-  if (!ctx || samples.value.length === 0) return
+  const el = canvas.value
+  const ctx = el?.getContext('2d')
+  if (!el || !ctx || samples.value.length === 0) return
 
-  const W = canvas.value!.width
-  const H = canvas.value!.height
+  // Responsive: size the backing store to the actual display size (× DPR for
+  // crispness) and draw in CSS pixels, so the chart holds at any width / zoom.
+  const dpr = window.devicePixelRatio || 1
+  const W = el.clientWidth || 800
+  // Height follows the width (~2:1) instead of a fixed value, so the chart keeps
+  // a pleasant aspect on narrow/mobile widths instead of looking stretched.
+  const H = Math.round(Math.min(360, Math.max(200, W * 0.52)))
+  el.width = Math.round(W * dpr)
+  el.height = Math.round(H * dpr)
+  el.style.height = `${H}px`
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, W, H)
 
-  // Fixed 800px backing store scaled by CSS → scale the axis font to ~12px effective
-  const axisFont = `${Math.round(12 * (W / (canvas.value!.clientWidth || W)))}px sans-serif`
+  const axisFont = '12px sans-serif'
 
   /* === Cadence min / max === */
   const cadences = samples.value.map(s => s.cadence ?? 0)
@@ -267,15 +276,23 @@ function onUseSlopeChange() {
   savePrefs()
   resample()
 }
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
   await loadPrefs()
   await resample()
   canvas.value?.addEventListener('click', showTooltip)
   canvas.value?.addEventListener('touchstart', showTooltip)
+
+  // Redraw when the container width changes (window resize / browser zoom)
+  resizeObserver = new ResizeObserver(() => drawCanvas())
+  if (canvas.value) resizeObserver.observe(canvas.value)
 })
 onBeforeUnmount(() => {
   canvas.value?.removeEventListener('click', showTooltip)
   canvas.value?.removeEventListener('touchstart', showTooltip)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 </script>
 

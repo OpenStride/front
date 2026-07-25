@@ -141,15 +141,23 @@ function getColorFromSpeed(speed: number, min: number, max: number): string {
 }
 
 function drawCanvas() {
-  const ctx = canvas.value?.getContext('2d')
-  if (!ctx || samples.value.length === 0) return
+  const el = canvas.value
+  const ctx = el?.getContext('2d')
+  if (!el || !ctx || samples.value.length === 0) return
 
-  const width = canvas.value!.width
-  const height = canvas.value!.height
+  // Responsive: size the backing store to the actual display size (× DPR for
+  // crispness) and draw in CSS pixels, so the chart holds at any width / zoom.
+  const dpr = window.devicePixelRatio || 1
+  const width = el.clientWidth || 800
+  // Height follows the width (~2:1) instead of a fixed value, so the chart keeps
+  // a pleasant aspect on narrow/mobile widths instead of looking stretched.
+  const height = Math.round(Math.min(360, Math.max(200, width * 0.52)))
+  el.width = Math.round(width * dpr)
+  el.height = Math.round(height * dpr)
+  el.style.height = `${height}px`
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-  // The canvas backing store is fixed (800px) but scaled to the container by CSS.
-  // Scale the axis font so it renders at ~12px effective, like the Chart.js graphs.
-  const axisFont = `${Math.round(12 * (width / (canvas.value!.clientWidth || width)))}px sans-serif`
+  const axisFont = '12px sans-serif'
   ctx.font = axisFont
 
   // Left margin sized to fit the widest "mm:ss" pace label so the bars never
@@ -429,17 +437,25 @@ function segmentDistance(sample: Sample, i = samples.value.indexOf(sample)) {
   return (sample.distance ?? 0) - (samples.value[i - 1].distance ?? 0)
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
   await loadPreferences()
   await resample()
 
   canvas.value?.addEventListener('click', showTooltip)
   canvas.value?.addEventListener('touchstart', showTooltip)
+
+  // Redraw when the container width changes (window resize / browser zoom)
+  resizeObserver = new ResizeObserver(() => drawCanvas())
+  if (canvas.value) resizeObserver.observe(canvas.value)
 })
 
 onBeforeUnmount(() => {
   canvas.value?.removeEventListener('click', showTooltip)
   canvas.value?.removeEventListener('touchstart', showTooltip)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 </script>
 
