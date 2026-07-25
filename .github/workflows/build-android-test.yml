@@ -1,0 +1,77 @@
+name: Build Android (test APK)
+
+# Manually-triggered build of an UNSIGNED DEBUG APK you can sideload onto your
+# own phone to test — no Play Store, no signing secrets required.
+#
+# How to use:
+#   1. GitHub → Actions → "Build Android (test APK)" → Run workflow (this branch).
+#   2. When it finishes, open the run → download the "openstride-debug-apk" artifact.
+#   3. Unzip, transfer app-debug.apk to your phone, enable "install unknown apps",
+#      and open it to install.
+
+on:
+  # Runs automatically on every push to this branch (so it works without the
+  # workflow being on the default branch), plus a manual trigger.
+  push:
+    branches: [feat/health-native]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Setup Java (JDK 21 — required by Capacitor 7)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Add Capacitor Android + health plugin
+        run: |
+          npm install @capacitor/cli@^7 @capacitor/android@^7 capacitor-health
+          cp ci/capacitor.config.json capacitor.config.json
+          npx cap add android
+          npx cap sync android
+
+      - name: Bump minSdk to 26 (Health Connect requirement)
+        run: |
+          sed -i 's/minSdkVersion = .*/minSdkVersion = 26/' android/variables.gradle
+          cat android/variables.gradle
+
+      - name: Declare Health Connect permissions in the manifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n</manifest>|' "$MANIFEST"
+          echo "--- patched manifest ---"; cat "$MANIFEST"
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstride-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
