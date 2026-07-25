@@ -14,6 +14,9 @@ import {
 } from '@plugins/app-extensions/MetricTracker/metrics'
 import {
   GRANULARITIES,
+  WINDOWS,
+  availableWindows,
+  bucketEstimate,
   needsDetails,
   needsIndex,
   type DerivedMap,
@@ -322,6 +325,41 @@ describe('trendLine', () => {
     )
 
     expect(trendLine(points)).toHaveLength(points.length)
+  })
+})
+
+describe('availableWindows', () => {
+  it('offers every window when the points come one per outing', () => {
+    expect(availableWindows('activity')).toEqual(WINDOWS)
+  })
+
+  it('offers every window on weekly buckets', () => {
+    // Even three months of weeks is a dozen points
+    expect(availableWindows('week')).toEqual(WINDOWS)
+  })
+
+  it('keeps monthly buckets down to three months', () => {
+    expect(availableWindows('month')).toEqual(WINDOWS)
+    expect(bucketEstimate('3m', 'month')).toBe(3)
+  })
+
+  it('leaves yearly buckets nothing but the open window', () => {
+    // A year bucket over twelve months is a single point, not a series
+    expect(availableWindows('year')).toEqual(['all'])
+    expect(bucketEstimate('12m', 'year')).toBeLessThan(3)
+  })
+
+  it('always keeps the open window available', () => {
+    for (const granularity of GRANULARITIES) {
+      expect(availableWindows(granularity)).toContain('all')
+      expect(bucketEstimate('all', granularity)).toBe(Infinity)
+    }
+  })
+
+  it('never restricts a per-outing series, whose density comes from the data', () => {
+    for (const window of WINDOWS) {
+      expect(bucketEstimate(window, 'activity')).toBe(Infinity)
+    }
   })
 })
 

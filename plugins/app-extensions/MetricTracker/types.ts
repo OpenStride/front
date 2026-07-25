@@ -20,6 +20,41 @@ export function windowRange(id: WindowId, now: Date = new Date()): TimeRange {
   return id === 'all' ? openRange() : rollingRange({ months: WINDOW_MONTHS[id] }, now)
 }
 
+/** Buckets a granularity carves out of one month */
+const BUCKETS_PER_MONTH: Record<Exclude<Granularity, 'activity'>, number> = {
+  week: 30.44 / 7,
+  month: 1,
+  year: 1 / 12
+}
+
+/**
+ * Below three points a trend means nothing: two points only ever describe the
+ * line through themselves.
+ */
+const MIN_BUCKETS = 3
+
+/**
+ * How many points a window would yield at this granularity.
+ *
+ * Infinite for anything unbounded — an open window, or a per-outing series
+ * whose point count depends on the data rather than on the calendar.
+ */
+export function bucketEstimate(window: WindowId, granularity: Granularity): number {
+  if (window === 'all' || granularity === 'activity') return Infinity
+  return WINDOW_MONTHS[window] * BUCKETS_PER_MONTH[granularity]
+}
+
+/**
+ * Windows worth offering at this granularity.
+ *
+ * Yearly buckets over three months collapse to a single point, which reads as
+ * a broken chart rather than as an empty one. Offering only what can produce a
+ * readable series beats letting the pair be picked and then explaining it.
+ */
+export function availableWindows(granularity: Granularity): WindowId[] {
+  return WINDOWS.filter(w => bucketEstimate(w, granularity) >= MIN_BUCKETS)
+}
+
 /** How the per-activity values of a bucket collapse into a single point */
 export type PeriodOp = 'sum' | 'avg' | 'min' | 'max' | 'ratio'
 

@@ -118,6 +118,7 @@ import { DIRECT_METRICS, DERIVED_METRICS, getMetric, hasMetric } from '../metric
 import {
   GRANULARITIES,
   WINDOWS,
+  availableWindows,
   needsDetails,
   needsIndex,
   windowRange,
@@ -157,7 +158,13 @@ const selectedGranularity = ref<Granularity>(
   isGranularity(queryGranularity) ? queryGranularity : 'activity'
 )
 const selectedSport = ref(typeof route.query.sport === 'string' ? route.query.sport : '')
-const selectedWindow = ref<WindowId>(isWindow(route.query.window) ? route.query.window : 'all')
+
+// A hand-edited or stale link can pair a window with a granularity that cannot
+// carry it, and the watcher below only fires on later changes
+const linkedWindow = isWindow(route.query.window) ? route.query.window : 'all'
+const selectedWindow = ref<WindowId>(
+  availableWindows(selectedGranularity.value).includes(linkedWindow) ? linkedWindow : 'all'
+)
 
 const metric = computed(() => getMetric(selectedMetricId.value))
 
@@ -171,8 +178,10 @@ const granularityOptions = computed(() =>
   GRANULARITIES.map(value => ({ value, label: t(`metricTracker.granularities.${value}`) }))
 )
 
+const openWindows = computed(() => availableWindows(selectedGranularity.value))
+
 const windowOptions = computed(() =>
-  WINDOWS.map(value => ({ value, label: t(`metricTracker.windows.${value}`) }))
+  openWindows.value.map(value => ({ value, label: t(`metricTracker.windows.${value}`) }))
 )
 
 const sportChoices = computed(() => [
@@ -187,6 +196,12 @@ const filteredActivities = computed(() => {
       (!selectedSport.value || a.type?.toLowerCase() === selectedSport.value) &&
       inRange(a.startTime, range)
   )
+})
+
+// A coarser granularity can drop the current window — fall back to the widest
+// rather than silently plotting one lone point
+watch(openWindows, windows => {
+  if (!windows.includes(selectedWindow.value)) selectedWindow.value = 'all'
 })
 
 const sources = computed(() => ({ stats: stats.value, derived: derived.value }))
