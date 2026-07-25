@@ -140,6 +140,8 @@
       "direct": "Données de séance",
       "bestTimes": "Meilleurs temps"
     },
+    "window": "Fenêtre",
+    "windows": { "all": "Tout", "12m": "12 mois", "6m": "6 mois", "3m": "3 mois" },
     "granularities": {
       "activity": "Par sortie",
       "week": "Semaine",

@@ -37,7 +37,7 @@ import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
 import { toMs } from '../types'
 import type { PeriodGranularity, PeriodData } from '../types'
-import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
+import { periodKey } from '@/utils/dateKeys'
 
 const { t } = useI18n()
 
@@ -53,14 +53,8 @@ const countCanvas = ref<HTMLCanvasElement | null>(null)
 let distanceChart: Chart | null = null
 let countChart: Chart | null = null
 
-function getYearKey(date: Date): string {
-  return `${date.getFullYear()}`
-}
-
 function getPeriodKey(date: Date, g: PeriodGranularity): string {
-  if (g === 'week') return getISOWeekKey(date)
-  if (g === 'month') return getMonthKey(date)
-  return getYearKey(date)
+  return periodKey(date, g)
 }
 
 function formatPeriodLabel(key: string, g: PeriodGranularity): string {

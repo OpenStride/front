@@ -1,7 +1,24 @@
+import { openRange, rollingRange, type TimeRange } from '@/utils/timeRange'
+
 /** Time bucket a series is grouped by. `activity` yields one point per outing. */
 export type Granularity = 'activity' | 'week' | 'month' | 'year'
 
 export const GRANULARITIES: Granularity[] = ['activity', 'week', 'month', 'year']
+
+/** Rolling windows offered by the view, plus the unbounded one */
+export type WindowId = 'all' | '3m' | '6m' | '12m'
+
+export const WINDOWS: WindowId[] = ['all', '12m', '6m', '3m']
+
+const WINDOW_MONTHS: Record<Exclude<WindowId, 'all'>, number> = {
+  '3m': 3,
+  '6m': 6,
+  '12m': 12
+}
+
+export function windowRange(id: WindowId, now: Date = new Date()): TimeRange {
+  return id === 'all' ? openRange() : rollingRange({ months: WINDOW_MONTHS[id] }, now)
+}
 
 /** How the per-activity values of a bucket collapse into a single point */
 export type PeriodOp = 'sum' | 'avg' | 'min' | 'max' | 'ratio'
@@ -70,10 +87,7 @@ export interface ActivityMetricsRow {
   values: Record<string, number>
 }
 
-/** Convert startTime to milliseconds (handles both seconds and ms formats) */
-export function toMs(timestamp: number): number {
-  return timestamp < 1e11 ? timestamp * 1000 : timestamp
-}
+export { toMs } from '@/utils/timeRange'
 
 function refsOf(metric: MetricDefinition): string[] {
   return metric.denominatorRef ? [metric.sourceRef, metric.denominatorRef] : [metric.sourceRef]

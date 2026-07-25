@@ -2,13 +2,12 @@ import { ref, watch, type Ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PluginContext } from '@/types/plugin-context'
+import { inRange } from '@/utils/timeRange'
 import {
   getRecordPeriodRange,
-  toMs,
   type PersonalRecord,
   type PRCache,
-  type RecordPeriod,
-  type RecordPeriodRange
+  type RecordPeriod
 } from '../types'
 
 const PR_TARGETS = [1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 21_097, 42_195]
@@ -66,12 +65,6 @@ async function loadDetails(
   return detailsMap
 }
 
-function inRange(activity: Activity, range: RecordPeriodRange): boolean {
-  if (range.start === null || range.end === null) return true
-  const started = toMs(activity.startTime)
-  return started >= range.start && started < range.end
-}
-
 export function usePersonalRecords(
   activities: Ref<Activity[]>,
   selectedSport: Ref<string>,
@@ -96,7 +89,7 @@ export function usePersonalRecords(
     const sport = selectedSport.value
     const period = selectedPeriod.value
     const range = getRecordPeriodRange(period)
-    const acts = sportActivities.filter(a => inRange(a, range))
+    const acts = sportActivities.filter(a => inRange(a.startTime, range))
 
     // Cache validity is tracked on the whole sport, so any new activity refreshes every period
     const activityCount = sportActivities.length

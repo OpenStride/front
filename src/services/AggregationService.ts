@@ -6,14 +6,10 @@ import type {
   AggregatedRecord,
   AggregationPeriod
 } from '@/types/aggregation'
-import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
+import { getISOWeekKey, getMonthKey, periodKey } from '@/utils/dateKeys'
 
 // Re-export for backward compatibility (existing consumers importing from AggregationService)
 export { getISOWeekKey, getMonthKey }
-
-function getYearKey(date: Date): string {
-  return `${date.getFullYear()}`
-}
 
 /**
  * Event-driven aggregation service
@@ -121,14 +117,7 @@ export class AggregationService {
   }
 
   private periodKey(period: AggregationPeriod, date: Date) {
-    switch (period) {
-      case 'week':
-        return getISOWeekKey(date)
-      case 'month':
-        return getMonthKey(date)
-      case 'year':
-        return getYearKey(date)
-    }
+    return periodKey(date, period)
   }
 
   async addActivityForAggregation(

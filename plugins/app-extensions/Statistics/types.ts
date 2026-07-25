@@ -1,3 +1,5 @@
+import { calendarRange, openRange, type KeyedTimeRange } from '@/utils/timeRange'
+
 export interface PersonalRecord {
   distance: number
   distanceLabel: string
@@ -11,15 +13,6 @@ export interface PersonalRecord {
 export type RecordPeriod = 'all' | 'month' | 'quarter' | 'year'
 
 export const RECORD_PERIODS: RecordPeriod[] = ['all', 'month', 'quarter', 'year']
-
-export interface RecordPeriodRange {
-  /** Identifies the period instance (e.g. "2026-07"), so a cache entry expires on rollover */
-  key: string
-  /** Inclusive lower bound in ms, null for all-time */
-  start: number | null
-  /** Exclusive upper bound in ms, null for all-time */
-  end: number | null
-}
 
 export interface PRCacheEntry {
   periodKey: string
@@ -36,48 +29,21 @@ export interface PRCache {
 
 export type PeriodGranularity = 'week' | 'month' | 'year'
 
-export type HeatmapMetric = 'distance' | 'duration' | 'count'
-
-/** Convert startTime to milliseconds (handles both seconds and ms formats) */
-export function toMs(timestamp: number): number {
-  return timestamp < 1e11 ? timestamp * 1000 : timestamp
-}
+/** The records only ever use keyed windows, so their cache stays safe to key */
+export type RecordPeriodRange = KeyedTimeRange
 
 /** Calendar bounds of the current month / quarter / year, in local time */
 export function getRecordPeriodRange(
   period: RecordPeriod,
   now: Date = new Date()
 ): RecordPeriodRange {
-  const year = now.getFullYear()
-
-  if (period === 'month') {
-    const month = now.getMonth()
-    return {
-      key: `${year}-${String(month + 1).padStart(2, '0')}`,
-      start: new Date(year, month, 1).getTime(),
-      end: new Date(year, month + 1, 1).getTime()
-    }
-  }
-
-  if (period === 'quarter') {
-    const quarter = Math.floor(now.getMonth() / 3)
-    return {
-      key: `${year}-Q${quarter + 1}`,
-      start: new Date(year, quarter * 3, 1).getTime(),
-      end: new Date(year, quarter * 3 + 3, 1).getTime()
-    }
-  }
-
-  if (period === 'year') {
-    return {
-      key: `${year}`,
-      start: new Date(year, 0, 1).getTime(),
-      end: new Date(year + 1, 0, 1).getTime()
-    }
-  }
-
-  return { key: 'all', start: null, end: null }
+  return period === 'all' ? openRange() : calendarRange(period, now)
 }
+
+export { toMs } from '@/utils/timeRange'
+
+
+export type HeatmapMetric = 'distance' | 'duration' | 'count'
 
 export interface PeriodData {
   key: string

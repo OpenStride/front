@@ -1,5 +1,5 @@
 import type { Activity } from '@/types/activity'
-import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
+import { periodKey } from '@/utils/dateKeys'
 import {
   toMs,
   type Granularity,
@@ -30,16 +30,7 @@ function readValue(activity: Activity, sources: MetricSources, path: string): nu
 }
 
 function bucketKey(activity: Activity, date: Date, granularity: Granularity): string {
-  switch (granularity) {
-    case 'activity':
-      return activity.id
-    case 'week':
-      return getISOWeekKey(date)
-    case 'month':
-      return getMonthKey(date)
-    case 'year':
-      return `${date.getFullYear()}`
-  }
+  return granularity === 'activity' ? activity.id : periodKey(date, granularity)
 }
 
 function reduce(metric: MetricDefinition, bucket: Bucket): number | null {

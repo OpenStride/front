@@ -44,6 +44,16 @@
           />
         </div>
 
+        <div class="control">
+          <span class="control-label">{{ t('metricTracker.window') }}</span>
+          <ChipSelect
+            v-model="selectedWindow"
+            :options="windowOptions"
+            :aria-label="t('metricTracker.window')"
+            test-prefix="window"
+          />
+        </div>
+
         <div v-if="sportOptions.length > 1" class="control">
           <span class="control-label">{{ t('metricTracker.sport') }}</span>
           <ChipSelect
@@ -107,11 +117,15 @@ import { buildSeries, summarize } from '../series'
 import { DIRECT_METRICS, DERIVED_METRICS, getMetric, hasMetric } from '../metrics'
 import {
   GRANULARITIES,
+  WINDOWS,
   needsDetails,
   needsIndex,
+  windowRange,
   type Granularity,
-  type MetricDefinition
+  type MetricDefinition,
+  type WindowId
 } from '../types'
+import { inRange } from '@/utils/timeRange'
 import ChipSelect from './ChipSelect.vue'
 import MetricSeriesChart from './MetricSeriesChart.vue'
 
@@ -127,6 +141,10 @@ function isGranularity(value: unknown): value is Granularity {
   return GRANULARITIES.includes(value as Granularity)
 }
 
+function isWindow(value: unknown): value is WindowId {
+  return WINDOWS.includes(value as WindowId)
+}
+
 // Deep links land here from the "Bests de la séance" table, which points at a
 // specific distance: /metrics?metric=time_5000
 const queryMetric = route.query.metric
@@ -139,6 +157,7 @@ const selectedGranularity = ref<Granularity>(
   isGranularity(queryGranularity) ? queryGranularity : 'activity'
 )
 const selectedSport = ref(typeof route.query.sport === 'string' ? route.query.sport : '')
+const selectedWindow = ref<WindowId>(isWindow(route.query.window) ? route.query.window : 'all')
 
 const metric = computed(() => getMetric(selectedMetricId.value))
 
@@ -152,14 +171,22 @@ const granularityOptions = computed(() =>
   GRANULARITIES.map(value => ({ value, label: t(`metricTracker.granularities.${value}`) }))
 )
 
+const windowOptions = computed(() =>
+  WINDOWS.map(value => ({ value, label: t(`metricTracker.windows.${value}`) }))
+)
+
 const sportChoices = computed(() => [
   { value: '', label: t('metricTracker.allSports') },
   ...sportOptions.value
 ])
 
 const filteredActivities = computed(() => {
-  if (!selectedSport.value) return activities.value
-  return activities.value.filter(a => a.type?.toLowerCase() === selectedSport.value)
+  const range = windowRange(selectedWindow.value)
+  return activities.value.filter(
+    a =>
+      (!selectedSport.value || a.type?.toLowerCase() === selectedSport.value) &&
+      inRange(a.startTime, range)
+  )
 })
 
 const sources = computed(() => ({ stats: stats.value, derived: derived.value }))
@@ -197,16 +224,20 @@ watch(
 )
 
 // Keep the URL in step with the selection, so a view can be shared or reloaded
-watch([selectedMetricId, selectedGranularity, selectedSport], ([metricId, granularity, sport]) => {
-  router.replace({
-    query: {
-      ...route.query,
-      metric: metricId,
-      granularity,
-      sport: sport || undefined
-    }
-  })
-})
+watch(
+  [selectedMetricId, selectedGranularity, selectedSport, selectedWindow],
+  ([metricId, granularity, sport, window]) => {
+    router.replace({
+      query: {
+        ...route.query,
+        metric: metricId,
+        granularity,
+        sport: sport || undefined,
+        window: window === 'all' ? undefined : window
+      }
+    })
+  }
+)
 </script>
 
 <style scoped>
