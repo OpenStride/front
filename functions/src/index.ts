@@ -254,7 +254,7 @@ export const garminProxy = onRequest(
 
       try {
         const ownPrefix = `${PUSH_PREFIX}/${userId}/`
-        const requested = (req.body?.files as unknown) as string[] | undefined
+        const requested = req.body?.files as unknown as string[] | undefined
         const safe = Array.isArray(requested)
           ? requested.filter(f => typeof f === 'string' && f.startsWith(ownPrefix))
           : []

@@ -63,7 +63,10 @@ export function adaptStravaSummary(activity: StravaActivity, streams: StravaStre
 }
 
 /** Strava activity + streams → OpenStride ActivityDetails. */
-export function adaptStravaDetails(activity: StravaActivity, streams: StravaStreams): ActivityDetails {
+export function adaptStravaDetails(
+  activity: StravaActivity,
+  streams: StravaStreams
+): ActivityDetails {
   const time = (streams?.time?.data as number[] | undefined) ?? []
   const distance = (streams?.distance?.data as number[] | undefined) ?? []
   const latlng = (streams?.latlng?.data as [number, number][] | undefined) ?? []

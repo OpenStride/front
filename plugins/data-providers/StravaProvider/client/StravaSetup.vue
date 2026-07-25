@@ -37,7 +37,11 @@
           class="text-sm text-gray-500 hover:text-gray-700 transition"
           data-test="strava-refresh-button"
         >
-          <i class="fas fa-sync-alt mr-1" :class="{ 'fa-spin': isRefreshing }" aria-hidden="true"></i>
+          <i
+            class="fas fa-sync-alt mr-1"
+            :class="{ 'fa-spin': isRefreshing }"
+            aria-hidden="true"
+          ></i>
           {{ t('common.refresh') }}
         </button>
       </div>
@@ -50,7 +54,13 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
-import { getTokens, deleteTokens, getSyncState, updateSyncState, type StravaSyncState } from './storage'
+import {
+  getTokens,
+  deleteTokens,
+  getSyncState,
+  updateSyncState,
+  type StravaSyncState
+} from './storage'
 import {
   getStravaSyncManager,
   syncEmitter,

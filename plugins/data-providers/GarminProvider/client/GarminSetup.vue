@@ -257,7 +257,9 @@ async function handleOAuthMessage(event: MessageEvent) {
       const syncManager = getGarminSyncManager()
       await syncManager.startInitialImportAsync()
 
-      notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), { type: 'info' })
+      notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), {
+        type: 'info'
+      })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Token exchange error'
       notifications.notify(t('providers.notify.generic', { provider: 'Garmin', message }), {
@@ -511,7 +513,9 @@ onMounted(async () => {
         const syncManager = getGarminSyncManager()
         await syncManager.startInitialImportAsync()
 
-        notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), { type: 'info' })
+        notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), {
+          type: 'info'
+        })
       } catch (err: unknown) {
         notifications.notify(
           t('providers.notify.generic', {
