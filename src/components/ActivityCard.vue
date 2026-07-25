@@ -1,68 +1,71 @@
 <template>
-  <div class="activity-card" data-test="activity-card">
-    <div class="map-container">
-      <MapPreview v-if="hasMap" class="map-top" :polyline="activity.mapPolyline" theme="osm" />
-      <!-- Friend Badge -->
-      <div v-if="friendUsername" class="friend-badge">
-        <i class="fas fa-user friend-icon" aria-hidden="true"></i>
-        <span class="friend-name">{{ friendUsername }}</span>
+  <article class="acard" data-test="activity-card">
+    <div
+      class="acard__click"
+      role="link"
+      tabindex="0"
+      @click="showDetails"
+      @keydown.enter="showDetails"
+    >
+      <!-- Héro : tracé GPS (ou placeholder grille) -->
+      <div class="acard__hero">
+        <MapPreview v-if="hasMap" class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
+        <div v-else class="acard__map acard__map--empty" aria-hidden="true"></div>
+
+        <div v-if="friendUsername" class="acard__friend">
+          <i class="fas fa-user" aria-hidden="true"></i>
+          <span class="acard__friend-name">{{ friendUsername }}</span>
+        </div>
+        <div class="acard__datechip">{{ shortDate }}</div>
+      </div>
+
+      <div class="acard__body">
+        <!-- Badge sport + intitulé + titre -->
+        <div class="acard__head">
+          <div class="acard__badge">
+            <i :class="iconClass" aria-hidden="true"></i>
+          </div>
+          <div class="acard__headtext">
+            <div class="acard__kicker">{{ formatSportType(activity.type) }}</div>
+            <h3 class="acard__title">{{ activity.title || formatSportType(activity.type) }}</h3>
+          </div>
+        </div>
+
+        <!-- Métriques clés -->
+        <div class="acard__metrics">
+          <div class="acard__metric">
+            <span class="acard__label">{{ t('activityCard.distance', 'Distance') }}</span>
+            <span class="acard__value">{{ distanceValue }}<small>km</small></span>
+          </div>
+          <div class="acard__metric">
+            <span class="acard__label">{{ t('activityCard.time', 'Time') }}</span>
+            <span class="acard__value">{{ formatDuration(activity.duration) }}</span>
+          </div>
+          <div class="acard__metric acard__metric--accent">
+            <span class="acard__label">{{ primaryMetric.label }}</span>
+            <span class="acard__value">
+              {{ primaryMetric.value }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="card-content">
-      <!-- header inchangé -->
-      <div class="activity-card-header">
-        <div class="icon-label">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <i :class="iconClass" class="text-[1.5rem] activity-icon" aria-hidden="true"></i>
-            {{ activity.title || formatSportType(activity.type) }}
-          </h3>
-        </div>
-        <div class="right-side">
-          <span class="date">{{ formatDate(activity.startTime) }}</span>
-          <button class="menu-button" @click="toggleMenu" aria-label="Menu actions">⋮</button>
-        </div>
-      </div>
 
-      <!-- grille simplifiée -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm text-gray-700 mt-4">
-        <div class="flex items-center gap-2">
-          <i class="fas fa-ruler-horizontal text-lg text-gray-600" aria-hidden="true"></i>
-          <span>{{ formatDistance(activity.distance) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fas fa-stopwatch text-lg text-gray-600" aria-hidden="true"></i>
-          <span>{{ formatDuration(activity.duration) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fas fa-tachometer-alt text-lg text-gray-600" aria-hidden="true"></i>
-          <span>{{ formatPace(activity.distance, activity.duration) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <i class="fas fa-calendar-alt text-lg text-gray-600" aria-hidden="true"></i>
-          <span>{{ formatDate(activity.startTime) }}</span>
-        </div>
-      </div>
-
-      <!-- Interactions (friend and own activities) -->
-      <InteractionBar
-        v-if="canShowInteractions"
-        :activity-id="interactionActivityId"
-        :activity-owner-id="interactionOwnerId!"
-        :show-warning="!!friendUsername"
-        :is-mutual-friend="isMutualFriend"
-        class="card-interactions"
-      />
-
-      <!-- footer inchangé -->
-      <div class="footer">
-        <button @click="showDetails" class="details-button">Voir détails →</button>
-      </div>
-    </div>
-  </div>
+    <!-- Interactions (friend and own activities) -->
+    <InteractionBar
+      v-if="canShowInteractions"
+      :activity-id="interactionActivityId"
+      :activity-owner-id="interactionOwnerId!"
+      :show-warning="!!friendUsername"
+      :is-mutual-friend="isMutualFriend"
+      class="acard__interactions"
+    />
+  </article>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MapPreview from './MapPreview.vue'
 import InteractionBar from './InteractionBar.vue'
 import router from '@/router'
@@ -76,41 +79,52 @@ const props = defineProps<{
   activity: Activity
   friendUsername?: string
 }>()
-const showMenu = ref(false)
+const { t } = useI18n()
 
-// formatage date en français
-const formatDate = (ts: number) =>
-  new Date(ts * 1000).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+const pad = (n: number) => String(n).padStart(2, '0')
 
-// formatage durée hh mm ss ou mm ss
-const formatDuration = (sec: number) => {
-  if (sec > 3600) {
-    const h = Math.floor(sec / 3600)
-    const m = Math.floor((sec % 3600) / 60)
-    const s = sec % 60
-    return `${h}h ${m}m ${s}s`
-  }
-  const m = Math.floor(sec / 60)
-  return `${m}m ${sec % 60}s`
+// Short date for the map chip: "Wed 04.03"
+const shortDate = computed(() => {
+  const ts = props.activity.startTime
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const wd = d.toLocaleDateString(undefined, { weekday: 'short' })
+  return `${wd} ${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
+})
+
+// Compact mono duration: "38:52" or "1:52:14"
+const formatDuration = (sec?: number) => {
+  const s = Math.max(0, Math.round(sec ?? 0))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const ss = s % 60
+  return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`
 }
 
-// formatage distance en km
-const formatDistance = (m: number) => `${(m / 1000).toFixed(2)} km`
+const distanceValue = computed(() => ((props.activity.distance ?? 0) / 1000).toFixed(2))
 
-// calcul du pace (min/km) à partir de distance (m) et durée (s)
-const formatPace = (distanceMeters: number, durationSec: number) => {
-  if (!distanceMeters || !durationSec) return '-'
-  const secPerKm = durationSec / (distanceMeters / 1000)
+// Pace (min/km) for foot sports, speed (km/h) for cycling
+const isCycling = computed(() => /cycl|bike|bik|velo|vélo|vtt|ride/i.test(props.activity.type || ''))
+
+const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
+  const dist = props.activity.distance ?? 0
+  const dur = props.activity.duration ?? 0
+  if (isCycling.value) {
+    const kmh = dur > 0 ? dist / 1000 / (dur / 3600) : 0
+    return { label: t('activityCard.speed', 'Speed'), value: kmh > 0 ? kmh.toFixed(1) : '—', unit: 'km/h' }
+  }
+  if (!dist || !dur) return { label: t('activityCard.pace', 'Pace'), value: '—', unit: '' }
+  const secPerKm = dur / (dist / 1000)
   const m = Math.floor(secPerKm / 60)
   const s = Math.round(secPerKm % 60)
-  return `${m}'${s.toString().padStart(2, '0')}" /km`
-}
+  return { label: t('activityCard.pace', 'Pace'), value: `${m}'${pad(s)}`, unit: '/km' }
+})
 
 const iconClass = computed(() => getSportIcon(props.activity.type))
+
+const hasMap = computed(
+  () => Array.isArray(props.activity.mapPolyline) && props.activity.mapPolyline.length > 1
+)
 
 // Extract friendId for interactions
 const friendId = computed(() => {
@@ -144,12 +158,10 @@ onMounted(async () => {
     if (friend?.userId) {
       friendStableUserId.value = friend.userId
     }
-    // Set mutual friendship status
     isMutualFriend.value = friend?.followsMe === true
   }
 })
 
-// Activity ID for interactions
 const interactionActivityId = computed(() => {
   if (props.friendUsername) {
     return originalActivityId.value
@@ -157,24 +169,16 @@ const interactionActivityId = computed(() => {
   return props.activity.id
 })
 
-// Owner of the activity (prefer stable userId, fallback to URL-based friendId)
 const interactionOwnerId = computed(() => {
   if (props.friendUsername) {
-    // Use stable userId if available, fallback to URL-based friendId for backwards compat
     return friendStableUserId.value || friendId.value
   }
-  return myUserId.value // My own activity
+  return myUserId.value
 })
 
-// Show InteractionBar only if we have a valid owner
 const canShowInteractions = computed(() => {
   return interactionOwnerId.value !== null
 })
-
-// présence de carte
-const hasMap = computed(
-  () => Array.isArray(props.activity.mapPolyline) && props.activity.mapPolyline.length > 1
-)
 
 const showDetails = () => {
   if (props.friendUsername) {
@@ -200,144 +204,190 @@ const showDetails = () => {
     router.push({ name: 'ActivityDetails', params: { activityId: props.activity.id } })
   }
 }
-
-const toggleMenu = () => {
-  showMenu.value = !showMenu.value
-}
 </script>
 
 <style scoped>
-.activity-card {
-  background: var(--color-white);
+.acard {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.25rem;
   width: 100%;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.acard:hover {
+  box-shadow: 0 14px 34px -18px rgba(30, 30, 46, 0.28);
 }
 
-.map-container {
+.acard__click {
+  cursor: pointer;
+  display: block;
+}
+.acard__click:focus-visible {
+  outline: 2px solid var(--color-green-500);
+  outline-offset: -2px;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.acard__hero {
   position: relative;
-  width: 100%;
+  height: 186px;
 }
-
-.map-top {
+.acard__map {
   width: 100%;
-  height: 240px;
+  height: 100%;
 }
-
-.friend-badge {
+.acard__map--empty {
+  background: var(--surface-muted);
+  background-image: repeating-linear-gradient(
+      0deg,
+      rgba(30, 30, 46, 0.05) 0 1px,
+      transparent 1px 38px
+    ),
+    repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px);
+}
+.acard__datechip {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  right: 12px;
+  top: 12px;
+  z-index: 500;
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-card);
+}
+.acard__friend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 500;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  background: linear-gradient(135deg, var(--color-green-500) 0%, var(--color-green-600) 100%);
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--color-green-500);
   color: var(--color-white);
-  padding: 0.375rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(136, 170, 0, 0.3);
-  z-index: 10;
+  box-shadow: var(--shadow-card);
 }
-
-.friend-icon {
-  font-size: 0.875rem;
-}
-
-.friend-name {
+.acard__friend-name {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.card-content {
-  padding: 1rem;
-}
-
-.activity-card-header {
+/* ── Body ─────────────────────────────────────────── */
+.acard__body {
+  padding: 16px 18px 18px;
   display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 16px;
 }
-
-.icon-label {
+.acard__head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 13px;
+}
+.acard__badge {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-green-50);
+  border: 1px solid var(--color-green-200);
+  display: grid;
+  place-items: center;
+  color: var(--color-green-700);
+  font-size: 18px;
+}
+.acard__headtext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.acard__kicker {
+  font-family: var(--font-condensed);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.acard__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.icon {
-  font-size: 1.2rem;
+/* ── Metrics ──────────────────────────────────────── */
+.acard__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
 }
-
-.activity-icon {
+.acard__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.acard__label {
+  font-family: var(--font-condensed);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.acard__value {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+}
+.acard__value small {
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 3px;
+  color: var(--text-faint);
+}
+.acard__metric--accent .acard__value {
+  color: var(--color-green-600);
+}
+.acard__metric--accent .acard__label {
+  color: var(--color-green-600);
+}
+.acard__metric--accent .acard__value small {
   color: var(--color-green-500);
 }
 
-.right-side {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* ── Interactions ─────────────────────────────────── */
+.acard__interactions {
+  padding: 0 18px 14px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: -2px;
+  padding-top: 12px;
 }
 
-.date {
-  font-size: 0.85rem;
-  color: var(--color-gray-400);
-}
-
-.menu-button {
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  color: var(--color-gray-400);
-}
-
-.details {
-  font-size: 0.9rem;
-  color: var(--color-gray-700);
-  margin-top: 0.75rem;
-}
-
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-
-.details-button {
-  background: var(--color-gray-100);
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s ease;
-}
-
-.details-button:hover {
-  background: var(--color-gray-200);
-}
-
-.card-interactions {
-  margin-top: 0.75rem;
-}
-
-/* Full-width sur mobile */
 @media (max-width: 640px) {
-  .activity-card {
-    border-radius: 0;
-    width: 100vw;
-  }
-
-  .card-content {
-    padding: 1rem;
+  .acard {
+    border-radius: var(--radius-md);
   }
 }
 </style>
