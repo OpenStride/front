@@ -316,6 +316,20 @@
     "notFound": "Non trouvé."
   },
   "providers": {
+    "strava": {
+      "title": "Importer depuis Strava",
+      "intro": "L'API Strava n'est pas compatible avec le modèle de confidentialité d'OpenStride ; on importe donc l'archive de données que tu demandes à Strava — ce sont tes données, elles ne quittent pas ton appareil.",
+      "step1": "Ouvre ta page d'export de données Strava et connecte-toi :",
+      "step1Link": "Page d'export Strava",
+      "step2": "Demande ton archive, puis attends l'e-mail de Strava avec le lien de téléchargement (ça peut prendre quelques heures).",
+      "step3": "Télécharge l'archive ZIP, puis sélectionne-la ci-dessous.",
+      "selectZip": "Sélectionne ton export Strava (.zip)",
+      "parsing": "Lecture de ton export…",
+      "importing": "Import en cours… {done}/{total}",
+      "done": "{count} activités importées.",
+      "noCsv": "Ce fichier ne ressemble pas à un export Strava (activities.csv introuvable).",
+      "error": "Échec de l'import : {message}"
+    },
     "setup": {
       "title": "{provider} – Connexion",
       "connected": "Connecté à {provider}",
