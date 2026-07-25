@@ -27,7 +27,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          # Capacitor 8 CLI requires Node >= 22 (project .nvmrc is 20, kept for the web app).
+          node-version: '22'
           cache: 'npm'
 
       - name: Setup Java (JDK 21 — required by Capacitor 8)
