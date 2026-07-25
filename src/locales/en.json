@@ -429,7 +429,15 @@
       "activity": "Activity",
       "computing": "Computing records...",
       "noRecords": "No records found",
-      "noRecordsHint": "Records are computed from GPS data in your activities"
+      "noRecordsHint": "Records are computed from GPS data in your activities",
+      "noRecordsPeriodHint": "No record in the selected period",
+      "periodLabel": "Records period",
+      "period": {
+        "all": "All time",
+        "month": "This month",
+        "quarter": "This quarter",
+        "year": "This year"
+      }
     },
     "heatmap": {
       "title": "Activity Calendar",
