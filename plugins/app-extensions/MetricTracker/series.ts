@@ -4,8 +4,8 @@ import {
   toMs,
   type Granularity,
   type MetricDefinition,
-  type SeriesPoint,
-  type StatsMap
+  type MetricSources,
+  type SeriesPoint
 } from './types'
 
 interface Bucket {
@@ -14,16 +14,18 @@ interface Bucket {
   denominators: number[]
 }
 
-/**
- * Read a metric path. Only two shapes exist in the registry: a top-level
- * Activity field, or a stat of its details.
- */
-function readValue(activity: Activity, stats: StatsMap, path: string): number | null {
+/** Read a metric path against the activity, its stats or the derived index */
+function readValue(activity: Activity, sources: MetricSources, path: string): number | null {
+  let value: unknown
+
   if (path.startsWith('stats.')) {
-    const value = stats.get(activity.id)?.[path.slice('stats.'.length)]
-    return typeof value === 'number' && isFinite(value) ? value : null
+    value = sources.stats.get(activity.id)?.[path.slice('stats.'.length)]
+  } else if (path.startsWith('derived.')) {
+    value = sources.derived.get(activity.id)?.[path.slice('derived.'.length)]
+  } else {
+    value = (activity as unknown as Record<string, unknown>)[path]
   }
-  const value = (activity as unknown as Record<string, unknown>)[path]
+
   return typeof value === 'number' && isFinite(value) ? value : null
 }
 
@@ -68,7 +70,7 @@ function reduce(metric: MetricDefinition, bucket: Bucket): number | null {
  */
 export function buildSeries(
   activities: Activity[],
-  stats: StatsMap,
+  sources: MetricSources,
   metric: MetricDefinition,
   granularity: Granularity
 ): SeriesPoint[] {
@@ -86,11 +88,11 @@ export function buildSeries(
     }
     if (startTime < bucket.startTime) bucket.startTime = startTime
 
-    const numerator = readValue(activity, stats, metric.sourceRef)
+    const numerator = readValue(activity, sources, metric.sourceRef)
     if (numerator === null) continue
 
     if (metric.denominatorRef) {
-      const denominator = readValue(activity, stats, metric.denominatorRef)
+      const denominator = readValue(activity, sources, metric.denominatorRef)
       if (denominator === null || denominator <= 0) continue
       bucket.numerators.push(numerator)
       bucket.denominators.push(denominator)

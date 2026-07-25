@@ -48,11 +48,11 @@
             <!-- Lien graphique -->
             <td class="py-2 text-center">
               <RouterLink
-                :to="`/history/${row.dist}`"
+                :to="{ path: '/metrics', query: { metric: `time_${row.dist}` } }"
                 class="text-green-600 hover:text-green-800 inline-flex items-center gap-1"
               >
                 <i class="fas fa-chart-area" aria-hidden="true"></i>
-                <span class="sr-only">Voir le graphique</span>
+                <span class="sr-only">Voir l'évolution sur cette distance</span>
               </RouterLink>
             </td>
           </tr>

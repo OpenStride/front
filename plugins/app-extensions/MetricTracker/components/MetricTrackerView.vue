@@ -21,9 +21,16 @@
         <label class="control">
           <span class="control-label">{{ t('metricTracker.metric') }}</span>
           <select v-model="selectedMetricId" class="metric-select" data-test="metric-select">
-            <option v-for="metric in METRICS" :key="metric.id" :value="metric.id">
-              {{ t(`metricTracker.metrics.${metric.id}`) }}
-            </option>
+            <optgroup :label="t('metricTracker.groups.direct')">
+              <option v-for="m in DIRECT_METRICS" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
+            <optgroup :label="t('metricTracker.groups.bestTimes')">
+              <option v-for="m in DERIVED_METRICS" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
           </select>
         </label>
 
@@ -49,7 +56,15 @@
       </div>
 
       <section class="chart-card">
-        <div v-if="statsLoading" class="tracker-state">
+        <div v-if="indexing" class="tracker-state indexing">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+          </div>
+          <p>{{ t('metricTracker.indexing') }} {{ progress }}%</p>
+          <p class="hint">{{ t('metricTracker.indexingHint') }}</p>
+        </div>
+
+        <div v-else-if="statsLoading" class="tracker-state">
           <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
           {{ t('metricTracker.loadingStats') }}
         </div>
@@ -84,24 +99,54 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMetricActivities } from '../composables/useMetricActivities'
+import { useMetricIndex } from '../composables/useMetricIndex'
 import { buildSeries, summarize } from '../series'
-import { METRICS, getMetric } from '../metrics'
-import { GRANULARITIES, needsDetails, type Granularity } from '../types'
+import { DIRECT_METRICS, DERIVED_METRICS, getMetric, hasMetric } from '../metrics'
+import {
+  GRANULARITIES,
+  needsDetails,
+  needsIndex,
+  type Granularity,
+  type MetricDefinition
+} from '../types'
 import ChipSelect from './ChipSelect.vue'
 import MetricSeriesChart from './MetricSeriesChart.vue'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const { activities, stats, sportOptions, loading, statsLoading, ensureStats } =
   useMetricActivities()
+const { derived, indexing, progress, ensureIndex } = useMetricIndex()
 
-const selectedMetricId = ref('pace')
-const selectedGranularity = ref<Granularity>('activity')
-const selectedSport = ref('')
+function isGranularity(value: unknown): value is Granularity {
+  return GRANULARITIES.includes(value as Granularity)
+}
+
+// Deep links land here from the "Bests de la séance" table, which points at a
+// specific distance: /metrics?metric=time_5000
+const queryMetric = route.query.metric
+const queryGranularity = route.query.granularity
+
+const selectedMetricId = ref(
+  typeof queryMetric === 'string' && hasMetric(queryMetric) ? queryMetric : 'pace'
+)
+const selectedGranularity = ref<Granularity>(
+  isGranularity(queryGranularity) ? queryGranularity : 'activity'
+)
+const selectedSport = ref(typeof route.query.sport === 'string' ? route.query.sport : '')
 
 const metric = computed(() => getMetric(selectedMetricId.value))
+
+function metricLabel(definition: MetricDefinition): string {
+  return definition.distanceLabel
+    ? t('metricTracker.timeOn', { distance: definition.distanceLabel })
+    : t(`metricTracker.metrics.${definition.id}`)
+}
 
 const granularityOptions = computed(() =>
   GRANULARITIES.map(value => ({ value, label: t(`metricTracker.granularities.${value}`) }))
@@ -117,11 +162,18 @@ const filteredActivities = computed(() => {
   return activities.value.filter(a => a.type?.toLowerCase() === selectedSport.value)
 })
 
+const sources = computed(() => ({ stats: stats.value, derived: derived.value }))
+
 // Buckets holding no usable value are kept so the chart shows a gap where the
 // data is missing, instead of stitching distant points together
 const points = computed(() => {
-  if (statsLoading.value) return []
-  return buildSeries(filteredActivities.value, stats.value, metric.value, selectedGranularity.value)
+  if (statsLoading.value || indexing.value) return []
+  return buildSeries(
+    filteredActivities.value,
+    sources.value,
+    metric.value,
+    selectedGranularity.value
+  )
 })
 
 const labels = computed(() =>
@@ -132,14 +184,29 @@ const labels = computed(() =>
 
 const summary = computed(() => summarize(points.value, metric.value))
 
-// Details are only read when a metric actually needs them
+// Details and index are only built when the selected metric actually needs
+// them. Immediate, because the activities may already be loaded from a
+// previous visit — in which case the watcher would never fire on its own.
 watch(
-  metric,
-  m => {
+  [metric, activities],
+  ([m, acts]) => {
     if (needsDetails(m)) ensureStats()
+    if (needsIndex(m) && acts.length > 0) ensureIndex(acts)
   },
   { immediate: true }
 )
+
+// Keep the URL in step with the selection, so a view can be shared or reloaded
+watch([selectedMetricId, selectedGranularity, selectedSport], ([metricId, granularity, sport]) => {
+  router.replace({
+    query: {
+      ...route.query,
+      metric: metricId,
+      granularity,
+      sport: sport || undefined
+    }
+  })
+})
 </script>
 
 <style scoped>
@@ -225,6 +292,28 @@ watch(
 .metric-select:focus-visible {
   outline: 2px solid var(--color-green-500);
   outline-offset: 1px;
+}
+
+.tracker-state.indexing {
+  width: 100%;
+  gap: 0.3rem;
+}
+
+.progress-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
+  background: var(--color-green-100);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-green-500);
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
 .chart-card {

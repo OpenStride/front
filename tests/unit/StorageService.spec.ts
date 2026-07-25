@@ -94,3 +94,42 @@ describe('StorageService.syncStores', () => {
     expect(pushed['activities'][0].id).toBe('a1')
   })
 })
+
+describe('StorageService backup scope', () => {
+  it('never uploads a device-local derived store', async () => {
+    const svc = StorageService.getInstance()
+    const syncStores = vi.spyOn(svc, 'syncStores').mockResolvedValue(false)
+
+    await svc.triggerBackup([
+      { store: 'activity_metrics', key: '' },
+      { store: 'notifLogs', key: '' }
+    ])
+
+    expect(syncStores).toHaveBeenCalledTimes(1)
+    expect(syncStores).toHaveBeenCalledWith([{ store: 'notifLogs', key: '' }])
+    syncStores.mockRestore()
+  })
+
+  it('does not run a backup at all when only local stores changed', async () => {
+    const svc = StorageService.getInstance()
+    const syncStores = vi.spyOn(svc, 'syncStores').mockResolvedValue(false)
+
+    await svc.triggerBackup([{ store: 'activity_metrics', key: '' }])
+
+    expect(syncStores).not.toHaveBeenCalled()
+    syncStores.mockRestore()
+  })
+
+  it('keeps excluding the stores owned by SyncService', async () => {
+    const svc = StorageService.getInstance()
+    const syncStores = vi.spyOn(svc, 'syncStores').mockResolvedValue(false)
+
+    await svc.triggerBackup([
+      { store: 'activities', key: '' },
+      { store: 'activity_details', key: '' }
+    ])
+
+    expect(syncStores).not.toHaveBeenCalled()
+    syncStores.mockRestore()
+  })
+})

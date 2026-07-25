@@ -133,6 +133,13 @@
     "noPoints": "No value for this metric",
     "noPointsHint": "None of your activities carries this data for the current selection",
     "loadingStats": "Loading detailed data...",
+    "indexing": "Analysing your activities...",
+    "indexingHint": "This runs only once, later visits are immediate",
+    "timeOn": "Time on {distance}",
+    "groups": {
+      "direct": "Session data",
+      "bestTimes": "Best times"
+    },
     "granularities": {
       "activity": "Per outing",
       "week": "Week",

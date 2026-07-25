@@ -133,6 +133,13 @@
     "noPoints": "Aucune valeur pour cette métrique",
     "noPointsHint": "Aucune de vos activités ne porte cette donnée sur la sélection en cours",
     "loadingStats": "Chargement des données détaillées...",
+    "indexing": "Analyse de vos activités...",
+    "indexingHint": "Ce calcul n'a lieu qu'une fois, les prochaines visites seront immédiates",
+    "timeOn": "Temps au {distance}",
+    "groups": {
+      "direct": "Données de séance",
+      "bestTimes": "Meilleurs temps"
+    },
     "granularities": {
       "activity": "Par sortie",
       "week": "Semaine",

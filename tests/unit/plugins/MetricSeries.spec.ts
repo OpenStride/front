@@ -3,10 +3,21 @@ import type { Activity } from '@/types/activity'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
 import { buildSeries, summarize } from '@plugins/app-extensions/MetricTracker/series'
-import { METRICS, getMetric } from '@plugins/app-extensions/MetricTracker/metrics'
+import {
+  METRICS,
+  DIRECT_METRICS,
+  DERIVED_METRICS,
+  DISTANCE_TARGETS,
+  getMetric,
+  hasMetric,
+  timeMetricId
+} from '@plugins/app-extensions/MetricTracker/metrics'
 import {
   GRANULARITIES,
   needsDetails,
+  needsIndex,
+  type DerivedMap,
+  type MetricSources,
   type StatsMap
 } from '@plugins/app-extensions/MetricTracker/types'
 
@@ -24,7 +35,15 @@ function makeActivity(id: string, isoDate: string, fields: Partial<Activity> = {
   } as Activity
 }
 
-const noStats: StatsMap = new Map()
+const noSources: MetricSources = { stats: new Map(), derived: new Map() }
+
+function withStats(stats: StatsMap): MetricSources {
+  return { stats, derived: new Map() }
+}
+
+function withDerived(derived: DerivedMap): MetricSources {
+  return { stats: new Map(), derived }
+}
 
 describe('buildSeries grouping', () => {
   it('emits one point per activity, sorted chronologically', () => {
@@ -34,7 +53,7 @@ describe('buildSeries grouping', () => {
       makeActivity('c', '2026-05-20T08:00:00Z')
     ]
 
-    const points = buildSeries(activities, noStats, getMetric('distance'), 'activity')
+    const points = buildSeries(activities, noSources, getMetric('distance'), 'activity')
 
     expect(points.map(p => p.key)).toEqual(['a', 'b', 'c'])
     expect(points.map(p => p.value)).toEqual([10, 10, 10])
@@ -47,7 +66,7 @@ describe('buildSeries grouping', () => {
       makeActivity('c', '2026-04-02T08:00:00Z', { distance: 8000 })
     ]
 
-    const points = buildSeries(activities, noStats, getMetric('distance'), 'month')
+    const points = buildSeries(activities, noSources, getMetric('distance'), 'month')
 
     expect(points.map(p => p.key)).toEqual(['2026-03', '2026-04'])
     expect(points[0].value).toBeCloseTo(17.5, 5)
@@ -62,10 +81,10 @@ describe('buildSeries grouping', () => {
       makeActivity('c', '2027-03-03T08:00:00Z')
     ]
 
-    expect(buildSeries(activities, noStats, getMetric('distance'), 'week')).toHaveLength(2)
-    expect(buildSeries(activities, noStats, getMetric('distance'), 'year').map(p => p.key)).toEqual(
-      ['2026', '2027']
-    )
+    expect(buildSeries(activities, noSources, getMetric('distance'), 'week')).toHaveLength(2)
+    expect(
+      buildSeries(activities, noSources, getMetric('distance'), 'year').map(p => p.key)
+    ).toEqual(['2026', '2027'])
   })
 })
 
@@ -77,7 +96,7 @@ describe('buildSeries aggregation ops', () => {
       makeActivity('long', '2026-03-20T08:00:00Z', { distance: 30000, duration: 10800 })
     ]
 
-    const [point] = buildSeries(activities, noStats, getMetric('pace'), 'month')
+    const [point] = buildSeries(activities, noSources, getMetric('pace'), 'month')
 
     // Naive mean of the two paces would be 5.5 min/km; the honest figure is
     // 35 km in 12300 s = 5.857 min/km
@@ -95,7 +114,7 @@ describe('buildSeries aggregation ops', () => {
       ['b', { maxHeartRate: 182 }]
     ])
 
-    const [point] = buildSeries(activities, stats, getMetric('maxHeartRate'), 'month')
+    const [point] = buildSeries(activities, withStats(stats), getMetric('maxHeartRate'), 'month')
 
     expect(point.value).toBe(182)
     expect(point.count).toBe(2)
@@ -111,7 +130,7 @@ describe('buildSeries aggregation ops', () => {
       ['b', { averageHeartRate: 160 }]
     ])
 
-    const [point] = buildSeries(activities, stats, getMetric('avgHeartRate'), 'month')
+    const [point] = buildSeries(activities, withStats(stats), getMetric('avgHeartRate'), 'month')
 
     expect(point.value).toBe(150)
   })
@@ -125,7 +144,7 @@ describe('buildSeries missing data', () => {
     ]
     const stats: StatsMap = new Map([['b', { maxHeartRate: 175 }]])
 
-    const points = buildSeries(activities, stats, getMetric('maxHeartRate'), 'month')
+    const points = buildSeries(activities, withStats(stats), getMetric('maxHeartRate'), 'month')
 
     expect(points.map(p => p.key)).toEqual(['2026-03', '2026-04'])
     expect(points[0].value).toBeNull()
@@ -138,7 +157,7 @@ describe('buildSeries missing data', () => {
       makeActivity('broken', '2026-03-02T08:00:00Z', { distance: 5000, duration: 0 })
     ]
 
-    const [point] = buildSeries(activities, noStats, getMetric('pace'), 'month')
+    const [point] = buildSeries(activities, noSources, getMetric('pace'), 'month')
 
     expect(point.value).toBeNull()
     expect(point.count).toBe(0)
@@ -150,7 +169,9 @@ describe('buildSeries missing data', () => {
       makeActivity('sec', '2026-03-02T08:00:00Z', { startTime: Math.floor(ms / 1000) })
     ]
 
-    expect(buildSeries(activities, noStats, getMetric('distance'), 'month')[0].key).toBe('2026-03')
+    expect(buildSeries(activities, noSources, getMetric('distance'), 'month')[0].key).toBe(
+      '2026-03'
+    )
   })
 })
 
@@ -161,7 +182,7 @@ describe('summarize', () => {
   ]
 
   it('reports the lowest value as best for a lower-is-better metric', () => {
-    const points = buildSeries(activities, noStats, getMetric('pace'), 'activity')
+    const points = buildSeries(activities, noSources, getMetric('pace'), 'activity')
     const summary = summarize(points, getMetric('pace'))
 
     // 3000 s -> 5'00"/km, 2400 s -> 4'00"/km
@@ -171,14 +192,14 @@ describe('summarize', () => {
   })
 
   it('reports the highest value as best for a higher-is-better metric', () => {
-    const points = buildSeries(activities, noStats, getMetric('speed'), 'activity')
+    const points = buildSeries(activities, noSources, getMetric('speed'), 'activity')
     const summary = summarize(points, getMetric('speed'))
 
     expect(summary?.best).toBeCloseTo(15, 5)
   })
 
   it('returns null when every point is a gap', () => {
-    const points = buildSeries(activities, noStats, getMetric('calories'), 'activity')
+    const points = buildSeries(activities, noSources, getMetric('calories'), 'activity')
 
     expect(points.every(p => p.value === null)).toBe(true)
     expect(summarize(points, getMetric('calories'))).toBeNull()
@@ -199,26 +220,93 @@ describe('metric registry', () => {
     expect(getMetric('pace').format(4.999)).toBe(`5'00"`)
   })
 
-  it('flags only the stats-backed metrics as needing details', () => {
+  it('routes each metric to the source it actually depends on', () => {
     expect(needsDetails(getMetric('distance'))).toBe(false)
+    expect(needsIndex(getMetric('distance'))).toBe(false)
+
     expect(needsDetails(getMetric('pace'))).toBe(false)
+    expect(needsIndex(getMetric('pace'))).toBe(false)
+
     expect(needsDetails(getMetric('maxHeartRate'))).toBe(true)
-    expect(needsDetails(getMetric('calories'))).toBe(true)
+    expect(needsIndex(getMetric('maxHeartRate'))).toBe(false)
+
+    expect(needsDetails(getMetric('time_5000'))).toBe(false)
+    expect(needsIndex(getMetric('time_5000'))).toBe(true)
   })
 
   it('falls back to the first metric for an unknown id', () => {
     expect(getMetric('nope').id).toBe(METRICS[0].id)
+    expect(hasMetric('nope')).toBe(false)
+    expect(hasMetric('time_5000')).toBe(true)
+  })
+
+  it('formats a best time as a clock reading', () => {
+    expect(getMetric('time_5000').format(1234)).toBe('20:34')
+    expect(getMetric('time_42195').format(11_567)).toBe('3:12:47')
+    expect(getMetric('time_5000').betterIsLower).toBe(true)
+  })
+})
+
+describe('derived time metrics', () => {
+  const activities = [
+    makeActivity('a', '2026-03-02T08:00:00Z'),
+    makeActivity('b', '2026-03-20T08:00:00Z'),
+    makeActivity('c', '2026-04-04T08:00:00Z')
+  ]
+  const derived: DerivedMap = new Map<string, Record<string, number>>([
+    ['a', { time_5000: 1300 }],
+    ['b', { time_5000: 1255 }],
+    // c ran that day but never covered 5 km
+    ['c', {}]
+  ])
+
+  it('keeps the best time of the bucket', () => {
+    const points = buildSeries(activities, withDerived(derived), getMetric('time_5000'), 'month')
+
+    expect(points.map(p => p.key)).toEqual(['2026-03', '2026-04'])
+    expect(points[0].value).toBe(1255)
+    expect(points[0].count).toBe(2)
+  })
+
+  it('leaves a gap for an outing shorter than the distance', () => {
+    const points = buildSeries(activities, withDerived(derived), getMetric('time_5000'), 'activity')
+
+    expect(points.map(p => p.value)).toEqual([1300, 1255, null])
+  })
+
+  it('treats the fastest time as the best of the series', () => {
+    const points = buildSeries(activities, withDerived(derived), getMetric('time_5000'), 'activity')
+    const summary = summarize(points, getMetric('time_5000'))
+
+    expect(summary?.best).toBe(1255)
+    expect(summary?.count).toBe(2)
+  })
+})
+
+describe('deep link from the session bests table', () => {
+  // ActivityBests links to /metrics?metric=time_<dist> for each of its rows, so
+  // every distance it displays must resolve to a real metric
+  const BESTS_TARGETS = [1000, 2000, 5000, 10000, 15000, 20000, 21097, 30000, 42195, 50000]
+
+  it('exposes a metric for every distance of the bests table', () => {
+    for (const meters of BESTS_TARGETS) {
+      expect(hasMetric(timeMetricId(meters)), `no metric for ${meters} m`).toBe(true)
+    }
+  })
+
+  it('declares the same targets in the registry and the index', () => {
+    expect(DISTANCE_TARGETS.map(t => t.meters)).toEqual(BESTS_TARGETS)
   })
 })
 
 describe('metric tracker i18n', () => {
-  it('has a label for every metric and granularity in every locale', () => {
+  it('has a label for every direct metric and granularity in every locale', () => {
     for (const locale of [en, fr]) {
       const tracker = (locale as unknown as { metricTracker: Record<string, never> }).metricTracker
       const metrics = tracker.metrics as Record<string, string>
       const granularities = tracker.granularities as Record<string, string>
 
-      for (const metric of METRICS) {
+      for (const metric of DIRECT_METRICS) {
         expect(metrics[metric.id], `missing label for metric "${metric.id}"`).toBeTruthy()
       }
       for (const granularity of GRANULARITIES) {
@@ -227,6 +315,25 @@ describe('metric tracker i18n', () => {
       expect(
         (locale as unknown as { navigation: Record<string, string> }).navigation.metricTracker
       ).toBeTruthy()
+    }
+  })
+
+  it('labels the derived metrics from a single pattern', () => {
+    for (const locale of [en, fr]) {
+      const tracker = (
+        locale as unknown as {
+          metricTracker: { timeOn: string; groups: Record<string, string> }
+        }
+      ).metricTracker
+
+      expect(tracker.timeOn).toContain('{distance}')
+      expect(tracker.groups.direct).toBeTruthy()
+      expect(tracker.groups.bestTimes).toBeTruthy()
+    }
+
+    // Every derived metric carries the label the pattern interpolates
+    for (const metric of DERIVED_METRICS) {
+      expect(metric.distanceLabel, `no distance label for "${metric.id}"`).toBeTruthy()
     }
   })
 })
