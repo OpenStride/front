@@ -674,5 +674,11 @@
   "legal": {
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service"
+  },
+  "activityCard": {
+    "distance": "Distance",
+    "time": "Time",
+    "pace": "Pace",
+    "speed": "Speed"
   }
 }
