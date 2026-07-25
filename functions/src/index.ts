@@ -18,6 +18,28 @@ const GARMIN_CLIENT_SECRET = defineSecret('GARMIN_CLIENT_SECRET')
 // Only Garmin's registered callback knows it → blocks spoofed pushes.
 const GARMIN_WEBHOOK_SECRET = defineSecret('GARMIN_WEBHOOK_SECRET')
 
+// Pull providers (OAuth2 + REST pull). The client drives everything; the relay
+// only injects the client secret at token exchange and adds CORS to API GETs —
+// no data is buffered or stored. Add a provider by extending PROVIDERS below.
+const STRAVA_CLIENT_ID = defineSecret('STRAVA_CLIENT_ID')
+const STRAVA_CLIENT_SECRET = defineSecret('STRAVA_CLIENT_SECRET')
+
+interface ProviderConfig {
+  tokenUrl: string
+  apiBase: string
+  clientId: ReturnType<typeof defineSecret>
+  clientSecret: ReturnType<typeof defineSecret>
+}
+
+const PULL_PROVIDERS: Record<string, ProviderConfig> = {
+  strava: {
+    tokenUrl: 'https://www.strava.com/oauth/token',
+    apiBase: 'https://www.strava.com/api/v3',
+    clientId: STRAVA_CLIENT_ID,
+    clientSecret: STRAVA_CLIENT_SECRET
+  }
+}
+
 const GARMIN_API = 'https://apis.garmin.com'
 const PUSH_PREFIX = 'garmin_push'
 // Max files returned per /push read. activityDetails files carry full sample
@@ -101,7 +123,13 @@ async function resolveUserId(authHeader?: string): Promise<string | null> {
 export const garminProxy = onRequest(
   {
     cors: true,
-    secrets: [GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET, GARMIN_WEBHOOK_SECRET],
+    secrets: [
+      GARMIN_CLIENT_ID,
+      GARMIN_CLIENT_SECRET,
+      GARMIN_WEBHOOK_SECRET,
+      STRAVA_CLIENT_ID,
+      STRAVA_CLIENT_SECRET
+    ],
     region: 'europe-west1',
     memory: '1GiB'
   },
@@ -274,6 +302,57 @@ export const garminProxy = onRequest(
         res.set(cors).status(502).json({ error: 'Garmin API proxy failed' })
       }
       return
+    }
+
+    // Generic pull-provider relay: POST /{provider}/token, GET /{provider}/api/*
+    // (Garmin keeps its own dedicated routes above; those path prefixes are never
+    // provider names, so there is no collision.)
+    const seg = req.path.split('/').filter(Boolean)
+    if (seg.length >= 2 && PULL_PROVIDERS[seg[0]]) {
+      const cfg = PULL_PROVIDERS[seg[0]]
+
+      // POST /{provider}/token — inject client id/secret, forward to the provider.
+      if (seg[1] === 'token' && req.method === 'POST') {
+        try {
+          const body =
+            typeof req.body === 'string' ? req.body : new URLSearchParams(req.body).toString()
+          const params = new URLSearchParams(body)
+          params.set('client_id', cfg.clientId.value())
+          params.set('client_secret', cfg.clientSecret.value())
+
+          const response = await fetch(cfg.tokenUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+          })
+          const data = await response.text()
+          res.set(cors).status(response.status).send(data)
+        } catch (error: unknown) {
+          console.error(`[${seg[0]}Proxy] Token exchange error:`, error)
+          res.set(cors).status(500).json({ error: 'Token exchange failed' })
+        }
+        return
+      }
+
+      // GET /{provider}/api/* — CORS proxy for the provider's REST API (Bearer forwarded).
+      if (seg[1] === 'api' && req.method === 'GET') {
+        try {
+          const path = seg.slice(2).join('/')
+          const queryString = new URLSearchParams(req.query as Record<string, string>).toString()
+          const url = `${cfg.apiBase}/${path}${queryString ? '?' + queryString : ''}`
+          const headers: Record<string, string> = {}
+          if (req.headers.authorization) headers['Authorization'] = req.headers.authorization
+
+          const response = await fetch(url, { headers })
+          const data = await response.text()
+          console.log(`[${seg[0]}Proxy] GET ${url} → ${response.status}`)
+          res.set(cors).status(response.status).send(data)
+        } catch (error: unknown) {
+          console.error(`[${seg[0]}Proxy] API proxy error:`, error)
+          res.set(cors).status(502).json({ error: 'API proxy failed' })
+        }
+        return
+      }
     }
 
     res.set(cors).status(404).send('Not Found')
