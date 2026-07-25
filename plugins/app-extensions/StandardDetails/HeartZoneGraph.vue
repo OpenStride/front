@@ -1,25 +1,15 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
-        <svg class="w-5 h-5 text-amber-500" fill="var(--color-orange-700)" viewBox="0 0 24 24">
-          <path
-            d="M4 15h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1Zm6 4h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1Zm6-6h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1Zm6 8h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1Z"
-          />
-        </svg>
-        Zones de FC
-      </h3>
-      <div class="flex items-center gap-2">
-        <label for="maxHrInput" class="text-sm text-gray-500">FCMax</label>
-        <input
-          id="maxHrInput"
-          type="number"
-          class="border px-2 py-1 rounded text-sm w-20"
-          v-model.number="maxHeartRate"
-          @change="saveMaxHeartRate"
-        />
-      </div>
-    </div>
+  <GraphCard title="Zones de FC" icon="fa-layer-group" accent="var(--color-orange-500)">
+    <template #actions>
+      <label for="maxHrInput">FCMax</label>
+      <input
+        id="maxHrInput"
+        type="number"
+        class="graph-input"
+        v-model.number="maxHeartRate"
+        @change="saveMaxHeartRate"
+      />
+    </template>
 
     <div v-if="hasData">
       <div v-for="(zone, index) in zones" :key="index" class="flex items-center gap-2 mb-2">
@@ -43,14 +33,15 @@
         </div>
       </div>
     </div>
-    <p v-else class="text-gray-500 text-sm">Aucune donnée de fréquence cardiaque disponible.</p>
-  </div>
+    <p v-else class="graph-empty">Aucune donnée de fréquence cardiaque disponible.</p>
+  </GraphCard>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
+import GraphCard from './GraphCard.vue'
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
@@ -138,7 +129,18 @@ const zones = computed(() => {
 </script>
 
 <style scoped>
-.bg-white {
-  background-color: var(--color-white);
+.graph-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.graph-input {
+  width: 5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 </style>

@@ -1,4 +1,15 @@
 {
+  "activityDetail": {
+    "noRoute": "Aucun tracé GPS",
+    "distance": "Distance",
+    "avgPace": "Allure moy.",
+    "time": "Temps",
+    "elevation": "Dénivelé +",
+    "avgHr": "FC moy.",
+    "maxHr": "FC max",
+    "cadence": "Cadence",
+    "calories": "Calories"
+  },
   "sports": {
     "running": "Course à pied",
     "treadmill_running": "Tapis de course",

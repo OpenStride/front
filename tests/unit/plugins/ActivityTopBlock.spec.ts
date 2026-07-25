@@ -43,8 +43,8 @@ describe('ActivityTopBlock.vue', () => {
       }
     })
 
-    expect(wrapper.find('h2').exists()).toBe(true)
-    expect(wrapper.text()).toContain('5.00 km')
+    expect(wrapper.find('h1').exists()).toBe(true)
+    expect(wrapper.text()).toMatch(/5\.00\s*km/)
   })
 
   it('handles undefined details gracefully', () => {

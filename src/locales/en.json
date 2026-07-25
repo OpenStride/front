@@ -1,4 +1,15 @@
 {
+  "activityDetail": {
+    "noRoute": "No GPS route",
+    "distance": "Distance",
+    "avgPace": "Avg pace",
+    "time": "Time",
+    "elevation": "Elevation +",
+    "avgHr": "Avg HR",
+    "maxHr": "Max HR",
+    "cadence": "Cadence",
+    "calories": "Calories"
+  },
   "sports": {
     "running": "Running",
     "treadmill_running": "Treadmill Running",
