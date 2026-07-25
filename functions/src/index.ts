@@ -20,23 +20,25 @@ const GARMIN_WEBHOOK_SECRET = defineSecret('GARMIN_WEBHOOK_SECRET')
 
 // Pull providers (OAuth2 + REST pull). The client drives everything; the relay
 // only injects the client secret at token exchange and adds CORS to API GETs —
-// no data is buffered or stored. Add a provider by extending PROVIDERS below.
-const STRAVA_CLIENT_ID = defineSecret('STRAVA_CLIENT_ID')
-const STRAVA_CLIENT_SECRET = defineSecret('STRAVA_CLIENT_SECRET')
-
+// no data is buffered or stored. Add a provider by extending PULL_PROVIDERS below.
+//
+// Credentials are read lazily from process.env (optional) rather than bound
+// Firebase secrets, so a provider stays dormant — and the deploy succeeds —
+// until its env vars are provisioned. A missing credential yields a 503 at
+// token exchange instead of blocking deployment.
 interface ProviderConfig {
   tokenUrl: string
   apiBase: string
-  clientId: ReturnType<typeof defineSecret>
-  clientSecret: ReturnType<typeof defineSecret>
+  clientId: () => string | undefined
+  clientSecret: () => string | undefined
 }
 
 const PULL_PROVIDERS: Record<string, ProviderConfig> = {
   strava: {
     tokenUrl: 'https://www.strava.com/oauth/token',
     apiBase: 'https://www.strava.com/api/v3',
-    clientId: STRAVA_CLIENT_ID,
-    clientSecret: STRAVA_CLIENT_SECRET
+    clientId: () => process.env.STRAVA_CLIENT_ID,
+    clientSecret: () => process.env.STRAVA_CLIENT_SECRET
   }
 }
 
@@ -123,13 +125,7 @@ async function resolveUserId(authHeader?: string): Promise<string | null> {
 export const garminProxy = onRequest(
   {
     cors: true,
-    secrets: [
-      GARMIN_CLIENT_ID,
-      GARMIN_CLIENT_SECRET,
-      GARMIN_WEBHOOK_SECRET,
-      STRAVA_CLIENT_ID,
-      STRAVA_CLIENT_SECRET
-    ],
+    secrets: [GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET, GARMIN_WEBHOOK_SECRET],
     region: 'europe-west1',
     memory: '1GiB'
   },
@@ -314,11 +310,22 @@ export const garminProxy = onRequest(
       // POST /{provider}/token — inject client id/secret, forward to the provider.
       if (seg[1] === 'token' && req.method === 'POST') {
         try {
+          const clientId = cfg.clientId()
+          const clientSecret = cfg.clientSecret()
+          // Provider not provisioned yet (no env vars) → stay dormant.
+          if (!clientId || !clientSecret) {
+            res
+              .set(cors)
+              .status(503)
+              .json({ error: `Provider "${seg[0]}" is not configured` })
+            return
+          }
+
           const body =
             typeof req.body === 'string' ? req.body : new URLSearchParams(req.body).toString()
           const params = new URLSearchParams(body)
-          params.set('client_id', cfg.clientId.value())
-          params.set('client_secret', cfg.clientSecret.value())
+          params.set('client_id', clientId)
+          params.set('client_secret', clientSecret)
 
           const response = await fetch(cfg.tokenUrl, {
             method: 'POST',
