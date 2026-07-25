@@ -1,4 +1,5 @@
 import { Activity, ActivityDetails } from '@/types/activity'
+import { mapGarminSport } from './sportTypes'
 
 type RawRecord = Record<string, unknown>
 
@@ -28,7 +29,7 @@ export function adaptGarminSummary(garminDetails: GarminRawActivity): Activity {
     startTime: garmin.startTimeInSeconds as number,
     duration: garmin.durationInSeconds as number,
     distance: garmin.distanceInMeters as number,
-    type: (garmin.activityType as string)?.toLowerCase() || 'unknown',
+    type: mapGarminSport(garmin.activityType),
     title: garmin.activityName as string,
     mapPolyline: polyline,
     version: 1,
@@ -48,9 +49,15 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
     elevation: m.elevationInMeters as number | undefined,
     heartRate: m.heartRate as number | undefined,
     cadence: m.stepsPerMinute as number | undefined,
-    speed: m.speedMetersPerSecond as number | undefined
+    speed: m.speedMetersPerSecond as number | undefined,
+    power: m.powerInWatts as number | undefined,
+    // Garmin misspells the JSON key as "Celcius" (sic)
+    temperature: m.airTemperatureCelcius as number | undefined
   }))
 
+  // NB: Garmin's pushed activityDetails payload does NOT include laps — they only
+  // exist in the separate activity FIT file. So this is usually undefined for push
+  // data; kept defensive in case laps are ever present (e.g. FIT-based import).
   const laps = garmin.laps?.map((lap: RawRecord) => ({
     time: (lap.startTimeInSeconds as number) - start,
     duration: (lap.durationInSeconds as number) || 0,
@@ -66,7 +73,10 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
       maxHeartRate: garmin.summary?.maxHeartRateInBeatsPerMinute as number | undefined,
       averageSpeed: garmin.summary?.averageSpeedInMetersPerSecond as number | undefined,
       maxSpeed: garmin.summary?.maxSpeedInMetersPerSecond as number | undefined,
-      averageCadence: garmin.summary?.averageRunCadenceInStepsPerMinute as number | undefined,
+      // Unify cadence across run (steps/min), bike (rev/min) and swim (strokes/min)
+      averageCadence: (garmin.summary?.averageRunCadenceInStepsPerMinute ??
+        garmin.summary?.averageBikingCadenceInRevPerMinute ??
+        garmin.summary?.averageSwimCadenceInStrokesPerMinute) as number | undefined,
       totalAscent: garmin.summary?.totalElevationGainInMeters as number | undefined,
       calories: garmin.summary?.activeKilocalories as number | undefined
     },

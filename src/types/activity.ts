@@ -28,6 +28,8 @@ export interface Sample {
   heartRate?: number // en bpm
   cadence?: number // steps/min
   speed?: number
+  power?: number // en watts
+  temperature?: number // en °C
 }
 
 export interface ActivityDetails extends Timestamped {

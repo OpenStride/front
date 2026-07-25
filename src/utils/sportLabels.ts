@@ -17,14 +17,31 @@ const SPORT_LABELS: Record<string, string> = {
   hike: 'Randonnée',
   trail_running: 'Trail',
   TRAIL_RUNNING: 'Trail',
+  treadmill_running: 'Tapis de course',
   yoga: 'Yoga',
   YOGA: 'Yoga',
   fitness: 'Fitness',
   FITNESS: 'Fitness',
+  fitness_equipment: 'Fitness',
+  strength_training: 'Musculation',
+  cardio_training: 'Cardio',
+  indoor_cycling: "Vélo d'intérieur",
+  mountain_biking: 'VTT',
+  e_biking: 'Vélo électrique',
+  pool_swimming: 'Natation piscine',
+  open_water_swimming: 'Eau libre',
+  rowing: 'Aviron',
+  rowing_machine: 'Rameur',
+  elliptical: 'Elliptique',
+  stretching: 'Étirements',
+  pilates: 'Pilates',
   skiing: 'Ski',
   SKIING: 'Ski',
+  alpine_skiing: 'Ski alpin',
   cross_country_skiing: 'Ski de fond',
-  CROSS_COUNTRY_SKIING: 'Ski de fond'
+  CROSS_COUNTRY_SKIING: 'Ski de fond',
+  snowboarding: 'Snowboard',
+  other: 'Autre'
 }
 
 // Common sport types always shown in the selector
@@ -41,7 +58,13 @@ export const COMMON_SPORT_TYPES = [
 ]
 
 export function formatSportType(sport: string): string {
-  return SPORT_LABELS[sport] || sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase()
+  if (SPORT_LABELS[sport]) return SPORT_LABELS[sport]
+  // Humanise unknown slugs: "strength_training" → "Strength Training"
+  return sport
+    .split('_')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 /** Font Awesome icon class by sport type (uppercase keys) */

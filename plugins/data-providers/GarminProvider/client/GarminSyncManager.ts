@@ -365,6 +365,23 @@ export class GarminSyncManager {
         return this.pollAndConsumeCallbacks()
       }
 
+      // 403 = user didn't grant HISTORICAL_DATA_EXPORT — skip this range gracefully.
+      if (useBackfill && res.status === 403) {
+        console.warn(
+          '[GarminSync] Backfill forbidden (403) — HISTORICAL_DATA_EXPORT permission not granted; skipping range'
+        )
+        return 0
+      }
+
+      // 400 = range outside the user's available/consented data window
+      // (e.g. before account data start). Nothing to fetch — skip, don't fail.
+      if (useBackfill && res.status === 400) {
+        console.warn(
+          `[GarminSync] Backfill rejected (400) for this range, skipping: ${errorBody.substring(0, 120)}`
+        )
+        return 0
+      }
+
       // Check for rate limit in response body
       if (errorBody.includes('Rate limit') || errorBody.includes('Too many request')) {
         if (retryCount < MAX_RETRIES) {
