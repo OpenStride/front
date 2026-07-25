@@ -192,7 +192,12 @@ export class SyncService {
       // remote hasn't changed since we last saw it, skip the (potentially large)
       // full remote read entirely. `force` bypasses this optimization.
       const remoteTokens = await this.getRemoteTokens(plugin)
-      if (!opts.force && unsyncedActivities.length === 0 && remoteTokens && !this.remoteChanged(plugin.id, remoteTokens)) {
+      if (
+        !opts.force &&
+        unsyncedActivities.length === 0 &&
+        remoteTokens &&
+        !this.remoteChanged(plugin.id, remoteTokens)
+      ) {
         console.log(`[SyncService] Skip ${plugin.label}: no local changes, remote unchanged`)
         return { activitiesSynced: 0, errors: [] }
       }
@@ -433,10 +438,7 @@ export class SyncService {
    * True if any tracked store's remote token differs from what we last saw.
    * A null remote token (missing/unreadable file) never counts as a change.
    */
-  private remoteChanged(
-    pluginId: string,
-    remoteTokens: Record<string, string | null>
-  ): boolean {
+  private remoteChanged(pluginId: string, remoteTokens: Record<string, string | null>): boolean {
     const seen = this.readTokenMap()[pluginId] || {}
     for (const store of TRACKED_STORES) {
       const rt = remoteTokens[store]
