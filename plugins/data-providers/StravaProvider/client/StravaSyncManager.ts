@@ -1,6 +1,11 @@
 import { getTokens, getSyncState, updateSyncState } from './storage'
 import { getValidAccessToken } from './stravaAuth'
-import { adaptStravaSummary, adaptStravaDetails, type StravaActivity, type StravaStreams } from './adapter'
+import {
+  adaptStravaSummary,
+  adaptStravaDetails,
+  type StravaActivity,
+  type StravaStreams
+} from './adapter'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import pluginEnv from './env'
 
@@ -144,7 +149,11 @@ export class StravaSyncManager {
       })
       syncEmitter.dispatchEvent(
         new CustomEvent<SyncCompleteEvent>('sync-complete', {
-          detail: { success: false, count: totalCount, error: rateLimited ? 'rate-limit' : String(err) }
+          detail: {
+            success: false,
+            count: totalCount,
+            error: rateLimited ? 'rate-limit' : String(err)
+          }
         })
       )
     }

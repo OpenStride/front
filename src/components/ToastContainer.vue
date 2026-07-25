@@ -29,13 +29,14 @@ const dismiss = (id: number) => ToastService.remove(id)
 }
 .toast {
   width: 100%;
-  background: rgba(34, 34, 34, 0.88);
+  /* --color-ink #1e1e2e = rgb(30, 30, 46), kept translucent for the glass effect */
+  background: rgba(30, 30, 46, 0.9);
   color: var(--color-white);
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   line-height: 1.3;
-  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px -8px rgba(30, 30, 46, 0.45);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -50,7 +51,8 @@ const dismiss = (id: number) => ToastService.remove(id)
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .toast.success {
-  background: rgba(24, 121, 78, 0.88);
+  /* --color-green-600 #4d7314 = rgb(77, 115, 20) — OpenStride olive */
+  background: rgba(77, 115, 20, 0.94);
 }
 .toast.error {
   background: rgba(180, 35, 24, 0.9);

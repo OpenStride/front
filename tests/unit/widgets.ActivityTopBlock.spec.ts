@@ -19,9 +19,10 @@ function makeData() {
 describe('ActivityTopBlock widget', () => {
   it('affiche titre (type traduit) et métriques de base', () => {
     const wrapper = mount(ActivityTopBlock, { props: { data: makeData() } })
-    expect(wrapper.text()).toMatch(/Course à pied|RUNNING/i)
-    expect(wrapper.text()).toContain('5.00 km')
-    expect(wrapper.text()).toMatch(/120 m|121 m/) // arrondi
+    // Sport type localised (en default → "Running"); value + unit render adjacent
+    expect(wrapper.text()).toMatch(/Running|Course à pied|RUNNING/i)
+    expect(wrapper.text()).toMatch(/5\.00\s*km/)
+    expect(wrapper.text()).toMatch(/12[01]\s*m/) // arrondi
     expect(wrapper.text()).toMatch(/400/) // calories
   })
 })

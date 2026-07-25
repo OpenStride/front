@@ -1,5 +1,11 @@
 <template>
-  <div v-if="sharingPluginActive" class="interaction-bar">
+  <div
+    v-if="
+      sharingPluginActive &&
+      (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
+    "
+    class="interaction-bar"
+  >
     <!-- Counters -->
     <div class="interaction-counters">
       <span v-if="summary.likeCount > 0" class="counter like-counter">
@@ -12,8 +18,8 @@
       </span>
     </div>
 
-    <!-- Action buttons -->
-    <div class="interaction-actions">
+    <!-- Action buttons (hidden on your own activity — you can't like/comment it) -->
+    <div v-if="!isMyActivity" class="interaction-actions">
       <button
         @click="toggleLike"
         :class="['action-btn', 'like-btn', { liked: summary.hasLiked }]"
@@ -65,11 +71,6 @@
       </div>
     </div>
 
-    <!-- Info message for own activity (read-only mode) -->
-    <div v-if="isMyActivity" class="info-message">
-      <i class="fas fa-eye" aria-hidden="true"></i>
-      <span>Interactions reçues sur votre activité</span>
-    </div>
     <!-- Mutual friendship required message -->
     <div v-else-if="needsMutualFriendship && showWarning" class="mutual-required-message">
       <i class="fas fa-user-friends" aria-hidden="true"></i>
@@ -252,110 +253,117 @@ onUnmounted(() => {
 
 <style scoped>
 .interaction-bar {
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--color-gray-200);
+  padding: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .interaction-counters {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: 16px;
 }
 
 .counter {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--color-gray-500);
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .counter i {
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .like-counter i {
-  color: var(--color-red-500);
+  color: var(--color-green-600);
 }
 
 .comment-counter i {
-  color: var(--color-green-500);
+  color: var(--color-green-600);
 }
 
 .interaction-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 8px;
 }
 
 .action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-gray-300);
-  border-radius: 0.375rem;
-  background: var(--color-white);
-  font-size: 0.85rem;
-  color: var(--color-gray-600);
+  gap: 8px;
+  padding: 9px 15px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-family: var(--font-condensed);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .action-btn:hover:not(:disabled) {
-  background: var(--color-gray-100);
-  border-color: var(--color-gray-300);
+  border-color: var(--color-green-300);
+  color: var(--color-ink);
 }
 
 .action-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .like-btn.liked {
-  color: var(--color-red-500);
-  border-color: var(--color-red-500);
-  background: var(--color-red-50);
+  color: var(--color-green-700);
+  border-color: var(--color-green-200);
+  background: var(--color-green-50);
 }
 
-.like-btn.liked:hover:not(:disabled) {
-  background: var(--color-red-100);
+.like-btn.liked i {
+  color: var(--color-green-600);
 }
 
 .btn-label {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .last-comment-preview {
-  padding: 0.5rem;
-  background: var(--color-gray-50);
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  margin-bottom: 0.5rem;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 14px;
 }
 
 .comment-author {
   font-weight: 600;
-  color: var(--text-color);
-  margin-right: 0.375rem;
+  color: var(--color-ink);
+  margin-right: 6px;
 }
 
 .comment-text {
-  color: var(--color-gray-500);
+  color: var(--text-muted);
 }
 
 .comment-input-section {
-  margin-top: 0.5rem;
+  margin-top: 2px;
 }
 
 .comment-textarea {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--color-gray-300);
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 14px;
   resize: none;
-  font-family: inherit;
+  font-family: var(--font-main);
+  background: var(--surface);
+  color: var(--color-ink);
 }
 
 .comment-textarea:focus {
@@ -367,12 +375,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.375rem;
+  margin-top: 6px;
 }
 
 .char-count {
-  font-size: 0.75rem;
-  color: var(--color-gray-400);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 .char-count.warning {
@@ -380,13 +389,16 @@ onUnmounted(() => {
 }
 
 .submit-btn {
-  padding: 0.375rem 0.75rem;
+  padding: 8px 16px;
   background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-family: var(--font-condensed);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -400,63 +412,68 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
+/* Messages : discrets, pas de boîtes criardes */
 .warning-message {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem;
-  background: var(--color-yellow-100);
-  border-radius: 0.375rem;
-  font-size: 0.8rem;
-  color: var(--color-yellow-800);
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--color-green-400);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
-.info-message {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem;
-  background: var(--color-emerald-100);
-  border-radius: 0.375rem;
-  font-size: 0.8rem;
-  color: var(--color-emerald-700);
+.warning-message i {
+  color: var(--color-green-600);
 }
 
 .mutual-required-message {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: var(--color-blue-100);
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  color: var(--color-blue-700);
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mutual-required-message i {
+  color: var(--color-green-600);
+  margin-top: 2px;
 }
 
 .mutual-required-message .message-content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
   flex: 1;
 }
 
 .mutual-required-message .share-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  background: var(--color-blue-600);
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: 0.375rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-family: var(--font-condensed);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: background 0.15s ease;
   width: fit-content;
 }
 
 .mutual-required-message .share-btn:hover {
-  background: var(--color-blue-700);
+  background: var(--color-green-600);
 }
 </style>

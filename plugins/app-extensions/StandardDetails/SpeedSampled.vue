@@ -1,35 +1,21 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4">
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
-        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-          <path
-            d="M12 1a1 1 0 0 0-1 1v2.07a9 9 0 1 0 2 0V2a1 1 0 0 0-1-1Zm0 18a7 7 0 1 1 7-7 7 7 0 0 1-7 7Zm.5-11h-1a1 1 0 0 0-1 1v4.25a1 1 0 0 0 .4.8l3.5 2.45a1 1 0 0 0 1.2-1.6L13 12.3V9a1 1 0 0 0-1-1Z"
-          />
-        </svg>
-        Allure
-      </h3>
-      <div class="flex items-center gap-2">
-        <!-- Masque la case si on est en mode “laps” -->
-        <label v-if="slopeGranularity !== 'laps'" class="text-sm flex items-center gap-1">
-          <input
-            type="checkbox"
-            v-model="useSlope"
-            @change="onUseSlopeChange"
-            class="accent-green"
-          />Variation de pente
-        </label>
-        <select
-          v-model="slopeGranularity"
-          @change="onGranularityChange"
-          class="text-sm border px-2 py-1 rounded"
-        >
-          <option v-for="option in granularities" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
-    </div>
+  <GraphCard title="Allure" icon="fa-gauge-high" accent="var(--color-green-500)">
+    <template #actions>
+      <!-- Masque la case si on est en mode “laps” -->
+      <label v-if="slopeGranularity !== 'laps'" class="graph-check">
+        <input
+          type="checkbox"
+          v-model="useSlope"
+          @change="onUseSlopeChange"
+          class="accent-green"
+        />Variation de pente
+      </label>
+      <select v-model="slopeGranularity" @change="onGranularityChange" class="graph-select">
+        <option v-for="option in granularities" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </template>
     <canvas ref="canvas" width="800" height="400"></canvas>
     <div
       v-if="tooltip.visible"
@@ -78,13 +64,14 @@
         </span>
       </div>
     </div>
-  </div>
+  </GraphCard>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import GraphCard from './GraphCard.vue'
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
@@ -95,6 +82,9 @@ const { storage, analyzer: analyzerFactory } = usePluginContext()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const samples = ref<Sample[]>([])
+// Left plot margin, computed each draw from the widest axis label; shared with
+// the tooltip hit-testing so a click still maps to the right distance.
+const leftMargin = ref(50)
 
 const useSlope = ref(false)
 const slopeGranularity = ref('1000')
@@ -151,13 +141,29 @@ function getColorFromSpeed(speed: number, min: number, max: number): string {
 }
 
 function drawCanvas() {
-  const ctx = canvas.value?.getContext('2d')
-  if (!ctx || samples.value.length === 0) return
+  const el = canvas.value
+  const ctx = el?.getContext('2d')
+  if (!el || !ctx || samples.value.length === 0) return
 
-  const width = canvas.value!.width
-  const height = canvas.value!.height
+  // Responsive: size the backing store to the actual display size (× DPR for
+  // crispness) and draw in CSS pixels, so the chart holds at any width / zoom.
+  const dpr = window.devicePixelRatio || 1
+  const width = el.clientWidth || 800
+  // Height follows the width (~2:1) instead of a fixed value, so the chart keeps
+  // a pleasant aspect on narrow/mobile widths instead of looking stretched.
+  const height = Math.round(Math.min(360, Math.max(200, width * 0.52)))
+  el.width = Math.round(width * dpr)
+  el.height = Math.round(height * dpr)
+  el.style.height = `${height}px`
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-  const pxMargin = 50
+  const axisFont = '12px sans-serif'
+  ctx.font = axisFont
+
+  // Left margin sized to fit the widest "mm:ss" pace label so the bars never
+  // cover the units. Shared with the tooltip via leftMargin.
+  const pxMargin = Math.max(44, Math.ceil(ctx.measureText('88:88').width) + 16)
+  leftMargin.value = pxMargin
   ctx.clearRect(0, 0, width, height)
 
   const speeds = samples.value.map(s => s.speed ?? 0)
@@ -177,7 +183,7 @@ function drawCanvas() {
   // === Grille et axes ===
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
-  ctx.font = '10px sans-serif'
+  ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
   let minPace = 1000 / maxSpeed || 0
@@ -191,15 +197,9 @@ function drawCanvas() {
   const firstTick = Math.floor(minPace / STEP_SEC) * STEP_SEC - STEP_SEC // tick plus rapide
   const lastTick = Math.ceil(maxPace / STEP_SEC) * STEP_SEC + STEP_SEC // tick plus lent
 
-  function getFontSize(w: number): number {
-    // largeur < 400 px → 12 px ; 400-800 px → 14-16 px ; > 800 px → 18 px max
-    return Math.min(20, Math.max(12, Math.round(w / 30)))
-  }
-
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
-  const fontSize = getFontSize(width)
-  ctx.font = `${fontSize}px sans-serif`
+  ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
   for (let pSec = firstTick; pSec <= lastTick; pSec += STEP_SEC) {
@@ -332,7 +332,7 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   const width = rect.width
   const totalDistance = props.data.activity?.distance
 
-  const pxMargin = 50
+  const pxMargin = leftMargin.value
 
   const relativeX = (x - pxMargin) / (width - pxMargin)
   const clickedDistance = relativeX * totalDistance
@@ -437,17 +437,25 @@ function segmentDistance(sample: Sample, i = samples.value.indexOf(sample)) {
   return (sample.distance ?? 0) - (samples.value[i - 1].distance ?? 0)
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
   await loadPreferences()
   await resample()
 
   canvas.value?.addEventListener('click', showTooltip)
   canvas.value?.addEventListener('touchstart', showTooltip)
+
+  // Redraw when the container width changes (window resize / browser zoom)
+  resizeObserver = new ResizeObserver(() => drawCanvas())
+  if (canvas.value) resizeObserver.observe(canvas.value)
 })
 
 onBeforeUnmount(() => {
   canvas.value?.removeEventListener('click', showTooltip)
   canvas.value?.removeEventListener('touchstart', showTooltip)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 </script>
 
@@ -458,5 +466,22 @@ canvas {
 
 .accent-green {
   accent-color: var(--color-green-500);
+}
+
+.graph-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.graph-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 </style>

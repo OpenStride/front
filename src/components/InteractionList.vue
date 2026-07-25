@@ -191,106 +191,115 @@ onUnmounted(() => {
 
 <style scoped>
 .interaction-list {
-  background: var(--color-white);
-  padding: 1rem;
-  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-top: 1.25rem;
+  color: var(--color-ink);
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.1rem;
+  gap: 8px;
+  font-family: var(--font-condensed);
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  margin: 0 0 16px;
 }
 
 .section-title i {
-  color: var(--color-green-500);
+  color: var(--color-green-600);
+  font-size: 14px;
 }
 
 .likes-section,
 .comments-section {
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .subsection-header {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--color-gray-600);
-  margin-bottom: 0.5rem;
+  gap: 8px;
+  font-family: var(--font-condensed);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
 }
 
 .subsection-header i {
-  font-size: 0.85rem;
+  font-size: 13px;
 }
 
-.likes-section .subsection-header i {
-  color: var(--color-red-500);
-}
-
+.likes-section .subsection-header i,
 .comments-section .subsection-header i {
-  color: var(--color-green-500);
+  color: var(--color-green-600);
 }
 
 .likes-list {
-  font-size: 0.9rem;
-  color: var(--color-gray-500);
-  padding-left: 1.25rem;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .like-author {
-  color: var(--text-color);
+  color: var(--color-ink);
 }
 
 .comments-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .comment-item {
-  padding: 0.75rem;
-  background: var(--color-gray-50);
-  border-radius: 0.5rem;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .comment-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.375rem;
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
 .comment-author {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-color);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-ink);
 }
 
 .comment-time {
-  font-size: 0.8rem;
-  color: var(--color-gray-400);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 .delete-btn {
   margin-left: auto;
-  padding: 0.25rem 0.375rem;
+  padding: 4px 6px;
   background: none;
   border: none;
-  color: var(--color-gray-400);
+  color: var(--text-faint);
   cursor: pointer;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
 .delete-btn:hover:not(:disabled) {
-  color: var(--color-red-500);
-  background: var(--color-red-100);
+  color: var(--color-red-600);
+  background: var(--color-red-50);
 }
 
 .delete-btn:disabled {
@@ -299,9 +308,9 @@ onUnmounted(() => {
 }
 
 .comment-text {
-  font-size: 0.9rem;
-  color: var(--color-gray-700);
-  line-height: 1.4;
+  font-size: 14px;
+  color: var(--color-ink-soft);
+  line-height: 1.45;
   margin: 0;
   word-break: break-word;
 }
@@ -310,14 +319,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
   padding: 2rem 1rem;
-  color: var(--color-gray-400);
-  font-size: 0.9rem;
+  color: var(--text-faint);
+  font-size: 14px;
 }
 
 .loading-state i {
-  color: var(--color-green-500);
+  color: var(--color-green-600);
 }
 
 .error-state {
@@ -325,32 +334,37 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 2rem 1rem;
-  gap: 0.5rem;
-  color: var(--color-red-500);
+  gap: 8px;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .error-state i {
   font-size: 1.5rem;
+  color: var(--color-orange-500);
 }
 
 .error-state p {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-gray-600);
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .retry-btn {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 6px;
   margin-top: 0.25rem;
-  padding: 0.375rem 0.75rem;
+  padding: 8px 14px;
   background: none;
   border: 1px solid var(--color-green-500);
-  color: var(--color-green-500);
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
+  color: var(--color-green-700);
+  border-radius: var(--radius-md);
+  font-family: var(--font-condensed);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -364,22 +378,23 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 2rem 1rem;
-  color: var(--color-gray-400);
+  color: var(--text-faint);
 }
 
 .empty-state i {
   font-size: 2rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
+  color: var(--color-green-400);
 }
 
 .empty-state p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .interaction-bar-section {
-  border-top: 1px solid var(--color-gray-200);
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 16px;
+  padding-top: 14px;
 }
 </style>

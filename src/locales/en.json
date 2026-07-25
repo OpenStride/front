@@ -1,4 +1,15 @@
 {
+  "activityDetail": {
+    "noRoute": "No GPS route",
+    "distance": "Distance",
+    "avgPace": "Avg pace",
+    "time": "Time",
+    "elevation": "Elevation +",
+    "avgHr": "Avg HR",
+    "maxHr": "Max HR",
+    "cadence": "Cadence",
+    "calories": "Calories"
+  },
   "sports": {
     "running": "Running",
     "treadmill_running": "Treadmill Running",
@@ -261,12 +272,14 @@
   "dataProviders": {
     "title": "Connected Data Providers",
     "available": "Available Providers",
-    "noProviders": "No providers connected."
+    "noProviders": "No providers connected.",
+    "myProviders": "My Data Sources"
   },
   "storageProviders": {
     "title": "Connected File Plugins",
     "available": "Available plugins",
-    "noPlugins": "No File Plugin connected."
+    "noPlugins": "No File Plugin connected.",
+    "myPlugins": "My Cloud Backups"
   },
   "appExtensions": {
     "title": "App Extensions",
@@ -311,6 +324,49 @@
       "reconnect": "Reconnect {provider}",
       "disconnect": "Disconnect",
       "connecting": "Connecting..."
+    },
+    "importing": "Importing…",
+    "importingCount": "Importing ({count} activities)…",
+    "importProgress": "Importing {month} ({current}/{total})",
+    "synced": "Synced",
+    "connectedPending": "Connected · Import pending",
+    "retry": "Retry",
+    "fetchRecent": "Fetch last 10 days",
+    "errorLabel": "Error: {message}",
+    "lastSync": {
+      "justNow": "a few seconds ago",
+      "minutes": "{n}m ago",
+      "hours": "{n}h ago",
+      "days": "{n}d ago"
+    },
+    "popup": {
+      "blocked": "Popup was blocked. Allow popups or use the alternative method.",
+      "connectViaRedirect": "Connect via redirect",
+      "samsungWarning": "On Samsung Android, the redirect may open a different browser."
+    },
+    "notify": {
+      "connected": "{provider} connected! Importing…",
+      "disconnected": "{provider} disconnected. {count} activities removed.",
+      "synced": "{provider}: {count} activities synced",
+      "fetched": "{provider}: {count} activities fetched",
+      "imported": "{provider}: {count} activities imported",
+      "importError": "Import error",
+      "stateMismatch": "OAuth security error (state mismatch)",
+      "popupBlocked": "Popup blocked. Allow popups or use the fallback below.",
+      "pkceMissing": "Error: PKCE verifier missing",
+      "accessDenied": "{provider} access denied. Please try again.",
+      "oauthError": "{provider} OAuth error: {error}",
+      "generic": "{provider}: {message}"
+    },
+    "callback": {
+      "connecting": "Connecting…",
+      "closing": "Connected! Closing…",
+      "redirecting": "Connected! Redirecting…",
+      "missingParams": "Missing OAuth parameters",
+      "accessDenied": "Access denied. You can try again from the setup page.",
+      "oauthError": "OAuth error: {error}",
+      "wrongBrowser": "This page opened in another browser.",
+      "wrongBrowserHint": "Go back to your main browser (Chrome) and try again."
     }
   },
   "update": {

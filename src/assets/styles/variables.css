@@ -1,27 +1,74 @@
 :root {
-  /* 🌈 Couleurs */
-  --primary-color: #333333;
-  --secondary-color: #88aa00;
-  --text-color: #333333;
-  --bg-color: #fafafa;
+  /* ============================================================
+     OpenStride — Design tokens (Direction 1a / « thème 1 »)
+     Source: refonte design doc "Moderniser OpenStride" (1a).
+     Langage : encre bleu-nuit, surfaces gris chaud, accent vert
+     olive, lime réservé aux blocs sombres. Typos Archivo / Barlow
+     / JetBrains Mono.
+     ============================================================ */
+
+  /* — Encre & lime (accent réservé aux fonds sombres) — */
+  --color-ink: #1e1e2e; /* texte principal, blocs « encre » */
+  --color-ink-soft: #55554f; /* texte secondaire */
+  --color-lime: #cdf05c; /* accent SUR encre uniquement */
+  --color-lime-soft: #a6d95a;
+
+  /* — Surfaces (gris chaud) — */
+  --surface-app: #ececea; /* fond de page */
+  --surface: #ffffff; /* cartes */
+  --surface-2: #f7f7f5; /* cartes secondaires / panneaux */
+  --surface-muted: #e9ece4; /* zones neutres (grille carte, tracé) */
+  --border-subtle: #e6e6e0; /* bordures fines */
+
+  /* — Texte — */
+  --text-color: var(--color-ink);
+  --text-muted: #77776f;
+  --text-faint: #8c8c84;
+
+  /* — Rayons — */
+  --radius-sm: 5px; /* badges */
+  --radius-md: 12px; /* cartes / champs */
+  --radius-lg: 16px; /* blocs métriques */
+  --radius-xl: 24px;
+  --radius-2xl: 30px; /* grandes surfaces / cadre mobile */
+  --radius-pill: 999px;
+
+  /* — Ombres douces — */
+  --shadow-card: 0 2px 8px rgba(30, 30, 46, 0.06);
+  --shadow-float: 0 22px 50px -24px rgba(30, 30, 46, 0.3);
 
   /* 🖋 Typographie */
-  --font-main: "Baloo 2", sans-serif;
+  --font-main: "Barlow", Helvetica, Arial, sans-serif; /* corps */
+  --font-display: "Archivo", var(--font-main); /* titres 800 */
+  --font-condensed: "Barlow Condensed", var(--font-main); /* labels majuscules */
+  --font-mono: "JetBrains Mono", ui-monospace, monospace; /* chiffres / métriques */
   --font-size-logo: 32px;
   --font-weight-bold: 600;
+
+  /* — Aliases sémantiques (rétro-compatibilité) — */
+  --primary-color: var(--color-ink); /* texte principal */
+  --secondary-color: var(--color-green-500); /* accent de marque */
+  --bg-color: var(--surface-app); /* fond principal */
 }
 
 @theme {
-  --color-green-50: #f8fbea;
-  --color-green-100: #edf6c8;
-  --color-green-200: #dff19a;
-  --color-green-300: #cbe56d;
-  --color-green-400: #b4d647;
-  --color-green-500: #88aa00;
-  --color-green-600: #6d8a00;
-  --color-green-700: #566d00;
-  --color-green-800: #415200;
-  --color-green-900: #2f3c00;
+  /* Vert OpenStride — rampe olive/herbe (direction 1a) */
+  --color-green-50: #f2f7e8;
+  --color-green-100: #e6f0cf;
+  --color-green-200: #d3e5a6; /* bordures subtiles */
+  --color-green-300: #b9d673;
+  --color-green-400: #86b933; /* accent clair */
+  --color-green-500: #5f8f1a; /* ⭐ PRINCIPAL : boutons, CTA, liens */
+  --color-green-600: #4d7314; /* ⭐ hover */
+  --color-green-700: #3d5c10; /* texte foncé lisible */
+  --color-green-800: #2f470c;
+  --color-green-900: #223407;
+
+  /* Encre & lime exposés en utilitaires Tailwind (bg-ink, text-lime…) */
+  --color-ink: #1e1e2e;
+  --color-ink-soft: #55554f;
+  --color-lime: #cdf05c;
+  --color-lime-soft: #a6d95a;
 
   --color-gray-50: #f9fafb;
   --color-gray-100: #f3f4f6;

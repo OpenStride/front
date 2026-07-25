@@ -1,40 +1,24 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4">
-    <!-- ===== En-tête : titre + contrôles ===== -->
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
-        <svg class="w-5 h-5 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
-          <path
-            d="M9 2a1 1 0 0 0-1 1v4.28a9 9 0 0 0 4 17.45 9 9 0 0 0 4-17.45V3a1 1 0 0 0-2 0v3.09a7 7 0 1 1-4 0V3a1 1 0 0 0-1-1Z"
-          />
-        </svg>
-        Cadence
-      </h3>
+  <GraphCard title="Cadence" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
+    <template #actions>
+      <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
+      <label v-if="granularity !== 'laps'" class="graph-check">
+        <input
+          type="checkbox"
+          v-model="useSlope"
+          @change="onUseSlopeChange"
+          class="accent-cyan"
+        />
+        Variation&nbsp;de&nbsp;pente
+      </label>
 
-      <div class="flex items-center gap-2">
-        <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
-        <label v-if="granularity !== 'laps'" class="text-sm flex items-center gap-1">
-          <input
-            type="checkbox"
-            v-model="useSlope"
-            @change="onUseSlopeChange"
-            class="accent-[cyan]"
-          />
-          Variation&nbsp;de&nbsp;pente
-        </label>
-
-        <!-- Sélecteur de granularité -->
-        <select
-          v-model="granularity"
-          @change="onGranularityChange"
-          class="text-sm border px-2 py-1 rounded"
-        >
-          <option v-for="opt in granularities" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
-      </div>
-    </div>
+      <!-- Sélecteur de granularité -->
+      <select v-model="granularity" @change="onGranularityChange" class="graph-select">
+        <option v-for="opt in granularities" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
+      </select>
+    </template>
 
     <!-- ===== Graphique ===== -->
     <canvas ref="canvas" width="800" height="400"></canvas>
@@ -51,13 +35,14 @@
         <strong>Pente :</strong> {{ tooltip.slope.toFixed(1) }} %
       </div>
     </div>
-  </div>
+  </GraphCard>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import GraphCard from './GraphCard.vue'
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
@@ -72,6 +57,9 @@ const { storage, analyzer: analyzerFactory } = usePluginContext()
 /* ===== Références & états ===== */
 const canvas = ref<HTMLCanvasElement | null>(null)
 const samples = ref<Sample[]>([])
+// Left plot margin, computed each draw from the widest axis label; shared with
+// the tooltip hit-testing so a click still maps to the right distance.
+const leftMargin = ref(50)
 const granularity = ref('1000') // distance (m) ou 'laps'
 const useSlope = ref(false) // mode variation de pente
 
@@ -123,12 +111,24 @@ function getColorFromCadence(c: number, min: number, max: number): string {
 
 /* ===== Dessin du graphique ===== */
 function drawCanvas() {
-  const ctx = canvas.value?.getContext('2d')
-  if (!ctx || samples.value.length === 0) return
+  const el = canvas.value
+  const ctx = el?.getContext('2d')
+  if (!el || !ctx || samples.value.length === 0) return
 
-  const W = canvas.value!.width
-  const H = canvas.value!.height
+  // Responsive: size the backing store to the actual display size (× DPR for
+  // crispness) and draw in CSS pixels, so the chart holds at any width / zoom.
+  const dpr = window.devicePixelRatio || 1
+  const W = el.clientWidth || 800
+  // Height follows the width (~2:1) instead of a fixed value, so the chart keeps
+  // a pleasant aspect on narrow/mobile widths instead of looking stretched.
+  const H = Math.round(Math.min(360, Math.max(200, W * 0.52)))
+  el.width = Math.round(W * dpr)
+  el.height = Math.round(H * dpr)
+  el.style.height = `${H}px`
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, W, H)
+
+  const axisFont = '12px sans-serif'
 
   /* === Cadence min / max === */
   const cadences = samples.value.map(s => s.cadence ?? 0)
@@ -139,7 +139,10 @@ function drawCanvas() {
   maxC += thr
 
   /* === Layout === */
-  const pxMargin = 50
+  // Left margin sized to fit the widest cadence label so bars never cover it.
+  ctx.font = axisFont
+  const pxMargin = Math.max(40, Math.ceil(ctx.measureText('888').width) + 16)
+  leftMargin.value = pxMargin
   const plotTop = 30
   const plotHeight = H - 50
   const baseline = plotTop + plotHeight
@@ -148,7 +151,7 @@ function drawCanvas() {
   /* === Grille horizontale (cadence) === */
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
-  ctx.font = '10px sans-serif'
+  ctx.font = axisFont
   for (let c = Math.floor(minC / 10) * 10; c <= maxC + 10; c += 10) {
     const y = plotTop + ((c - minC) / (maxC - minC || 1)) * plotHeight
     ctx.beginPath()
@@ -233,7 +236,7 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
   const clientX = 'touches' in ev ? ev.touches[0].clientX : ev.clientX
   const clientY = 'touches' in ev ? ev.touches[0].clientY : ev.clientY
   const rect = canvas.value!.getBoundingClientRect()
-  const xPct = (clientX - rect.left - 50) / (rect.width - 50)
+  const xPct = (clientX - rect.left - leftMargin.value) / (rect.width - leftMargin.value)
   const distSel = xPct * (props.data.activity.distance || 0)
 
   /* recherche du sample cliqué */
@@ -273,20 +276,49 @@ function onUseSlopeChange() {
   savePrefs()
   resample()
 }
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
   await loadPrefs()
   await resample()
   canvas.value?.addEventListener('click', showTooltip)
   canvas.value?.addEventListener('touchstart', showTooltip)
+
+  // Redraw when the container width changes (window resize / browser zoom)
+  resizeObserver = new ResizeObserver(() => drawCanvas())
+  if (canvas.value) resizeObserver.observe(canvas.value)
 })
 onBeforeUnmount(() => {
   canvas.value?.removeEventListener('click', showTooltip)
   canvas.value?.removeEventListener('touchstart', showTooltip)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 </script>
 
 <style scoped>
 canvas {
   max-width: 100%;
+}
+
+.accent-cyan {
+  accent-color: var(--color-cyan-500);
+}
+
+.graph-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.graph-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 </style>
