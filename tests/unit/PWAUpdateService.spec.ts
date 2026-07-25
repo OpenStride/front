@@ -18,9 +18,16 @@ vi.mock('workbox-window', () => ({
 }))
 
 // Mock navigator.serviceWorker
-const mockServiceWorker = {
+const mockServiceWorker: {
+  getRegistration: ReturnType<typeof vi.fn>
+  register: ReturnType<typeof vi.fn>
+  controller: object | null
+} = {
   getRegistration: vi.fn(),
-  register: vi.fn()
+  register: vi.fn(),
+  // A page already driven by a worker — the update path. Tests covering a
+  // first visit clear it explicitly.
+  controller: null
 }
 
 Object.defineProperty(global.navigator, 'serviceWorker', {
@@ -147,6 +154,8 @@ describe('PWAUpdateService', () => {
   describe('Event Emission - Prompt Mode', () => {
     beforeEach(async () => {
       vi.stubEnv('DEV', false)
+      // The page is already controlled, so taking control means a swap
+      mockServiceWorker.controller = {}
       await service.initialize()
       vi.unstubAllEnvs()
     })
@@ -242,6 +251,41 @@ describe('PWAUpdateService', () => {
         const controllingHandler = eventListeners.get('controlling')
         expect(controllingHandler).toBeDefined()
         controllingHandler!({})
+      })
+    })
+
+    it('should NOT reload when the worker first claims an uncontrolled page', async () => {
+      // Rebuild the service as if this were a first visit
+      // @ts-expect-error - accessing private static property for testing
+      PWAUpdateService.instance = null
+      mockServiceWorker.controller = null
+      const fresh = PWAUpdateService.getInstance()
+      vi.stubEnv('DEV', false)
+      await fresh.initialize()
+      vi.unstubAllEnvs()
+
+      const originalReload = window.location.reload
+      const reloadMock = vi.fn()
+      Object.defineProperty(window.location, 'reload', {
+        value: reloadMock,
+        writable: true,
+        configurable: true
+      })
+
+      let readyEmitted = false
+      fresh.emitter.addEventListener('update-ready', () => {
+        readyEmitted = true
+      })
+
+      eventListeners.get('controlling')!({})
+
+      expect(reloadMock).not.toHaveBeenCalled()
+      expect(readyEmitted).toBe(false)
+
+      Object.defineProperty(window.location, 'reload', {
+        value: originalReload,
+        writable: true,
+        configurable: true
       })
     })
 
