@@ -10,25 +10,13 @@ export interface StoragePlugin {
   readRemote(store: string): Promise<unknown[]>
   writeRemote(store: string, data: unknown[]): Promise<void>
   /**
-   * Optional: plugin can provide a manifest update step after a sync.
-   * Receives per-store summary and aggregate hash.
+   * Optional: return an opaque token that changes iff the remote content of
+   * `store` changed, obtained cheaply WITHOUT downloading the full content
+   * (e.g. a file checksum / modifiedTime). Lets SyncService skip the full
+   * remote read when the token is unchanged and there is nothing local to push.
+   * Return null if unavailable (SyncService then falls back to a full read).
    */
-  updateManifest?(
-    summary: Array<{ name: string; itemCount: number; lastModified: number; contentHash: string }>,
-    aggregateHash: string
-  ): Promise<void>
-  /**
-   * Optional: plugin can optimize which stores really need import based on a remote manifest.
-   * Returns the list of stores that should actually be fetched.
-   */
-  optimizeImport?(requestedStores: string[]): Promise<string[]>
-  /**
-   * Optional: provide lightweight remote manifest (content hashes) so core can skip full remote reads
-   * when local hash matches remote.
-   */
-  getRemoteManifest?(): Promise<{
-    stores: Array<{ name: string; contentHash: string; lastModified?: number; itemCount?: number }>
-  } | null>
+  getRemoteChangeToken?(store: string): Promise<string | null>
 
   // ========== PUBLIC FILE SHARING CAPABILITIES ==========
   /**

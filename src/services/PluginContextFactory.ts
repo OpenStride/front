@@ -97,8 +97,8 @@ export async function createPluginContext(): Promise<PluginContext> {
     },
 
     sync: {
-      syncNow: async () => {
-        await SyncService.getInstance().syncNow()
+      syncNow: async (opts?: { force?: boolean }) => {
+        await SyncService.getInstance().syncNow(opts)
       }
     }
   }

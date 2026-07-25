@@ -35,7 +35,11 @@ export interface IActivityService {
    * Save multiple activities with their details in batch
    * Faster than calling saveActivityWithDetails multiple times
    */
-  saveActivitiesWithDetails(activities: Activity[], details: ActivityDetails[]): Promise<void>
+  saveActivitiesWithDetails(
+    activities: Activity[],
+    details: ActivityDetails[],
+    opts?: { fromSync?: boolean }
+  ): Promise<void>
 
   /**
    * Get activity summary by ID
@@ -210,7 +214,11 @@ export interface IAnalyzerFactory {
  * Allows plugins to trigger sync without importing SyncService directly.
  */
 export interface ISyncService {
-  syncNow(): Promise<void>
+  /**
+   * Trigger a sync. Pass `{ force: true }` to bypass the remote-change-token
+   * optimization and force a full remote read + reconcile (deep menu action).
+   */
+  syncNow(opts?: { force?: boolean }): Promise<void>
 }
 
 /**

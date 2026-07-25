@@ -14,6 +14,7 @@ export default [
       '.firebase/**',
       '*.log',
       'public/**',
+      'functions/lib/**',
       'vite.config.ts',
       'vitest.config.ts'
     ]
@@ -179,6 +180,17 @@ export default [
       globals: {
         ...globals.node,
         module: 'readonly'
+      }
+    }
+  },
+
+  // Standalone Node scripts (.mjs / .cjs tooling and manual test scripts)
+  {
+    files: ['**/*.mjs', '**/*.cjs'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.node
       }
     }
   }

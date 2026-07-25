@@ -39,3 +39,5 @@ dev-dist/
 
 # Axon knowledge graph index
 .axon/
+.gstack/
+test-results/

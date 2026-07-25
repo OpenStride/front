@@ -121,7 +121,8 @@ export class ActivityService implements IActivityService {
    */
   public async saveActivitiesWithDetails(
     activities: Activity[],
-    details: ActivityDetails[]
+    details: ActivityDetails[],
+    opts: { fromSync?: boolean } = {}
   ): Promise<void> {
     if (activities.length !== details.length) {
       throw new Error('Activities and details arrays must have same length')
@@ -131,28 +132,32 @@ export class ActivityService implements IActivityService {
     const idb = db.getIDB()
     const now = Date.now()
 
+    // When pulling from a remote store we must preserve the incoming metadata
+    // (synced flag, version, lastModified) instead of stamping fresh local values.
+    // Otherwise pulled activities are re-marked unsynced -> re-pushed, and their
+    // rewritten lastModified triggers spurious conflicts + an extra sync round.
+    const fromSync = opts.fromSync === true
+    const savedActivities: Activity[] = activities.map(a => ({
+      ...a,
+      version: a.version ?? 0,
+      lastModified: fromSync ? (a.lastModified ?? now) : now,
+      synced: fromSync ? (a.synced ?? true) : false,
+      deleted: fromSync ? (a.deleted ?? false) : false
+    }))
+    const savedDetails: ActivityDetails[] = details.map(d => ({
+      ...d,
+      version: d.version ?? 0,
+      lastModified: fromSync ? (d.lastModified ?? now) : now,
+      synced: fromSync ? (d.synced ?? true) : false,
+      deleted: fromSync ? (d.deleted ?? false) : false
+    }))
+
     return new Promise((resolve, reject) => {
       const tx = idb.transaction(['activities', 'activity_details'], 'readwrite')
 
-      for (let i = 0; i < activities.length; i++) {
-        const activityToSave: Activity = {
-          ...activities[i],
-          version: activities[i].version ?? 0,
-          lastModified: now,
-          synced: false,
-          deleted: false
-        }
-
-        const detailsToSave: ActivityDetails = {
-          ...details[i],
-          version: details[i].version ?? 0,
-          lastModified: now,
-          synced: false,
-          deleted: false
-        }
-
-        tx.objectStore('activities').put(activityToSave)
-        tx.objectStore('activity_details').put(detailsToSave)
+      for (let i = 0; i < savedActivities.length; i++) {
+        tx.objectStore('activities').put(savedActivities[i])
+        tx.objectStore('activity_details').put(savedDetails[i])
       }
 
       tx.oncomplete = () => {
@@ -163,32 +168,20 @@ export class ActivityService implements IActivityService {
           })
         )
 
-        // Emit activity-changed event for each saved activity
-        for (let i = 0; i < activities.length; i++) {
+        // Emit activity-changed event for each saved activity (drives aggregation)
+        for (let i = 0; i < savedActivities.length; i++) {
           this.emitter.dispatchEvent(
             new CustomEvent<ActivityServiceEvent>('activity-changed', {
               detail: {
                 type: 'saved',
-                activity: {
-                  ...activities[i],
-                  version: activities[i].version ?? 0,
-                  lastModified: now,
-                  synced: false,
-                  deleted: false
-                },
-                details: {
-                  ...details[i],
-                  version: details[i].version ?? 0,
-                  lastModified: now,
-                  synced: false,
-                  deleted: false
-                }
+                activity: savedActivities[i],
+                details: savedDetails[i]
               }
             })
           )
         }
 
-        console.log(`[ActivityService] Saved ${activities.length} activities with details`)
+        console.log(`[ActivityService] Saved ${savedActivities.length} activities with details`)
         resolve()
       }
 

@@ -12,11 +12,6 @@
       <i class="fas fa-times-circle" aria-hidden="true"></i>
       <span>{{ errorMessage }}</span>
     </div>
-    <div v-else-if="status === 'no-opener'" class="status warning">
-      <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-      <p>This page opened in another browser.</p>
-      <p class="hint">Go back to your main browser (Chrome) and try again.</p>
-    </div>
     <div v-else-if="status === 'broadcast'" class="status success">
       <i class="fas fa-check-circle" aria-hidden="true"></i>
       <span>Connected! Redirecting...</span>
@@ -27,7 +22,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const status = ref<'processing' | 'success' | 'error' | 'no-opener' | 'broadcast'>('processing')
+const status = ref<'processing' | 'success' | 'error' | 'broadcast'>('processing')
 const errorMessage = ref('Authentication error')
 
 onMounted(() => {
@@ -36,29 +31,19 @@ onMounted(() => {
   const state = params.get('state')
   const error = params.get('error')
 
-  // No OAuth params at all — user navigated here directly
   if (!code && !error) {
     errorMessage.value = 'Missing OAuth parameters'
     status.value = 'error'
     return
   }
-
-  // OAuth error (user denied access or provider error)
   if (error) {
     errorMessage.value =
-      error === 'access_denied'
-        ? 'Access denied. You can try again from the setup page.'
-        : `OAuth error: ${error}`
+      error === 'access_denied' ? 'Access denied. You can try again.' : `OAuth error: ${error}`
   }
 
-  const payload = {
-    type: 'garmin-oauth-callback',
-    code,
-    state,
-    error
-  }
+  const payload = { type: 'strava-oauth-callback', code, state, error }
 
-  // Strategy 1: postMessage via window.opener (works if opener ref survived)
+  // Strategy 1: postMessage back to the opener (popup flow).
   if (window.opener) {
     window.opener.postMessage(payload, window.location.origin)
     status.value = error ? 'error' : 'success'
@@ -66,35 +51,25 @@ onMounted(() => {
     return
   }
 
-  // Strategy 2: BroadcastChannel (works same-origin even without opener ref)
-  // Handles the case where cross-origin navigation (Garmin OAuth) nullifies window.opener
+  // Strategy 2: BroadcastChannel + redirect to the setup page (redirect flow).
   try {
-    const channel = new BroadcastChannel('garmin-oauth')
+    const channel = new BroadcastChannel('strava-oauth')
     channel.postMessage(payload)
     channel.close()
-
-    if (error) {
-      status.value = 'error'
-      // Redirect to setup page with error so user sees feedback
-      setTimeout(() => {
-        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
-        setupUrl.searchParams.set('oauth_error', error)
-        window.location.href = setupUrl.toString()
-      }, 2000)
-    } else {
-      status.value = 'broadcast'
-      // Redirect to Garmin setup page with code+state so it can exchange for tokens
-      setTimeout(() => {
-        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
-        if (code) setupUrl.searchParams.set('code', code)
-        if (state) setupUrl.searchParams.set('state', state)
-        window.location.href = setupUrl.toString()
-      }, 1500)
-    }
   } catch {
-    // BroadcastChannel not supported — true no-opener fallback
-    status.value = 'no-opener'
+    // ignore — fall through to redirect
   }
+
+  status.value = error ? 'error' : 'broadcast'
+  setTimeout(() => {
+    const setupUrl = new URL('/data-provider/strava', window.location.origin)
+    if (error) setupUrl.searchParams.set('oauth_error', error)
+    else {
+      if (code) setupUrl.searchParams.set('code', code)
+      if (state) setupUrl.searchParams.set('state', state)
+    }
+    window.location.href = setupUrl.toString()
+  }, 1500)
 })
 </script>
 
@@ -110,7 +85,6 @@ onMounted(() => {
     -apple-system,
     sans-serif;
 }
-
 .status {
   text-align: center;
   padding: 2rem;
@@ -119,35 +93,19 @@ onMounted(() => {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   max-width: 320px;
 }
-
 .status i {
   font-size: 2.5rem;
   margin-bottom: 1rem;
   display: block;
 }
-
-.status span,
-.status p {
+.status span {
   color: var(--color-gray-700, #374151);
   font-size: 1rem;
-  margin: 0;
 }
-
-.status .hint {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #6b7280);
-}
-
 .status.success i {
   color: var(--color-green-500, #88aa00);
 }
-
 .status.error i {
   color: var(--color-red-500, #ef4444);
-}
-
-.status.warning i {
-  color: var(--color-yellow-500, #f59e0b);
 }
 </style>
