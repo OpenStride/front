@@ -1,9 +1,12 @@
 <template>
   <section class="section-card">
-    <h3 class="section-title">
-      <i class="fas fa-trophy" aria-hidden="true"></i>
-      {{ t('statistics.records.title') }}
-    </h3>
+    <div class="section-header">
+      <h3 class="section-title">
+        <i class="fas fa-trophy" aria-hidden="true"></i>
+        {{ t('statistics.records.title') }}
+      </h3>
+      <RecordPeriodFilter v-model="selectedPeriod" />
+    </div>
 
     <div v-if="computing" class="computing">
       <div class="progress-bar">
@@ -14,7 +17,13 @@
 
     <div v-else-if="records.length === 0" class="empty-records">
       <p>{{ t('statistics.records.noRecords') }}</p>
-      <p class="hint">{{ t('statistics.records.noRecordsHint') }}</p>
+      <p class="hint">
+        {{
+          selectedPeriod === 'all'
+            ? t('statistics.records.noRecordsHint')
+            : t('statistics.records.noRecordsPeriodHint')
+        }}
+      </p>
     </div>
 
     <div v-else class="records-table-wrapper">
@@ -49,11 +58,12 @@
 </template>
 
 <script setup lang="ts">
-import { toRef } from 'vue'
+import { ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
-import { toMs } from '../types'
+import RecordPeriodFilter from './RecordPeriodFilter.vue'
+import { toMs, type RecordPeriod } from '../types'
 
 const { t } = useI18n()
 
@@ -62,9 +72,12 @@ const props = defineProps<{
   selectedSport: string
 }>()
 
+const selectedPeriod = ref<RecordPeriod>('all')
+
 const { records, computing, progress } = usePersonalRecords(
   toRef(props, 'activities'),
-  toRef(props, 'selectedSport')
+  toRef(props, 'selectedSport'),
+  selectedPeriod
 )
 
 function formatDuration(seconds: number): string {
@@ -98,11 +111,20 @@ function formatDate(timestamp: number): string {
   padding: 1.2rem 1.4rem;
 }
 
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-color);
-  margin: 0 0 1rem;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
