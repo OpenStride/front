@@ -60,12 +60,19 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import { useMixedFeed } from '@/composables/useMixedFeed'
+import { debounce } from '@/utils/debounce'
 
 const router = useRouter()
 const { t } = useI18n()
 const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed()
 
 const scrollArea = ref<HTMLElement | null>(null)
+
+// A single refresh is answered by every service that listens, so the events
+// arrive in a burst — reload once for the whole burst.
+const onRefresh = debounce(() => {
+  reload()
+}, 500)
 
 onMounted(() => {
   loadMore()
@@ -83,10 +90,6 @@ const handleScroll = () => {
   if (bottom) {
     loadMore()
   }
-}
-
-const onRefresh = async () => {
-  await reload()
 }
 
 const navigateToDataProviders = () => {

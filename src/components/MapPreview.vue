@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -17,6 +17,7 @@ const props = defineProps<{
 }>()
 
 const mapRef = ref<HTMLElement | null>(null)
+let map: L.Map | null = null
 
 const getTileLayerUrl = (theme: string): string => {
   const tileThemes: Record<string, string> = {
@@ -39,7 +40,7 @@ onMounted(() => {
     lon = props.polyline[0][1]
   }
 
-  const map = L.map(mapRef.value, {
+  map = L.map(mapRef.value, {
     center: [lat, lon],
     zoom: props.zoom ?? 14,
     zoomControl: props.canzoom ?? false,
@@ -114,6 +115,13 @@ onMounted(() => {
     })
     L.marker([lat, lon], { icon: defaultIcon }).addTo(map)
   }
+})
+
+// Leaflet registers window-level listeners and keeps its own DOM, so an
+// unmounted map lingers unless it is torn down explicitly.
+onBeforeUnmount(() => {
+  map?.remove()
+  map = null
 })
 </script>
 

@@ -122,6 +122,11 @@ export function usePullToRefresh({ onTrigger, active }: PullToRefreshOptions) {
     state.value = 'idle'
   }
 
+  /** The system took the touch away (call, gesture) — abort, never refresh. */
+  const onTouchCancel = () => {
+    if (tracking) reset()
+  }
+
   watch(active, running => {
     if (!running && state.value === 'refreshing') reset()
   })
@@ -131,14 +136,14 @@ export function usePullToRefresh({ onTrigger, active }: PullToRefreshOptions) {
     // Not passive: holding the page still during the pull needs preventDefault.
     window.addEventListener('touchmove', onTouchMove, { passive: false })
     window.addEventListener('touchend', onTouchEnd, { passive: true })
-    window.addEventListener('touchcancel', onTouchEnd, { passive: true })
+    window.addEventListener('touchcancel', onTouchCancel, { passive: true })
   })
 
   onBeforeUnmount(() => {
     window.removeEventListener('touchstart', onTouchStart)
     window.removeEventListener('touchmove', onTouchMove)
     window.removeEventListener('touchend', onTouchEnd)
-    window.removeEventListener('touchcancel', onTouchEnd)
+    window.removeEventListener('touchcancel', onTouchCancel)
   })
 
   return { distance, state, dragging }

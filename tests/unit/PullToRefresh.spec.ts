@@ -44,11 +44,15 @@ describe('PullToRefresh', () => {
     wrapper = mount(PullToRefresh)
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     window.removeEventListener('openstride:refresh-requested', countRequest)
+    // useAppRefresh is a module singleton, and it holds the spinner for a
+    // minimum duration — let it settle so state does not leak into the next test.
+    if (wrapper.find('.ptr__icon--spinning').exists()) {
+      window.dispatchEvent(new Event('openstride:activities-refreshed'))
+      await new Promise(resolve => setTimeout(resolve, 700))
+    }
     wrapper.unmount()
-    // useAppRefresh is a module singleton — clear its in-flight state.
-    window.dispatchEvent(new Event('openstride:activities-refreshed'))
   })
 
   it('requests a refresh when the pull passes the threshold', async () => {
@@ -80,13 +84,32 @@ describe('PullToRefresh', () => {
   })
 
   it('stops spinning once a service reports the refresh is done', async () => {
+    vi.useFakeTimers()
     await drag([100, 10], [100, 200])
     expect(wrapper.find('.ptr__icon--spinning').exists()).toBe(true)
 
     window.dispatchEvent(new Event('openstride:activities-refreshed'))
+    await vi.advanceTimersByTimeAsync(1000)
     await nextTick()
 
     expect(wrapper.find('.ptr__icon--spinning').exists()).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('holds the spinner briefly when a service answers immediately', async () => {
+    vi.useFakeTimers()
+    await drag([100, 10], [100, 200])
+
+    // An empty install answers almost at once; a one-frame flash reads as a bug.
+    window.dispatchEvent(new Event('openstride:activities-refreshed'))
+    await vi.advanceTimersByTimeAsync(100)
+    await nextTick()
+    expect(wrapper.find('.ptr__icon--spinning').exists()).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(600)
+    await nextTick()
+    expect(wrapper.find('.ptr__icon--spinning').exists()).toBe(false)
+    vi.useRealTimers()
   })
 
   it('does not stack a second request while one is in flight', async () => {
@@ -119,8 +142,13 @@ describe('PullToRefresh', () => {
 })
 
 describe('usePullToRefresh damping', () => {
-  it('keeps the indicator ahead of the threshold only after a real pull', async () => {
+  it('arms only past the threshold, and a cancelled touch refreshes nothing', async () => {
     setScrollY(0)
+    let requested = 0
+    const count = () => {
+      requested += 1
+    }
+    window.addEventListener('openstride:refresh-requested', count)
     const wrapper = mount(PullToRefresh)
 
     window.dispatchEvent(touch('touchstart', 100, 10))
@@ -132,9 +160,14 @@ describe('usePullToRefresh damping', () => {
     await nextTick()
     expect(wrapper.find('.ptr__indicator--armed').exists()).toBe(true)
 
+    // The system taking the touch away must abort, not fire a refresh.
     window.dispatchEvent(touch('touchcancel', 100, 200))
+    await nextTick()
+    expect(requested).toBe(0)
+    expect(wrapper.find('.ptr__indicator--armed').exists()).toBe(false)
+
+    window.removeEventListener('openstride:refresh-requested', count)
     wrapper.unmount()
-    window.dispatchEvent(new Event('openstride:activities-refreshed'))
   })
 })
 

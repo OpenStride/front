@@ -93,7 +93,8 @@ const availableSports = ref<string[]>([])
 // Store ActivityService instance for cleanup
 let activityServiceInstance: Awaited<ReturnType<typeof getActivityService>> | null = null
 
-// Debounced reload to avoid multiple refreshes when batch importing activities
+// Debounced reload: batch imports emit per activity, and a single refresh is
+// answered by every service that listens, so the events arrive in bursts.
 const debouncedSoftReload = debounce(() => softReload(), 500)
 
 // Handle activity-changed events from ActivityService
@@ -112,7 +113,7 @@ onMounted(async () => {
   await loadAvailableSports()
   loadActivities()
   window.addEventListener('scroll', handleScroll)
-  window.addEventListener('openstride:activities-refreshed', softReload)
+  window.addEventListener('openstride:activities-refreshed', debouncedSoftReload)
 })
 
 onBeforeUnmount(() => {
@@ -120,7 +121,7 @@ onBeforeUnmount(() => {
     activityServiceInstance.emitter.removeEventListener('activity-changed', handleActivityChanged)
   }
   window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener('openstride:activities-refreshed', softReload)
+  window.removeEventListener('openstride:activities-refreshed', debouncedSoftReload)
 })
 
 // Reload when filters change
@@ -165,16 +166,34 @@ const reloadWithFilters = async () => {
   await loadActivities()
 }
 
+/**
+ * Refresh the list in place.
+ *
+ * Emptying `activities` first unmounts every card between the two renders, and
+ * each card owns a Leaflet map that refetches its OSM tiles on mount. Fetching
+ * first and assigning once lets the keyed diff reuse the cards, so the maps
+ * survive — and every page the user had scrolled through is kept.
+ */
 const softReload = async () => {
-  await getActivityService()
-  const prevLength = activities.value.length
-  activities.value = []
-  page.value = 0
-  hasMore.value = true
-  loading.value = false
-  await loadAvailableSports()
-  await loadActivities()
-  if (prevLength > pageSize) await loadActivities()
+  const activityService = await getActivityService()
+  const visible = Math.max(activities.value.length, pageSize)
+
+  loading.value = true
+  try {
+    const fresh = await activityService.getActivities({
+      offset: 0,
+      limit: visible,
+      filters: serviceFilters.value
+    })
+    totalCount.value = await activityService.countActivities(serviceFilters.value)
+    await loadAvailableSports()
+
+    activities.value = fresh
+    page.value = Math.ceil(fresh.length / pageSize)
+    hasMore.value = fresh.length >= visible
+  } finally {
+    loading.value = false
+  }
 }
 
 const loadAvailableSports = async () => {
