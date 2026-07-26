@@ -15,31 +15,8 @@
     </div>
 
     <div class="header-actions">
-      <!-- Mobile refresh button next to burger -->
-      <button
-        class="refresh-icon-btn"
-        @click="onRefresh"
-        :disabled="refreshing"
-        :aria-label="t('app.refresh')"
-        :title="t('app.refresh')"
-      >
-        <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <!-- Double refresh arrows -->
-            <path d="M4.5 8.5a7.5 7.5 0 0 1 12.4-3.9l1.1 1.1" />
-            <path d="M18 3.5v4.2h-4.2" />
-            <path d="M19.5 15.5a7.5 7.5 0 0 1-12.4 3.9L6 18.3" />
-            <path d="M6 20.5v-4.2h4.2" />
-          </svg>
-        </span>
-      </button>
+      <!-- On touch, pull-to-refresh replaces the icon button that used to sit
+           here; the entry inside the menu stays as the reachable fallback. -->
       <div
         class="burger-menu"
         @click="toggleMenu"
@@ -51,7 +28,7 @@
         <i class="fas fa-bars" aria-hidden="true"></i>
       </div>
     </div>
-    <nav :class="['nav-menu', { active: isMenuOpen }]">
+    <nav :class="['nav-menu', { active: isMenuOpen }]" data-no-pull-refresh>
       <button class="close-menu" @click="closeMenu" :aria-label="t('app.close')">
         <i class="fas fa-times" aria-hidden="true"></i>
       </button>
@@ -95,6 +72,7 @@ import { getSyncService } from '@/services/SyncService'
 import { StorageService } from '@/services/StorageService'
 import { ToastService } from '@/services/ToastService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
+import { useAppRefresh } from '@/composables/useAppRefresh'
 
 const { t } = useI18n()
 
@@ -102,11 +80,11 @@ const { components: navRaw } = useSlotExtensions('navigation.main')
 const navSlotComponents = computed(() => navRaw.value.map(c => c.default || c))
 
 const isMenuOpen = ref(false)
-const refreshing = ref(false)
 const syncService = getSyncService()
 const storageService = StorageService.getInstance()
 
-let refreshTimeout: ReturnType<typeof setTimeout> | null = null
+// Shared with the pull-to-refresh gesture: one request, one spinner.
+const { refreshing, requestRefresh } = useAppRefresh()
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -169,14 +147,6 @@ const handleBackupFailed = () => {
 }
 
 /**
- * Handle refresh completion from any service
- */
-const onRefreshCompleted = () => {
-  if (refreshTimeout) clearTimeout(refreshTimeout)
-  refreshing.value = false
-}
-
-/**
  * Setup event listeners on mount
  */
 onMounted(() => {
@@ -191,9 +161,6 @@ onMounted(() => {
   // StorageService events (toast notifications)
   storageService.emitter.addEventListener('backup-completed', handleBackupCompleted)
   storageService.emitter.addEventListener('backup-failed', handleBackupFailed)
-
-  // Listen for refresh completion from services
-  window.addEventListener('openstride:activities-refreshed', onRefreshCompleted)
 })
 
 /**
@@ -211,23 +178,10 @@ onUnmounted(() => {
   // StorageService events
   storageService.emitter.removeEventListener('backup-completed', handleBackupCompleted)
   storageService.emitter.removeEventListener('backup-failed', handleBackupFailed)
-
-  // Window events
-  window.removeEventListener('openstride:activities-refreshed', onRefreshCompleted)
-  if (refreshTimeout) clearTimeout(refreshTimeout)
 })
 
-/**
- * Emit refresh-requested event — services react independently.
- * Safety timeout stops the spinner after 15s if no service responds.
- */
 const onRefresh = () => {
-  if (refreshing.value) return
-  refreshing.value = true
-  refreshTimeout = setTimeout(() => {
-    refreshing.value = false
-  }, 15000)
-  window.dispatchEvent(new Event('openstride:refresh-requested'))
+  requestRefresh()
 }
 </script>
 

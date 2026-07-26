@@ -88,24 +88,6 @@ nav a:hover {
   padding: 0px 10px;
 }
 
-/* Mobile refresh icon button */
-.refresh-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 4px 6px;
-  color: var(--text-color);
-}
-
-.refresh-icon-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .refresh-btn .icon {
   margin-right: 6px;
 }
@@ -122,9 +104,6 @@ nav a:hover {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.header-actions .refresh-icon-btn {
-  padding: 4px;
 }
 .header-actions .burger-menu {
   padding-left: 4px;
@@ -148,9 +127,6 @@ nav a:hover {
    burger menu handles it. */
 @media (min-width: 1120px) {
   .burger-menu {
-    display: none;
-  }
-  .refresh-icon-btn {
     display: none;
   }
 
