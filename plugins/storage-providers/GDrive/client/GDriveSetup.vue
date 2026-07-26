@@ -117,7 +117,7 @@ const isRefreshing = ref(false)
 const isRefreshed = ref(false)
 const isForcing = ref(false)
 
-const { storage, sync } = usePluginContext()
+const { sync } = usePluginContext()
 
 let googleDriveAuthService: GoogleDriveAuthService | null = null
 let googleDriveFileService: GoogleDriveFileService | null = null
@@ -170,21 +170,18 @@ async function onForceResync() {
 }
 
 const disconnectGoogleDrive = async () => {
-  await storage.deleteData('gdrive_access_token')
-  await storage.deleteData('gdrive_refresh_token')
-  await storage.deleteData('gdrive_access_token_expire_timestamp')
+  await googleDriveAuthService?.disconnect()
   isConnected.value = -1
 }
 
 onMounted(async () => {
   googleDriveAuthService = await GoogleDriveAuthService.getInstance()
 
-  let accessToken = await googleDriveAuthService.getAccessToken()
-
-  const urlParams = new URLSearchParams(window.location.search)
-  const code = urlParams.get('code')
-  if (code) {
-    accessToken = await googleDriveAuthService.getAccessTokenFromCode(code)
+  // A ?code= on this route can only come from our own authorization request:
+  // each provider redirects back to /storage-provider/<its own id>.
+  let accessToken = await googleDriveAuthService.consumeRedirectCode()
+  if (!accessToken) {
+    accessToken = await googleDriveAuthService.getAccessToken()
   }
 
   if (accessToken) {
