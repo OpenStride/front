@@ -608,7 +608,21 @@
     "retry": "Try again",
     "backToFriends": "Back to friends",
     "invalidLink": "Invalid link",
-    "invalidLinkHelp": "This share link is not valid or has expired."
+    "invalidLinkHelp": "This share link is not valid or has expired.",
+    "loadingProfile": "Loading profile…",
+    "activities": "activities",
+    "kilometers": "km",
+    "confirm": "Follow {name}",
+    "confirmHelp": "Their public activities will be copied to this device. You can remove them at any time.",
+    "alreadyAdded": "This person is already in your friends.",
+    "profileUnreachable": "This profile could not be loaded. It may have been unpublished.",
+    "unknownError": "Unknown error",
+    "nextStepTitle": "One more step",
+    "nextStepPublish": "They cannot see you yet. Publish your own profile so they can follow you back — likes and comments need both sides.",
+    "nextStepShare": "They cannot see you until they add you too. Show them your QR code to close the loop.",
+    "publishMyProfile": "Publish my profile",
+    "showMyQr": "Show my QR code",
+    "seeTheirActivities": "See their activities"
   },
   "callback": {
     "connecting": "Connecting...",
@@ -626,7 +640,8 @@
     "friendUrl": "Your friend's public URL:",
     "manualEntry": "Enter manually",
     "cameraNeeded": "Camera access is required",
-    "cameraDenied": "Camera access denied"
+    "cameraDenied": "Camera access denied",
+    "invalidCode": "This QR code is not an OpenStride profile"
   },
   "interactions": {
     "comment": "Comment",
@@ -648,7 +663,11 @@
     "syncedFull": "Full history synced",
     "remove": "Remove",
     "removeTitle": "Remove {name}?",
-    "removeHelp": "Their activities will also be removed from your device."
+    "removeHelp": "Their activities will also be removed from your device.",
+    "mutual": "Follows you",
+    "notMutual": "Doesn't follow you yet",
+    "addedOn": "Added {date}",
+    "lastSync": "Synced {time}"
   },
   "activityDetailPage": {
     "friendActivity": "Activity by",
@@ -690,5 +709,11 @@
     "time": "Time",
     "pace": "Pace",
     "speed": "Speed"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{count} min ago",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago"
   }
 }

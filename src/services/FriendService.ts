@@ -93,6 +93,14 @@ export class FriendService {
     return this.mgmt.addFriendByUrl(publicUrl, customUsername)
   }
 
+  public previewFriend(publicUrl: string) {
+    return this.mgmt.previewFriend(publicUrl)
+  }
+
+  public resolveManifestUrl(publicUrl: string): string | null {
+    return this.mgmt.resolveManifestUrl(publicUrl)
+  }
+
   public getAllFriends(): Promise<Friend[]> {
     return this.mgmt.getAllFriends()
   }

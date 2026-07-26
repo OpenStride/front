@@ -1,7 +1,7 @@
 import { IndexedDBService } from './IndexedDBService'
 import { ShareUrlService } from './ShareUrlService'
 import { FriendSyncService } from './FriendSyncService'
-import type { Friend, FriendActivity, FriendSyncResult, FriendServiceEvent } from '@/types/friend'
+import type { Friend, FriendActivity, FriendServiceEvent, PublicManifest } from '@/types/friend'
 
 /**
  * Handles Friend CRUD and social graph operations.
@@ -55,23 +55,57 @@ export class FriendManagementService {
   }
 
   /**
+   * Resolve a scanned or pasted URL to the manifest it points at.
+   * Accepts both the app share link and a direct manifest URL.
+   */
+  public resolveManifestUrl(publicUrl: string): string | null {
+    if (!ShareUrlService.isShareUrl(publicUrl)) return publicUrl
+    return ShareUrlService.unwrapManifestUrl(publicUrl)
+  }
+
+  /**
+   * Read someone's public profile without adding them.
+   *
+   * Adding a friend writes to the device and republishes the following list, so
+   * the user gets to see who they are about to follow first.
+   */
+  public async previewFriend(publicUrl: string): Promise<{
+    manifestUrl: string
+    manifest: PublicManifest
+    alreadyAdded: Friend | null
+  } | null> {
+    const manifestUrl = this.resolveManifestUrl(publicUrl)
+    if (!manifestUrl) return null
+
+    const manifest = await FriendSyncService.getInstance().fetchManifest(manifestUrl)
+    if (!manifest) return null
+
+    const friendId = await this.generateFriendId(manifestUrl)
+    const db = await IndexedDBService.getInstance()
+    // A miss resolves to undefined, not null — normalise so callers can compare
+    const existing = (await db.getDataFromStore('friends', friendId).catch(() => null)) as
+      | Friend
+      | null
+      | undefined
+
+    return { manifestUrl, manifest, alreadyAdded: existing ?? null }
+  }
+
+  /**
    * Add a friend by their public manifest URL
    */
   public async addFriendByUrl(publicUrl: string, customUsername?: string): Promise<Friend | null> {
     try {
-      let manifestUrl = publicUrl
-      if (ShareUrlService.isShareUrl(publicUrl)) {
-        const unwrapped = ShareUrlService.unwrapManifestUrl(publicUrl)
-        if (!unwrapped) {
-          this.emitEvent({
-            type: 'friend-error',
-            message: 'URL de partage invalide',
-            messageType: 'error'
-          })
-          return null
-        }
-        manifestUrl = unwrapped
+      const resolved = this.resolveManifestUrl(publicUrl)
+      if (!resolved) {
+        this.emitEvent({
+          type: 'friend-error',
+          message: 'URL de partage invalide',
+          messageType: 'error'
+        })
+        return null
       }
+      const manifestUrl = resolved
 
       const syncService = FriendSyncService.getInstance()
       const manifest = await syncService.fetchManifest(manifestUrl)

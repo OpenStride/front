@@ -608,7 +608,21 @@
     "retry": "Réessayer",
     "backToFriends": "Retour aux amis",
     "invalidLink": "Lien invalide",
-    "invalidLinkHelp": "Ce lien de partage n'est pas valide ou a expiré."
+    "invalidLinkHelp": "Ce lien de partage n'est pas valide ou a expiré.",
+    "loadingProfile": "Chargement du profil…",
+    "activities": "activités",
+    "kilometers": "km",
+    "confirm": "Suivre {name}",
+    "confirmHelp": "Ses activités publiques seront copiées sur cet appareil. Vous pouvez le retirer à tout moment.",
+    "alreadyAdded": "Cette personne fait déjà partie de vos amis.",
+    "profileUnreachable": "Ce profil n'a pas pu être chargé. Il a peut-être été dépublié.",
+    "unknownError": "Erreur inconnue",
+    "nextStepTitle": "Encore une étape",
+    "nextStepPublish": "Il ne vous voit pas encore. Publiez votre profil pour qu'il puisse vous suivre en retour — les likes et commentaires nécessitent les deux sens.",
+    "nextStepShare": "Il ne vous verra que s'il vous ajoute aussi. Montrez-lui votre QR code pour boucler la boucle.",
+    "publishMyProfile": "Publier mon profil",
+    "showMyQr": "Afficher mon QR code",
+    "seeTheirActivities": "Voir ses activités"
   },
   "callback": {
     "connecting": "Connexion en cours...",
@@ -626,7 +640,8 @@
     "friendUrl": "URL publique de votre ami :",
     "manualEntry": "Saisir manuellement",
     "cameraNeeded": "L'accès à la caméra est nécessaire",
-    "cameraDenied": "Accès caméra refusé"
+    "cameraDenied": "Accès caméra refusé",
+    "invalidCode": "Ce QR code n'est pas un profil OpenStride"
   },
   "interactions": {
     "comment": "Commenter",
@@ -648,7 +663,11 @@
     "syncedFull": "Historique complet synchronisé",
     "remove": "Supprimer",
     "removeTitle": "Supprimer {name} ?",
-    "removeHelp": "Ses activités seront également supprimées de votre appareil."
+    "removeHelp": "Ses activités seront également supprimées de votre appareil.",
+    "mutual": "Vous suit",
+    "notMutual": "Ne vous suit pas encore",
+    "addedOn": "Ajouté le {date}",
+    "lastSync": "Sync {time}"
   },
   "activityDetailPage": {
     "friendActivity": "Activité de",
@@ -690,5 +709,11 @@
     "time": "Temps",
     "pace": "Allure",
     "speed": "Vitesse"
+  },
+  "time": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {count} min",
+    "hoursAgo": "il y a {count}h",
+    "daysAgo": "il y a {count}j"
   }
 }

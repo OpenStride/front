@@ -48,7 +48,8 @@
     </div>
 
     <!-- QR Scanner Modal -->
-    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" @friend-added="onFriendAdded" />
+    <!-- Scanning navigates to /add-friend for confirmation; nothing to reload here -->
+    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" />
   </div>
 </template>
 
@@ -92,10 +93,6 @@ const onRefresh = async () => {
 
 const openScanner = () => {
   scannerOpen.value = true
-}
-
-const onFriendAdded = async () => {
-  await reload()
 }
 
 const navigateToManageFriends = () => {

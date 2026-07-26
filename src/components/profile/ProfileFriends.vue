@@ -4,11 +4,11 @@
       <div class="header-actions">
         <button @click="refreshAll" :disabled="refreshing" class="refresh-btn">
           <i :class="['fas fa-sync icon', { spinning: refreshing }]" aria-hidden="true"></i>
-          Synchroniser
+          {{ t('friendsList.sync') }}
         </button>
         <button @click="openScanner" class="add-btn">
           <i class="fas fa-user-plus icon" aria-hidden="true"></i>
-          Ajouter un ami
+          {{ t('friends.addFriend') }}
         </button>
       </div>
     </div>
@@ -48,10 +48,26 @@
         <div class="friend-info">
           <h3 class="friend-name">{{ friend.username }}</h3>
           <p v-if="friend.bio" class="friend-bio">{{ friend.bio }}</p>
+
+          <!-- Following is one-way until they add you back, and that decides
+               whether likes and comments work at all -->
+          <span
+            :class="['mutual-badge', { mutual: friend.followsMe }]"
+            :data-test="`mutual-${friend.id}`"
+          >
+            <i
+              :class="friend.followsMe ? 'fas fa-arrow-right-arrow-left' : 'fas fa-arrow-right'"
+              aria-hidden="true"
+            ></i>
+            {{ friend.followsMe ? t('friendsList.mutual') : t('friendsList.notMutual') }}
+          </span>
+
           <div class="friend-meta">
-            <span class="meta-item"> Ajouté le {{ formatDate(friend.addedAt) }} </span>
+            <span class="meta-item">{{
+              t('friendsList.addedOn', { date: formatDate(friend.addedAt) })
+            }}</span>
             <span v-if="friend.lastFetched" class="meta-item">
-              Sync: {{ formatRelativeTime(friend.lastFetched) }}
+              {{ t('friendsList.lastSync', { time: formatRelativeTime(friend.lastFetched) }) }}
             </span>
           </div>
         </div>
@@ -106,7 +122,8 @@
     </div>
 
     <!-- QR Scanner Modal -->
-    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" @friend-added="onFriendAdded" />
+    <!-- Scanning navigates to /add-friend for confirmation; nothing to reload here -->
+    <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" />
 
     <!-- Remove Confirmation Modal -->
     <div v-if="friendToRemove" class="modal-overlay" @click.self="friendToRemove = null">
@@ -131,7 +148,7 @@ import { FriendService } from '@/services/FriendService'
 import QRScanner from '@/components/QRScanner.vue'
 import type { Friend } from '@/types/friend'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const friendService = FriendService.getInstance()
 
@@ -163,10 +180,6 @@ const loadFriends = async () => {
 
 const openScanner = () => {
   scannerOpen.value = true
-}
-
-const onFriendAdded = async () => {
-  await loadFriends()
 }
 
 const refreshAll = async () => {
@@ -227,7 +240,7 @@ const removeFriend = async () => {
 }
 
 const formatDate = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleDateString('fr-FR', {
+  return new Date(timestamp).toLocaleDateString(locale.value, {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -235,16 +248,15 @@ const formatDate = (timestamp: number): string => {
 }
 
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
+  const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return "À l'instant"
-  if (minutes < 60) return `Il y a ${minutes} min`
-  if (hours < 24) return `Il y a ${hours}h`
-  return `Il y a ${days}j`
+  if (minutes < 1) return t('time.justNow')
+  if (minutes < 60) return t('time.minutesAgo', { count: minutes })
+  if (hours < 24) return t('time.hoursAgo', { count: hours })
+  return t('time.daysAgo', { count: days })
 }
 </script>
 
@@ -434,6 +446,26 @@ const formatRelativeTime = (timestamp: number): string => {
   gap: 1rem;
   font-size: 0.75rem;
   color: var(--color-gray-400);
+}
+
+.mutual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.mutual-badge.mutual {
+  background: var(--color-green-100);
+  color: var(--color-green-700);
 }
 
 .friend-actions {

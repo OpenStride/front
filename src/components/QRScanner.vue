@@ -62,11 +62,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ref, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const props = defineProps<{
   isOpen: boolean
@@ -74,7 +76,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  friendAdded: [friendId: string]
 }>()
 
 const friendService = FriendService.getInstance()
@@ -97,8 +98,7 @@ const startScanning = async () => {
       // Stop scanning
       await stopScanning()
 
-      // Add friend
-      await addFriendByUrl(decodedText)
+      openConfirmation(decodedText)
     }
 
     const config = {
@@ -115,7 +115,7 @@ const startScanning = async () => {
     console.error('[QRScanner] Error starting scanner:', error)
     permissionDenied.value = true
     hasPermission.value = false
-    ToastService.push("Impossible d'accéder à la caméra", { type: 'error', timeout: 4000 })
+    ToastService.push(t('qrScanner.cameraDenied'), { type: 'error', timeout: 4000 })
   }
 }
 
@@ -130,12 +130,21 @@ const stopScanning = async () => {
   }
 }
 
-const addFriendByUrl = async (url: string) => {
-  const friend = await friendService.addFriendByUrl(url)
-  if (friend) {
-    emit('friendAdded', friend.id)
-    close()
+/**
+ * Hand the scanned link to /add-friend rather than adding on the spot: scanning
+ * and pasting then land on the same confirmation screen, and the user sees who
+ * they are about to follow before anything is written.
+ */
+const openConfirmation = (url: string) => {
+  const manifestUrl = friendService.resolveManifestUrl(url.trim())
+
+  if (!manifestUrl) {
+    ToastService.push(t('qrScanner.invalidCode'), { type: 'error', timeout: 4000 })
+    return
   }
+
+  close()
+  router.push({ path: '/add-friend', query: { manifest: manifestUrl } })
 }
 
 const switchToManual = () => {
@@ -143,9 +152,9 @@ const switchToManual = () => {
   showManualInput.value = true
 }
 
-const addManually = async () => {
+const addManually = () => {
   if (!manualUrl.value) return
-  await addFriendByUrl(manualUrl.value)
+  openConfirmation(manualUrl.value)
 }
 
 const close = () => {
