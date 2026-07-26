@@ -50,6 +50,7 @@ Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts
 | `ctx.aggregation`   | `getAggregated(metric, period)`, `listMetrics()`                                      |
 | `ctx.friends`       | `publishPublicData()`, `getMyManifestUrl()`                                           |
 | `ctx.analyzer`      | `create(samples)` returns `{ bestSegments() }`                                        |
+| `ctx.preferences`   | `get(pluginId, key)`, `set()`, `getShared()`, `setShared()` -- plugin-declared prefs   |
 
 ### Creating a New Plugin
 

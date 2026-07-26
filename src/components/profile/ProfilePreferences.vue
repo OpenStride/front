@@ -67,6 +67,8 @@
         </select>
       </div> -->
 
+      <PluginPreferencesSection />
+
       <button
         @click="savePreferences"
         class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
@@ -86,6 +88,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import PluginPreferencesSection from '@/components/profile/PluginPreferencesSection.vue'
 
 const { t } = useI18n()
 

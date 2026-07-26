@@ -686,6 +686,17 @@
     "forceResyncRunning": "Resynchronisation...",
     "forceResyncHint": "Ignore l'optimisation et relit l'intégralité des données distantes."
   },
+  "preferences": {
+    "pluginSection": {
+      "title": "Préférences des plugins",
+      "intro": "Réglages déclarés par les plugins que vous avez activés.",
+      "loading": "Chargement des préférences..."
+    },
+    "publicFileProvider": {
+      "label": "Provider qui publie mes données publiques",
+      "description": "Stockage cloud utilisé pour publier les fichiers que vos amis consultent. En changer republie chez le nouveau provider : les liens déjà partagés pointent vers l'ancien tant que vous n'avez pas republié."
+    }
+  },
   "legal": {
     "privacyPolicy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation"

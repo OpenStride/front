@@ -2,6 +2,7 @@
 import type { StoragePlugin } from '@/types/storage'
 import { readRemote, writeRemote } from './DropboxSync'
 import { DropboxFileService } from './DropboxFileService'
+import { publicFileProviderPreference } from '../../shared/publicFileProviderPreference'
 
 const DropboxBackupPlugin: StoragePlugin = {
   id: 'dropbox',
@@ -20,6 +21,10 @@ const DropboxBackupPlugin: StoragePlugin = {
     if (!meta) return null
     return meta.contentHash || meta.rev || meta.serverModified || null
   },
+
+  // Proposes itself as the provider that publishes public files, but only
+  // when no provider has been chosen yet (see the declaration).
+  preferences: [publicFileProviderPreference('dropbox')],
 
   // Public file sharing support
   supportsPublicFiles: true,

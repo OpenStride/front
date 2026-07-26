@@ -686,6 +686,17 @@
     "forceResyncRunning": "Resyncing...",
     "forceResyncHint": "Skips the optimization and re-reads all remote data."
   },
+  "preferences": {
+    "pluginSection": {
+      "title": "Plugin preferences",
+      "intro": "Settings declared by the plugins you have enabled.",
+      "loading": "Loading preferences..."
+    },
+    "publicFileProvider": {
+      "label": "Provider publishing my public data",
+      "description": "Cloud storage used to publish the files your friends read. Changing it republishes to the new provider: links already shared point at the old one until you republish."
+    }
+  },
   "legal": {
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service"

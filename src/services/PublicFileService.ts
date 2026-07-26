@@ -11,7 +11,8 @@
  */
 
 import { StoragePluginManager } from './StoragePluginManager'
-import type { StoragePlugin } from '@/types/storage'
+import { PluginPreferencesService } from './PluginPreferencesService'
+import { PUBLIC_FILE_PROVIDER_PREFERENCE, type StoragePlugin } from '@/types/storage'
 
 /**
  * PublicFileService - Main service for public file operations
@@ -31,14 +32,42 @@ export class PublicFileService {
   public static getInstance(): PublicFileService {
     if (!PublicFileService.instance) {
       PublicFileService.instance = new PublicFileService()
+      PublicFileService.instance.listenForPreferenceChanges()
     }
     return PublicFileService.instance
   }
 
   /**
-   * Get the first enabled storage plugin that supports public files
-   * Returns null if no plugin supports public files
-   * Caches the result for synchronous access
+   * Drop the cached plugin when the chosen provider changes, so the next
+   * publish goes to the newly selected one.
+   */
+  private listenForPreferenceChanges(): void {
+    PluginPreferencesService.getInstance().emitter.addEventListener('preferences-changed', ((
+      event: CustomEvent<{ keys?: string[] }>
+    ) => {
+      if (event.detail?.keys?.includes(PUBLIC_FILE_PROVIDER_PREFERENCE)) {
+        this.cachedPlugin = null
+      }
+    }) as EventListener)
+  }
+
+  /**
+   * Enabled storage plugins able to publish public files.
+   */
+  public async listPublicFileProviders(): Promise<StoragePlugin[]> {
+    const enabledPlugins = await this.pluginManager.getMyStoragePlugins()
+    return enabledPlugins.filter(p => p.supportsPublicFiles === true)
+  }
+
+  /**
+   * Get the enabled storage plugin that publishes public files.
+   *
+   * The `publicFileProvider` preference decides, which matters as soon as two
+   * capable plugins are connected: without it the choice would silently depend
+   * on plugin discovery order, and switching order would strand the share links
+   * already handed out. The first capable plugin is still used when the
+   * preference is unset or names a plugin that is no longer enabled, so
+   * publishing never breaks over a stale value.
    */
   private async getPublicFilePlugin(): Promise<StoragePlugin | null> {
     // Return cached plugin if available
@@ -46,15 +75,25 @@ export class PublicFileService {
       return this.cachedPlugin
     }
 
-    const enabledPlugins = await this.pluginManager.getMyStoragePlugins()
+    const candidates = await this.listPublicFileProviders()
 
-    // Find first plugin that supports public files
-    const plugin = enabledPlugins.find(p => p.supportsPublicFiles === true)
-
-    if (!plugin) {
+    if (!candidates.length) {
       console.warn('[PublicFileService] No enabled storage plugin supports public files')
       return null
     }
+
+    const preferredId = await PluginPreferencesService.getInstance().getShared<string>(
+      PUBLIC_FILE_PROVIDER_PREFERENCE
+    )
+    const preferred = preferredId ? candidates.find(p => p.id === preferredId) : undefined
+
+    if (preferredId && !preferred) {
+      console.warn(
+        `[PublicFileService] Preferred provider "${preferredId}" is not enabled, falling back to "${candidates[0].id}"`
+      )
+    }
+
+    const plugin = preferred ?? candidates[0]
 
     // Cache the plugin
     this.cachedPlugin = plugin

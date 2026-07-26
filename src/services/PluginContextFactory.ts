@@ -10,6 +10,8 @@ import { StoragePluginManager } from './StoragePluginManager'
 import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
+import { PublicFileService } from './PublicFileService'
+import { PluginPreferencesService } from './PluginPreferencesService'
 
 /**
  * Factory function to create a PluginContext for dependency injection
@@ -84,6 +86,10 @@ export async function createPluginContext(): Promise<PluginContext> {
       publishPublicData: () => FriendService.getInstance().publishPublicData(),
       getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl(),
       getMyPublicUrl: () => FriendService.getInstance().getMyPublicUrl(),
+      listPublicFileProviders: async () => {
+        const providers = await PublicFileService.getInstance().listPublicFileProviders()
+        return providers.map(p => ({ id: p.id, label: p.label }))
+      },
       onEvent: (event, handler) =>
         FriendService.getInstance().emitter.addEventListener(event, handler as EventListener),
       offEvent: (event, handler) =>
@@ -100,6 +106,15 @@ export async function createPluginContext(): Promise<PluginContext> {
       syncNow: async (opts?: { force?: boolean }) => {
         await SyncService.getInstance().syncNow(opts)
       }
+    },
+
+    preferences: {
+      get: (pluginId, key) =>
+        PluginPreferencesService.getInstance().getPluginPreference(pluginId, key),
+      set: (pluginId, key, value) =>
+        PluginPreferencesService.getInstance().setPluginPreference(pluginId, key, value),
+      getShared: key => PluginPreferencesService.getInstance().getShared(key),
+      setShared: (key, value) => PluginPreferencesService.getInstance().setShared(key, value)
     }
   }
 }

@@ -1,4 +1,14 @@
 import type { PluginContext } from './plugin-context'
+import type { PluginPreferenceDeclaration } from './plugin-preferences'
+
+/**
+ * Shared preference naming the storage plugin that publishes public files.
+ *
+ * Every plugin with `supportsPublicFiles` declares a default for this key, so
+ * the first one installed claims it and later ones leave it alone. Lives here
+ * rather than in a service so plugins can reference it without importing core.
+ */
+export const PUBLIC_FILE_PROVIDER_PREFERENCE = 'publicFileProvider'
 
 export interface StoragePlugin {
   id: string
@@ -47,5 +57,11 @@ export interface StoragePlugin {
    * Provider-specific URL parsing
    */
   extractFileIdFromUrl?(url: string): string | null
+
+  /**
+   * Preferences this plugin declares. Their defaults are proposed once, when the
+   * plugin is installed, and only for keys that hold no value yet.
+   */
+  preferences?: PluginPreferenceDeclaration[]
   context?: PluginContext
 }

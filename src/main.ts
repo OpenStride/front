@@ -10,6 +10,7 @@ import { getSyncService } from '@/services/SyncService'
 import { DataProviderService } from '@/services/DataProviderService'
 import { FriendService } from '@/services/FriendService'
 import { migrations } from '@/migrations'
+import { reconcileAllInstalledPlugins } from '@/services/PluginPreferencesRegistry'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 import { createPluginContext } from '@/services/PluginContextFactory'
 import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
@@ -59,6 +60,15 @@ async function bootstrap() {
   const locale = await getInitialLocale()
   i18n.global.locale.value = locale
   setHtmlLang(locale)
+
+  // Give already-enabled plugins the preference defaults they declare. Plugins
+  // enabled from now on are seeded when they are installed; this covers the
+  // ones that were already there.
+  try {
+    await reconcileAllInstalledPlugins()
+  } catch (error) {
+    console.warn('[Bootstrap] Plugin preference seeding failed:', error)
+  }
 
   await aggregationService.loadConfigFromSettings()
 

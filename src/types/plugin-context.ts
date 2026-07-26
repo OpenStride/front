@@ -4,6 +4,7 @@ import type {
   AggregatedRecord,
   AggregationMetricDefinition
 } from './aggregation'
+import type { PluginPreferenceValue } from './plugin-preferences'
 
 /**
  * Plugin Context Interfaces for Dependency Injection
@@ -185,8 +186,32 @@ export interface IFriendService {
   publishPublicData(): Promise<string | null>
   getMyManifestUrl(): Promise<string | null>
   getMyPublicUrl(): Promise<string | null>
+  /**
+   * Enabled storage plugins able to publish public files.
+   *
+   * Exposed so a plugin can offer the list as the choices of a preference,
+   * without reaching into the storage plugin manager itself.
+   */
+  listPublicFileProviders(): Promise<Array<{ id: string; label: string }>>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
+}
+
+/**
+ * Preferences interface for plugins
+ *
+ * Read and write the preferences a plugin declared. The context is a singleton
+ * shared by every plugin, so it cannot infer who is calling: the plugin id is
+ * passed explicitly, and keys are namespaced under it.
+ *
+ * `getShared` / `setShared` reach the global namespace, for preferences several
+ * plugins take part in (`shared: true` in the declaration).
+ */
+export interface IPluginPreferencesService {
+  get<T = PluginPreferenceValue>(pluginId: string, key: string): Promise<T | undefined>
+  set(pluginId: string, key: string, value: PluginPreferenceValue): Promise<void>
+  getShared<T = PluginPreferenceValue>(key: string): Promise<T | undefined>
+  setShared(key: string, value: PluginPreferenceValue): Promise<void>
 }
 
 /**
@@ -236,6 +261,7 @@ export interface PluginContext {
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService
+  preferences: IPluginPreferencesService
 }
 
 /**

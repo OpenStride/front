@@ -1,4 +1,6 @@
 import { IndexedDBService } from './IndexedDBService'
+import { PluginPreferencesService } from './PluginPreferencesService'
+import { preferenceDeclarationsOf } from '@/types/plugin-preferences'
 
 /**
  * Base class for all plugin managers
@@ -38,6 +40,17 @@ export abstract class PluginManagerBase<T> {
   protected abstract getPluginId(plugin: T): string
 
   /**
+   * Storage key for the plugin IDs that have already been installed once.
+   *
+   * Tracked separately from the enabled list because the two answer different
+   * questions: enabling is reversible and happens many times, installing happens
+   * once and is what gates preference seeding.
+   */
+  protected get installedStorageKey(): string {
+    return `${this.storageKey}_installed`
+  }
+
+  /**
    * Enable a plugin by adding it to the enabled list
    */
   public async enablePlugin(pluginId: string): Promise<void> {
@@ -47,6 +60,55 @@ export abstract class PluginManagerBase<T> {
     if (!enabledIds.includes(pluginId)) {
       enabledIds.push(pluginId)
       await db.saveData(this.storageKey, enabledIds)
+    }
+
+    await this.markInstalled(pluginId)
+  }
+
+  /**
+   * Record a plugin as installed and, the first time only, seed the defaults it
+   * declares for preferences that hold no value yet.
+   *
+   * Disabling and re-enabling a plugin must not resurrect a default the user has
+   * changed since, so everything here is gated on the installed list rather than
+   * the enabled one.
+   */
+  private async markInstalled(pluginId: string): Promise<void> {
+    const db = await IndexedDBService.getInstance()
+    const stored = await db.getData<string[]>(this.installedStorageKey)
+    const installedIds = Array.isArray(stored) ? stored : []
+
+    if (installedIds.includes(pluginId)) return
+
+    const plugin = this.getPluginById(pluginId)
+    if (plugin) {
+      try {
+        await PluginPreferencesService.getInstance().seedDefaults(
+          pluginId,
+          preferenceDeclarationsOf(plugin)
+        )
+      } catch (error) {
+        // A preference that could not be seeded must not block the install.
+        console.warn(`[PluginManager] Failed to seed preferences for "${pluginId}"`, error)
+      }
+    }
+
+    installedIds.push(pluginId)
+    await db.saveData(this.installedStorageKey, installedIds)
+  }
+
+  /**
+   * Treat every currently enabled plugin as installed, seeding any preference it
+   * declares that has no value yet.
+   *
+   * Covers plugins that were enabled before this system existed: for them, "the
+   * moment of install" is the first run that knows about their declarations.
+   * Idempotent, so it is safe to call on every boot.
+   */
+  public async reconcileInstalledPlugins(): Promise<void> {
+    const enabledIds = await this.getEnabledPluginIds()
+    for (const pluginId of enabledIds) {
+      await this.markInstalled(pluginId)
     }
   }
 

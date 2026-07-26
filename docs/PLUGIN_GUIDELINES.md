@@ -64,6 +64,8 @@ export interface PluginContext {
     aggregation: IAggregationService  // Read aggregated stats
     friends: IFriendService           // Public data & friend management
     analyzer: IAnalyzerFactory        // Activity analysis (best segments)
+    sync: ISyncService                // Trigger a sync
+    preferences: IPluginPreferencesService // Read/write declared preferences
 }
 ```
 
@@ -185,6 +187,75 @@ async function syncActivities() {
     await ctx.activity.saveActivitiesWithDetails(newActivities, newDetails)
 }
 ```
+
+---
+
+## Plugin Preferences
+
+A plugin does not read a settings key and hope it exists: it **declares** the
+preferences it needs, with the value it would like when nothing has been decided
+yet.
+
+```typescript
+export default {
+  id: 'myPlugin',
+  label: 'My Plugin',
+  preferences: [
+    {
+      key: 'refreshInterval',
+      default: 30,
+      label: 'myPlugin.preferences.refreshInterval.label',
+      description: 'myPlugin.preferences.refreshInterval.description',
+      type: 'number'
+    }
+  ]
+} as ProviderPlugin
+```
+
+### The seeding rule
+
+A default is written **once, when the plugin is installed, and only if the key
+holds no value**. It is never written again — not on app start, not on read, and
+not when the plugin is disabled and re-enabled later. Once the user has a value,
+it is theirs.
+
+This is why installing is tracked separately from being enabled: enabling is
+reversible and happens many times, installing happens once.
+
+### Namespacing and shared keys
+
+Keys are namespaced under the plugin id (`myPlugin.refreshInterval`). Setting
+`shared: true` puts the key in the global namespace instead, so **several plugins
+can propose a default for the same preference** — the first one installed wins,
+the others leave it alone.
+
+That is how the storage providers agree on who publishes public data: Google
+Drive and Dropbox both declare `publicFileProvider` with their own id as the
+default, so the first one connected claims it and already-shared links keep
+working. See `plugins/storage-providers/shared/publicFileProviderPreference.ts`.
+
+### Reading and writing at runtime
+
+The `PluginContext` is a singleton shared by every plugin, so it cannot infer the
+caller: pass your plugin id.
+
+```typescript
+const ctx = await getPluginContext()
+
+const interval = await ctx.preferences.get<number>('myPlugin', 'refreshInterval')
+await ctx.preferences.set('myPlugin', 'refreshInterval', 60)
+
+// Shared keys live in the global namespace
+const provider = await ctx.preferences.getShared<string>('publicFileProvider')
+```
+
+### UI
+
+Any declaration carrying a `label` is rendered in **Profile → Preferences**, for
+plugins that are enabled. Omit the label to keep a preference internal. `options`
+may be a static array or a resolver, for choices only known at runtime.
+
+---
 
 ### ✅ Store Plugin Configuration in Settings
 

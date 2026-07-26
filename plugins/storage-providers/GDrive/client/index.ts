@@ -2,6 +2,7 @@
 import type { StoragePlugin } from '@/types/storage'
 import { readRemote, writeRemote } from './GoogleDriveSync'
 import { GoogleDriveFileService } from './GoogleDriveFileService'
+import { publicFileProviderPreference } from '../../shared/publicFileProviderPreference'
 
 const GDriveBackupPlugin: StoragePlugin = {
   id: 'gdrive',
@@ -21,6 +22,10 @@ const GDriveBackupPlugin: StoragePlugin = {
     if (!meta) return null
     return meta.md5 || meta.modifiedTime || null
   },
+
+  // Proposes itself as the provider that publishes public files, but only
+  // when no provider has been chosen yet (see the declaration).
+  preferences: [publicFileProviderPreference('gdrive')],
 
   // Public file sharing support
   supportsPublicFiles: true,
