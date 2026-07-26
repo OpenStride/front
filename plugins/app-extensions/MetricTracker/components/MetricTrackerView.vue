@@ -5,8 +5,11 @@
       {{ t('metricTracker.title') }}
     </h2>
 
-    <!-- Standalone route: it owns the query string and its own sport filter -->
-    <MetricTrackerPanel sync-url />
+    <!-- Standalone route: it owns the query string, its own sport filter, and
+         the card the panel no longer draws for itself -->
+    <div class="tracker-card">
+      <MetricTrackerPanel sync-url />
+    </div>
   </div>
 </template>
 
@@ -36,5 +39,12 @@ const { t } = useI18n()
 
 .tracker-title i {
   color: var(--color-green-500);
+}
+
+.tracker-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 1.2rem 1.4rem;
 }
 </style>

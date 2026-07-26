@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <section class="chart-card">
+      <section class="chart-area">
         <div v-if="indexing" class="tracker-state indexing">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: progress + '%' }"></div>
@@ -363,11 +363,11 @@ watch(
   transition: width 0.3s ease;
 }
 
-.chart-card {
-  background: var(--bg-color);
-  border: 1px solid var(--color-green-200);
-  border-radius: 12px;
-  padding: 1.2rem 1.4rem;
+/* Deliberately bare: the card around the panel belongs to whoever hosts it,
+   so an embedded panel never draws a second card inside its host's one. */
+.chart-area {
+  display: flex;
+  flex-direction: column;
 }
 
 .summary {
