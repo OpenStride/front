@@ -28,12 +28,22 @@
         :selected-sport="selectedSport"
       />
       <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
+
+      <!-- Plugins that answer the same question as this page render here -->
+      <component
+        :is="section"
+        v-for="(section, i) in sectionComponents"
+        :key="`section-${i}`"
+        :sport="selectedSport"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useStatisticsData } from '../composables/useStatisticsData'
 import SportFilter from './SportFilter.vue'
 import TrendsSection from './TrendsSection.vue'
@@ -44,6 +54,11 @@ import CalendarHeatmap from './CalendarHeatmap.vue'
 const { t } = useI18n()
 const { allActivities, filteredActivities, selectedSport, sportOptions, loading } =
   useStatisticsData()
+
+const { components: rawSections } = useSlotExtensions('statistics.sections')
+const sectionComponents = computed(() =>
+  rawSections.value.map(c => (c as { default?: unknown }).default || c)
+)
 </script>
 
 <style scoped>

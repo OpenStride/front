@@ -167,7 +167,8 @@
       "best": "Meilleur",
       "average": "Moyenne",
       "points": "Points"
-    }
+    },
+    "openFullPage": "Ouvrir la page complète"
   },
   "profile": {
     "createProfile": "Créer un Profil",

@@ -1,14 +1,16 @@
 import type { ExtensionPlugin } from '@/types/extension'
 
-const NavLink = () => import('./components/MetricTrackerNavLink.vue')
-
 const plugin: ExtensionPlugin = {
   id: 'metric-tracker',
   label: 'Metric Tracker',
   description: 'Track how a single metric evolves over time, per outing or per period',
   icon: 'fas fa-chart-line',
   slots: {
-    'navigation.main': [NavLink]
+    // Lives inside the statistics page rather than behind its own nav entry:
+    // it answers the same question as the rest of that page. The route below
+    // stays, so a direct link — such as the one on each session best — still
+    // opens it on its own.
+    'statistics.sections': [() => import('./components/MetricTrackerSection.vue')]
   },
   routes: [
     {

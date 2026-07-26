@@ -167,7 +167,8 @@
       "best": "Best",
       "average": "Average",
       "points": "Points"
-    }
+    },
+    "openFullPage": "Open the full page"
   },
   "profile": {
     "createProfile": "Create a Profile",
