@@ -673,7 +673,9 @@
   },
   "legal": {
     "privacyPolicy": "Politique de confidentialité",
-    "terms": "Conditions d'utilisation"
+    "terms": "Conditions d'utilisation",
+    "translationNotice": "Traduction de courtoisie. En cas de divergence, la version anglaise fait foi.",
+    "onlyInEnglish": "Ce document n'est pas encore disponible dans votre langue ; la version anglaise est affichée."
   },
   "activityCard": {
     "distance": "Distance",

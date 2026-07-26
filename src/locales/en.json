@@ -673,7 +673,9 @@
   },
   "legal": {
     "privacyPolicy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "translationNotice": "Courtesy translation. The English version prevails in case of discrepancy.",
+    "onlyInEnglish": "This document is not available in your language yet; the English version is shown."
   },
   "activityCard": {
     "distance": "Distance",
