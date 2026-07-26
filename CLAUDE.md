@@ -64,15 +64,15 @@ See `docs/PLUGIN_GUIDELINES.md` for complete guide with examples.
 
 ### Core Services
 
-| Service                | Purpose                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                               |
-| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                           |
-| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                      |
-| **IndexedDBService**   | Singleton IndexedDB access (v9). Stores: settings, activities, activity_details, aggregatedData, notifLogs, friends, friend_activities |
-| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                  |
-| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                  |
-| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                        |
+| Service                | Purpose                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                                                                |
+| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                                                            |
+| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                                                       |
+| **IndexedDBService**   | Singleton IndexedDB access (v11). Stores: settings, activities, activity_details, aggregatedData, activity_metrics, notifLogs, friends, friend_activities, interactions |
+| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                                                   |
+| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                                                   |
+| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                                                         |
 
 **Deprecated:** ActivityDBService (use ActivityService), StorageListener (use SyncService).
 
@@ -121,7 +121,17 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - Plugin exports must use `export default` (not named exports)
 - Plugin folder structure must match the type's path pattern
 - UI widgets should handle missing data gracefully (not all activities have HR, power, etc.)
-- When modifying IndexedDB schema, add migration logic in `src/migrations/`
+- When modifying IndexedDB schema, bump the version in `IndexedDBService` and add migration logic in `src/migrations/`
+
+### Device-local stores
+
+Most stores are replicated to the user's storage provider. A store listed in
+`LOCAL_ONLY_STORES` (`src/services/StorageService.ts`) never leaves the device:
+it holds values derived from data that is already synced, so uploading it would
+cost bandwidth for something we can recompute, and losing it only costs a
+rebuild. `activity_metrics` — the per-activity best times behind the records
+and the metric tracker — is the current example. Add derived caches there
+rather than to `settings`, which _is_ replicated.
 
 ## Related Documentation
 

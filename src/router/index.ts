@@ -36,7 +36,10 @@ const routes = [
   },
   { path: '/my-activities', component: MyActivities },
   {
-    path: '/history/:parameter?',
+    // Legacy alias kept for links shared before /activity-details existed. Its
+    // param used to be named `parameter`, which useActivityDetails never reads,
+    // so every one of those links landed on "activity not found".
+    path: '/history/:activityId?',
     component: ActivityDetails,
     name: 'History'
   },

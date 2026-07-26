@@ -1,13 +1,12 @@
-@import "./variables.css";
-
+@import './variables.css';
 
 @keyframes reduce {
-
   /* t = 0 si on reprend mon exemple ci-dessus */
-  0% {}
+  0% {
+  }
 
   30% {
-    top: 0
+    top: 0;
   }
 
   50% {
@@ -26,6 +25,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Keeps the nav off the wordmark: space-between alone lets them touch as
+     soon as the row is tight */
+  gap: 24px;
   padding: 0px 20px;
   background: var(--color-white);
   color: var(--text-color);
@@ -99,25 +101,58 @@ nav a:hover {
   color: var(--text-color);
 }
 
-.refresh-icon-btn:disabled { opacity: 0.5; cursor: default; }
+.refresh-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
-.refresh-btn .icon { margin-right: 6px; }
-.icon svg { width: 21px; height: 21px; display: block; }
-.icon svg.rotated { transform: rotate(0deg); }
+.refresh-btn .icon {
+  margin-right: 6px;
+}
+.icon svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+}
+.icon svg.rotated {
+  transform: rotate(0deg);
+}
 
-.header-actions { display: flex; align-items: center; gap: 4px; }
-.header-actions .refresh-icon-btn { padding: 4px; }
-.header-actions .burger-menu { padding-left: 4px; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header-actions .refresh-icon-btn {
+  padding: 4px;
+}
+.header-actions .burger-menu {
+  padding-left: 4px;
+}
 
-@keyframes spin360 { to { transform: rotate(360deg); } }
-.spinning { animation: spin360 0.8s linear infinite; display: inline-block; }
+@keyframes spin360 {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinning {
+  animation: spin360 0.8s linear infinite;
+  display: inline-block;
+}
 
 /* 🖥 Masquer le burger menu sur desktop */
-@media (min-width: 768px) {
+/* The inline nav only appears once it can hold every entry on one line.
+   Plugins contribute their own, and a French label runs about a third longer
+   than its English original, so the row stopped fitting well before the old
+   768px breakpoint — it either wrapped or ran under the logo. Below this, the
+   burger menu handles it. */
+@media (min-width: 1120px) {
   .burger-menu {
     display: none;
   }
-  .refresh-icon-btn { display: none; }
+  .refresh-icon-btn {
+    display: none;
+  }
 
   .close-menu {
     display: none;
@@ -139,7 +174,10 @@ nav a:hover {
   opacity: 0;
   visibility: hidden;
   transform: translateY(-100%);
-  transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 .nav-menu.active {
@@ -165,16 +203,24 @@ nav a:hover {
   color: var(--secondary-color);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1120px) {
   .nav-menu {
     position: static;
     height: auto;
     width: auto;
     background: transparent;
     flex-direction: row;
+    align-items: center;
     gap: 20px;
     opacity: 1;
     visibility: visible;
     transform: none;
+  }
+
+  /* Plugins contribute their own entries, and a translated label can be twice
+     the length of its English original. Breaking one across two lines makes the
+     whole bar ragged, so entries keep their line and the row tightens instead. */
+  .nav-menu a {
+    white-space: nowrap;
   }
 }
