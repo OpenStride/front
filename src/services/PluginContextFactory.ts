@@ -4,6 +4,8 @@ import { IndexedDBService } from './IndexedDBService'
 import { ToastService } from './ToastService'
 import { aggregationService } from './AggregationService'
 import { FriendService } from './FriendService'
+import { PublicFileService } from './PublicFileService'
+import { getPublicDataListener } from './PublicDataListener'
 import { ActivityAnalyzer } from './ActivityAnalyzer'
 import { DataProviderPluginManager } from './DataProviderPluginManager'
 import { StoragePluginManager } from './StoragePluginManager'
@@ -84,6 +86,12 @@ export async function createPluginContext(): Promise<PluginContext> {
       publishPublicData: () => FriendService.getInstance().publishPublicData(),
       getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl(),
       getMyPublicUrl: () => FriendService.getInstance().getMyPublicUrl(),
+      canPublish: () => PublicFileService.getInstance().hasPublicFileSupport(),
+      isAutoPublishEnabled: () => getPublicDataListener().isAutoPublishEnabled(),
+      setAutoPublish: enabled =>
+        enabled
+          ? getPublicDataListener().enableAutoPublish()
+          : getPublicDataListener().disableAutoPublish(),
       onEvent: (event, handler) =>
         FriendService.getInstance().emitter.addEventListener(event, handler as EventListener),
       offEvent: (event, handler) =>

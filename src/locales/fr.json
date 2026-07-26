@@ -220,6 +220,13 @@
     "updateData": "Mettre à jour",
     "publishData": "Publier mes données",
     "scanToFollow": "Scannez ce code pour me suivre",
+    "publishNeedsStorage": "La publication nécessite un espace cloud",
+    "publishNeedsStorageHelp": "Votre profil public est hébergé sur votre propre espace cloud. Connectez Google Drive pour le publier et permettre à vos amis de vous suivre.",
+    "connectStorage": "Connecter un espace",
+    "autoPublish": "Garder mon profil public à jour",
+    "autoPublishHint": "Republie automatiquement quand vos activités changent, pour que vos amis voient vos dernières sorties sans que vous ayez à y penser.",
+    "autoPublishOn": "Votre profil public restera à jour",
+    "autoPublishOff": "Mise à jour automatique désactivée — il faudra publier manuellement",
     "mcp": {
       "title": "Assistant IA (MCP)",
       "description": "Connectez vos données d'entraînement aux assistants IA comme Claude, ChatGPT, et plus encore en utilisant le Model Context Protocol (MCP).",

@@ -185,6 +185,10 @@ export interface IFriendService {
   publishPublicData(): Promise<string | null>
   getMyManifestUrl(): Promise<string | null>
   getMyPublicUrl(): Promise<string | null>
+  /** False when no enabled storage provider can host public files — publishing would fail */
+  canPublish(): Promise<boolean>
+  isAutoPublishEnabled(): Promise<boolean>
+  setAutoPublish(enabled: boolean): Promise<void>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
 }

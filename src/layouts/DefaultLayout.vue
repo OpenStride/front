@@ -7,9 +7,13 @@ import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
 import MigrationProgress from '@/components/MigrationProgress.vue'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { useFriendEventToasts } from '@/composables/useFriendEventToasts'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+
+// One listener for the whole app: friend events are announced exactly once
+useFriendEventToasts()
 
 // App version from build-time injection
 const appVersion = __APP_VERSION__

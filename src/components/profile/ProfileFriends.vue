@@ -126,11 +126,10 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
-import { ToastService } from '@/services/ToastService'
 import QRScanner from '@/components/QRScanner.vue'
-import type { Friend, FriendServiceEvent } from '@/types/friend'
+import type { Friend } from '@/types/friend'
 
 const { t } = useI18n()
 
@@ -144,29 +143,9 @@ const syncingFriendId = ref<string | null>(null)
 const scannerOpen = ref(false)
 const friendToRemove = ref<Friend | null>(null)
 
-// Event listener for FriendService events
-const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { message, messageType } = customEvent.detail
-
-  if (message && messageType) {
-    ToastService.push(message, {
-      type: messageType,
-      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    })
-  }
-}
-
+// Toasts for friend events are handled once, in the layout
 onMounted(async () => {
   await loadFriends()
-
-  // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
-})
-
-onUnmounted(() => {
-  // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
 })
 
 const loadFriends = async () => {

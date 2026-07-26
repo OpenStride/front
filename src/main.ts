@@ -65,9 +65,9 @@ async function bootstrap() {
   // Start event-driven aggregation (no O(n) scans!)
   await aggregationService.startListening()
 
-  // Start public data auto-publish listener (if enabled)
+  // Start public data auto-publish listener (and arm it for the first publish)
   const publicDataListener = getPublicDataListener()
-  await publicDataListener.startListening()
+  await publicDataListener.initialize()
 
   // Start reactive sync (auto-sync on activity changes, debounced 5s)
   const syncService = getSyncService()
