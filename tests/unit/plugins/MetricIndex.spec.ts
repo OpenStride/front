@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import type { ActivityMetricsRow } from '@plugins/app-extensions/MetricTracker/types'
+import type { ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
 
 const mocks = vi.hoisted(() => ({
   getPluginContext: vi.fn()
@@ -10,8 +10,7 @@ vi.mock('@/services/PluginContextFactory', () => ({
   getPluginContext: mocks.getPluginContext
 }))
 
-const { useMetricIndex } =
-  await import('@plugins/app-extensions/MetricTracker/composables/useMetricIndex')
+const { useActivityMetricsIndex } = await import('@/composables/useActivityMetricsIndex')
 
 const INDEX_VERSION = 1
 
@@ -75,14 +74,14 @@ function setupContext() {
   })
 }
 
-describe('useMetricIndex', () => {
+describe('useActivityMetricsIndex', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setupContext()
   })
 
   it('indexes every activity on a cold start and exposes the values', async () => {
-    const { ensureIndex, derived } = useMetricIndex()
+    const { ensureIndex, derived } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a'), makeActivity('b')])
 
     expect(getDetails).toHaveBeenCalledTimes(2)
@@ -93,7 +92,7 @@ describe('useMetricIndex', () => {
   })
 
   it('stores the index version and the sport alongside the values', async () => {
-    const { ensureIndex } = useMetricIndex()
+    const { ensureIndex } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     expect(storedRows[0]).toMatchObject({
@@ -104,7 +103,7 @@ describe('useMetricIndex', () => {
   })
 
   it('skips activities that already hold a row of the current version', async () => {
-    const { ensureIndex } = useMetricIndex()
+    const { ensureIndex } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     vi.clearAllMocks()
@@ -115,7 +114,7 @@ describe('useMetricIndex', () => {
   })
 
   it('only computes the activities missing from the index', async () => {
-    const { ensureIndex } = useMetricIndex()
+    const { ensureIndex } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     vi.clearAllMocks()
@@ -130,7 +129,7 @@ describe('useMetricIndex', () => {
       { id: 'a', startTime: 1, sport: 'running', indexVersion: 0, values: { time_5000: 9999 } }
     ]
 
-    const { ensureIndex, derived } = useMetricIndex()
+    const { ensureIndex, derived } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     expect(getDetails).toHaveBeenCalledWith('a')
@@ -145,7 +144,7 @@ describe('useMetricIndex', () => {
       return out
     })
 
-    const { ensureIndex, derived } = useMetricIndex()
+    const { ensureIndex, derived } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     expect(derived.value.get('a')?.time_5000).toBeUndefined()
@@ -155,7 +154,7 @@ describe('useMetricIndex', () => {
   it('still writes a row for an activity with no usable details', async () => {
     getDetails.mockResolvedValue(undefined)
 
-    const { ensureIndex } = useMetricIndex()
+    const { ensureIndex } = useActivityMetricsIndex()
     await ensureIndex([makeActivity('a')])
 
     expect(storedRows).toHaveLength(1)
@@ -168,7 +167,7 @@ describe('useMetricIndex', () => {
   })
 
   it('coalesces concurrent rebuilds into a single pass', async () => {
-    const { ensureIndex } = useMetricIndex()
+    const { ensureIndex } = useActivityMetricsIndex()
     const activities = [makeActivity('a'), makeActivity('b')]
 
     await Promise.all([ensureIndex(activities), ensureIndex(activities), ensureIndex(activities)])

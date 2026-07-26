@@ -1,4 +1,7 @@
+import { DISTANCE_TARGETS, timeMetricId } from '@/composables/useActivityMetricsIndex'
 import type { MetricDefinition } from './types'
+
+export { DISTANCE_TARGETS, timeMetricId }
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -37,28 +40,6 @@ function formatDuration(seconds: number): string {
   const m = Math.floor((total % 3600) / 60)
   const s = total % 60
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
-}
-
-/**
- * Distances the per-activity index computes a best time for. Kept aligned with
- * the "Bests de la séance" table so every one of its rows has a metric to link
- * to.
- */
-export const DISTANCE_TARGETS: { meters: number; label: string }[] = [
-  { meters: 1_000, label: '1 km' },
-  { meters: 2_000, label: '2 km' },
-  { meters: 5_000, label: '5 km' },
-  { meters: 10_000, label: '10 km' },
-  { meters: 15_000, label: '15 km' },
-  { meters: 20_000, label: '20 km' },
-  { meters: 21_097, label: '21,1 km' },
-  { meters: 30_000, label: '30 km' },
-  { meters: 42_195, label: '42,2 km' },
-  { meters: 50_000, label: '50 km' }
-]
-
-export function timeMetricId(meters: number): string {
-  return `time_${meters}`
 }
 
 /** Best time on a fixed distance — the whole point of the index */

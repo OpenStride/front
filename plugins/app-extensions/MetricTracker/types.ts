@@ -1,4 +1,7 @@
 import { openRange, rollingRange, type TimeRange } from '@/utils/timeRange'
+import type { DerivedMap } from '@/composables/useActivityMetricsIndex'
+
+export type { DerivedMap }
 
 /** Time bucket a series is grouped by. `activity` yields one point per outing. */
 export type Granularity = 'activity' | 'week' | 'month' | 'year'
@@ -100,9 +103,6 @@ export interface SeriesPoint {
 /** Per-activity stats extracted from ActivityDetails, samples discarded */
 export type StatsMap = Map<string, Record<string, number | undefined>>
 
-/** Per-activity derived values, read from the `activity_metrics` index */
-export type DerivedMap = Map<string, Record<string, number>>
-
 /** Everything a series may need beyond the activities themselves */
 export interface MetricSources {
   stats: StatsMap
@@ -110,17 +110,6 @@ export interface MetricSources {
 }
 
 export const EMPTY_SOURCES: MetricSources = { stats: new Map(), derived: new Map() }
-
-/** One row of the `activity_metrics` store */
-export interface ActivityMetricsRow {
-  /** The activity id — this store is keyed on it */
-  id: string
-  startTime: number
-  sport: string
-  /** Index format; a row built by an older version is recomputed */
-  indexVersion: number
-  values: Record<string, number>
-}
 
 export { toMs } from '@/utils/timeRange'
 

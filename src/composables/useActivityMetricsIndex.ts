@@ -2,10 +2,48 @@ import { ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PluginContext } from '@/types/plugin-context'
-import { DISTANCE_TARGETS, timeMetricId } from '../metrics'
-import { toMs, type ActivityMetricsRow, type DerivedMap } from '../types'
+import { toMs } from '@/utils/timeRange'
 
 const STORE = 'activity_metrics'
+
+/**
+ * Distances the index computes a best time for.
+ *
+ * Lives here rather than in a plugin because two of them read the same rows:
+ * the metric tracker plots them over time, the statistics records take the
+ * minimum over a period. Plugins cannot import each other, so the shared
+ * vocabulary belongs to the app.
+ */
+export const DISTANCE_TARGETS: { meters: number; label: string }[] = [
+  { meters: 1_000, label: '1 km' },
+  { meters: 2_000, label: '2 km' },
+  { meters: 5_000, label: '5 km' },
+  { meters: 10_000, label: '10 km' },
+  { meters: 15_000, label: '15 km' },
+  { meters: 20_000, label: '20 km' },
+  { meters: 21_097, label: '21,1 km' },
+  { meters: 30_000, label: '30 km' },
+  { meters: 42_195, label: '42,2 km' },
+  { meters: 50_000, label: '50 km' }
+]
+
+export function timeMetricId(meters: number): string {
+  return `time_${meters}`
+}
+
+/** Per-activity derived values, keyed by activity id */
+export type DerivedMap = Map<string, Record<string, number>>
+
+/** One row of the `activity_metrics` store */
+export interface ActivityMetricsRow {
+  /** The activity id — this store is keyed on it */
+  id: string
+  startTime: number
+  sport: string
+  /** Index format; a row built by an older version is recomputed */
+  indexVersion: number
+  values: Record<string, number>
+}
 
 /** Bump to recompute every row after an algorithm change */
 const INDEX_VERSION = 1
@@ -145,7 +183,7 @@ async function buildIndex(activities: Activity[]): Promise<void> {
   }
 }
 
-export function useMetricIndex() {
+export function useActivityMetricsIndex() {
   /** Coalesces concurrent calls so a rebuild never runs twice */
   function ensureIndex(activities: Activity[]): Promise<void> {
     if (indexRequest) return indexRequest

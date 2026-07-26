@@ -1,22 +1,16 @@
 import { ref, watch, type Ref } from 'vue'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
-import type { PluginContext } from '@/types/plugin-context'
 import { inRange } from '@/utils/timeRange'
 import {
-  getRecordPeriodRange,
-  type PersonalRecord,
-  type PRCache,
-  type RecordPeriod
-} from '../types'
+  useActivityMetricsIndex,
+  DISTANCE_TARGETS,
+  timeMetricId
+} from '@/composables/useActivityMetricsIndex'
+import { getRecordPeriodRange, type PersonalRecord, type RecordPeriod } from '../types'
 
+/** Distances shown in the records table, a subset of what the index computes */
 const PR_TARGETS = [1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 21_097, 42_195]
-
-// Max plausible speed in m/s — 50 km/h filters GPS glitches while keeping any real effort
-const MAX_SPEED_MS = 50 / 3.6
-
-// Bump this to invalidate cached PR data after algorithm changes
-const CACHE_VERSION = 3
 
 const PR_LABELS: Record<number, string> = {
   1000: '1K',
@@ -29,40 +23,28 @@ const PR_LABELS: Record<number, string> = {
   42195: 'Marathon'
 }
 
-function cacheKey(sport: string): string {
-  return `statistics_pr_cache_${sport || 'all'}`
-}
+/**
+ * Records used to keep their own cache under `statistics_pr_cache_<sport>`,
+ * which lives in `settings` and therefore travelled to the user's storage
+ * provider on every recompute. The index replaces it and never leaves the
+ * device, so the old entries are dropped once.
+ */
+const LEGACY_CACHE_PREFIX = 'statistics_pr_cache_'
+let legacyCacheCleared = false
 
-// exportDB('activity_details') deserializes the samples of the whole history. Below this many
-// activities, reading only the ones we need is cheaper and keeps short periods instant.
-const TARGETED_FETCH_MAX = 150
+async function dropLegacyCache(sports: string[]): Promise<void> {
+  if (legacyCacheCleared) return
+  legacyCacheCleared = true
 
-// Parallel reads per batch when fetching details one by one
-const FETCH_BATCH_SIZE = 25
-
-async function loadDetails(
-  ctx: PluginContext,
-  acts: Activity[]
-): Promise<Map<string, ActivityDetails>> {
-  const detailsMap = new Map<string, ActivityDetails>()
-
-  if (acts.length > TARGETED_FETCH_MAX) {
-    const allDetails = (await ctx.storage.exportDB('activity_details')) as ActivityDetails[]
-    for (const d of allDetails) {
-      detailsMap.set(d.id, d)
-    }
-    return detailsMap
-  }
-
-  for (let i = 0; i < acts.length; i += FETCH_BATCH_SIZE) {
-    const batch = acts.slice(i, i + FETCH_BATCH_SIZE)
-    const loaded = await Promise.all(batch.map(a => ctx.activity.getDetails(a.id)))
-    for (const d of loaded) {
-      if (d) detailsMap.set(d.id, d)
+  const ctx = await getPluginContext()
+  const keys = ['all', ...sports].map(sport => `${LEGACY_CACHE_PREFIX}${sport}`)
+  for (const key of keys) {
+    try {
+      if (await ctx.storage.getData(key)) await ctx.storage.deleteData(key)
+    } catch {
+      // A key that is not there is the desired state anyway
     }
   }
-
-  return detailsMap
 }
 
 export function usePersonalRecords(
@@ -71,140 +53,65 @@ export function usePersonalRecords(
   selectedPeriod: Ref<RecordPeriod>
 ) {
   const records = ref<PersonalRecord[]>([])
-  const computing = ref(false)
-  const progress = ref(0)
+  const { derived, indexing, progress, ensureIndex } = useActivityMetricsIndex()
 
-  // Only the latest run may publish its results — the user can switch period mid-compute
-  let currentRun = 0
+  /**
+   * A record is the fastest time the index holds for a distance, over the
+   * activities of the period. No sample is read here: the scan happened once,
+   * when the index was built.
+   */
+  function collect(acts: Activity[]): PersonalRecord[] {
+    const best = new Map<number, PersonalRecord>()
+
+    for (const activity of acts) {
+      const values = derived.value.get(activity.id)
+      if (!values) continue
+
+      for (const target of PR_TARGETS) {
+        const duration = values[timeMetricId(target)]
+        if (typeof duration !== 'number' || duration <= 0) continue
+
+        const existing = best.get(target)
+        if (existing && existing.duration <= duration) continue
+
+        best.set(target, {
+          distance: target,
+          distanceLabel: PR_LABELS[target],
+          duration,
+          pace: duration / (target / 1000) / 60,
+          speed: target / 1000 / (duration / 3600),
+          date: activity.startTime,
+          activityId: activity.id
+        })
+      }
+    }
+
+    return PR_TARGETS.filter(t => best.has(t)).map(t => best.get(t)!)
+  }
 
   async function computeRecords() {
-    const run = ++currentRun
     const sportActivities = activities.value
-
     if (sportActivities.length === 0) {
       records.value = []
       return
     }
 
-    const sport = selectedSport.value
-    const period = selectedPeriod.value
-    const range = getRecordPeriodRange(period)
-    const acts = sportActivities.filter(a => inRange(a.startTime, range))
+    await ensureIndex(sportActivities)
 
-    // Cache validity is tracked on the whole sport, so any new activity refreshes every period
-    const activityCount = sportActivities.length
-    const maxLastModified = Math.max(...sportActivities.map(a => a.lastModified || 0))
+    const range = getRecordPeriodRange(selectedPeriod.value)
+    records.value = collect(sportActivities.filter(a => inRange(a.startTime, range)))
 
-    const ctx = await getPluginContext()
-    const cached = (await ctx.storage.getData(cacheKey(sport))) as PRCache | undefined
-    if (run !== currentRun) return
-
-    const cacheValid =
-      !!cached &&
-      (cached as PRCache & { cacheVersion?: number }).cacheVersion === CACHE_VERSION &&
-      cached.activityCount === activityCount &&
-      cached.maxLastModified === maxLastModified &&
-      cached.sport === sport
-
-    const entry = cacheValid ? cached?.periods?.[period] : undefined
-    if (entry && entry.periodKey === range.key) {
-      records.value = entry.records
-      return
-    }
-
-    const persist = async (result: PersonalRecord[]) => {
-      const periods = cacheValid && cached?.periods ? { ...cached.periods } : {}
-      periods[period] = { periodKey: range.key, records: result }
-      await ctx.storage.saveData(cacheKey(sport), {
-        cacheVersion: CACHE_VERSION,
-        activityCount,
-        maxLastModified,
-        sport,
-        periods
-      })
-    }
-
-    // No activity in the selected period — nothing to scan
-    if (acts.length === 0) {
-      records.value = []
-      await persist([])
-      return
-    }
-
-    computing.value = true
-    progress.value = 0
-
-    try {
-      const detailsMap = await loadDetails(ctx, acts)
-      if (run !== currentRun) return
-
-      const best = new Map<number, PersonalRecord>()
-      const chunkSize = 20
-
-      for (let i = 0; i < acts.length; i += chunkSize) {
-        const chunk = acts.slice(i, i + chunkSize)
-
-        for (const activity of chunk) {
-          const details = detailsMap.get(activity.id)
-          if (!details?.samples?.length) continue
-
-          // Skip activities without distance data
-          const hasDistance = details.samples.some(s => s.distance != null && s.time != null)
-          if (!hasDistance) continue
-
-          try {
-            const analyzer = ctx.analyzer.create(details.samples)
-            const segments = analyzer.bestSegments(PR_TARGETS)
-
-            for (const target of PR_TARGETS) {
-              const seg = segments[target]
-              if (!seg) continue
-
-              // Filter GPS glitches: skip segments with unrealistic speed
-              if (seg.duration <= 0 || target / seg.duration > MAX_SPEED_MS) continue
-
-              const existing = best.get(target)
-              if (!existing || seg.duration < existing.duration) {
-                const paceMinPerKm = seg.duration / (target / 1000) / 60
-                best.set(target, {
-                  distance: target,
-                  distanceLabel: PR_LABELS[target],
-                  duration: seg.duration,
-                  pace: paceMinPerKm,
-                  speed: target / 1000 / (seg.duration / 3600),
-                  date: activity.startTime,
-                  activityId: activity.id
-                })
-              }
-            }
-          } catch {
-            // Activity samples may lack required data, skip silently
-          }
-        }
-
-        progress.value = Math.min(100, Math.round(((i + chunk.length) / acts.length) * 100))
-
-        // Yield to main thread
-        if (i + chunkSize < acts.length) {
-          await new Promise(resolve => setTimeout(resolve, 0))
-          if (run !== currentRun) return
-        }
-      }
-
-      const result = PR_TARGETS.filter(t => best.has(t)).map(t => best.get(t)!)
-      records.value = result
-      await persist(result)
-      progress.value = 100
-    } finally {
-      if (run === currentRun) computing.value = false
-    }
+    dropLegacyCache([...new Set(sportActivities.map(a => (a.type || '').toLowerCase()))])
   }
 
   watch([activities, selectedSport, selectedPeriod], computeRecords, { immediate: true })
 
   return {
     records,
-    computing,
+    computing: indexing,
     progress
   }
 }
+
+/** Distances the records table can show, for callers that need the vocabulary */
+export const RECORD_DISTANCES = DISTANCE_TARGETS.filter(t => PR_TARGETS.includes(t.meters))

@@ -112,7 +112,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMetricActivities } from '../composables/useMetricActivities'
-import { useMetricIndex } from '../composables/useMetricIndex'
+import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { buildSeries, summarize } from '../series'
 import { DIRECT_METRICS, DERIVED_METRICS, getMetric, hasMetric } from '../metrics'
 import {
@@ -136,7 +136,7 @@ const router = useRouter()
 
 const { activities, stats, sportOptions, loading, statsLoading, ensureStats } =
   useMetricActivities()
-const { derived, indexing, progress, ensureIndex } = useMetricIndex()
+const { derived, indexing, progress, ensureIndex } = useActivityMetricsIndex()
 
 function isGranularity(value: unknown): value is Granularity {
   return GRANULARITIES.includes(value as Granularity)

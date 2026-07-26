@@ -14,19 +14,6 @@ export type RecordPeriod = 'all' | 'month' | 'quarter' | 'year'
 
 export const RECORD_PERIODS: RecordPeriod[] = ['all', 'month', 'quarter', 'year']
 
-export interface PRCacheEntry {
-  periodKey: string
-  records: PersonalRecord[]
-}
-
-export interface PRCache {
-  activityCount: number
-  maxLastModified: number
-  sport: string
-  /** One entry per RecordPeriod, computed lazily when the user selects it */
-  periods: Partial<Record<RecordPeriod, PRCacheEntry>>
-}
-
 export type PeriodGranularity = 'week' | 'month' | 'year'
 
 /** The records only ever use keyed windows, so their cache stays safe to key */
