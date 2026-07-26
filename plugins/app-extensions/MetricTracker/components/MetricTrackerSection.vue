@@ -30,14 +30,9 @@ defineProps<{
 </script>
 
 <style scoped>
-/* Same card as every other section of the statistics page — a different
-   surface here read as a foreign block rather than as one more section. */
-.section-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  padding: 1.2rem 1.4rem;
-}
+/* The card surface itself is the global `.section-card`, shared with the rest
+   of the statistics page — a different surface here read as a foreign block
+   rather than as one more section. */
 
 .section-header {
   display: flex;

@@ -195,12 +195,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.section-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  padding: 1.2rem 1.4rem;
-}
 
 .section-title {
   font-size: 1.1rem;

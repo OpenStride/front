@@ -121,6 +121,20 @@ const sectionComponents = computed(() =>
 .statistics-sections {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+/* Mobile : les sections vont d'un bord à l'autre, comme les cartes de « Mes
+   activités ». La marge latérale de la page disparaît donc, et l'en-tête la
+   reprend pour lui seul. */
+@media (max-width: 640px) {
+  .statistics-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .statistics-header {
+    padding: 0 1rem;
+  }
 }
 </style>
