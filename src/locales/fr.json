@@ -671,6 +671,21 @@
     "checking": "Vérification de la connexion à Google Drive...",
     "verifying": "Vérification en cours..."
   },
+  "dropbox": {
+    "checking": "Vérification de la connexion à Dropbox...",
+    "connected": "La connexion est active",
+    "notConfigured": "Dropbox n'est pas configuré dans cette version. Consultez docs/DROPBOX_SETUP.md.",
+    "appFolderNote": "OpenStride n'accède qu'à son propre dossier, dans Apps/OpenStride.",
+    "connect": "Connexion",
+    "reconnect": "Reconnecter",
+    "disconnect": "Déconnecter",
+    "refresh": "Rafraîchir",
+    "refreshing": "Rafraîchissement...",
+    "refreshed": "Rafraîchi",
+    "forceResync": "Forcer une resynchronisation complète",
+    "forceResyncRunning": "Resynchronisation...",
+    "forceResyncHint": "Ignore l'optimisation et relit l'intégralité des données distantes."
+  },
   "legal": {
     "privacyPolicy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation"

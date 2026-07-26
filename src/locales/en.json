@@ -671,6 +671,21 @@
     "checking": "Checking the Google Drive connection...",
     "verifying": "Checking..."
   },
+  "dropbox": {
+    "checking": "Checking the Dropbox connection...",
+    "connected": "The connection is active",
+    "notConfigured": "Dropbox is not configured in this build. See docs/DROPBOX_SETUP.md.",
+    "appFolderNote": "OpenStride only accesses its own folder, in Apps/OpenStride.",
+    "connect": "Connect",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "refreshed": "Refreshed",
+    "forceResync": "Force a full resync",
+    "forceResyncRunning": "Resyncing...",
+    "forceResyncHint": "Skips the optimization and re-reads all remote data."
+  },
   "legal": {
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service"

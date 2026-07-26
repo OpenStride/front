@@ -204,6 +204,7 @@ UI injection: `useSlotExtensions` + `ActivityDetails.vue`.
 **Storage Providers (Backup):**
 
 - ✅ **GDrive**: Google Drive backup with OAuth PKCE (active)
+- ✅ **Dropbox**: Dropbox app-folder backup with OAuth PKCE, no client secret (active)
 
 **App Extensions (UI Widgets):**
 
