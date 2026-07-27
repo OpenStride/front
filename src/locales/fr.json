@@ -184,7 +184,7 @@
       "cloudBackup": "Sauvegarde cloud",
       "appExtensions": "Extensions",
       "sharing": "Partage & Confidentialité",
-      "friends": "Amis",
+      "friends": "Amis & partage",
       "mcp": "Assistant IA (MCP)"
     },
     "identity": {
@@ -622,7 +622,9 @@
     "nextStepShare": "Il ne vous verra que s'il vous ajoute aussi. Montrez-lui votre QR code pour boucler la boucle.",
     "publishMyProfile": "Publier mon profil",
     "showMyQr": "Afficher mon QR code",
-    "seeTheirActivities": "Voir ses activités"
+    "seeTheirActivities": "Voir ses activités",
+    "movedHelp": "Vous suivez déjà {name}. Son profil a changé d'adresse — mettez le lien à jour pour continuer à recevoir ses activités.",
+    "updateLink": "Mettre à jour le lien"
   },
   "callback": {
     "connecting": "Connexion en cours...",
@@ -715,5 +717,26 @@
     "minutesAgo": "il y a {count} min",
     "hoursAgo": "il y a {count}h",
     "daysAgo": "il y a {count}j"
+  },
+  "friendEvents": {
+    "invalidShareUrl": "Lien de partage invalide",
+    "profileUnreachable": "Ce profil n'a pas pu être chargé",
+    "idCollision": "Collision d'identifiant — cet ami n'a pas pu être ajouté",
+    "alreadyAdded": "Cet ami est déjà dans votre liste",
+    "friendAdded": "{name} ajouté",
+    "recentActivitiesSynced": "{count} activité récente synchronisée | {count} activités récentes synchronisées",
+    "addFailed": "Impossible d'ajouter cet ami",
+    "friendRemoved": "Ami supprimé",
+    "removeFailed": "Impossible de supprimer cet ami",
+    "nowFollowsYou": "{name} vous suit maintenant",
+    "publishYearsFailed": "Échec de publication pour : {years}",
+    "publishManifestFailed": "Votre profil n'a pas pu être publié",
+    "publishSucceeded": "Votre profil public a été publié",
+    "publishFailed": "Échec de la publication",
+    "refreshFriends": "{friends} ami(s) synchronisé(s)",
+    "refreshActivities": "{friends} ami(s) synchronisé(s), {activities} activité(s)",
+    "refreshInteractions": "{friends} ami(s) synchronisé(s), {interactions} interaction(s)",
+    "refreshFull": "{friends} ami(s) synchronisé(s), {activities} activité(s), {interactions} interaction(s)",
+    "profileMoved": "Le profil de {name} a changé d'adresse, lien mis à jour"
   }
 }

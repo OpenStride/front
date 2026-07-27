@@ -13,6 +13,7 @@ vi.mock('@/services/IndexedDBService', () => ({
     getInstance: async () => ({
       // A miss resolves undefined, like the real store
       getDataFromStore: async (_store: string, key: string) => friendsStore.get(key),
+      getAllData: async () => [...friendsStore.values()],
       addItemsToStore: async (_store: string, items: Friend[]) => {
         for (const item of items) friendsStore.set(item.id, item)
       }
@@ -80,6 +81,41 @@ describe('friend preview', () => {
     const result = await service.previewFriend(DRIVE_URL)
 
     expect(result?.alreadyAdded?.username).toBe('Camille')
+  })
+
+  it('recognises someone who republished from another account', async () => {
+    // The local key hashes the manifest URL, so a move looks like a stranger —
+    // following them again would leave two entries, the first one frozen
+    await service.addFriendByUrl(DRIVE_URL)
+    const NEW_URL = 'https://drive.google.com/uc?id=MOVED999&export=download'
+
+    const result = await service.previewFriend(NEW_URL)
+
+    expect(result?.alreadyAdded).toBeNull()
+    expect(result?.movedFrom?.username).toBe('Camille')
+  })
+
+  it('moves the existing friend instead of adding a second one', async () => {
+    await service.addFriendByUrl(DRIVE_URL)
+    const NEW_URL = 'https://drive.google.com/uc?id=MOVED999&export=download'
+
+    const updated = await service.addFriendByUrl(NEW_URL)
+
+    expect(friendsStore.size).toBe(1)
+    expect(updated?.publicUrl).toBe(NEW_URL)
+    expect([...friendsStore.values()][0].publicUrl).toBe(NEW_URL)
+  })
+
+  it('keeps distinct people apart', async () => {
+    await service.addFriendByUrl(DRIVE_URL)
+    mocks.fetchManifest.mockResolvedValue({
+      ...MANIFEST,
+      profile: { userId: 'user_zoe', username: 'Zoé' }
+    })
+
+    await service.addFriendByUrl('https://drive.google.com/uc?id=OTHER&export=download')
+
+    expect(friendsStore.size).toBe(2)
   })
 
   it('returns null when the profile cannot be fetched', async () => {

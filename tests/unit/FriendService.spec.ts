@@ -42,7 +42,7 @@ describe('FriendService Event-Driven Pattern', () => {
     // Manually dispatch a test event
     const testEvent: FriendServiceEvent = {
       type: 'friend-added',
-      message: 'Test message',
+      messageKey: 'friendEvents.friendAdded',
       messageType: 'success'
     }
 
@@ -64,7 +64,7 @@ describe('FriendService Event-Driven Pattern', () => {
     // Dispatch event after removing listener
     friendService.emitter.dispatchEvent(
       new CustomEvent('friend-event', {
-        detail: { type: 'friend-added', message: 'Test', messageType: 'success' }
+        detail: { type: 'friend-added', messageKey: 'friendEvents.friendAdded', messageType: 'success' }
       })
     )
 

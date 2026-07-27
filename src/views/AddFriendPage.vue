@@ -33,7 +33,12 @@
         {{ t('addFriend.alreadyAdded') }}
       </p>
 
-      <p class="explain">{{ t('addFriend.confirmHelp') }}</p>
+      <p v-else-if="moved" class="already" data-test="profile-moved">
+        <i class="fas fa-circle-info" aria-hidden="true"></i>
+        {{ t('addFriend.movedHelp', { name: preview.profile.username }) }}
+      </p>
+
+      <p v-else class="explain">{{ t('addFriend.confirmHelp') }}</p>
 
       <div class="actions">
         <button
@@ -42,8 +47,12 @@
           class="primary-btn"
           data-test="confirm-add"
         >
-          <i class="fas fa-user-plus" aria-hidden="true"></i>
-          {{ t('addFriend.confirm', { name: preview.profile.username }) }}
+          <i :class="moved ? 'fas fa-link' : 'fas fa-user-plus'" aria-hidden="true"></i>
+          {{
+            moved
+              ? t('addFriend.updateLink')
+              : t('addFriend.confirm', { name: preview.profile.username })
+          }}
         </button>
         <button @click="goToFriends" class="back-btn">
           {{ alreadyAdded ? t('addFriend.backToFriends') : t('common.cancel') }}
@@ -59,7 +68,7 @@
       <div class="next-step">
         <h3>{{ t('addFriend.nextStepTitle') }}</h3>
         <p>{{ published ? t('addFriend.nextStepShare') : t('addFriend.nextStepPublish') }}</p>
-        <router-link to="/profile?tab=sharing" class="primary-btn" data-test="next-step-action">
+        <router-link to="/profile?tab=friends" class="primary-btn" data-test="next-step-action">
           <i :class="published ? 'fas fa-qrcode' : 'fas fa-upload'" aria-hidden="true"></i>
           {{ published ? t('addFriend.showMyQr') : t('addFriend.publishMyProfile') }}
         </router-link>
@@ -121,6 +130,7 @@ const error = ref(false)
 const invalidLink = ref(false)
 const preview = ref<PublicManifest | null>(null)
 const alreadyAdded = ref(false)
+const moved = ref(false)
 const published = ref(false)
 const friendName = ref('')
 const errorMessage = ref('')
@@ -167,6 +177,7 @@ async function processDeepLink() {
 
     preview.value = result.manifest
     alreadyAdded.value = Boolean(result.alreadyAdded)
+    moved.value = Boolean(result.movedFrom)
     loading.value = false
   } catch (err) {
     console.error('[AddFriendPage] Error processing deep link:', err)

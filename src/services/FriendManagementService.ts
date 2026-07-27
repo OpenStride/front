@@ -73,6 +73,7 @@ export class FriendManagementService {
     manifestUrl: string
     manifest: PublicManifest
     alreadyAdded: Friend | null
+    movedFrom: Friend | null
   } | null> {
     const manifestUrl = this.resolveManifestUrl(publicUrl)
     if (!manifestUrl) return null
@@ -88,7 +89,27 @@ export class FriendManagementService {
       | null
       | undefined
 
-    return { manifestUrl, manifest, alreadyAdded: existing ?? null }
+    return {
+      manifestUrl,
+      manifest,
+      alreadyAdded: existing ?? null,
+      movedFrom: existing ? null : await this.findByUserId(manifest.profile.userId, manifestUrl)
+    }
+  }
+
+  /**
+   * Find a friend we already follow who now publishes at a different URL.
+   *
+   * The local key is a hash of the manifest URL, so someone who republishes
+   * from another Drive account looks like a stranger: you would end up
+   * following them twice, with the first entry frozen forever. Their `userId`
+   * is stable across moves, so use it to recognise them.
+   */
+  private async findByUserId(userId?: string, exceptUrl?: string): Promise<Friend | null> {
+    if (!userId) return null
+
+    const friends = await this.getAllFriends()
+    return friends.find(f => f.userId === userId && f.publicUrl !== exceptUrl) ?? null
   }
 
   /**
@@ -100,7 +121,7 @@ export class FriendManagementService {
       if (!resolved) {
         this.emitEvent({
           type: 'friend-error',
-          message: 'URL de partage invalide',
+          messageKey: 'friendEvents.invalidShareUrl',
           messageType: 'error'
         })
         return null
@@ -112,7 +133,7 @@ export class FriendManagementService {
       if (!manifest) {
         this.emitEvent({
           type: 'friend-error',
-          message: 'Impossible de charger le profil',
+          messageKey: 'friendEvents.profileUnreachable',
           messageType: 'error'
         })
         return null
@@ -125,7 +146,7 @@ export class FriendManagementService {
       if (!isUnique) {
         this.emitEvent({
           type: 'friend-error',
-          message: "Erreur: collision d'identifiant",
+          messageKey: 'friendEvents.idCollision',
           messageType: 'error'
         })
         return null
@@ -136,10 +157,36 @@ export class FriendManagementService {
         this.emitEvent({
           type: 'friend-error',
           friend: existingFriend as Friend,
-          message: 'Cet ami est déjà ajouté',
+          messageKey: 'friendEvents.alreadyAdded',
           messageType: 'warning'
         })
         return existingFriend as Friend
+      }
+
+      // Same person, new publishing location: move the record we already have
+      // instead of creating a second, competing entry
+      const moved = await this.findByUserId(manifest.profile.userId, manifestUrl)
+      if (moved) {
+        const updated: Friend = {
+          ...moved,
+          publicUrl: manifestUrl,
+          username: customUsername || manifest.profile.username,
+          profilePhoto: manifest.profile.profilePhoto,
+          bio: manifest.profile.bio,
+          lastModified: Date.now()
+        }
+        await db.addItemsToStore('friends', [updated], f => f.id)
+
+        this.emitEvent({
+          type: 'friend-updated',
+          friend: updated,
+          messageKey: 'friendEvents.profileMoved',
+          messageParams: { name: updated.username },
+          messageType: 'success'
+        })
+
+        await syncService.syncFriendActivitiesQuick(updated.id, 30)
+        return updated
       }
 
       const friend: Friend = {
@@ -160,7 +207,8 @@ export class FriendManagementService {
       this.emitEvent({
         type: 'friend-added',
         friend,
-        message: `${friend.username} ajouté avec succès!`,
+        messageKey: 'friendEvents.friendAdded',
+        messageParams: { name: friend.username },
         messageType: 'success'
       })
 
@@ -175,7 +223,8 @@ export class FriendManagementService {
           type: 'sync-completed',
           friend,
           syncResult,
-          message: `${syncResult.activitiesAdded} activités récentes synchronisées`,
+          messageKey: 'friendEvents.recentActivitiesSynced',
+          messageCount: syncResult.activitiesAdded,
           messageType: 'success'
         })
       }
@@ -185,7 +234,7 @@ export class FriendManagementService {
       console.error('[FriendManagementService] Error adding friend:', error)
       this.emitEvent({
         type: 'friend-error',
-        message: "Erreur lors de l'ajout",
+        messageKey: 'friendEvents.addFailed',
         messageType: 'error'
       })
       return null
@@ -219,7 +268,7 @@ export class FriendManagementService {
 
       this.emitEvent({
         type: 'friend-removed',
-        message: 'Ami supprimé',
+        messageKey: 'friendEvents.friendRemoved',
         messageType: 'success'
       })
 
@@ -229,7 +278,7 @@ export class FriendManagementService {
       console.error('[FriendManagementService] Error removing friend:', error)
       this.emitEvent({
         type: 'friend-error',
-        message: 'Erreur lors de la suppression',
+        messageKey: 'friendEvents.removeFailed',
         messageType: 'error'
       })
     }

@@ -1,5 +1,14 @@
 <template>
   <div class="profile-friends">
+    <!-- "Being followed" belongs with "following": the sharing plugin renders
+         your own profile and QR code here -->
+    <component
+      v-for="(section, i) in sharingSections"
+      :is="section"
+      :key="`friends-section-${i}`"
+      class="friends-sharing"
+    />
+
     <div class="page-header">
       <div class="header-actions">
         <button @click="refreshAll" :disabled="refreshing" class="refresh-btn">
@@ -143,14 +152,20 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import QRScanner from '@/components/QRScanner.vue'
 import type { Friend } from '@/types/friend'
 
 const { t, locale } = useI18n()
 
 const friendService = FriendService.getInstance()
+
+const { components: rawSharing } = useSlotExtensions('profile.friends')
+const sharingSections = computed(() =>
+  rawSharing.value.map(c => (c as { default?: unknown }).default || c)
+)
 
 const friends = ref<Friend[]>([])
 const loading = ref(true)

@@ -1,6 +1,7 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-2xl font-bold">{{ t('profile.sharePrivacy') }}</h2>
+    <!-- A section of the friends tab, not a page of its own -->
+    <h3 class="text-lg font-bold">{{ t('profile.sharePrivacy') }}</h3>
 
     <!-- Privacy Settings -->
     <div class="bg-white shadow rounded-xl p-6 space-y-4">

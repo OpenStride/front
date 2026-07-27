@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
 import type { FriendServiceEvent } from '@/types/friend'
@@ -18,13 +19,21 @@ const TIMEOUTS: Record<string, number> = {
  * the layout instead — services emit, one listener turns that into UI.
  */
 export function useFriendEventToasts() {
+  const { t } = useI18n()
   const friendService = FriendService.getInstance()
 
   const handler = (event: Event) => {
-    const { message, messageType } = (event as CustomEvent<FriendServiceEvent>).detail
-    if (!message || !messageType) return
+    const { messageKey, messageParams, messageCount, messageType } = (
+      event as CustomEvent<FriendServiceEvent>
+    ).detail
+    if (!messageKey || !messageType) return
 
-    ToastService.push(message, { type: messageType, timeout: TIMEOUTS[messageType] ?? 3000 })
+    const text =
+      messageCount === undefined
+        ? t(messageKey, messageParams ?? {})
+        : t(messageKey, messageParams ?? {}, messageCount)
+
+    ToastService.push(text, { type: messageType, timeout: TIMEOUTS[messageType] ?? 3000 })
   }
 
   onMounted(() => friendService.emitter.addEventListener('friend-event', handler))

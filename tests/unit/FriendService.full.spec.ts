@@ -98,7 +98,8 @@ vi.mock('@/services/PublicFileService', () => ({
 // Mock ShareUrlService
 vi.mock('@/services/ShareUrlService', () => ({
   ShareUrlService: {
-    wrapManifestUrl: (url: string) => `https://openstride.org/add-friend?url=${encodeURIComponent(url)}`,
+    wrapManifestUrl: (url: string) =>
+      `https://openstride.org/add-friend?url=${encodeURIComponent(url)}`,
     unwrapManifestUrl: (url: string) => {
       const match = url.match(/url=([^&]+)/)
       return match ? decodeURIComponent(match[1]) : null
@@ -200,7 +201,7 @@ describe('FriendService', () => {
 
       expect(url).toBeNull()
       expect(mockDeleteFile).toHaveBeenCalled() // rollback
-      expect(events.some((e) => e.type === 'publish-error')).toBe(true)
+      expect(events.some(e => e.type === 'publish-error')).toBe(true)
     })
 
     it('rolls back when manifest upload fails', async () => {
@@ -230,7 +231,7 @@ describe('FriendService', () => {
 
       await service.publishPublicData()
 
-      expect(events.some((e) => e.type === 'publish-completed')).toBe(true)
+      expect(events.some(e => e.type === 'publish-completed')).toBe(true)
     })
   })
 
@@ -278,9 +279,9 @@ describe('FriendService', () => {
 
       expect(friend).not.toBeNull()
       expect(friend!.username).toBe('Bob')
-      expect(events.some((e) => e.type === 'friend-error' && e.message.includes('déjà ajouté'))).toBe(
-        true
-      )
+      expect(
+        events.some(e => e.type === 'friend-error' && e.messageKey === 'friendEvents.alreadyAdded')
+      ).toBe(true)
     })
 
     it('emits error when manifest cannot be fetched', async () => {
@@ -296,7 +297,7 @@ describe('FriendService', () => {
       )
 
       expect(friend).toBeNull()
-      expect(events.some((e) => e.type === 'friend-error')).toBe(true)
+      expect(events.some(e => e.type === 'friend-error')).toBe(true)
     })
 
     it('unwraps share URLs before fetching manifest', async () => {
@@ -346,7 +347,7 @@ describe('FriendService', () => {
 
       await service.removeFriend('f1')
 
-      expect(events.some((e) => e.type === 'friend-removed')).toBe(true)
+      expect(events.some(e => e.type === 'friend-removed')).toBe(true)
     })
   })
 
@@ -410,7 +411,9 @@ describe('FriendService', () => {
     })
 
     it('returns error when manifest fetch fails', async () => {
-      fakeDB.stores.friends = [createFriend({ id: 'f1', publicUrl: 'https://drive.google.com/bad' })]
+      fakeDB.stores.friends = [
+        createFriend({ id: 'f1', publicUrl: 'https://drive.google.com/bad' })
+      ]
       mockFetchJsonFromUrl.mockResolvedValue(null)
 
       const result = await service.syncFriendActivitiesQuick('f1', 30)
@@ -467,16 +470,22 @@ describe('FriendService', () => {
   describe('refreshAllFriends', () => {
     it('syncs only friends with syncEnabled=true', async () => {
       fakeDB.stores.friends = [
-        createFriend({ id: 'f1', syncEnabled: true, publicUrl: 'https://drive.google.com/uc?id=m1' }),
-        createFriend({ id: 'f2', syncEnabled: false, publicUrl: 'https://drive.google.com/uc?id=m2' })
+        createFriend({
+          id: 'f1',
+          syncEnabled: true,
+          publicUrl: 'https://drive.google.com/uc?id=m1'
+        }),
+        createFriend({
+          id: 'f2',
+          syncEnabled: false,
+          publicUrl: 'https://drive.google.com/uc?id=m2'
+        })
       ]
 
       const manifest = createPublicManifest({
         profile: { username: 'X', bio: '', userId: 'x' }
       })
-      mockFetchJsonFromUrl
-        .mockResolvedValueOnce(manifest)
-        .mockResolvedValue({ activities: [] })
+      mockFetchJsonFromUrl.mockResolvedValueOnce(manifest).mockResolvedValue({ activities: [] })
 
       const results = await service.refreshAllFriends()
 
@@ -487,7 +496,11 @@ describe('FriendService', () => {
 
     it('emits refresh-completed event with summary', async () => {
       fakeDB.stores.friends = [
-        createFriend({ id: 'f1', syncEnabled: true, publicUrl: 'https://drive.google.com/uc?id=m1' })
+        createFriend({
+          id: 'f1',
+          syncEnabled: true,
+          publicUrl: 'https://drive.google.com/uc?id=m1'
+        })
       ]
 
       const manifest = createPublicManifest({
@@ -503,7 +516,7 @@ describe('FriendService', () => {
 
       await service.refreshAllFriends()
 
-      expect(events.some((e) => e.type === 'refresh-completed')).toBe(true)
+      expect(events.some(e => e.type === 'refresh-completed')).toBe(true)
     })
 
     it('returns empty array when no friends exist', async () => {
@@ -545,7 +558,7 @@ describe('FriendService', () => {
 
       expect(url).toContain('add-friend?url=')
       // Should have migrated: stored value should now be the raw manifest URL
-      const stored = fakeDB.stores.settings.find((s) => s.key === 'myPublicUrl')
+      const stored = fakeDB.stores.settings.find(s => s.key === 'myPublicUrl')
       expect(stored?.value).not.toContain('add-friend')
     })
   })

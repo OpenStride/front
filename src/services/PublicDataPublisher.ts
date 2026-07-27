@@ -68,7 +68,8 @@ export class PublicDataPublisher {
         )
         this.emitEvent({
           type: 'publish-error',
-          message: `Échec de publication pour les années: ${uploadErrors.join(', ')}`,
+          messageKey: 'friendEvents.publishYearsFailed',
+          messageParams: { years: uploadErrors.join(', ') },
           messageType: 'error'
         })
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds)
@@ -101,7 +102,7 @@ export class PublicDataPublisher {
         console.error('[PublicDataPublisher] Failed to upload manifest')
         this.emitEvent({
           type: 'publish-error',
-          message: 'Échec de publication du manifest',
+          messageKey: 'friendEvents.publishManifestFailed',
           messageType: 'error'
         })
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds)
@@ -114,7 +115,7 @@ export class PublicDataPublisher {
       this.emitEvent({
         type: 'publish-completed',
         publishUrl: shareUrl,
-        message: 'Données publiques publiées avec succès!',
+        messageKey: 'friendEvents.publishSucceeded',
         messageType: 'success'
       })
 
@@ -123,7 +124,7 @@ export class PublicDataPublisher {
       console.error('[PublicDataPublisher] Error publishing public data:', error)
       this.emitEvent({
         type: 'publish-error',
-        message: 'Erreur lors de la publication',
+        messageKey: 'friendEvents.publishFailed',
         messageType: 'error'
       })
       await this.rollbackUploadedFiles(PublicFileService.getInstance(), uploadedFileIds)

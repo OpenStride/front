@@ -184,7 +184,7 @@
       "cloudBackup": "Cloud Backup",
       "appExtensions": "App Extensions",
       "sharing": "Share & Privacy",
-      "friends": "Friends",
+      "friends": "Friends & sharing",
       "mcp": "AI Assistant (MCP)"
     },
     "identity": {
@@ -622,7 +622,9 @@
     "nextStepShare": "They cannot see you until they add you too. Show them your QR code to close the loop.",
     "publishMyProfile": "Publish my profile",
     "showMyQr": "Show my QR code",
-    "seeTheirActivities": "See their activities"
+    "seeTheirActivities": "See their activities",
+    "movedHelp": "You already follow {name}. Their profile has moved — update the link to keep receiving their activities.",
+    "updateLink": "Update the link"
   },
   "callback": {
     "connecting": "Connecting...",
@@ -715,5 +717,26 @@
     "minutesAgo": "{count} min ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago"
+  },
+  "friendEvents": {
+    "invalidShareUrl": "Invalid share link",
+    "profileUnreachable": "This profile could not be loaded",
+    "idCollision": "Identifier collision — this friend could not be added",
+    "alreadyAdded": "This friend is already in your list",
+    "friendAdded": "{name} added",
+    "recentActivitiesSynced": "{count} recent activity synced | {count} recent activities synced",
+    "addFailed": "Could not add this friend",
+    "friendRemoved": "Friend removed",
+    "removeFailed": "Could not remove this friend",
+    "nowFollowsYou": "{name} now follows you back",
+    "publishYearsFailed": "Publishing failed for: {years}",
+    "publishManifestFailed": "Could not publish your profile",
+    "publishSucceeded": "Your public profile has been published",
+    "publishFailed": "Publishing failed",
+    "refreshFriends": "{friends} friend(s) synced",
+    "refreshActivities": "{friends} friend(s) synced, {activities} activity(ies)",
+    "refreshInteractions": "{friends} friend(s) synced, {interactions} interaction(s)",
+    "refreshFull": "{friends} friend(s) synced, {activities} activity(ies), {interactions} interaction(s)",
+    "profileMoved": "{name}'s profile has moved, link updated"
   }
 }
