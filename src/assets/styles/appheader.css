@@ -124,8 +124,11 @@ nav a:hover {
    Plugins contribute their own, and a French label runs about a third longer
    than its English original, so the row stopped fitting well before the old
    768px breakpoint — it either wrapped or ran under the logo. Below this, the
-   burger menu handles it. */
-@media (min-width: 1120px) {
+   burger menu handles it.
+   Measured with the French labels, which are the longest: the row overflows at
+   900px, so 1000px keeps roughly one extra plugin entry of headroom while
+   letting a 1024px screen — an iPad in landscape — keep the inline nav. */
+@media (min-width: 1000px) {
   .burger-menu {
     display: none;
   }
@@ -179,7 +182,7 @@ nav a:hover {
   color: var(--secondary-color);
 }
 
-@media (min-width: 1120px) {
+@media (min-width: 1000px) {
   .nav-menu {
     position: static;
     height: auto;
