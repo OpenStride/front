@@ -212,14 +212,26 @@ Récapitulatif des fichiers à toucher, dans l'ordre de dépendance :
 3. `src/types/sport.ts` — `SPORT_FAMILIES`, `SPORT_FAMILY`, `SportProfile`, table des profils
 4. `plugins/data-providers/GarminProvider/client/adapter.ts:71-82` — cesser d'écraser les
    cadences, alimenter `measurements`, lire les champs natation
-5. `src/components/ActivityCard.vue:104-127` — `distanceValue` et `primaryMetric` pilotés par le profil
-6. `src/types/extension.ts` — `SlotEntry`
-7. `src/services/ExtensionPluginRegistry.ts:19-35` — filtrage avant chargement
-8. `plugins/app-extensions/StandardDetails/index.ts` — déclarer ids et `appliesTo`
-9. Widgets natation _(nouveaux)_ — longueurs, SWOLF
+5. `src/composables/useUnits.ts` _(nouveau)_ — source réactive + `format()`
+6. `src/types/plugin-context.ts` — exposer `ctx.units`
+7. `src/components/ActivityCard.vue:104-127` — `distanceValue` et `primaryMetric` pilotés
+   par le profil, formatés par `useUnits`
+8. `src/types/extension.ts` — `SlotEntry`
+9. `src/services/ExtensionPluginRegistry.ts:19-35` — filtrage avant chargement
+10. `plugins/app-extensions/StandardDetails/index.ts` — déclarer ids et `appliesTo`
+11. Reprise des ~14 conversions ad hoc (`/1000`, calculs d'allure) vers `format()` :
+    `ActivityFilters.vue`, `Statistics/*`, `MetricTracker/metrics.ts`, `MCP/ProfileMCP.vue`,
+    `StandardDetails/{SpeedSampled,CadenceGraph,SpeedPerKm}.vue`
+12. Widgets natation _(nouveaux)_ — longueurs, SWOLF
 
-Les étapes 5 et 6-8 sont indépendantes l'une de l'autre et peuvent avancer en parallèle.
-L'étape 5 seule apporte déjà un gain visible sur les données existantes.
+Trois chantiers indépendants, parallélisables :
+
+- **Unités** (5-6, puis 11) — se suffit à lui-même, agit sur les données existantes,
+  et referme le réglage mort de `ProfilePreferences`.
+- **Présentation par sport** (3, 7) — gain visible immédiat, données existantes.
+- **Données riches** (1-2, 4, 12) — ne produit d'effet que sur les nouveaux imports.
+
+L'étape 7 dépend des deux premiers chantiers ; c'est le seul point de rendez-vous.
 
 ## 5. Migration
 
@@ -236,16 +248,135 @@ optionnel d'un objet déjà stocké, pas un nouveau store.
 
 ## 6. Risques
 
-| Risque                                              | Gravité    | Traitement                                                         |
-| --------------------------------------------------- | ---------- | ------------------------------------------------------------------ |
-| Fragmentation des clés de mesures                   | Moyen      | Registre en core + test i18n, comme `SPORT_TYPES`                  |
-| Le core apprend les ids des plugins (si option (a)) | Élevé      | Retenir l'option (b)                                               |
-| Chargement de chunks inutiles                       | Moyen      | Filtrer avant `await load()`                                       |
-| Collision de nom avec `activity_metrics`            | Moyen      | Nommer `measurements`                                              |
-| Table de profils qui dérive à chaque sport ajouté   | Moyen      | Profil par **famille**, surcharge par slug uniquement si justifiée |
-| Fusion sync effaçant `measurements`                 | À vérifier | Test dédié dans `StorageService.merge.spec.ts`                     |
+| Risque                                                  | Gravité    | Traitement                                                         |
+| ------------------------------------------------------- | ---------- | ------------------------------------------------------------------ |
+| Fragmentation des clés de mesures                       | Moyen      | Registre en core + test i18n, comme `SPORT_TYPES`                  |
+| Le core apprend les ids des plugins (si option (a))     | Élevé      | Retenir l'option (b)                                               |
+| Chargement de chunks inutiles                           | Moyen      | Filtrer avant `await load()`                                       |
+| Collision de nom avec `activity_metrics`                | Moyen      | Nommer `measurements`                                              |
+| Table de profils qui dérive à chaque sport ajouté       | Moyen      | Profil par **famille**, surcharge par slug uniquement si justifiée |
+| Fusion sync effaçant `measurements`                     | À vérifier | Test dédié dans `StorageService.merge.spec.ts`                     |
+| Préférence d'unité non réactive (écrans non rafraîchis) | Élevé      | Singleton réactif, pas de relecture par `onMounted`                |
+| Plugins bloqués en métrique en dur                      | Élevé      | Exposer le formateur sur `PluginContext`                           |
+| Valeur convertie stockée ou mise en cache               | Élevé      | Invariant §7 + test sur `activity_metrics` et l'agrégation         |
+| Graphes `<canvas>` restant en métrique                  | Moyen      | Redessin explicite au changement de préférence                     |
 
-## 7. Tests
+## 7. Unités et préférences utilisateur
+
+**Décision : stocker en SI, convertir au rendu.**
+
+### Le réglage existe déjà — et il ne fait rien
+
+`src/components/profile/ProfilePreferences.vue:93` déclare
+`units: 'metric' | 'imperial'`, l'expose en radio, et le persiste sous la clé
+`app_preferences`. **Aucun code ne le lit.** Un utilisateur peut choisir « imperial »,
+le réglage est sauvegardé, et rien ne change à l'écran. Il ne s'agit donc pas
+d'ajouter une fonctionnalité mais de terminer celle qui est à moitié posée.
+
+### Le stockage est déjà en SI
+
+Vérifié sur l'ensemble du modèle : distances en mètres, durées en secondes, vitesses
+en m/s (`averageSpeedInMetersPerSecond` côté Garmin), altitudes en mètres,
+températures en °C, puissance en watts. **Aucune migration de données n'est requise** —
+la règle est déjà respectée de fait, il s'agit de l'énoncer et de la tenir.
+
+Cela vaut aussi pour `measurements` (couche 1) : `Measurement.unit` porte l'unité
+_canonique SI_, jamais l'unité d'affichage.
+
+### Deux axes orthogonaux à ne pas confondre
+
+C'est le point de conception central :
+
+| Axe                                           | Décidé par             | Exemple                         |
+| --------------------------------------------- | ---------------------- | ------------------------------- |
+| **Nature de la grandeur** (allure vs vitesse) | Profil de sport (§3.2) | course → allure, vélo → vitesse |
+| **Système d'unités** (métrique vs impérial)   | Préférence utilisateur | km vs miles                     |
+
+Les deux se composent : le profil dit « allure », la préférence dit « impérial »,
+le résultat est min/mi. Les fondre en un seul réglage — l'erreur classique — rendrait
+impossible « je cours en min/km mais je roule en mph », et surtout ferait dépendre la
+présentation du sport d'un choix utilisateur qui n'a rien à voir.
+
+### Ce qui se convertit, et ce qui ne se convertit pas
+
+Seules quelques dimensions dépendent du système d'unités :
+
+| Dimension     | Stockage (SI) | Métrique  | Impérial   |
+| ------------- | ------------- | --------- | ---------- |
+| `distance`    | m             | km / m    | mi / ft    |
+| `elevation`   | m             | m         | ft         |
+| `speed`       | m/s           | km/h      | mph        |
+| `pace`        | s/m           | min/km    | min/mi     |
+| `pace100`     | s/m           | min/100 m | min/100 yd |
+| `temperature` | °C            | °C        | °F         |
+
+Cadence (spm/rpm), fréquence cardiaque (bpm), puissance (W) et calories sont
+invariantes : aucune conversion. Cela limite fortement le périmètre — six dimensions,
+pas « toutes les valeurs de l'app ».
+
+`pace100` est le point où les deux axes se croisent réellement : les bassins impériaux
+se comptent en yards, donc le profil `pool_swimming` combiné à la préférence impériale
+donne min/100 yd, et la longueur de bassin s'affiche en yards.
+
+### Forme proposée
+
+Une seule fonction de formatage, alimentée par une source réactive :
+
+```ts
+// src/composables/useUnits.ts
+type Dimension = 'distance' | 'elevation' | 'speed' | 'pace' | 'pace100' | 'temperature'
+
+interface Formatted {
+  value: string // déjà arrondi selon la dimension
+  unit: string // libellé i18n : 'km', 'mi', '/km'…
+  text: string // value + unit, prêt à afficher
+}
+
+function useUnits(): {
+  system: Readonly<Ref<'metric' | 'imperial'>>
+  format: (dimension: Dimension, si: number) => Formatted
+}
+```
+
+Point d'attention : la préférence est aujourd'hui relue par `onMounted` dans chaque
+composant qui en a besoin (`ProfilePreferences.vue:107`). Ce motif ne propage rien —
+changer le réglage ne rafraîchirait pas les écrans déjà montés. Il faut une source
+réactive partagée, singleton de module, sur le modèle de `useAppRefresh`.
+
+### Les plugins doivent y accéder
+
+Sur les ~14 conversions ad hoc recensées, **la majorité est dans les plugins** :
+`Statistics` (`DistributionSection`, `TrendsSection`, `CalendarHeatmap`,
+`usePersonalRecords`), `MetricTracker` (`metrics.ts:65`), `MCP`, `StandardDetails`
+(`SpeedSampled`, `CadenceGraph`, `SpeedPerKm`).
+
+Or la règle du projet interdit à un plugin d'importer un service du core. Le formateur
+doit donc être exposé sur `PluginContext` :
+
+```ts
+ctx.units.format(dimension, siValue)
+```
+
+Ce n'est pas optionnel : sans cela, la moitié de l'app resterait en dur en métrique.
+
+### L'invariant à tenir
+
+> Les valeurs converties ne sont **jamais** stockées, ni mises en cache, ni agrégées.
+> La conversion a lieu au dernier moment, à la frontière du rendu.
+
+Ce n'est pas de la cosmétique : `activity_metrics` est un cache dérivé (local-only,
+cf. `LOCAL_ONLY_STORES`). Si une valeur convertie y entrait, le cache dépendrait d'une
+préférence et devrait être invalidé à chaque changement de réglage. Idem pour
+l'agrégation et les objectifs. À couvrir par un test.
+
+### Cas particulier des graphes
+
+Les widgets de `StandardDetails` dessinent leurs axes sur `<canvas>`. Ils ne
+bénéficient pas de la réactivité de Vue sur le contenu dessiné : il leur faudra
+redessiner explicitement au changement de préférence. À prévoir dans le périmètre,
+sinon les graphes resteront en métrique alors que le reste aura basculé.
+
+## 8. Tests
 
 Le projet a déjà le bon motif dans `tests/unit/sportTypes.spec.ts` (chaque slug a son
 libellé et son icône, les manques sont des choix explicites). À reproduire :
@@ -258,13 +389,21 @@ libellé et son icône, les manques sont des choix explicites). À reproduire :
   (assertion sur le loader, pas seulement sur le rendu).
 - Adaptateur Garmin : une charge utile natation produit les bonnes clés avec les bonnes
   unités, et les trois cadences ne se recouvrent plus.
+- `format()` : aller-retour SI → impérial → SI sans dérive au-delà de l'arrondi affiché ;
+  `pace100` en impérial donne bien min/100 yd.
+- Changement de préférence : un composant déjà monté se met à jour sans remontage
+  (c'est le piège de réactivité du §7).
+- Invariant SI : `activity_metrics` et les valeurs agrégées sont identiques quelle que
+  soit la préférence — le test échoue si une conversion fuit vers le stockage.
 
-## 8. Questions ouvertes
+## 9. Questions ouvertes
 
-1. **Unités affichées** : le profil fixe l'unité par sport. Faut-il prévoir une
-   préférence utilisateur (miles, yards en bassin) ? Cela changerait la signature —
-   le profil donnerait une unité _canonique_, et une couche de formatage traduirait.
-   Plus simple à prévoir maintenant qu'à rétro-ajouter.
+1. **Granularité de la préférence** : un unique préréglage `metric | imperial` — ce que
+   l'UI propose déjà — ou des surcharges par dimension (distance en km mais altitude en
+   pieds) ? Recommandation : garder le préréglage unique. La demande réelle derrière
+   « je veux des km/h ici et des min/km là » est couverte par le profil de sport, pas
+   par une surcharge d'unités. Ajouter les surcharges plus tard reste possible sans
+   changer la signature de `format()`.
 2. **Multisport / triathlon** : le slug `transition` existe déjà. Une activité
    multisport a-t-elle vocation à porter plusieurs profils ? Hors périmètre proposé,
    mais le contrat de données ne doit pas l'interdire.
