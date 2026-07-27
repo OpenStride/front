@@ -62,6 +62,8 @@ import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
+import { getSportProfile } from '@/types/sport'
+import { usePluginContext } from '@/composables/usePluginContext'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { t } = useI18n()
@@ -85,7 +87,15 @@ const iconClass = computed(() => getSportIcon(activity.value.type))
 // ── Formatters ──────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const formatDistance = (meters?: number) => ((meters ?? 0) / 1000).toFixed(2)
+const { units } = usePluginContext()
+
+const profile = computed(() => getSportProfile(activity.value.type))
+
+const formatDistance = (meters?: number) =>
+  units.format(
+    profile.value.distanceScale === 'short' ? 'distanceShort' : 'distance',
+    meters ?? 0
+  )
 
 const formatDuration = (seconds?: number) => {
   const s = Math.max(0, Math.round(seconds ?? 0))
@@ -95,13 +105,17 @@ const formatDuration = (seconds?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-/** m/s → { value: "5'24", unit: "/km" } */
-const formatPace = (metersPerSecond?: number): { value: string; unit: string } => {
-  if (!metersPerSecond || metersPerSecond <= 0) return { value: '—', unit: '' }
-  const paceMinPerKm = 1000 / metersPerSecond / 60
-  const min = Math.floor(paceMinPerKm)
-  const sec = Math.round((paceMinPerKm - min) * 60)
-  return { value: `${min}'${pad(sec)}`, unit: '/km' }
+/**
+ * The sport picks the quantity, the user's preference picks the unit.
+ * A ride gets a speed, a run a pace per km/mi, a swim a pace per 100.
+ */
+const formatPrimary = (metersPerSecond?: number): { value: string; unit: string } => {
+  const kind = profile.value.primaryMetric
+  if (kind === 'none' || !metersPerSecond || metersPerSecond <= 0) {
+    return { value: '—', unit: '' }
+  }
+  if (kind === 'speed') return units.format('speed', metersPerSecond)
+  return units.format(kind === 'pace100' ? 'pace100' : 'pace', 1 / metersPerSecond)
 }
 
 const formatThousands = (n?: number) =>
@@ -122,18 +136,19 @@ type Stat = { label: string; value: string; unit: string; highlight?: boolean }
 
 const primaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
-  const pace = formatPace(s?.averageSpeed)
+  const primary = formatPrimary(s?.averageSpeed)
+  const distance = formatDistance(activity.value.distance)
   const out: Stat[] = [
     {
       label: t('activityDetail.distance', 'Distance'),
-      value: formatDistance(activity.value.distance),
-      unit: 'km'
+      value: distance.value,
+      unit: distance.unit
     },
     {
       // The pace is the "metric of the moment" for a run → highlighted in lime
       label: t('activityDetail.avgPace', 'Avg pace'),
-      value: pace.value,
-      unit: pace.unit,
+      value: primary.value,
+      unit: primary.unit,
       highlight: true
     },
     {
@@ -143,10 +158,11 @@ const primaryStats = computed<Stat[]>(() => {
     }
   ]
   if (s?.totalAscent != null) {
+    const ascent = units.format('elevation', s.totalAscent)
     out.push({
       label: t('activityDetail.elevation', 'Elevation +'),
-      value: Math.round(s.totalAscent).toString(),
-      unit: 'm'
+      value: ascent.value,
+      unit: ascent.unit
     })
   }
   return out
