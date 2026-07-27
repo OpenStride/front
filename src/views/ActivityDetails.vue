@@ -50,19 +50,10 @@ import { useI18n } from 'vue-i18n'
 import { computed, onMounted } from 'vue'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
+import type { SlotContext } from '@/types/extension'
 import InteractionList from '@/components/InteractionList.vue'
 
 const { t } = useI18n()
-
-const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets')
-const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top')
-
-const widgetSlotComponents = computed(() =>
-  widgetSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
-const topSlotComponents = computed(() =>
-  topSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
 
 const {
   activity,
@@ -76,6 +67,20 @@ const {
   activityData,
   loadActivity
 } = useActivityDetails()
+
+// Widgets decide for themselves whether they have anything to show, so they
+// need the activity — which only lands after the slot's initial resolution.
+const slotContext = () => activityData.value as SlotContext
+
+const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets', slotContext)
+const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top', slotContext)
+
+const widgetSlotComponents = computed(() =>
+  widgetSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
+)
+const topSlotComponents = computed(() =>
+  topSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
+)
 
 onMounted(loadActivity)
 </script>

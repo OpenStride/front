@@ -36,6 +36,19 @@ export interface Sample {
   temperature?: number // en °C
 }
 
+/**
+ * A single sport-specific value, with the unit it is expressed in.
+ *
+ * The unit is always canonical/SI (`m`, `s`, `spm`…), never a display unit —
+ * conversion happens at render time (see `useUnits`). Carrying it explicitly is
+ * the point: `stats.averageCadence` alone cannot say whether 62 is steps,
+ * revolutions or strokes per minute.
+ */
+export interface Measurement {
+  value: number
+  unit: string
+}
+
 export interface ActivityDetails extends Timestamped {
   samples?: Sample[]
   laps?: {
@@ -43,6 +56,13 @@ export interface ActivityDetails extends Timestamped {
     duration: number
     distance: number
   }[]
+  /**
+   * Sport-specific values, keyed by namespaced slug (`swim.swolf`,
+   * `bike.cadence`…). Open by design: a provider or sport can contribute keys
+   * without every other one having to know about them. See
+   * `src/types/measurements.ts` for the keys core knows how to display.
+   */
+  measurements?: Record<string, Measurement>
   stats?: {
     averageHeartRate?: number
     maxHeartRate?: number

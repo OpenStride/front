@@ -768,5 +768,13 @@
     "per100yd": "/100 yd",
     "celsius": "°C",
     "fahrenheit": "°F"
+  },
+  "swimSummary": {
+    "title": "Swim",
+    "poolLength": "Pool",
+    "lengths": "Lengths",
+    "swolf": "SWOLF",
+    "strokes": "Strokes",
+    "strokeRate": "Stroke rate"
   }
 }

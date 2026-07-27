@@ -768,5 +768,13 @@
     "per100yd": "/100 yd",
     "celsius": "°C",
     "fahrenheit": "°F"
+  },
+  "swimSummary": {
+    "title": "Natation",
+    "poolLength": "Bassin",
+    "lengths": "Longueurs",
+    "swolf": "SWOLF",
+    "strokes": "Mouvements",
+    "strokeRate": "Fréquence"
   }
 }
