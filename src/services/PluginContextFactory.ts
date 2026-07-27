@@ -12,6 +12,7 @@ import { StoragePluginManager } from './StoragePluginManager'
 import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
+import { ensureUnitsLoaded, formatQuantity, unitSystem } from '@/composables/useUnits'
 
 /**
  * Factory function to create a PluginContext for dependency injection
@@ -22,6 +23,8 @@ import { SyncService } from './SyncService'
 export async function createPluginContext(): Promise<PluginContext> {
   const activityService = await getActivityService()
   const storageService = await IndexedDBService.getInstance()
+  // Plugins may format before any component has mounted.
+  await ensureUnitsLoaded()
 
   return {
     activity: activityService,
@@ -108,6 +111,15 @@ export async function createPluginContext(): Promise<PluginContext> {
       syncNow: async (opts?: { force?: boolean }) => {
         await SyncService.getInstance().syncNow(opts)
       }
+    },
+
+    units: {
+      // A getter, not a snapshot: the context is a cached singleton, so a plain
+      // value would freeze the preference as it stood when it was built.
+      get system() {
+        return unitSystem.value
+      },
+      format: formatQuantity
     }
   }
 }

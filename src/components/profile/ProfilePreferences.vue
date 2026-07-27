@@ -9,7 +9,7 @@
       </div>
 
       <!-- Unit System -->
-      <!-- <div>
+      <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
           {{ t('profile.preferences.units') }}
         </label>
@@ -19,6 +19,7 @@
               type="radio"
               v-model="preferences.units"
               value="metric"
+              data-test="units-metric"
               class="mr-2 text-green-600 focus:ring-green-500"
             />
             <span>{{ t('profile.preferences.metric') }}</span>
@@ -28,12 +29,13 @@
               type="radio"
               v-model="preferences.units"
               value="imperial"
+              data-test="units-imperial"
               class="mr-2 text-green-600 focus:ring-green-500"
             />
             <span>{{ t('profile.preferences.imperial') }}</span>
           </label>
         </div>
-      </div> -->
+      </div>
 
       <!-- Theme -->
       <!-- <div>
@@ -86,6 +88,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import { setUnitSystem, unitSystem } from '@/composables/useUnits'
 
 const { t } = useI18n()
 
@@ -110,12 +113,17 @@ onMounted(async () => {
   if (savedPrefs) {
     preferences.value = savedPrefs as AppPreferences
   }
+  // Stay in step with the shared source in case it loaded first.
+  preferences.value.units = unitSystem.value
 })
 
 const savePreferences = async () => {
   if (!dbService) return
 
   await dbService.saveData('app_preferences', preferences.value)
+  // Push into the shared reactive source so every mounted screen switches now,
+  // rather than only the ones rendered after the next reload.
+  setUnitSystem(preferences.value.units)
 
   saveSuccess.value = true
   setTimeout(() => {

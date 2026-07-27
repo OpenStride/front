@@ -1,4 +1,5 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
+import type { Dimension, Formatted, UnitSystem } from '@/composables/useUnits'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -226,6 +227,21 @@ export interface ISyncService {
 }
 
 /**
+ * Unit formatting interface for plugins
+ *
+ * Values are stored in SI everywhere; this converts them to the user's unit
+ * system at display time. Plugins must not convert by hand — most of the app's
+ * charts and stats live in plugins, so hardcoding metric there would leave half
+ * the UI ignoring the preference.
+ */
+export interface IUnitsService {
+  /** Current preference — read it to redraw canvas charts when it changes. */
+  system: UnitSystem
+  /** `pace` and `pace100` take seconds per metre (`duration / distance`). */
+  format(dimension: Dimension, si: number): Formatted
+}
+
+/**
  * Plugin Context - Injected into plugins
  *
  * This is the main dependency injection container for plugins.
@@ -240,6 +256,7 @@ export interface PluginContext {
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService
+  units: IUnitsService
 }
 
 /**

@@ -753,5 +753,20 @@
     "copied": "Copié",
     "shareTitle": "Suivez-moi sur OpenStride",
     "shareText": "Ouvrez ce lien dans OpenStride pour suivre mes activités"
+  },
+  "units": {
+    "km": "km",
+    "mi": "mi",
+    "m": "m",
+    "yd": "yd",
+    "ft": "ft",
+    "kmh": "km/h",
+    "mph": "mph",
+    "perKm": "/km",
+    "perMi": "/mi",
+    "per100m": "/100 m",
+    "per100yd": "/100 yd",
+    "celsius": "°C",
+    "fahrenheit": "°F"
   }
 }
