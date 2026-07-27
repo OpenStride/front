@@ -3,20 +3,13 @@
     <!-- A section of the friends tab, not a page of its own -->
     <h3 class="text-lg font-bold">{{ t('profile.sharePrivacy') }}</h3>
 
-    <!-- Privacy Settings -->
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
-      <label class="text-sm font-medium text-gray-700">{{ t('profile.defaultPrivacy') }}</label>
-      <select
-        v-model="defaultPrivacy"
-        @change="saveDefaultPrivacy"
-        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-      >
-        <option value="private">{{ t('profile.private') }}</option>
-        <option value="public">{{ t('profile.public') }}</option>
-      </select>
-      <p class="text-xs text-gray-500">
-        {{ t('profile.privacyHint') }}
+    <!-- What the section is for, so it comes first rather than under a
+         privacy dropdown and a publish button -->
+    <div v-if="publicUrl" class="bg-white shadow rounded-xl p-6 space-y-3">
+      <p class="text-sm font-medium text-gray-700 text-center">
+        {{ t('profile.scanToFollow') }}
       </p>
+      <QRCodeDisplay :url="publicUrl" />
     </div>
 
     <!-- Publishing needs a cloud provider that can host public files. Saying so
@@ -57,14 +50,6 @@
       }}
     </button>
 
-    <!-- QR Code Display -->
-    <div v-if="publicUrl" class="mt-4">
-      <p class="text-sm font-medium text-gray-700 text-center mb-2">
-        {{ t('profile.scanToFollow') }}
-      </p>
-      <QRCodeDisplay :url="publicUrl" />
-    </div>
-
     <!-- Keeping the published copy fresh is the whole point of publishing: a
          profile frozen on the day it was created is what friends see otherwise. -->
     <div v-if="publicUrl" class="bg-white shadow rounded-xl p-6 space-y-3">
@@ -79,6 +64,22 @@
         <span class="text-sm font-medium text-gray-700">{{ t('profile.autoPublish') }}</span>
       </label>
       <p class="text-xs text-gray-500">{{ t('profile.autoPublishHint') }}</p>
+    </div>
+
+    <!-- Privacy Settings -->
+    <div class="bg-white shadow rounded-xl p-6 space-y-4">
+      <label class="text-sm font-medium text-gray-700">{{ t('profile.defaultPrivacy') }}</label>
+      <select
+        v-model="defaultPrivacy"
+        @change="saveDefaultPrivacy"
+        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
+      >
+        <option value="private">{{ t('profile.private') }}</option>
+        <option value="public">{{ t('profile.public') }}</option>
+      </select>
+      <p class="text-xs text-gray-500">
+        {{ t('profile.privacyHint') }}
+      </p>
     </div>
   </div>
 </template>

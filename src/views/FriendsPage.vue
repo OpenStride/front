@@ -3,9 +3,21 @@
     <!-- Header with actions -->
     <div class="page-header">
       <h2 class="page-title">{{ t('friends.title') }}</h2>
-      <button @click="openScanner" class="add-btn icon-only" :title="t('friends.addFriend')">
-        <i class="fas fa-user-plus" aria-hidden="true"></i>
-      </button>
+      <!-- Both halves of the handshake, at the same level: adding someone was
+           offered everywhere, being added was buried in a profile tab -->
+      <div class="header-actions">
+        <button
+          @click="qrOpen = true"
+          class="qr-btn icon-only"
+          :title="t('myQr.title')"
+          data-test="open-my-qr"
+        >
+          <i class="fas fa-qrcode" aria-hidden="true"></i>
+        </button>
+        <button @click="openScanner" class="add-btn icon-only" :title="t('friends.addFriend')">
+          <i class="fas fa-user-plus" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Stats bar -->
@@ -50,6 +62,8 @@
     <!-- QR Scanner Modal -->
     <!-- Scanning navigates to /add-friend for confirmation; nothing to reload here -->
     <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" />
+
+    <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
   </div>
 </template>
 
@@ -59,6 +73,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import QRScanner from '@/components/QRScanner.vue'
+import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import { useFriendsFeed } from '@/composables/useFriendsFeed'
 
 const router = useRouter()
@@ -67,6 +82,7 @@ const { activities, loading, hasMore, loadMore, reload, count } = useFriendsFeed
 
 const scrollArea = ref<HTMLElement | null>(null)
 const scannerOpen = ref(false)
+const qrOpen = ref(false)
 
 onMounted(async () => {
   loadMore()
@@ -125,7 +141,13 @@ const navigateToManageFriends = () => {
   color: var(--color-gray-900);
 }
 
-.add-btn {
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-btn,
+.qr-btn {
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
@@ -134,18 +156,32 @@ const navigateToManageFriends = () => {
   justify-content: center;
   border: none;
   border-radius: 0.5rem;
-  background: var(--color-green-500);
-  color: var(--color-white);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+}
+
+.add-btn {
+  background: var(--color-green-500);
+  color: var(--color-white);
 }
 
 .add-btn:hover {
   background: var(--color-green-600);
 }
 
-.add-btn i {
+.qr-btn {
+  background: var(--surface-2);
+  color: var(--text-color);
+  border: 1px solid var(--border-subtle);
+}
+
+.qr-btn:hover {
+  background: var(--surface-muted);
+}
+
+.add-btn i,
+.qr-btn i {
   font-size: 1rem;
 }
 

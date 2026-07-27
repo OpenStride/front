@@ -738,5 +738,16 @@
     "refreshInteractions": "{friends} friend(s) synced, {interactions} interaction(s)",
     "refreshFull": "{friends} friend(s) synced, {activities} activity(ies), {interactions} interaction(s)",
     "profileMoved": "{name}'s profile has moved, link updated"
+  },
+  "myQr": {
+    "title": "My QR code",
+    "help": "Have a friend scan this code, or send them the link, so they can follow you.",
+    "notPublished": "You have not published your profile yet, so there is nothing to scan. Publish it to let friends follow you.",
+    "publishAction": "Publish my profile",
+    "share": "Share",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "shareTitle": "Follow me on OpenStride",
+    "shareText": "Open this link in OpenStride to follow my activities"
   }
 }

@@ -15,6 +15,10 @@
           <i :class="['fas fa-sync icon', { spinning: refreshing }]" aria-hidden="true"></i>
           {{ t('friendsList.sync') }}
         </button>
+        <button @click="qrOpen = true" class="qr-btn" data-test="open-my-qr">
+          <i class="fas fa-qrcode icon" aria-hidden="true"></i>
+          {{ t('myQr.title') }}
+        </button>
         <button @click="openScanner" class="add-btn">
           <i class="fas fa-user-plus icon" aria-hidden="true"></i>
           {{ t('friends.addFriend') }}
@@ -134,6 +138,8 @@
     <!-- Scanning navigates to /add-friend for confirmation; nothing to reload here -->
     <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" />
 
+    <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
+
     <!-- Remove Confirmation Modal -->
     <div v-if="friendToRemove" class="modal-overlay" @click.self="friendToRemove = null">
       <div class="modal-content">
@@ -156,6 +162,7 @@ import { ref, computed, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import QRScanner from '@/components/QRScanner.vue'
+import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import type { Friend } from '@/types/friend'
 
 const { t, locale } = useI18n()
@@ -173,6 +180,7 @@ const refreshing = ref(false)
 const refreshingFriend = ref<string | null>(null)
 const syncingFriendId = ref<string | null>(null)
 const scannerOpen = ref(false)
+const qrOpen = ref(false)
 const friendToRemove = ref<Friend | null>(null)
 
 // Toasts for friend events are handled once, in the layout
@@ -296,6 +304,7 @@ const formatRelativeTime = (timestamp: number): string => {
 }
 
 .refresh-btn,
+.qr-btn,
 .add-btn {
   display: flex;
   align-items: center;
@@ -309,9 +318,14 @@ const formatRelativeTime = (timestamp: number): string => {
   transition: all 0.2s;
 }
 
-.refresh-btn {
+.refresh-btn,
+.qr-btn {
   background: var(--color-gray-100);
   color: var(--color-gray-700);
+}
+
+.qr-btn:hover {
+  background: var(--color-gray-200);
 }
 
 .refresh-btn:hover:not(:disabled) {
