@@ -268,8 +268,9 @@ optionnel d'un objet déjà stocké, pas un nouveau store.
 ### Le réglage existe déjà — et il ne fait rien
 
 `src/components/profile/ProfilePreferences.vue:93` déclare
-`units: 'metric' | 'imperial'`, l'expose en radio, et le persiste sous la clé
-`app_preferences`. **Aucun code ne le lit.** Un utilisateur peut choisir « imperial »,
+`units: 'metric' | 'imperial'` et le persiste sous la clé `app_preferences` —
+mais le groupe de boutons radio est **commenté** dans le template, et **aucun code
+ne lit la valeur**. Un utilisateur peut choisir « imperial »,
 le réglage est sauvegardé, et rien ne change à l'écran. Il ne s'agit donc pas
 d'ajouter une fonctionnalité mais de terminer celle qui est à moitié posée.
 

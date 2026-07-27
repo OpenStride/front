@@ -35,13 +35,16 @@
         <div class="acard__metrics">
           <div class="acard__metric">
             <span class="acard__label">{{ t('activityCard.distance', 'Distance') }}</span>
-            <span class="acard__value">{{ distanceValue }}<small>km</small></span>
+            <span class="acard__value"
+              >{{ distance.value }}<small>{{ distance.unit }}</small></span
+            >
           </div>
           <div class="acard__metric">
             <span class="acard__label">{{ t('activityCard.time', 'Time') }}</span>
             <span class="acard__value">{{ formatDuration(activity.duration) }}</span>
           </div>
-          <div class="acard__metric acard__metric--accent">
+          <!-- Gym sports have no meaningful pace or speed: show time and distance only -->
+          <div v-if="primaryMetric.label" class="acard__metric acard__metric--accent">
             <span class="acard__label">{{ primaryMetric.label }}</span>
             <span class="acard__value">
               {{ primaryMetric.value
@@ -75,12 +78,15 @@ import { getInteractionService } from '@/services/InteractionService'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import type { Friend, FriendActivity } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
+import { getSportProfile } from '@/types/sport'
+import { useUnits } from '@/composables/useUnits'
 
 const props = defineProps<{
   activity: Activity
   friendUsername?: string
 }>()
 const { t } = useI18n()
+const { format } = useUnits()
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -102,29 +108,36 @@ const formatDuration = (sec?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`
 }
 
-const distanceValue = computed(() => ((props.activity.distance ?? 0) / 1000).toFixed(2))
+const profile = computed(() => getSportProfile(props.activity.type))
 
-// Pace (min/km) for foot sports, speed (km/h) for cycling
-const isCycling = computed(() =>
-  /cycl|bike|bik|velo|vélo|vtt|ride/i.test(props.activity.type || '')
+// A swim reads in metres, a ride in kilometres — and either in the user's units.
+const distance = computed(() =>
+  format(
+    profile.value.distanceScale === 'short' ? 'distanceShort' : 'distance',
+    props.activity.distance ?? 0
+  )
 )
 
+/**
+ * The accent metric. The sport decides *which* quantity (pace, speed, pace per
+ * 100), the user's preference decides the unit — the two are independent.
+ */
 const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
   const dist = props.activity.distance ?? 0
   const dur = props.activity.duration ?? 0
-  if (isCycling.value) {
-    const kmh = dur > 0 ? dist / 1000 / (dur / 3600) : 0
-    return {
-      label: t('activityCard.speed', 'Speed'),
-      value: kmh > 0 ? kmh.toFixed(1) : '—',
-      unit: 'km/h'
-    }
+  const kind = profile.value.primaryMetric
+
+  if (kind === 'none') return { label: '', value: '', unit: '' }
+
+  if (kind === 'speed') {
+    const formatted = format('speed', dur > 0 ? dist / dur : NaN)
+    return { label: t('activityCard.speed', 'Speed'), ...formatted }
   }
-  if (!dist || !dur) return { label: t('activityCard.pace', 'Pace'), value: '—', unit: '' }
-  const secPerKm = dur / (dist / 1000)
-  const m = Math.floor(secPerKm / 60)
-  const s = Math.round(secPerKm % 60)
-  return { label: t('activityCard.pace', 'Pace'), value: `${m}'${pad(s)}`, unit: '/km' }
+
+  // seconds per metre — `format` converts to /km, /mi or /100
+  const secondsPerMeter = dist > 0 ? dur / dist : NaN
+  const formatted = format(kind === 'pace100' ? 'pace100' : 'pace', secondsPerMeter)
+  return { label: t('activityCard.pace', 'Pace'), ...formatted }
 })
 
 const iconClass = computed(() => getSportIcon(props.activity.type))
