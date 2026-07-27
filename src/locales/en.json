@@ -323,7 +323,11 @@
     "addFriend": "Add Friend",
     "noActivities": "No friends' activities",
     "noActivitiesDescription": "Add friends to see their activities here",
-    "manageFriends": "Manage Friends"
+    "manageFriends": "Manage Friends",
+    "actions": "Friend actions",
+    "quickQr": "My QR",
+    "quickAdd": "Add",
+    "quickManage": "Manage"
   },
   "dataProviders": {
     "title": "Connected Data Providers",

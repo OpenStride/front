@@ -323,7 +323,11 @@
     "addFriend": "Ajouter un ami",
     "noActivities": "Aucune activité d'amis",
     "noActivitiesDescription": "Ajoutez des amis pour voir leurs activités ici",
-    "manageFriends": "Gérer mes amis"
+    "manageFriends": "Gérer mes amis",
+    "actions": "Actions amis",
+    "quickQr": "Mon QR",
+    "quickAdd": "Ajouter",
+    "quickManage": "Gérer"
   },
   "dataProviders": {
     "title": "Fournisseurs de données connectés",

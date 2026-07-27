@@ -18,8 +18,10 @@ export function useFriendsFeed() {
   const page = ref(0)
   const pageSize = 10
 
-  // Cached data and concurrency control
-  let allActivities: FeedActivity[] = []
+  // Cached data and concurrency control. A ref, not a plain variable: `count` is
+  // computed from it, and a computed over a non-reactive local never updates —
+  // the counter it feeds was permanently stuck at zero.
+  const allActivities = ref<FeedActivity[]>([])
   let loadMorePromise: Promise<void> | null = null
 
   // Service dependency
@@ -31,8 +33,8 @@ export function useFriendsFeed() {
   const loadAllActivities = async (): Promise<FeedActivity[]> => {
     const all = await feedService.loadAllActivities()
     // Filter to keep only friend activities
-    allActivities = all.filter(activity => activity.source === 'friend')
-    return allActivities
+    allActivities.value = all.filter(activity => activity.source === 'friend')
+    return allActivities.value
   }
 
   /**
@@ -53,14 +55,14 @@ export function useFriendsFeed() {
 
       try {
         // Load all activities if not loaded yet
-        if (allActivities.length === 0) {
+        if (allActivities.value.length === 0) {
           await loadAllActivities()
         }
 
         // Calculate pagination
         const start = page.value * pageSize
         const end = start + pageSize
-        const newActivities = allActivities.slice(start, end)
+        const newActivities = allActivities.value.slice(start, end)
 
         if (newActivities.length < pageSize) {
           hasMore.value = false
@@ -89,7 +91,7 @@ export function useFriendsFeed() {
     }
 
     activities.value = []
-    allActivities = []
+    allActivities.value = []
     page.value = 0
     hasMore.value = true
     loadMorePromise = null
@@ -100,9 +102,7 @@ export function useFriendsFeed() {
   /**
    * Get count of friend activities
    */
-  const count = computed(() => {
-    return allActivities.length
-  })
+  const count = computed(() => allActivities.value.length)
 
   return {
     activities,

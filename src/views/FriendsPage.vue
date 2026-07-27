@@ -2,30 +2,29 @@
   <div class="friends-page">
     <!-- Header with actions -->
     <div class="page-header">
-      <h2 class="page-title">{{ t('friends.title') }}</h2>
-      <!-- Both halves of the handshake, at the same level: adding someone was
-           offered everywhere, being added was buried in a profile tab -->
-      <div class="header-actions">
-        <button
-          @click="qrOpen = true"
-          class="qr-btn icon-only"
-          :title="t('myQr.title')"
-          data-test="open-my-qr"
-        >
-          <i class="fas fa-qrcode" aria-hidden="true"></i>
-        </button>
-        <button @click="openScanner" class="add-btn icon-only" :title="t('friends.addFriend')">
-          <i class="fas fa-user-plus" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
+      <h2 class="page-title">
+        {{ t('friends.title') }}
+        <span v-if="!loading && count > 0" class="count">{{ count }}</span>
+      </h2>
 
-    <!-- Stats bar -->
-    <div v-if="!loading && count > 0" class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-label">{{ t('friends.activities') }}</span>
-        <span class="stat-value">{{ count }}</span>
-      </div>
+      <!-- One slim row for everything the page can do. Showing your own code,
+           adding someone and managing the list were spread across an icon with
+           no label, a profile tab and an empty state that disappeared as soon as
+           you had a friend. -->
+      <nav class="quick-actions" :aria-label="t('friends.actions')">
+        <button @click="qrOpen = true" class="chip" data-test="open-my-qr">
+          <i class="fas fa-qrcode" aria-hidden="true"></i>
+          {{ t('friends.quickQr') }}
+        </button>
+        <button @click="openScanner" class="chip primary" data-test="open-scanner">
+          <i class="fas fa-user-plus" aria-hidden="true"></i>
+          {{ t('friends.quickAdd') }}
+        </button>
+        <router-link to="/profile?tab=friends" class="chip" data-test="manage-friends">
+          <i class="fas fa-users-gear" aria-hidden="true"></i>
+          {{ t('friends.quickManage') }}
+        </router-link>
+      </nav>
     </div>
 
     <!-- Activities Feed -->
@@ -125,94 +124,80 @@ const navigateToManageFriends = () => {
 
 .page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 1rem;
-  background: var(--color-white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 1rem;
-  gap: 1rem;
 }
 
 .page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-gray-900);
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.add-btn,
-.qr-btn {
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-color);
 }
 
-.add-btn {
-  background: var(--color-green-500);
-  color: var(--color-white);
+.count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  padding: 0.1rem 0.5rem;
 }
 
-.add-btn:hover {
-  background: var(--color-green-600);
+/* Slim by design: one line of chips, scrolled sideways rather than stacked when
+   a translation makes them too wide for a narrow phone */
+.quick-actions {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.qr-btn {
+.quick-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-color);
-  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  /* Global button styling uppercases labels; the third chip is a link, so
+     without this the row read "MON QR / AJOUTER / Gérer" */
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.qr-btn:hover {
+.chip:hover {
   background: var(--surface-muted);
 }
 
-.add-btn i,
-.qr-btn i {
-  font-size: 1rem;
+.chip.primary {
+  background: var(--color-green-500);
+  border-color: var(--color-green-500);
+  color: var(--color-white);
 }
 
-.stats-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: var(--color-white);
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-radius: 0.5rem;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--color-gray-500);
-  font-weight: 500;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-gray-900);
+.chip.primary:hover {
+  background: var(--color-green-600);
 }
 
 .feed-container {
@@ -294,15 +279,6 @@ const navigateToManageFriends = () => {
   }
 
   .page-header {
-    border-radius: 0;
-    margin-bottom: 0;
-  }
-
-  .page-title {
-    font-size: 1.25rem;
-  }
-
-  .stats-bar {
     border-radius: 0;
     margin-bottom: 0;
   }

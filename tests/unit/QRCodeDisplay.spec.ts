@@ -47,7 +47,7 @@ describe('QRCodeDisplay', () => {
   })
 
   it('shares the full link, not the shortened display form', async () => {
-    const share = vi.fn(async (_data: ShareData) => {})
+    const share = vi.fn(async (_data: { url?: string }) => {})
     Object.defineProperty(navigator, 'share', { value: share, configurable: true })
 
     const wrapper = mountDisplay()
