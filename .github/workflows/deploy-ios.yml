@@ -1,8 +1,8 @@
 name: Build & Deploy iOS
 
 on:
-  push:
-    tags: ['v*']
+  # Manual-only for now (no automatic tag trigger) until a TestFlight tester and
+  # the Apple signing secrets are set up. Re-add `push: tags: ['v*']` to automate.
   workflow_dispatch:
 
 concurrency:
