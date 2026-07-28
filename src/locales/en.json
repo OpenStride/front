@@ -9,7 +9,9 @@
     "maxHr": "Max HR",
     "cadence": "Cadence",
     "calories": "Calories",
-    "avgSpeed": "Avg speed"
+    "avgSpeed": "Avg speed",
+    "elevationDown": "Elevation -",
+    "maxSpeed": "Max speed"
   },
   "sports": {
     "running": "Running",

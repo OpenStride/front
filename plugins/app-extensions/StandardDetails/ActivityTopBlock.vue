@@ -78,7 +78,23 @@ const iconClass = computed(() => getSportIcon(activity.value.type))
 // ── Formatters ──────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const { units } = usePluginContext()
+const { units, analyzer: analyzerFactory } = usePluginContext()
+
+/**
+ * Metres descended.
+ *
+ * Providers that report it win; for everyone else — every activity stored
+ * before this existed, and Strava — it is recomputed from the elevation
+ * samples, noise-filtered.
+ */
+const totalDescent = computed<number | undefined>(() => {
+  const reported = details.value?.stats?.totalDescent
+  if (reported != null) return reported
+  const samples = details.value?.samples
+  if (!samples?.length) return undefined
+  const { descent } = analyzerFactory.create(samples).elevationChange()
+  return descent > 0 ? descent : undefined
+})
 
 const formatDistance = (meters?: number) =>
   units.format(distanceDimension(activity.value.type), meters ?? 0)
@@ -182,6 +198,17 @@ const primaryStats = computed<Stat[]>(() => {
       unit: ascent.unit
     })
   }
+
+  // The twin of the ascent, and the number a skier actually reads — a day on
+  // the slopes climbs almost nothing and descends thousands of metres.
+  if (totalDescent.value != null) {
+    const descent = units.format('elevation', totalDescent.value)
+    out.push({
+      label: t('activityDetail.elevationDown', 'Elevation -'),
+      value: descent.value,
+      unit: descent.unit
+    })
+  }
   return out
 })
 
@@ -213,6 +240,11 @@ const secondaryStats = computed<Stat[]>(() => {
       value: Math.round(s.maxHeartRate).toString(),
       unit: 'bpm'
     })
+  // Stored by every provider, displayed nowhere until now.
+  if (s?.maxSpeed != null) {
+    const max = units.format('speed', s.maxSpeed)
+    out.push({ label: t('activityDetail.maxSpeed', 'Max speed'), value: max.value, unit: max.unit })
+  }
   return out
 })
 </script>

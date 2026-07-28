@@ -38,7 +38,7 @@
     <div class="mt-6">
       <div class="flex text-xs sm:text-sm font-semibold border-b pb-1 mb-1">
         <span class="w-16">{{ t('graphs.colDistance') }}</span>
-        <span class="flex-1">{{ t('graphs.colPace') }}</span>
+        <span class="flex-1">{{ graphTitle }}</span>
         <span class="w-10 text-right">{{ paceUnit }}</span>
         <span class="w-12 text-right">{{ t('graphs.colHeartRate') }}</span>
         <span class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
@@ -466,12 +466,16 @@ function showTooltip(event: MouseEvent | TouchEvent) {
 function paceSec(sample: Sample) {
   return (sample.speed ?? 0) > 0 ? 1000 / (sample.speed as number) : Infinity
 }
+/**
+ * The row's headline figure, in whatever this chart plots.
+ *
+ * It has to agree with the column header, which carries `paceUnit`: a ski
+ * listing "1:38" under a "km/h" heading is worse than either alone.
+ */
 function paceStr(sample: Sample) {
-  const p = paceSec(sample)
-  if (!isFinite(p)) return '—'
-  const m = Math.floor(p / 60)
-  const s = String(Math.round(p % 60)).padStart(2, '0')
-  return `${m}:${s}`
+  const speed = sample.speed ?? 0
+  if (!isFinite(speed) || speed <= 0) return '—'
+  return axisLabel(toAxis(speed))
 }
 /* largeur relative : plus la pace est rapide, plus la barre est longue  */
 function paceBarWidth(sample: Sample) {

@@ -9,6 +9,15 @@ import { formatQuantity, unitSystem } from '@/composables/useUnits'
 const global = {
   provide: {
     [PLUGIN_CONTEXT_KEY]: {
+            analyzer: {
+        create: () => ({
+          elevationChange: () => ({ ascent: 0, descent: 0 }),
+          sampleAverageByDistance: () => [],
+          sampleByLaps: () => [],
+          sampleBySlopeChange: () => [],
+          bestSegments: () => ({})
+        })
+      },
       units: {
         get system() {
           return unitSystem.value

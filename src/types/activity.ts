@@ -70,6 +70,8 @@ export interface ActivityDetails extends Timestamped {
     maxSpeed?: number
     averageCadence?: number
     totalAscent?: number
+    /** Metres descended — the twin of totalAscent, and the figure a skier reads. */
+    totalDescent?: number
     calories?: number
   }
   notes?: string
