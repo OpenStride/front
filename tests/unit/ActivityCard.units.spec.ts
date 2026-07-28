@@ -71,10 +71,17 @@ describe('ActivityCard — sport profile drives the metrics', () => {
     expect(text).not.toContain('1.50')
   })
 
-  it('omits the accent metric for gym sports', () => {
+  it('shows a gym session as time alone', () => {
+    // No pace to speak of, and "0.00 km" is noise rather than information.
     const shown = metrics(render({ type: 'yoga', distance: 0, duration: 3600 }))
-    // Distance and time only.
-    expect(shown).toHaveLength(2)
+    expect(shown).toHaveLength(1)
+    expect(shown[0]).toContain('1:00:00')
+  })
+
+  it('keeps the distance when a gym sport actually covered ground', () => {
+    // A rowing machine session has a distance even though it is indoors.
+    const shown = metrics(render({ type: 'rowing_machine', distance: 5000, duration: 1200 }))
+    expect(shown.join(' ')).toContain('5.00')
   })
 })
 
@@ -120,5 +127,36 @@ describe('ActivityCard — degenerate data', () => {
     const text = metrics(render({ type: 'running', distance: 0, duration: 1800 })).join(' | ')
     expect(text).not.toMatch(/Infinity|NaN/)
     expect(text).toContain('—')
+  })
+})
+
+describe('ActivityCard — the hero only appears when there is a route', () => {
+  beforeEach(() => setUnitSystem('metric'))
+
+  it('drops the map block entirely for an activity with no GPS', () => {
+    // A pool swim used to reserve 186px of flat grey.
+    const wrapper = render({ type: 'pool_swimming', distance: 1500, duration: 1800 })
+    expect(wrapper.find('.acard__hero').exists()).toBe(false)
+    // The date has to survive the hero it used to live in.
+    expect(wrapper.find('.acard__meta').exists()).toBe(true)
+  })
+
+  it('keeps the hero when there is a route', () => {
+    const wrapper = render({
+      type: 'running',
+      mapPolyline: [
+        [48.85, 2.35],
+        [48.86, 2.36]
+      ]
+    })
+    expect(wrapper.find('.acard__hero').exists()).toBe(true)
+    expect(wrapper.find('.acard__datechip').exists()).toBe(true)
+    // No duplicate date once the hero carries it.
+    expect(wrapper.find('.acard__meta').exists()).toBe(false)
+  })
+
+  it('still shows a pace for a legacy uppercase type', () => {
+    const text = metrics(render({ type: 'RUNNING', distance: 10000, duration: 3000 })).join(' ')
+    expect(text).toContain("5'00")
   })
 })

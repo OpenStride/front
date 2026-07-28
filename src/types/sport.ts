@@ -268,6 +268,11 @@ const SPORT_OVERRIDES: Partial<Record<SportType, Partial<SportProfile>>> = {
 
 /** Presentation profile for a sport slug. Unknown slugs fall back to `other`. */
 export function getSportProfile(sport: string): SportProfile {
-  const family = SPORT_FAMILY[sport as SportType] ?? 'other'
-  return { ...FAMILY_PROFILES[family], ...SPORT_OVERRIDES[sport as SportType] }
+  // Normalised like every other sport lookup in the app (labels, icons, stats):
+  // activities predating the canonical vocabulary carry raw provider strings
+  // such as "RUNNING", and an exact match would drop them to `other` — losing
+  // the pace the card used to show.
+  const slug = (sport ?? '').trim().toLowerCase() as SportType
+  const family = SPORT_FAMILY[slug] ?? 'other'
+  return { ...FAMILY_PROFILES[family], ...SPORT_OVERRIDES[slug] }
 }

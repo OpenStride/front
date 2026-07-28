@@ -7,10 +7,10 @@
       @click="showDetails"
       @keydown.enter="showDetails"
     >
-      <!-- Héro : tracé GPS (ou placeholder grille) -->
-      <div class="acard__hero">
-        <MapPreview v-if="hasMap" class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
-        <div v-else class="acard__map acard__map--empty" aria-hidden="true"></div>
+      <!-- Héro : uniquement s'il y a un tracé. Une nage en bassin ou une séance
+           de renfo n'a pas de GPS : lui réserver 186 px de vide n'apprend rien. -->
+      <div v-if="hasMap" class="acard__hero">
+        <MapPreview class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
 
         <div v-if="friendUsername" class="acard__friend">
           <i class="fas fa-user" aria-hidden="true"></i>
@@ -26,14 +26,24 @@
             <i :class="iconClass" aria-hidden="true"></i>
           </div>
           <div class="acard__headtext">
-            <div class="acard__kicker">{{ formatSportType(activity.type) }}</div>
+            <div class="acard__kicker">
+              <span>{{ formatSportType(activity.type) }}</span>
+              <!-- Without a hero these have nowhere to sit, so they move here. -->
+              <template v-if="!hasMap">
+                <span class="acard__meta">{{ shortDate }}</span>
+                <span v-if="friendUsername" class="acard__meta">
+                  <i class="fas fa-user" aria-hidden="true"></i> {{ friendUsername }}
+                </span>
+              </template>
+            </div>
             <h3 class="acard__title">{{ activity.title || formatSportType(activity.type) }}</h3>
           </div>
         </div>
 
         <!-- Métriques clés -->
         <div class="acard__metrics">
-          <div class="acard__metric">
+          <!-- A yoga session has no distance; "0.00 km" is noise, not information -->
+          <div v-if="hasDistance" class="acard__metric">
             <span class="acard__label">{{ t('activityCard.distance', 'Distance') }}</span>
             <span class="acard__value"
               >{{ distance.value }}<small>{{ distance.unit }}</small></span
@@ -128,6 +138,8 @@ const primaryMetric = computed<{ label: string; value: string; unit: string }>((
     spec.dimension === 'speed' ? t('activityCard.speed', 'Speed') : t('activityCard.pace', 'Pace')
   return { label, ...format(spec.dimension, spec.si) }
 })
+
+const hasDistance = computed(() => (props.activity.distance ?? 0) > 0)
 
 const iconClass = computed(() => getSportIcon(props.activity.type))
 
@@ -252,12 +264,6 @@ const showDetails = () => {
   width: 100%;
   height: 100%;
 }
-.acard__map--empty {
-  background: var(--surface-muted);
-  background-image:
-    repeating-linear-gradient(0deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px),
-    repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px);
-}
 .acard__datechip {
   position: absolute;
   right: 12px;
@@ -325,12 +331,37 @@ const showDetails = () => {
   min-width: 0;
 }
 .acard__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
   font-family: var(--font-condensed);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-faint);
+}
+
+/* Date and friend, when there is no hero to carry them. */
+.acard__meta {
+  position: relative;
+  padding-left: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.acard__meta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
 }
 .acard__title {
   margin: 0;

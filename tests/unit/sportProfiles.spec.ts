@@ -80,3 +80,18 @@ describe('sport profiles', () => {
     expect(getSportProfile('indoor_cycling').primaryMetric).toBe('speed')
   })
 })
+
+describe('sport profiles — legacy data', () => {
+  it('recognises raw provider casing, as the rest of the app does', () => {
+    // Activities predating the canonical vocabulary carry strings like "RUNNING".
+    // An exact lookup would drop them to `other` and silently remove their pace.
+    expect(getSportProfile('RUNNING').primaryMetric).toBe('pace')
+    expect(getSportProfile('Cycling').primaryMetric).toBe('speed')
+    expect(getSportProfile(' pool_swimming ').primaryMetric).toBe('pace100')
+  })
+
+  it('survives an empty or missing type', () => {
+    expect(getSportProfile('').primaryMetric).toBe('none')
+    expect(() => getSportProfile(undefined as unknown as string)).not.toThrow()
+  })
+})

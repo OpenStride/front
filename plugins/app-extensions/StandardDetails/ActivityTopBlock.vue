@@ -1,18 +1,9 @@
 <template>
   <article v-if="activity && details" class="atb">
-    <!-- Hero : tracé GPS (ou placeholder grille) -->
-    <div class="atb__hero">
-      <MapPreview
-        v-if="polyline.length"
-        class="atb__map"
-        :polyline="polyline"
-        :canzoom="true"
-        theme="osm"
-      />
-      <div v-else class="atb__map atb__map--empty">
-        <i class="fas fa-map-location-dot" aria-hidden="true"></i>
-        <span>{{ t('activityDetail.noRoute', 'No GPS route') }}</span>
-      </div>
+    <!-- Hero : uniquement s'il y a un tracé. Annoncer "pas de trace GPS" sur une
+         nage en bassin, c'est signaler l'absence de ce qui n'a pas lieu d'être. -->
+    <div v-if="polyline.length" class="atb__hero">
+      <MapPreview class="atb__map" :polyline="polyline" :canzoom="true" theme="osm" />
     </div>
 
     <div class="atb__body">
@@ -213,28 +204,6 @@ const secondaryStats = computed<Stat[]>(() => {
   height: 100%;
   padding: 0;
   margin: 0;
-}
-.atb__map--empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-faint);
-  font-family: var(--font-condensed);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 13px;
-  background: var(--surface-muted);
-  background-image: repeating-linear-gradient(
-      0deg,
-      rgba(30, 30, 46, 0.05) 0 1px,
-      transparent 1px 40px
-    ),
-    repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 40px);
-}
-.atb__map--empty i {
-  font-size: 22px;
 }
 
 /* ── Body ─────────────────────────────────────────── */
