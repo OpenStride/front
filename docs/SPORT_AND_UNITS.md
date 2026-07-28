@@ -235,6 +235,32 @@ Pour les unités : `ctx.units.format()` / `ctx.units.convert()` / `ctx.units.sys
 > vivent dans des plugins. Sans accès au formateur, ils resteraient figés en
 > métrique et la moitié de l'app ignorerait la préférence.
 
+## 12 bis. Écrire un provider de données
+
+Le contrat que le provider doit à core, vérifié à l'écriture par
+`checkActivityContract` (`src/services/activityContract.ts`) :
+
+| Champ | Attendu |
+| ----- | ------- |
+| `type` | un slug canonique — mapper dans le `sportTypes.ts` du provider |
+| `distance` | mètres |
+| `duration` | secondes |
+| `stats.averageSpeed` | m/s |
+| `measurements` | clés du registre, avec l'unité que le registre déclare |
+
+`saveActivityWithDetails()` appelle la vérification et **avertit en console en
+développement** — sans jamais refuser l'écriture : une base réelle contient des
+activités antérieures au vocabulaire, et les rejeter perdrait des données que
+l'app affiche très bien par ailleurs.
+
+> **Pourquoi à la frontière d'écriture.** Le contrat était tenu par convention :
+> un test nommait les mappers un par un, donc il ne couvrait que les providers
+> déjà corrects. ZipImport, lui, ne mappait rien — `"Trail Running"` devenait
+> `"trail running"`, tombait sur le profil `other` et perdait sa métrique. Un
+> contrôle à la porte que tout provider franchit n'a pas besoin qu'on pense à
+> l'inscrire quelque part. Le test des mappers découvre désormais les providers
+> par `import.meta.glob` pour la même raison.
+
 ## 13. Écrire un test qui touche aux sports ou aux unités
 
 Partir de `tests/fixtures/activities.ts`, pas d'un objet écrit à la main :

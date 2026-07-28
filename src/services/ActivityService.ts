@@ -1,4 +1,5 @@
 import { Activity, ActivityDetails, type ActivityFilters } from '@/types/activity'
+import { warnOnContractViolations } from './activityContract'
 import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
 import type { IActivityService } from '@/types/plugin-context'
@@ -54,6 +55,9 @@ export class ActivityService implements IActivityService {
     activity: Activity,
     details: ActivityDetails
   ): Promise<void> {
+    // Every provider writes through here, so this is where the storage contract
+    // is checked — a per-provider test has to be remembered, this does not.
+    warnOnContractViolations(activity, details)
     const db = this.ensureDB()
     const idb = db.getIDB()
 
@@ -124,6 +128,7 @@ export class ActivityService implements IActivityService {
     details: ActivityDetails[],
     opts: { fromSync?: boolean } = {}
   ): Promise<void> {
+    activities.forEach((a, i) => warnOnContractViolations(a, details[i]))
     if (activities.length !== details.length) {
       throw new Error('Activities and details arrays must have same length')
     }
