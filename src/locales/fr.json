@@ -718,7 +718,9 @@
     "distance": "Distance",
     "time": "Temps",
     "pace": "Allure",
-    "speed": "Vitesse"
+    "speed": "Vitesse",
+    "elevation": "Dénivelé +",
+    "calories": "Calories"
   },
   "time": {
     "justNow": "à l'instant",

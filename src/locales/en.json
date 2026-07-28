@@ -718,7 +718,9 @@
     "distance": "Distance",
     "time": "Time",
     "pace": "Pace",
-    "speed": "Speed"
+    "speed": "Speed",
+    "elevation": "Elevation +",
+    "calories": "Calories"
   },
   "time": {
     "justNow": "just now",

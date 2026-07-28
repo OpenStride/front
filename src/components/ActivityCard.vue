@@ -53,13 +53,18 @@
             <span class="acard__label">{{ t('activityCard.time', 'Time') }}</span>
             <span class="acard__value">{{ formatDuration(activity.duration) }}</span>
           </div>
-          <!-- Gym sports have no meaningful pace or speed: show time and distance only -->
+          <!-- Gym sports have no meaningful pace or speed: the energy spent takes
+               the accent slot instead, once the scan has lifted it out of the details -->
           <div v-if="primaryMetric.label" class="acard__metric acard__metric--accent">
             <span class="acard__label">{{ primaryMetric.label }}</span>
             <span class="acard__value">
               {{ primaryMetric.value
               }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
             </span>
+          </div>
+          <div v-else-if="calories" class="acard__metric acard__metric--accent">
+            <span class="acard__label">{{ t('activityCard.calories', 'Calories') }}</span>
+            <span class="acard__value">{{ calories }}<small>kcal</small></span>
           </div>
         </div>
       </div>
@@ -90,6 +95,7 @@ import type { Friend, FriendActivity } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
 import { useUnits } from '@/composables/useUnits'
+import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 
 const props = defineProps<{
   activity: Activity
@@ -124,18 +130,38 @@ const distance = computed(() =>
 )
 
 /**
+ * Values the scan lifted out of this activity's details (see
+ * `useActivityMetricsIndex`). Absent until the feed has indexed the page — the
+ * card renders without them rather than waiting, and fills in when they land.
+ */
+const { derived } = useActivityMetricsIndex()
+const scanned = computed(() => derived.value.get(props.activity.id))
+
+const calories = computed(() => {
+  const kcal = scanned.value?.[DERIVED.calories]
+  return kcal ? Math.round(kcal) : 0
+})
+
+/**
  * The accent metric. The sport decides *which* quantity, the user's preference
  * decides the unit; `primaryMetricSpec` owns the first half for every caller.
  */
 const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
   const spec = primaryMetricSpec(props.activity.type, {
     distance: props.activity.distance,
-    duration: props.activity.duration
+    duration: props.activity.duration,
+    // Only reachable through the scan: a hike headlines its climb here just as
+    // it does on the detail page, instead of falling back to a pace.
+    ascent: scanned.value?.[DERIVED.ascent]
   })
   if (!spec) return { label: '', value: '', unit: '' }
 
   const label =
-    spec.dimension === 'speed' ? t('activityCard.speed', 'Speed') : t('activityCard.pace', 'Pace')
+    spec.dimension === 'speed'
+      ? t('activityCard.speed', 'Speed')
+      : spec.dimension === 'elevation'
+        ? t('activityCard.elevation', 'Elevation +')
+        : t('activityCard.pace', 'Pace')
   return { label, ...format(spec.dimension, spec.si) }
 })
 

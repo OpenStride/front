@@ -60,11 +60,16 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import { useMixedFeed } from '@/composables/useMixedFeed'
+import { useFeedMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { debounce } from '@/utils/debounce'
 
 const router = useRouter()
 const { t } = useI18n()
 const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed()
+
+// Lifts calories, climb and the rest out of the details of the page on screen,
+// so the cards can show what only the details hold.
+useFeedMetricsIndex(activities)
 
 const scrollArea = ref<HTMLElement | null>(null)
 

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import { setUnitSystem } from '@/composables/useUnits'
+import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import en from '@/locales/en.json'
 import { createActivity } from '../fixtures/activities'
 
@@ -121,6 +122,65 @@ describe('ActivityCard — degenerate data', () => {
     const text = metrics(render({ type: 'running', distance: 0, duration: 1800 })).join(' | ')
     expect(text).not.toMatch(/Infinity|NaN/)
     expect(text).toContain('—')
+  })
+})
+
+describe('ActivityCard — values the scan lifted out of the details', () => {
+  const { derived } = useActivityMetricsIndex()
+
+  beforeEach(() => {
+    setUnitSystem('metric')
+    derived.value = new Map()
+  })
+
+  const scanned = (values: Record<string, number>) => {
+    derived.value = new Map([['activity-1', values]])
+  }
+
+  it('headlines the calories of a session that has no pace', () => {
+    // The card only holds an Activity, so before the scan this slot was empty.
+    scanned({ [DERIVED.calories]: 410 })
+    const text = metrics(render({ type: 'strength_training', distance: 0, duration: 3300 })).join(
+      ' | '
+    )
+    expect(text).toContain('410')
+    expect(text).toMatch(/Calories/i)
+  })
+
+  it('leaves the slot empty until the scan has reached the activity', () => {
+    const shown = metrics(render({ type: 'strength_training', distance: 0, duration: 3300 }))
+    expect(shown).toHaveLength(1) // time alone
+    expect(shown.join(' ')).not.toMatch(/Calories/i)
+  })
+
+  it('headlines the climb of a hike, as the detail page already did', () => {
+    scanned({ [DERIVED.ascent]: 870 })
+    const text = metrics(render({ type: 'hiking', distance: 12000, duration: 14400 })).join(' | ')
+    expect(text).toMatch(/Elevation/i)
+    expect(text).toContain('870')
+  })
+
+  it('falls back to a pace for a hike the scan has not reached', () => {
+    const text = metrics(render({ type: 'hiking', distance: 12000, duration: 14400 })).join(' | ')
+    expect(text).toMatch(/\/km/)
+  })
+
+  it('converts the lifted values like any other', () => {
+    // They are cached in SI precisely so the preference still applies.
+    setUnitSystem('imperial')
+    scanned({ [DERIVED.ascent]: 304.8 })
+    const text = metrics(render({ type: 'hiking', distance: 12000, duration: 14400 })).join(' | ')
+    expect(text).toContain('1000')
+    expect(text).toContain('ft')
+    setUnitSystem('metric')
+  })
+
+  it('does not headline calories for a sport that has a pace', () => {
+    // A run's accent slot belongs to its pace; the calories are detail-page work.
+    scanned({ [DERIVED.calories]: 600 })
+    const text = metrics(render({ type: 'running', distance: 10000, duration: 3000 })).join(' | ')
+    expect(text).toContain("5'00")
+    expect(text).not.toContain('600')
   })
 })
 

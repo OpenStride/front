@@ -60,6 +60,7 @@ import type { Activity, ActivityFilters } from '@/types/activity'
 import { getActivityService, type ActivityServiceEvent } from '@/services/ActivityService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityFilters } from '@/composables/useActivityFilters'
+import { useFeedMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { debounce } from '@/utils/debounce'
 
 const { t } = useI18n()
@@ -89,6 +90,10 @@ const pageSize = 10
 const hasMore = ref(true)
 const totalCount = ref(0)
 const availableSports = ref<string[]>([])
+
+// Lifts calories, climb and the rest out of the details of the page on screen,
+// so the cards can show what only the details hold.
+useFeedMetricsIndex(activities)
 
 // Store ActivityService instance for cleanup
 let activityServiceInstance: Awaited<ReturnType<typeof getActivityService>> | null = null
