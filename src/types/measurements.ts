@@ -53,10 +53,10 @@ export interface MeasurementDefinition {
  * fact, free to drift.
  */
 export const MEASUREMENTS: Record<MeasurementKey, MeasurementDefinition> = {
-  // A 25 m pool is 27 yd to an imperial swimmer, so this one does convert.
+  // Shown as the pool it actually is (25 m, 25 yd…), not as a converted number.
   'swim.poolLength': {
     unit: 'm',
-    dimension: 'distanceShort',
+    dimension: 'poolLength',
     labelKey: 'measurements.poolLength'
   },
   'swim.lengths': { unit: 'count', labelKey: 'measurements.lengths' },

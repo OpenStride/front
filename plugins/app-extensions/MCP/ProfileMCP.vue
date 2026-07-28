@@ -217,7 +217,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 
 const { t } = useI18n()
 const router = useRouter()
-const { friends, storage, plugins } = usePluginContext()
+const { friends, storage, plugins, units } = usePluginContext()
 
 const manifestUrl = ref('')
 const copied = ref(false)
@@ -380,8 +380,7 @@ function formatDate(timestamp: number): string {
 }
 
 function formatDistance(meters: number): string {
-  const km = meters / 1000
-  return `${km.toFixed(1)} km`
+  return units.format('distance', meters).text
 }
 
 function formatDuration(seconds: number): string {

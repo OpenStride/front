@@ -76,7 +76,7 @@ const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }
 }>()
 
-const { analyzer: analyzerFactory } = usePluginContext()
+const { analyzer: analyzerFactory, units } = usePluginContext()
 const analyzer = analyzerFactory.create(props.data.details?.samples ?? [])
 
 /* ===== Distances cibles ====================================== */
@@ -86,12 +86,11 @@ const targets = [1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 21_097, 30_000, 42
 const fmtDuration = (sec: number) =>
   isFinite(sec) ? new Date(sec * 1000).toISOString().substring(sec >= 3600 ? 11 : 14, 19) : '—'
 
-const fmtPace = (secPerKm: number) =>
-  isFinite(secPerKm)
-    ? `${Math.floor(secPerKm / 60)}:${String(Math.round(secPerKm % 60)).padStart(2, '0')}`
-    : '—'
+/** Takes seconds per metre, like the rest of the app. */
+const fmtPace = (secPerMeter: number) =>
+  isFinite(secPerMeter) ? units.format('pace', secPerMeter).text : '—'
 
-const fmtSpeed = (mps: number) => (mps ? (mps * 3.6).toFixed(1) + ' km/h' : '—')
+const fmtSpeed = (mps: number) => (mps ? units.format('speed', mps).text : '—')
 
 /* ===== Badge couleur selon distance ========================== */
 function badgeColor(d: number): string {
@@ -122,12 +121,14 @@ const bestRows = computed(() =>
     .filter(dist => bestRaw[dist] !== null && bestRaw[dist] !== undefined) // Filter out null results
     .map(dist => {
       const info = bestRaw[dist]!
-      const pace = info.duration / (dist / 1000)
+      const pace = info.duration / dist // s/m
 
       return {
         dist,
         distLabel:
-          dist >= 1000 ? (dist / 1000).toFixed(dist >= 10_000 ? 0 : 1) + ' km' : dist + ' m',
+          dist >= 1000
+            ? units.format('distance', dist).text
+            : units.format('distanceShort', dist).text,
         timeStr: fmtDuration(info.duration),
         paceStr: fmtPace(pace),
         speedStr: fmtSpeed(info.sample.speed ?? 0)

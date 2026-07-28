@@ -12,7 +12,12 @@ import { StoragePluginManager } from './StoragePluginManager'
 import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
-import { ensureUnitsLoaded, formatQuantity, unitSystem } from '@/composables/useUnits'
+import {
+  convertQuantity,
+  ensureUnitsLoaded,
+  formatQuantity,
+  unitSystem
+} from '@/composables/useUnits'
 
 /**
  * Factory function to create a PluginContext for dependency injection
@@ -119,7 +124,8 @@ export async function createPluginContext(): Promise<PluginContext> {
       get system() {
         return unitSystem.value
       },
-      format: formatQuantity
+      format: formatQuantity,
+      convert: convertQuantity
     }
   }
 }

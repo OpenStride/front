@@ -26,7 +26,7 @@
         <strong>{{ t('graphs.distance') }} :</strong> {{ tooltip.distance.toFixed(2) }} m
       </div>
       <div>
-        <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} min/km
+        <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
       </div>
       <div>
         <strong>{{ tooltip.slopeLabel }}</strong
@@ -39,7 +39,7 @@
       <div class="flex text-xs sm:text-sm font-semibold border-b pb-1 mb-1">
         <span class="w-16">{{ t('graphs.colDistance') }}</span>
         <span class="flex-1">{{ t('graphs.colPace') }}</span>
-        <span class="w-10 text-right">{{ t('graphs.colPaceValue') }}</span>
+        <span class="w-10 text-right">{{ paceUnit }}</span>
         <span class="w-12 text-right">{{ t('graphs.colHeartRate') }}</span>
         <span class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
       </div>
@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
@@ -85,7 +85,10 @@ const cssVar = (name: string, fallback: string) =>
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
-const { storage, analyzer: analyzerFactory } = usePluginContext()
+const { storage, analyzer: analyzerFactory, units } = usePluginContext()
+
+/** "/km" or "/mi", for the tooltip. */
+const paceUnit = computed(() => units.convert('pace', 1).unit)
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const samples = ref<Sample[]>([])
@@ -96,15 +99,48 @@ const leftMargin = ref(50)
 const useSlope = ref(false)
 const slopeGranularity = ref('1000')
 
-const granularities = [
-  { label: '100m', value: '100' },
-  { label: '200m', value: '200' },
-  { label: '500m', value: '500' },
-  { label: '1km', value: '1000' },
-  { label: '2km', value: '2000' },
-  { label: '5km', value: '5000' },
-  { label: 'Laps', value: 'laps' }
-]
+/**
+ * Smoothing steps that are round in the unit being read.
+ *
+ * Values stay in metres so the analyser and stored preference are unchanged;
+ * only the ladder offered differs, because "0.62 mi" is not a step anyone picks.
+ */
+const granularities = computed(() =>
+  units.system === 'imperial'
+    ? [
+        { label: '100 yd', value: '91' },
+        { label: '200 yd', value: '183' },
+        { label: '¼ mi', value: '402' },
+        { label: '½ mi', value: '805' },
+        { label: '1 mi', value: '1609' },
+        { label: '3 mi', value: '4828' },
+        { label: 'Laps', value: 'laps' }
+      ]
+    : [
+        { label: '100 m', value: '100' },
+        { label: '200 m', value: '200' },
+        { label: '500 m', value: '500' },
+        { label: '1 km', value: '1000' },
+        { label: '2 km', value: '2000' },
+        { label: '5 km', value: '5000' },
+        { label: 'Laps', value: 'laps' }
+      ]
+)
+
+/** A stored step from the other ladder would leave the select blank. */
+function snapToOffered(stored: string): string {
+  const offered = granularities.value.map(g => g.value)
+  if (offered.includes(stored)) return stored
+  if (stored === 'laps') return 'laps'
+  const meters = Number(stored)
+  if (!Number.isFinite(meters)) return offered[3]
+  return offered
+    .filter(v => v !== 'laps')
+    .reduce((best, v) =>
+      Math.abs(Number(v) - meters) < Math.abs(Number(best) - meters) ? v : best
+    )
+}
+
 
 async function savePreferences() {
   await storage.saveData('granularity_for_speed', slopeGranularity.value)
@@ -114,7 +150,8 @@ async function savePreferences() {
 async function loadPreferences() {
   const storedGranularity = await storage.getData('granularity_for_speed')
   const storedUseSlope = await storage.getData('use_slope_for_speed')
-  if (typeof storedGranularity === 'string') slopeGranularity.value = storedGranularity
+  if (typeof storedGranularity === 'string')
+    slopeGranularity.value = snapToOffered(storedGranularity)
   if (typeof storedUseSlope === 'boolean') useSlope.value = storedUseSlope
 }
 
@@ -222,23 +259,26 @@ function drawCanvas() {
   }
 
   // === Repères verticaux distance (max 10) ===
-  const totalKm = totalDistance / 1000
+  // Ticks are spaced in the unit being read, so an imperial user gets round
+  // miles rather than round kilometres relabelled.
+  const totalDisplay = units.convert('distance', totalDistance).value
   const maxTicks = 10
 
   /* 1) pas brut */
-  const rawStep = totalKm / maxTicks // ex. 2.7 km
+  const rawStep = totalDisplay / maxTicks // ex. 2.7 km
 
   /* 2) arrondi à 1 ·10ⁿ, 2 ·10ⁿ ou 5 ·10ⁿ  -------------------- */
   const mag = Math.pow(10, Math.floor(Math.log10(rawStep))) // 10ⁿ
   const niceBase = [1, 2, 5].find(b => b * mag >= rawStep) || 10
-  const stepKm = niceBase * mag // ex. 5 km
+  const stepDisplay = niceBase * mag // ex. 5 km
 
   /* 3) tracé des traits --------------------------------------- */
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
 
-  for (let km = stepKm; km < totalKm; km += stepKm) {
-    const x = pxMargin + ((km * 1000) / totalDistance) * (width - pxMargin)
+  const metersPerDisplayUnit = 1 / units.convert('distance', 1).value
+  for (let d = stepDisplay; d < totalDisplay; d += stepDisplay) {
+    const x = pxMargin + ((d * metersPerDisplayUnit) / totalDistance) * (width - pxMargin)
     ctx.beginPath()
     ctx.moveTo(x, plotTop)
     ctx.lineTo(x, baseline)
@@ -464,6 +504,12 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
 })
+
+// Canvas content sits outside Vue's reactivity: switching units has to redraw.
+watch(
+  () => units.system,
+  () => drawCanvas()
+)
 </script>
 
 <style scoped>

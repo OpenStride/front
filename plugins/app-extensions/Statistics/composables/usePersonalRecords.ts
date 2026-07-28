@@ -78,8 +78,10 @@ export function usePersonalRecords(
           distance: target,
           distanceLabel: PR_LABELS[target],
           duration,
-          pace: duration / (target / 1000) / 60,
-          speed: target / 1000 / (duration / 3600),
+          // SI: seconds per metre and metres per second. Converting here would
+          // bake a display preference into a stored record.
+          pace: duration / target,
+          speed: target / duration,
           date: activity.startTime,
           activityId: activity.id
         })

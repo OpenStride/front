@@ -69,10 +69,21 @@ describe('measurement registry', () => {
 describe('formatMeasurement', () => {
   const t = (key: string) => key.split('.').pop() ?? key
 
-  it('converts the keys that declare a dimension', () => {
+  it('routes a key through the dimension it declares', () => {
+    // poolLength is deliberately not a plain conversion: a 25 m pool stays a
+    // 25 m pool for an imperial swimmer, because that is the pool they swam in.
     setUnitSystem('imperial')
     const out = formatMeasurement('swim.poolLength', { value: 25, unit: 'm' }, formatQuantity, t)
-    expect(out.value).toBe('27') // 25 m in yards
+    expect(out.text).toBe('25 m')
+
+    // …and a US 25 yd pool, which the provider reports as 22.86 m, reads as yards.
+    const usPool = formatMeasurement(
+      'swim.poolLength',
+      { value: 22.86, unit: 'm' },
+      formatQuantity,
+      t
+    )
+    expect(usPool.text).toBe('25 yd')
     setUnitSystem('metric')
   })
 

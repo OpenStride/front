@@ -368,13 +368,14 @@ describe('metric registry', () => {
     expect(getMetric('distance').format(12.34)).toBe('12.3 km')
     expect(getMetric('duration').format(95)).toBe('1h35')
     expect(getMetric('duration').format(45)).toBe('45 min')
-    expect(getMetric('pace').format(4.5)).toBe(`4'30"`)
+    // The unit is part of the label now: the same number is /km or /mi.
+    expect(getMetric('pace').format(4.5)).toBe(`4'30" /km`)
     expect(getMetric('speed').format(15.02)).toBe('15.0 km/h')
     expect(getMetric('maxHeartRate').format(178.4)).toBe('178 bpm')
   })
 
   it('carries pace over to the next minute rather than showing 60 seconds', () => {
-    expect(getMetric('pace').format(4.999)).toBe(`5'00"`)
+    expect(getMetric('pace').format(4.999)).toBe(`5'00" /km`)
   })
 
   it('routes each metric to the source it actually depends on', () => {

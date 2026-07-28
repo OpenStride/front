@@ -22,6 +22,17 @@ export type Dimension =
   | 'pace' // s/m → min/km / min/mi
   | 'pace100' // s/m → min/100 m / min/100 yd
   | 'temperature' // °C / °F
+  // A pool is a built object with a standard length, not a measurement: it is
+  // shown in the system it was built in, whatever the user prefers.
+  | 'poolLength'
+
+/** A converted numeric value, for charts and anything that computes on it. */
+export interface Converted {
+  /** In the display unit. Paces are seconds per display unit. */
+  value: number
+  /** Localised unit label. */
+  unit: string
+}
 
 export interface Formatted {
   /** Converted and rounded, without unit. */
@@ -34,3 +45,6 @@ export interface Formatted {
 
 /** Formats an SI value for display. Implemented by `useUnits`. */
 export type FormatQuantity = (dimension: Dimension, si: number) => Formatted
+
+/** Converts an SI value to a plottable number. Implemented by `useUnits`. */
+export type ConvertQuantity = (dimension: Dimension, si: number) => Converted

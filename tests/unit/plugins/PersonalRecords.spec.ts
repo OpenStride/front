@@ -133,9 +133,11 @@ describe('usePersonalRecords', () => {
 
     const { records } = await run([makeActivity('a', thisMonth())], 'all')
 
-    // 10 km in 45 min -> 4.5 min/km, 13.33 km/h
-    expect(records.value[0].pace).toBeCloseTo(4.5, 5)
-    expect(records.value[0].speed).toBeCloseTo(13.333, 3)
+    // Stored in SI, not in display units: a record must not depend on whether
+    // the reader prefers kilometres or miles.
+    // 10 km in 45 min -> 0.27 s/m (4'30/km), 3.70 m/s (13.33 km/h)
+    expect(records.value[0].pace).toBeCloseTo(0.27, 5)
+    expect(records.value[0].speed).toBeCloseTo(3.7037, 3)
   })
 
   it('ignores distances the index has no time for', async () => {

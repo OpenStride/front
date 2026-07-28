@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
@@ -41,6 +42,11 @@ import { getMonthKey } from '@/utils/dateKeys'
 import { toMs } from '../types'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
+
+// The axis carries the unit, so it has to follow the preference.
+const distanceLabel = () =>
+  `${t('statistics.distribution.distance')} (${units.convert('distance', 0).unit})`
 
 const props = defineProps<{
   activities: Activity[]
@@ -81,12 +87,12 @@ function getSportData(activities: Activity[]) {
     const existing = map.get(sport)
     if (existing) {
       existing.count++
-      existing.distance += (a.distance || 0) / 1000
+      existing.distance += units.convert('distance', a.distance || 0).value
       existing.duration += (a.duration || 0) / 3600
     } else {
       map.set(sport, {
         count: 1,
-        distance: (a.distance || 0) / 1000,
+        distance: units.convert('distance', a.distance || 0).value,
         duration: (a.duration || 0) / 3600
       })
     }
@@ -105,7 +111,7 @@ function getMonthlyData(activities: Activity[]) {
   const map = new Map<string, number>()
   for (const a of activities) {
     const key = getMonthKey(new Date(toMs(a.startTime)))
-    map.set(key, (map.get(key) || 0) + (a.distance || 0) / 1000)
+    map.set(key, (map.get(key) || 0) + units.convert('distance', a.distance || 0).value)
   }
   const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   return {
@@ -156,7 +162,7 @@ function createSportCharts() {
         labels: data.labels,
         datasets: [
           {
-            label: t('statistics.distribution.distanceKm'),
+            label: distanceLabel(),
             data: data.distances,
             backgroundColor: data.colors,
             borderRadius: 4
@@ -211,7 +217,7 @@ function createMonthlyChart() {
       labels: data.labels,
       datasets: [
         {
-          label: t('statistics.distribution.distanceKm'),
+          label: distanceLabel(),
           data: data.distances,
           backgroundColor: green500,
           borderRadius: 4
@@ -241,7 +247,16 @@ async function render() {
   }
 }
 
-watch([() => props.activities, () => props.selectedSport, () => props.allActivities], render)
+watch(
+  [
+    () => props.activities,
+    () => props.selectedSport,
+    () => props.allActivities,
+    // Chart.js draws to canvas, so switching units has to redraw, not re-render.
+    () => units.system
+  ],
+  render
+)
 
 onMounted(render)
 onUnmounted(destroyAllCharts)

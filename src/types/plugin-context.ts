@@ -1,5 +1,5 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
-import type { Dimension, Formatted, UnitSystem } from './units'
+import type { Converted, Dimension, Formatted, UnitSystem } from './units'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -239,6 +239,8 @@ export interface IUnitsService {
   system: UnitSystem
   /** `pace` and `pace100` take seconds per metre (`duration / distance`). */
   format(dimension: Dimension, si: number): Formatted
+  /** Same conversion as `format`, as a number — for chart axes and series. */
+  convert(dimension: Dimension, si: number): Converted
 }
 
 /**

@@ -2,9 +2,17 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import en from '@/locales/en.json'
 import SpeedSampled from '@plugins/app-extensions/StandardDetails/SpeedSampled.vue'
+import { convertQuantity, formatQuantity, unitSystem } from '@/composables/useUnits'
 
 // Mock PluginContext with analyzer and storage
 const mockPluginContext = {
+  units: {
+    get system() {
+      return unitSystem.value
+    },
+    format: formatQuantity,
+    convert: convertQuantity
+  },
   storage: {
     getData: vi.fn().mockResolvedValue(null),
     saveData: vi.fn().mockResolvedValue(undefined),

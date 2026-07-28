@@ -469,7 +469,8 @@
       "activities": "Activities",
       "week": "Week",
       "month": "Month",
-      "year": "Year"
+      "year": "Year",
+      "distanceLabel": "Distance"
     },
     "distribution": {
       "title": "Distribution",
@@ -477,7 +478,8 @@
       "byMonth": "By month",
       "activitiesCount": "Activity count",
       "distanceKm": "Distance (km)",
-      "durationH": "Duration (h)"
+      "durationH": "Duration (h)",
+      "distance": "Distance"
     },
     "records": {
       "title": "Personal Records",

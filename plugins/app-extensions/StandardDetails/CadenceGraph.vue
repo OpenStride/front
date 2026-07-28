@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
@@ -54,7 +54,7 @@ const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }
 }>()
 
-const { storage, analyzer: analyzerFactory } = usePluginContext()
+const { storage, analyzer: analyzerFactory, units } = usePluginContext()
 
 /* ===== Références & états ===== */
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -66,15 +66,48 @@ const granularity = ref('1000') // distance (m) ou 'laps'
 const useSlope = ref(false) // mode variation de pente
 
 /* ===== Options de granularité ===== */
-const granularities = [
-  { label: '100 m', value: '100' },
-  { label: '200 m', value: '200' },
-  { label: '500 m', value: '500' },
-  { label: '1 km', value: '1000' },
-  { label: '2 km', value: '2000' },
-  { label: '5 km', value: '5000' },
-  { label: 'Laps', value: 'laps' }
-]
+/**
+ * Smoothing steps that are round in the unit being read.
+ *
+ * Values stay in metres so the analyser and stored preference are unchanged;
+ * only the ladder offered differs, because "0.62 mi" is not a step anyone picks.
+ */
+const granularities = computed(() =>
+  units.system === 'imperial'
+    ? [
+        { label: '100 yd', value: '91' },
+        { label: '200 yd', value: '183' },
+        { label: '¼ mi', value: '402' },
+        { label: '½ mi', value: '805' },
+        { label: '1 mi', value: '1609' },
+        { label: '3 mi', value: '4828' },
+        { label: 'Laps', value: 'laps' }
+      ]
+    : [
+        { label: '100 m', value: '100' },
+        { label: '200 m', value: '200' },
+        { label: '500 m', value: '500' },
+        { label: '1 km', value: '1000' },
+        { label: '2 km', value: '2000' },
+        { label: '5 km', value: '5000' },
+        { label: 'Laps', value: 'laps' }
+      ]
+)
+
+/** A stored step from the other ladder would leave the select blank. */
+function snapToOffered(stored: string): string {
+  const offered = granularities.value.map(g => g.value)
+  if (offered.includes(stored)) return stored
+  if (stored === 'laps') return 'laps'
+  const meters = Number(stored)
+  if (!Number.isFinite(meters)) return offered[3]
+  return offered
+    .filter(v => v !== 'laps')
+    .reduce((best, v) =>
+      Math.abs(Number(v) - meters) < Math.abs(Number(best) - meters) ? v : best
+    )
+}
+
 
 /* ===== Persistance (PluginContext) ===== */
 async function savePrefs() {
@@ -84,7 +117,7 @@ async function savePrefs() {
 async function loadPrefs() {
   const g = await storage.getData('granularity_for_cadence')
   const s = await storage.getData('use_slope_for_cadence')
-  if (typeof g === 'string') granularity.value = g
+  if (typeof g === 'string') granularity.value = snapToOffered(g)
   if (typeof s === 'boolean') useSlope.value = s
 }
 
@@ -164,13 +197,15 @@ function drawCanvas() {
   }
 
   /* === Grille verticale (distance) === */
-  const kmTotal = totalDist / 1000
-  const rawStep = kmTotal / 10
+  // Ticks in the unit being read, not kilometres relabelled.
+  const totalDisplay = units.convert('distance', totalDist).value
+  const rawStep = totalDisplay / 10
   const mag = 10 ** Math.floor(Math.log10(rawStep))
   const niceBase = [1, 2, 5].find(b => b * mag >= rawStep) || 10
-  const stepKm = niceBase * mag
-  for (let km = stepKm; km < kmTotal; km += stepKm) {
-    const x = pxMargin + ((km * 1000) / totalDist) * (W - pxMargin)
+  const stepDisplay = niceBase * mag
+  const metersPerDisplayUnit = 1 / units.convert('distance', 1).value
+  for (let d = stepDisplay; d < totalDisplay; d += stepDisplay) {
+    const x = pxMargin + ((d * metersPerDisplayUnit) / totalDist) * (W - pxMargin)
     ctx.beginPath()
     ctx.moveTo(x, plotTop)
     ctx.lineTo(x, baseline)
@@ -296,6 +331,12 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
 })
+
+// Canvas content sits outside Vue's reactivity: switching units has to redraw.
+watch(
+  () => units.system,
+  () => drawCanvas()
+)
 </script>
 
 <style scoped>

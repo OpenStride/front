@@ -31,13 +31,13 @@
             type="number"
             class="range-input"
             :placeholder="t('filters.min')"
-            :value="distanceMinKm"
+            :value="distanceMinDisplay"
             min="0"
             step="1"
             data-test="distance-min"
             @input="onDistanceMin"
           />
-          <span class="range-unit">km</span>
+          <span class="range-unit">{{ distanceUnit }}</span>
         </div>
         <span class="range-separator">-</span>
         <div class="range-field">
@@ -45,13 +45,13 @@
             type="number"
             class="range-input"
             :placeholder="t('filters.max')"
-            :value="distanceMaxKm"
+            :value="distanceMaxDisplay"
             min="0"
             step="1"
             data-test="distance-max"
             @input="onDistanceMax"
           />
-          <span class="range-unit">km</span>
+          <span class="range-unit">{{ distanceUnit }}</span>
         </div>
       </div>
     </div>
@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useUnits } from '@/composables/useUnits'
 import { useI18n } from 'vue-i18n'
 import type { ActivityFilters } from '@/types/activity'
 import { COMMON_SPORT_TYPES, formatSportType, getSportIcon } from '@/utils/sportLabels'
@@ -122,6 +123,8 @@ const emit = defineEmits<{
   reset: []
 }>()
 
+const { convert } = useUnits()
+
 const sportOptions = computed(() => {
   const sports = props.availableSports?.length ? props.availableSports : COMMON_SPORT_TYPES
   return sports.map(s => ({
@@ -131,13 +134,15 @@ const sportOptions = computed(() => {
   }))
 })
 
-const distanceMinKm = computed(() =>
-  props.modelValue.distanceMin != null ? props.modelValue.distanceMin / 1000 : undefined
-)
+// Filters are stored in metres; the input reads and writes in the user's unit.
+const toDisplay = (meters?: number) =>
+  meters != null ? Number(convert('distance', meters).value.toFixed(2)) : undefined
 
-const distanceMaxKm = computed(() =>
-  props.modelValue.distanceMax != null ? props.modelValue.distanceMax / 1000 : undefined
-)
+const toMeters = (value: number) => value / convert('distance', 1).value
+
+const distanceUnit = computed(() => convert('distance', 0).unit)
+const distanceMinDisplay = computed(() => toDisplay(props.modelValue.distanceMin ?? undefined))
+const distanceMaxDisplay = computed(() => toDisplay(props.modelValue.distanceMax ?? undefined))
 
 function updateFilter(key: keyof ActivityFilters, value: string | number | undefined) {
   emit('update:modelValue', { ...props.modelValue, [key]: value || undefined })
@@ -151,13 +156,13 @@ function parseNumInput(e: Event): number | undefined {
 }
 
 function onDistanceMin(e: Event) {
-  const km = parseNumInput(e)
-  updateFilter('distanceMin', km != null ? km * 1000 : undefined)
+  const entered = parseNumInput(e)
+  updateFilter('distanceMin', entered != null ? toMeters(entered) : undefined)
 }
 
 function onDistanceMax(e: Event) {
-  const km = parseNumInput(e)
-  updateFilter('distanceMax', km != null ? km * 1000 : undefined)
+  const entered = parseNumInput(e)
+  updateFilter('distanceMax', entered != null ? toMeters(entered) : undefined)
 }
 
 function onAscentMin(e: Event) {

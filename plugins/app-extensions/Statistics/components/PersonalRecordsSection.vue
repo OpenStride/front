@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, toRef } from 'vue'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
@@ -66,6 +67,7 @@ import RecordPeriodFilter from './RecordPeriodFilter.vue'
 import { toMs, type RecordPeriod } from '../types'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
 
 const props = defineProps<{
   activities: Activity[]
@@ -88,15 +90,10 @@ function formatDuration(seconds: number): string {
   return `${m}'${String(s).padStart(2, '0')}"`
 }
 
-function formatPace(minPerKm: number): string {
-  const m = Math.floor(minPerKm)
-  const s = Math.round((minPerKm - m) * 60)
-  return `${m}'${String(s).padStart(2, '0')}"/km`
-}
+/** `pace` is seconds per metre, `speed` metres per second — both SI. */
+const formatPace = (secondsPerMeter: number) => units.format('pace', secondsPerMeter).text
 
-function formatSpeed(kmh: number): string {
-  return `${kmh.toFixed(1)} km/h`
-}
+const formatSpeed = (metersPerSecond: number) => units.format('speed', metersPerSecond).text
 
 function formatDate(timestamp: number): string {
   return new Date(toMs(timestamp)).toLocaleDateString()

@@ -1,4 +1,6 @@
 import { DISTANCE_TARGETS, timeMetricId } from '@/composables/useActivityMetricsIndex'
+import { convertQuantity } from '@/composables/useUnits'
+import type { Dimension } from '@/types/units'
 import type { MetricDefinition } from './types'
 
 export { DISTANCE_TARGETS, timeMetricId }
@@ -16,11 +18,11 @@ function formatMinutes(minutes: number): string {
   return h > 0 ? `${h}h${pad(m)}` : `${m} min`
 }
 
-/** Minutes per km -> "4'35\"" */
-function formatPace(minPerKm: number): string {
-  if (!isFinite(minPerKm) || minPerKm <= 0) return '-'
-  let m = Math.floor(minPerKm)
-  let s = Math.round((minPerKm - m) * 60)
+/** Minutes per display unit -> "4'35\"" */
+function formatPace(minPerUnit: number): string {
+  if (!isFinite(minPerUnit) || minPerUnit <= 0) return '-'
+  let m = Math.floor(minPerUnit)
+  let s = Math.round((minPerUnit - m) * 60)
   if (s === 60) {
     m += 1
     s = 0
@@ -30,6 +32,23 @@ function formatPace(minPerKm: number): string {
 
 function rounded(unit: string) {
   return (value: number) => `${Math.round(value)} ${unit}`
+}
+
+/**
+ * Build the display pair for a unit-dependent metric.
+ *
+ * The conversion factors live in the units layer; restating them here is how a
+ * user set to imperial ends up reading kilometres in their own statistics.
+ * `toDisplay` feeds the chart axis, `format` the labels — both from one source.
+ */
+function inUnits(dimension: Dimension, decimals = 1) {
+  return {
+    toDisplay: (raw: number) => convertQuantity(dimension, raw).value,
+    format: (value: number) => {
+      const { unit } = convertQuantity(dimension, 0)
+      return `${value.toFixed(decimals)} ${unit}`
+    }
+  }
 }
 
 /** Seconds -> "42:31" / "3:12:45" */
@@ -62,8 +81,7 @@ export const DIRECT_METRICS: MetricDefinition[] = [
     id: 'distance',
     sourceRef: 'distance',
     periodOp: 'sum',
-    toDisplay: raw => raw / 1000,
-    format: value => `${value.toFixed(1)} km`
+    ...inUnits('distance')
   },
   {
     id: 'duration',
@@ -78,17 +96,18 @@ export const DIRECT_METRICS: MetricDefinition[] = [
     denominatorRef: 'duration',
     periodOp: 'ratio',
     betterIsLower: true,
-    // m/s -> min/km
-    toDisplay: raw => 1000 / raw / 60,
-    format: formatPace
+    // raw is m/s; the units layer takes s/m and yields seconds per km or per mile,
+    // which the chart axis reads in minutes. Only the conversion is shared — the
+    // "4'35\"" styling is this panel's own.
+    toDisplay: raw => (raw > 0 ? convertQuantity('pace', 1 / raw).value / 60 : NaN),
+    format: minutes => `${formatPace(minutes)} ${convertQuantity('pace', 1).unit}`
   },
   {
     id: 'speed',
     sourceRef: 'distance',
     denominatorRef: 'duration',
     periodOp: 'ratio',
-    toDisplay: raw => raw * 3.6,
-    format: value => `${value.toFixed(1)} km/h`
+    ...inUnits('speed')
   },
   {
     id: 'maxHeartRate',
@@ -108,8 +127,7 @@ export const DIRECT_METRICS: MetricDefinition[] = [
     id: 'totalAscent',
     sourceRef: 'stats.totalAscent',
     periodOp: 'sum',
-    toDisplay: raw => raw,
-    format: rounded('m')
+    ...inUnits('elevation', 0)
   },
   {
     id: 'calories',

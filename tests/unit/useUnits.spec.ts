@@ -101,3 +101,55 @@ describe('useUnits — round trip', () => {
     expect(unitSystem.value).toBe('imperial')
   })
 })
+
+describe('useUnits — pool length', () => {
+  const pool = (meters: number) => formatQuantity('poolLength', meters).text
+
+  it('shows a metric pool as metres in both systems', () => {
+    // A 25 m pool is 25 m to everyone. "27 yd" is 2 m off per length, enough to
+    // reason wrongly about a pace per 100.
+    setUnitSystem('metric')
+    expect(pool(25)).toBe('25 m')
+    setUnitSystem('imperial')
+    expect(pool(25)).toBe('25 m')
+    setUnitSystem('metric')
+  })
+
+  it('recovers a yard pool from the metres the provider reports', () => {
+    // Garmin reports metres whatever the watch was set to: 25 yd = 22.86 m.
+    setUnitSystem('metric')
+    expect(pool(22.86)).toBe('25 yd')
+    setUnitSystem('imperial')
+    expect(pool(22.86)).toBe('25 yd')
+    setUnitSystem('metric')
+  })
+
+  it('handles the other lengths people actually swim', () => {
+    setUnitSystem('metric')
+    expect(pool(50)).toBe('50 m')
+    expect(pool(18.288)).toBe('20 yd')
+    expect(pool(33.33)).toBe('33⅓ m')
+    expect(pool(30.48)).toBe('33⅓ yd')
+  })
+
+  it('tolerates rounding in the source data', () => {
+    setUnitSystem('metric')
+    expect(pool(22.9)).toBe('25 yd')
+    expect(pool(24.8)).toBe('25 m')
+  })
+
+  it('falls back to a plain distance for a non-standard pool', () => {
+    setUnitSystem('metric')
+    expect(pool(17)).toBe('17 m')
+    setUnitSystem('imperial')
+    expect(pool(17)).toBe('19 yd')
+    setUnitSystem('metric')
+  })
+
+  it('does not confuse two nearby standards', () => {
+    setUnitSystem('metric')
+    // 22.86 (25 yd) and 25 (25 m) are 2.14 m apart; the tolerance must not bridge them.
+    expect(pool(22.86)).toBe('25 yd')
+    expect(pool(25)).toBe('25 m')
+  })
+})

@@ -70,12 +70,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
 import { toMs } from '../types'
 import type { HeatmapMetric } from '../types'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
 
 const props = defineProps<{
   activities: Activity[]
@@ -107,12 +109,12 @@ const dayData = computed(() => {
     const key = toDayKey(new Date(toMs(a.startTime)))
     const existing = map.get(key)
     if (existing) {
-      existing.distance += (a.distance || 0) / 1000
+      existing.distance += units.convert('distance', a.distance || 0).value
       existing.duration += (a.duration || 0) / 3600
       existing.count++
     } else {
       map.set(key, {
-        distance: (a.distance || 0) / 1000,
+        distance: units.convert('distance', a.distance || 0).value,
         duration: (a.duration || 0) / 3600,
         count: 1
       })
@@ -225,7 +227,7 @@ const cells = computed(() => {
     let tooltip = e.key
     if (data) {
       if (metric.value === 'distance')
-        tooltip = `${e.key}: ${Math.round(data.distance * 10) / 10} km`
+        tooltip = `${e.key}: ${Math.round(data.distance * 10) / 10} ${units.convert('distance', 0).unit}`
       else if (metric.value === 'duration')
         tooltip = `${e.key}: ${Math.round(data.duration * 10) / 10} h`
       else tooltip = `${e.key}: ${data.count} activite(s)`
