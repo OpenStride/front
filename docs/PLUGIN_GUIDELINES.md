@@ -326,6 +326,26 @@ await db.addItemsToStore('activities', myActivities, (a) => a.id);  // WRONG!
 
 **Fix:** Use `context.activity.saveActivitiesWithDetails()` instead
 
+### Retiring a Data Provider
+
+Set `deprecated: true` on the plugin rather than deleting it. It disappears from
+every list that offers a new connection, while staying resolvable so anyone who
+already connected it keeps a working setup page and their imported activities
+keep their provenance.
+
+```typescript
+const MyProvider: ProviderPlugin = {
+  id: 'my-provider',
+  label: 'My Provider',
+  deprecated: true,
+  setupComponent: async () => (await import('./Setup.vue')).default
+}
+```
+
+Offer lists use `installableProviderPlugins`; resolution paths keep using
+`allProviderPlugins`. Mixing the two up either strands existing users or keeps
+offering a retired provider.
+
 ### ❌ Converting Units by Hand
 
 Most of the app's charts and statistics live in plugins. A conversion written by

@@ -9,7 +9,7 @@
     <div v-if="!selectedProviderId">
       <ul class="space-y-4">
         <li
-          v-for="provider in allProviderPlugins"
+          v-for="provider in installableProviderPlugins"
           :key="provider.id"
           @click="selectProvider(provider.id)"
           class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, watch, shallowRef, onMounted, onUnmounted, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { allProviderPlugins } from '@/services/ProviderPluginRegistry'
+import { installableProviderPlugins } from '@/services/ProviderPluginRegistry'
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 import { getActivityService } from '@/services/ActivityService'
 
@@ -87,7 +87,7 @@ watch(
   selectedProviderId,
   async id => {
     if (id) {
-      const plugin = allProviderPlugins.find(p => p.id === id)
+      const plugin = installableProviderPlugins.find(p => p.id === id)
       if (plugin) {
         setupComponent.value = await plugin.setupComponent()
         await manager.enablePlugin(id)

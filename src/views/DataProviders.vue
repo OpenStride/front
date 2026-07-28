@@ -61,7 +61,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { allProviderPlugins } from '@/services/ProviderPluginRegistry'
+import { installableProviderPlugins } from '@/services/ProviderPluginRegistry'
 import type { ProviderPlugin } from '@/types/provider'
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 
@@ -72,7 +72,7 @@ const manager = DataProviderPluginManager.getInstance()
 const userProviders = ref<ProviderPlugin[]>([])
 
 const availableProviders = computed(() =>
-  allProviderPlugins.filter(p => !userProviders.value.some(up => up.id === p.id))
+  installableProviderPlugins.filter(p => !userProviders.value.some(up => up.id === p.id))
 )
 
 onMounted(async () => {
