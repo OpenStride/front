@@ -62,7 +62,7 @@ import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
-import { getSportProfile } from '@/types/sport'
+import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
 import { usePluginContext } from '@/composables/usePluginContext'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
@@ -89,13 +89,8 @@ const pad = (n: number) => String(n).padStart(2, '0')
 
 const { units } = usePluginContext()
 
-const profile = computed(() => getSportProfile(activity.value.type))
-
 const formatDistance = (meters?: number) =>
-  units.format(
-    profile.value.distanceScale === 'short' ? 'distanceShort' : 'distance',
-    meters ?? 0
-  )
+  units.format(distanceDimension(activity.value.type), meters ?? 0)
 
 const formatDuration = (seconds?: number) => {
   const s = Math.max(0, Math.round(seconds ?? 0))
@@ -105,17 +100,14 @@ const formatDuration = (seconds?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-/**
- * The sport picks the quantity, the user's preference picks the unit.
- * A ride gets a speed, a run a pace per km/mi, a swim a pace per 100.
- */
+/** Which quantity to headline is `primaryMetricSpec`'s call, shared with the card. */
 const formatPrimary = (metersPerSecond?: number): { value: string; unit: string } => {
-  const kind = profile.value.primaryMetric
-  if (kind === 'none' || !metersPerSecond || metersPerSecond <= 0) {
-    return { value: '—', unit: '' }
-  }
-  if (kind === 'speed') return units.format('speed', metersPerSecond)
-  return units.format(kind === 'pace100' ? 'pace100' : 'pace', 1 / metersPerSecond)
+  const spec = primaryMetricSpec(activity.value.type, {
+    speed: metersPerSecond,
+    distance: activity.value.distance,
+    duration: activity.value.duration
+  })
+  return spec ? units.format(spec.dimension, spec.si) : { value: '—', unit: '' }
 }
 
 const formatThousands = (n?: number) =>

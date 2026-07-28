@@ -767,14 +767,21 @@
     "per100m": "/100 m",
     "per100yd": "/100 yd",
     "celsius": "°C",
-    "fahrenheit": "°F"
+    "fahrenheit": "°F",
+    "spm": "spm",
+    "rpm": "rpm",
+    "watt": "W"
   },
   "swimSummary": {
-    "title": "Natation",
+    "title": "Natation"
+  },
+  "measurements": {
     "poolLength": "Bassin",
     "lengths": "Longueurs",
-    "swolf": "SWOLF",
     "strokes": "Mouvements",
-    "strokeRate": "Fréquence"
+    "strokeRate": "Fréquence",
+    "swolf": "SWOLF",
+    "cadence": "Cadence",
+    "normalizedPower": "Puissance norm."
   }
 }

@@ -1,5 +1,5 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
-import type { Dimension, Formatted, UnitSystem } from '@/composables/useUnits'
+import type { Dimension, Formatted, UnitSystem } from './units'
 import type {
   AggregationPeriod,
   AggregatedRecord,

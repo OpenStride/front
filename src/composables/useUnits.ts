@@ -1,33 +1,12 @@
 // src/composables/useUnits.ts
 import { readonly, ref } from 'vue'
+import type { Dimension, Formatted, UnitSystem } from '@/types/units'
 import { i18n } from '@/locales'
 import { IndexedDBService } from '@/services/IndexedDBService'
 
-export type UnitSystem = 'metric' | 'imperial'
-
-/**
- * Quantities whose display depends on the unit system.
- *
- * Cadence (spm/rpm), heart rate (bpm), power (W) and calories are the same in
- * both systems, so they are deliberately absent — they need no conversion.
- */
-export type Dimension =
-  | 'distance' // long distances: km / mi
-  | 'distanceShort' // pool lengths, short splits: m / yd
-  | 'elevation' // m / ft
-  | 'speed' // m/s → km/h / mph
-  | 'pace' // s/m → min/km / min/mi
-  | 'pace100' // s/m → min/100 m / min/100 yd
-  | 'temperature' // °C / °F
-
-export interface Formatted {
-  /** Converted and rounded, without unit. */
-  value: string
-  /** Localised unit label. */
-  unit: string
-  /** `value` and `unit`, ready to display. */
-  text: string
-}
+// The vocabulary lives in types/ so plugin-context and the measurement registry
+// can depend on it without importing this composable.
+export type { UnitSystem, Dimension, Formatted, FormatQuantity } from '@/types/units'
 
 const METERS_PER_MILE = 1609.344
 const METERS_PER_FOOT = 0.3048

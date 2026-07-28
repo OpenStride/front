@@ -78,7 +78,7 @@ import { getInteractionService } from '@/services/InteractionService'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import type { Friend, FriendActivity } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
-import { getSportProfile } from '@/types/sport'
+import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
 import { useUnits } from '@/composables/useUnits'
 
 const props = defineProps<{
@@ -108,36 +108,25 @@ const formatDuration = (sec?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`
 }
 
-const profile = computed(() => getSportProfile(props.activity.type))
-
 // A swim reads in metres, a ride in kilometres — and either in the user's units.
 const distance = computed(() =>
-  format(
-    profile.value.distanceScale === 'short' ? 'distanceShort' : 'distance',
-    props.activity.distance ?? 0
-  )
+  format(distanceDimension(props.activity.type), props.activity.distance ?? 0)
 )
 
 /**
- * The accent metric. The sport decides *which* quantity (pace, speed, pace per
- * 100), the user's preference decides the unit — the two are independent.
+ * The accent metric. The sport decides *which* quantity, the user's preference
+ * decides the unit; `primaryMetricSpec` owns the first half for every caller.
  */
 const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
-  const dist = props.activity.distance ?? 0
-  const dur = props.activity.duration ?? 0
-  const kind = profile.value.primaryMetric
+  const spec = primaryMetricSpec(props.activity.type, {
+    distance: props.activity.distance,
+    duration: props.activity.duration
+  })
+  if (!spec) return { label: '', value: '', unit: '' }
 
-  if (kind === 'none') return { label: '', value: '', unit: '' }
-
-  if (kind === 'speed') {
-    const formatted = format('speed', dur > 0 ? dist / dur : NaN)
-    return { label: t('activityCard.speed', 'Speed'), ...formatted }
-  }
-
-  // seconds per metre — `format` converts to /km, /mi or /100
-  const secondsPerMeter = dist > 0 ? dur / dist : NaN
-  const formatted = format(kind === 'pace100' ? 'pace100' : 'pace', secondsPerMeter)
-  return { label: t('activityCard.pace', 'Pace'), ...formatted }
+  const label =
+    spec.dimension === 'speed' ? t('activityCard.speed', 'Speed') : t('activityCard.pace', 'Pace')
+  return { label, ...format(spec.dimension, spec.si) }
 })
 
 const iconClass = computed(() => getSportIcon(props.activity.type))

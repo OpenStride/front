@@ -1,4 +1,4 @@
-import type { Dimension } from '@/composables/useUnits'
+import type { Dimension } from './units'
 
 /**
  * Measurement keys core knows how to display.
@@ -36,22 +36,51 @@ export interface MeasurementDefinition {
    * independent (strokes, cadence, counts) and is shown as stored.
    */
   dimension?: Dimension
-  /** Decimal places when shown raw (dimensionless values only). */
-  precision?: number
+  /** i18n key for the label. Asserted to exist in every locale by tests. */
+  labelKey: string
+  /**
+   * Unit suffix shown when the value does not convert. Absent means none —
+   * a SWOLF or a length count reads on its own.
+   */
+  suffixKey?: string
 }
 
+/**
+ * The single place that knows what a measurement key *means*.
+ *
+ * Consumers render from this rather than restating it: a widget that hardcoded
+ * "pool length is a distance, SWOLF is not" would be a second copy of the same
+ * fact, free to drift.
+ */
 export const MEASUREMENTS: Record<MeasurementKey, MeasurementDefinition> = {
-  // A 25 m pool is 25 yd to an imperial swimmer, so this one does convert.
-  'swim.poolLength': { unit: 'm', dimension: 'distanceShort' },
-  'swim.lengths': { unit: 'count' },
-  'swim.strokes': { unit: 'count' },
-  'swim.strokeRate': { unit: 'spm' },
+  // A 25 m pool is 27 yd to an imperial swimmer, so this one does convert.
+  'swim.poolLength': {
+    unit: 'm',
+    dimension: 'distanceShort',
+    labelKey: 'measurements.poolLength'
+  },
+  'swim.lengths': { unit: 'count', labelKey: 'measurements.lengths' },
+  'swim.strokes': { unit: 'count', labelKey: 'measurements.strokes' },
+  'swim.strokeRate': {
+    unit: 'spm',
+    labelKey: 'measurements.strokeRate',
+    suffixKey: 'units.spm'
+  },
   // Strokes + seconds over a length. Unitless by construction, and pool-length
   // dependent, which is why it is stored rather than derived on the fly.
-  'swim.swolf': { unit: 'swolf' },
-  'run.cadence': { unit: 'spm' },
-  'bike.cadence': { unit: 'rpm' },
-  'bike.normalizedPower': { unit: 'W' }
+  'swim.swolf': { unit: 'swolf', labelKey: 'measurements.swolf' },
+  'run.cadence': { unit: 'spm', labelKey: 'measurements.cadence', suffixKey: 'units.spm' },
+  'bike.cadence': { unit: 'rpm', labelKey: 'measurements.cadence', suffixKey: 'units.rpm' },
+  'bike.normalizedPower': {
+    unit: 'W',
+    labelKey: 'measurements.normalizedPower',
+    suffixKey: 'units.watt'
+  }
+}
+
+/** Registry keys under a namespace (`swim`, `run`, `bike`), in declaration order. */
+export function measurementKeysFor(namespace: string): MeasurementKey[] {
+  return MEASUREMENT_KEYS.filter(key => key.startsWith(`${namespace}.`))
 }
 
 const KEY_SET: ReadonlySet<string> = new Set(MEASUREMENT_KEYS)

@@ -16,6 +16,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GraphCard from './GraphCard.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { MEASUREMENTS, measurementKeysFor } from '@/types/measurements'
+import { formatMeasurement } from '@/utils/activityMetrics'
 import type { Activity, ActivityDetails } from '@/types/activity'
 
 const props = defineProps<{
@@ -25,33 +27,24 @@ const props = defineProps<{
 const { t } = useI18n()
 const { units } = usePluginContext()
 
-/** Rows to show, in reading order. Anything absent is simply skipped. */
-const ROWS = [
-  { key: 'swim.poolLength', label: 'swimSummary.poolLength', fallback: 'Pool' },
-  { key: 'swim.lengths', label: 'swimSummary.lengths', fallback: 'Lengths' },
-  { key: 'swim.swolf', label: 'swimSummary.swolf', fallback: 'SWOLF' },
-  { key: 'swim.strokes', label: 'swimSummary.strokes', fallback: 'Strokes' },
-  { key: 'swim.strokeRate', label: 'swimSummary.strokeRate', fallback: 'Stroke rate' }
-] as const
-
+/**
+ * Rows come from the registry, in its declaration order. The widget holds no
+ * opinion about which keys exist or which of them convert — those are
+ * properties of the key, stated once in `MEASUREMENTS`. Adding a swim
+ * measurement there makes it appear here with no change to this file.
+ */
 const items = computed(() => {
   const measurements = props.data.details?.measurements ?? {}
 
-  return ROWS.flatMap(row => {
-    const m = measurements[row.key]
-    if (!m) return []
+  return measurementKeysFor('swim').flatMap(key => {
+    const measurement = measurements[key]
+    if (!measurement) return []
 
-    // Pool length is a real distance and follows the unit preference; counts,
-    // SWOLF and stroke rate mean the same thing in both systems.
-    const formatted =
-      row.key === 'swim.poolLength'
-        ? units.format('distanceShort', m.value)
-        : { value: Math.round(m.value).toString(), unit: '' }
-
+    const formatted = formatMeasurement(key, measurement, units.format, k => t(k))
     return [
       {
-        key: row.key,
-        label: t(row.label, row.fallback),
+        key,
+        label: t(MEASUREMENTS[key].labelKey),
         value: formatted.value,
         unit: formatted.unit
       }
