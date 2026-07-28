@@ -27,6 +27,12 @@ export interface MetricInput {
   duration?: number
   /** Metres per second, when the provider gives an average directly. */
   speed?: number
+  /**
+   * Total ascent in metres. Only the detail page has it — the feed card holds
+   * an `Activity`, not its details — so sports that headline elevation fall
+   * back to their motion metric when it is absent.
+   */
+  ascent?: number
 }
 
 /**
@@ -34,8 +40,15 @@ export interface MetricInput {
  * can drop the slot rather than print a placeholder.
  */
 export function primaryMetricSpec(sport: string, input: MetricInput): MetricSpec | null {
-  const kind = getSportProfile(sport).primaryMetric
+  const profile = getSportProfile(sport)
+  let kind = profile.primaryMetric
   if (kind === 'none') return null
+
+  if (kind === 'elevation') {
+    if (input.ascent != null) return { dimension: 'elevation', si: input.ascent }
+    // No ascent to hand: show how they moved rather than a blank slot.
+    kind = 'pace'
+  }
 
   // Prefer the provider's average; fall back to the overall distance/duration.
   const metersPerSecond =

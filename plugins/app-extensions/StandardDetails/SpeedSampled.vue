@@ -1,5 +1,5 @@
 <template>
-  <GraphCard :title="t('graphs.pace')" icon="fa-gauge-high" accent="var(--color-green-500)">
+  <GraphCard :title="graphTitle" icon="fa-gauge-high" accent="var(--color-green-500)">
     <template #actions>
       <!-- Masque la case si on est en mode “laps” -->
       <label v-if="slopeGranularity !== 'laps'" class="graph-check">
@@ -75,6 +75,7 @@
 import { useI18n } from 'vue-i18n'
 import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { getSportProfile } from '@/types/sport'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
 
@@ -87,8 +88,36 @@ const props = defineProps<{ data: { activity: Activity; details: ActivityDetails
 
 const { storage, analyzer: analyzerFactory, units } = usePluginContext()
 
-/** "/km" or "/mi", for the tooltip. */
-const paceUnit = computed(() => units.convert('pace', 1).unit)
+/**
+ * Cyclists read km/h, runners read min/km. The sport's profile decides which,
+ * exactly as it does for the card and the summary block — a ride was showing a
+ * pace graph titled "Pace" while its own card headlined a speed.
+ */
+const showsSpeed = computed(
+  () => getSportProfile(props.data.activity?.type ?? '').primaryMetric === 'speed'
+)
+
+/** Unit shown on the axis and in the tooltip: "km/h", "/km", "/mi"… */
+const paceUnit = computed(() =>
+  showsSpeed.value ? units.convert('speed', 1).unit : units.convert('pace', 1).unit
+)
+
+const graphTitle = computed(() =>
+  showsSpeed.value ? t('graphs.speed') : t('graphs.pace')
+)
+
+/** m/s → the number plotted on the Y axis, in the user's units. */
+const toAxis = (metersPerSecond: number) =>
+  showsSpeed.value
+    ? units.convert('speed', metersPerSecond).value
+    : units.convert('pace', metersPerSecond > 0 ? 1 / metersPerSecond : 0).value
+
+/** Axis labels: "24.8" for a speed, "4:32" for a pace. */
+const axisLabel = (value: number) => {
+  if (showsSpeed.value) return value.toFixed(value < 20 ? 1 : 0)
+  const total = Math.round(value)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const samples = ref<Sample[]>([])
@@ -206,7 +235,10 @@ function drawCanvas() {
 
   // Left margin sized to fit the widest "mm:ss" pace label so the bars never
   // cover the units. Shared with the tooltip via leftMargin.
-  const pxMargin = Math.max(44, Math.ceil(ctx.measureText('88:88').width) + 16)
+  const pxMargin = Math.max(
+    44,
+    Math.ceil(ctx.measureText(showsSpeed.value ? '88.8' : '88:88').width) + 16
+  )
   leftMargin.value = pxMargin
   ctx.clearRect(0, 0, width, height)
 
@@ -230,32 +262,35 @@ function drawCanvas() {
   ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
-  let minPace = 1000 / maxSpeed || 0
-  let maxPace = 1000 / minSpeed || 0
-  const margin = 0.0 * (maxPace - minPace || 1) // marge visuelle 10 %
-  minPace = Math.max(minPace - margin, 0)
-  maxPace += margin
+  // Axis values, in whatever this chart plots. `axisLow` is the value drawn at
+  // the top: the fastest pace, or the highest speed.
+  const axisLow = toAxis(maxSpeed)
+  const axisHigh = toAxis(minSpeed)
 
-  /* ---------- 2. Graduations toutes les 30 s ---------- */
-  const STEP_SEC = 30 // 30 s
-  const firstTick = Math.floor(minPace / STEP_SEC) * STEP_SEC - STEP_SEC // tick plus rapide
-  const lastTick = Math.ceil(maxPace / STEP_SEC) * STEP_SEC + STEP_SEC // tick plus lent
+  // Aim for ~6 gridlines whatever the spread. A fixed 30 s pace step drew
+  // twenty overlapping labels on a hike, whose pace ranges over nine minutes.
+  const spread = Math.abs(axisHigh - axisLow) || 1
+  const STEP = showsSpeed.value
+    ? Math.max(1, Math.round(spread / 6))
+    : ([15, 30, 60, 120, 300, 600].find(step => spread / step <= 7) ?? 900)
+  const lo = Math.min(axisLow, axisHigh)
+  const hi = Math.max(axisLow, axisHigh)
+  const firstTick = Math.floor(lo / STEP) * STEP - STEP
+  const lastTick = Math.ceil(hi / STEP) * STEP + STEP
 
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
   ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
-  for (let pSec = firstTick; pSec <= lastTick; pSec += STEP_SEC) {
-    const y = plotTop + ((pSec - minPace) / (maxPace - minPace || 1)) * plotHeight
+  for (let tick = firstTick; tick <= lastTick; tick += STEP) {
+    const y = plotTop + ((tick - axisLow) / (axisHigh - axisLow || 1)) * plotHeight
+    if (y < plotTop - 1 || y > baseline + 1) continue
     ctx.beginPath()
     ctx.moveTo(pxMargin, y)
     ctx.lineTo(width, y)
     ctx.stroke()
-
-    const mm = Math.floor(pSec / 60)
-    const ss = String(pSec % 60).padStart(2, '0')
-    ctx.fillText(`${mm}:${ss}`, 5, y + 4) // “mm:ss”
+    ctx.fillText(axisLabel(tick), 5, y + 4)
   }
 
   // === Repères verticaux distance (max 10) ===
@@ -344,8 +379,8 @@ function drawCanvas() {
     const xStart = pxMargin + (d0 / totalDistance) * (width - pxMargin)
     const widthPx = ((d1 - d0) / totalDistance) * (width - pxMargin)
     const speed = s.speed ?? 0
-    const paceSec = speed > 0 ? 1000 / (speed as number) : maxPace
-    const heightPx = ((maxPace - paceSec) / (maxPace - minPace || 1)) * plotHeight
+    const value = speed > 0 ? toAxis(speed) : axisHigh
+    const heightPx = ((axisHigh - value) / (axisHigh - axisLow || 1)) * plotHeight
     //const heightPx = ((speed - minSpeed) / (maxSpeed - minSpeed || 1)) * plotHeight
     ctx.fillStyle = getColorFromSpeed(speed, minSpeed, maxSpeed)
     ctx.fillRect(xStart, baseline - heightPx, widthPx - 1, heightPx)
@@ -396,14 +431,9 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   const prev = samples.value[index - 1] ?? s
   if (!s) return
 
-  //fix speed m/s to min/km
+  // Whatever the chart plots, shown in the user's units.
   const speedMps = s.speed ?? 0
-  const secPerKm = 1000 / speedMps
-
-  // minutes + secondes (format mm:ss)
-  const min = Math.floor(secPerKm / 60)
-  const sec = Math.round(secPerKm % 60)
-  const paceStr = `${min}:${sec.toString().padStart(2, '0')}`
+  const paceStr = axisLabel(toAxis(speedMps))
 
   const speed = speedMps ?? 0
   const slope =

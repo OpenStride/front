@@ -99,9 +99,19 @@ const formatPrimary = (metersPerSecond?: number) => {
   const spec = primaryMetricSpec(activity.value.type, {
     speed: metersPerSecond,
     distance: activity.value.distance,
-    duration: activity.value.duration
+    duration: activity.value.duration,
+    // The detail page has the ascent, so a hike headlines its climb here even
+    // though the feed card cannot.
+    ascent: details.value?.stats?.totalAscent
   })
-  return spec ? units.format(spec.dimension, spec.si) : null
+  return spec ? { ...units.format(spec.dimension, spec.si), dimension: spec.dimension } : null
+}
+
+/** The accent slot's label follows the quantity actually shown there. */
+const primaryLabel = (dimension: string) => {
+  if (dimension === 'speed') return t('activityDetail.avgSpeed', 'Avg speed')
+  if (dimension === 'elevation') return t('activityDetail.elevation', 'Elevation +')
+  return t('activityDetail.avgPace', 'Avg pace')
 }
 
 const formatThousands = (n?: number) =>
@@ -136,9 +146,10 @@ const primaryStats = computed<Stat[]>(() => {
   }
 
   if (primary) {
-    // The pace is the "metric of the moment" for a run → highlighted in lime
+    // The "metric of the moment": a pace for a run, a speed for a ride, the
+    // climb for a hike — highlighted in lime.
     out.push({
-      label: t('activityDetail.avgPace', 'Avg pace'),
+      label: primaryLabel(primary.dimension),
       value: primary.value,
       unit: primary.unit,
       highlight: true
@@ -162,7 +173,8 @@ const primaryStats = computed<Stat[]>(() => {
     })
   }
 
-  if (s?.totalAscent != null) {
+  // Omitted when it is already the headline (a hike).
+  if (s?.totalAscent != null && primary?.dimension !== 'elevation') {
     const ascent = units.format('elevation', s.totalAscent)
     out.push({
       label: t('activityDetail.elevation', 'Elevation +'),

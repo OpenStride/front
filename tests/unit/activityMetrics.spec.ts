@@ -63,3 +63,25 @@ describe('distanceDimension', () => {
     expect(distanceDimension('open_water_swimming')).toBe('distance')
   })
 })
+
+describe('primaryMetricSpec — elevation sports', () => {
+  it('headlines the ascent when it is available', () => {
+    const spec = primaryMetricSpec('hiking', { distance: 12800, duration: 14400, ascent: 860 })
+    expect(spec?.dimension).toBe('elevation')
+    expect(spec?.si).toBe(860)
+  })
+
+  it('falls back to pace when the caller has no ascent', () => {
+    // The feed card holds an Activity, not its details, so it cannot supply one.
+    // Better a pace than a blank slot.
+    const spec = primaryMetricSpec('hiking', { distance: 12800, duration: 14400 })
+    expect(spec?.dimension).toBe('pace')
+    expect(Number.isFinite(spec!.si)).toBe(true)
+  })
+
+  it('treats a zero ascent as a real value, not a missing one', () => {
+    const spec = primaryMetricSpec('hiking', { distance: 8000, duration: 7200, ascent: 0 })
+    expect(spec?.dimension).toBe('elevation')
+    expect(spec?.si).toBe(0)
+  })
+})

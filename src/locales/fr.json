@@ -8,7 +8,8 @@
     "avgHr": "FC moy.",
     "maxHr": "FC max",
     "cadence": "Cadence",
-    "calories": "Calories"
+    "calories": "Calories",
+    "avgSpeed": "Vitesse moy."
   },
   "sports": {
     "running": "Course à pied",

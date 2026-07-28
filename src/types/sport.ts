@@ -235,8 +235,14 @@ export const SPORT_FAMILY: Record<SportType, SportFamily> = {
  * would tie sport presentation to an unrelated choice.
  */
 export interface SportProfile {
-  /** The card's accent metric. `none` for sports where speed is meaningless. */
-  primaryMetric: 'pace' | 'pace100' | 'speed' | 'none'
+  /**
+   * The accent metric. `none` for sports where speed is meaningless.
+   *
+   * `elevation` needs the total ascent, which only the detail page has — the
+   * feed card holds an `Activity`, not its details. Callers that cannot supply
+   * it fall back to the motion metric rather than print a blank.
+   */
+  primaryMetric: 'pace' | 'pace100' | 'speed' | 'elevation' | 'none'
   /** `short` reads in metres/yards — a 1500 m swim is not "1.50 km". */
   distanceScale: 'long' | 'short'
 }
@@ -263,7 +269,13 @@ const SPORT_OVERRIDES: Partial<Record<SportType, Partial<SportProfile>>> = {
   // Rowing and paddling crews talk in pace over 500 m, closer to running than
   // to a boat's cruising speed.
   rowing: { primaryMetric: 'pace' },
-  rowing_machine: { primaryMetric: 'pace' }
+  rowing_machine: { primaryMetric: 'pace' },
+  // What a hiker checks first is the climb, not the pace — 4 km in 4 hours says
+  // far less than 860 m of ascent. A flat town walk is not the same activity,
+  // so `walking` keeps its pace.
+  hiking: { primaryMetric: 'elevation' },
+  mountaineering: { primaryMetric: 'elevation' },
+  snowshoeing: { primaryMetric: 'elevation' }
 }
 
 /** Presentation profile for a sport slug. Unknown slugs fall back to `other`. */

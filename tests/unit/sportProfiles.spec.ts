@@ -48,7 +48,8 @@ describe('sport profiles', () => {
   it('paces foot sports and speeds wheeled ones', () => {
     expect(getSportProfile('running').primaryMetric).toBe('pace')
     expect(getSportProfile('trail_running').primaryMetric).toBe('pace')
-    expect(getSportProfile('hiking').primaryMetric).toBe('pace')
+    // A hike headlines its climb — see the elevation cases below.
+    expect(getSportProfile('walking').primaryMetric).toBe('pace')
     expect(getSportProfile('cycling').primaryMetric).toBe('speed')
     expect(getSportProfile('mountain_biking').primaryMetric).toBe('speed')
   })
@@ -65,6 +66,14 @@ describe('sport profiles', () => {
     const open = getSportProfile('open_water_swimming')
     expect(open.primaryMetric).toBe('pace100')
     expect(open.distanceScale).toBe('long')
+  })
+
+  it('headlines the climb for sports done to go up', () => {
+    for (const slug of ['hiking', 'mountaineering', 'snowshoeing']) {
+      expect(getSportProfile(slug).primaryMetric, slug).toBe('elevation')
+    }
+    // A flat town walk is a different activity; it keeps its pace.
+    expect(getSportProfile('walking').primaryMetric).toBe('pace')
   })
 
   it('drops the accent metric where speed is meaningless', () => {

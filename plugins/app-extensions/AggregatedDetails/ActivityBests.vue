@@ -11,8 +11,12 @@
           <tr class="text-gray-600 text-xs uppercase tracking-wide">
             <th class="pb-2 text-left">{{ t('bests.distance') }}</th>
             <th class="pb-2 text-right">{{ t('bests.time') }}</th>
-            <th class="pb-2 text-right">{{ t('bests.pace') }}</th>
-            <th class="pb-2 text-right hidden md:table-cell">{{ t('bests.speed') }}</th>
+            <th class="pb-2 text-right">
+              {{ speedFirst ? t('bests.speed') : t('bests.pace') }}
+            </th>
+            <th class="pb-2 text-right hidden md:table-cell">
+              {{ speedFirst ? t('bests.pace') : t('bests.speed') }}
+            </th>
             <th class="pb-2 text-center">{{ t('bests.graph') }}</th>
           </tr>
         </thead>
@@ -37,12 +41,12 @@
               {{ row.timeStr }}
             </td>
             <td class="py-2 text-right tabular-nums">
-              {{ row.paceStr }}
+              {{ speedFirst ? row.speedStr : row.paceStr }}
             </td>
 
-            <!-- Vitesse -->
+            <!-- The secondary of the two, kept for wide screens -->
             <td class="py-2 text-right hidden md:table-cell">
-              {{ row.speedStr }}
+              {{ speedFirst ? row.paceStr : row.speedStr }}
             </td>
 
             <!-- Lien graphique -->
@@ -68,6 +72,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { getSportProfile } from '@/types/sport'
 
 const { t } = useI18n()
 
@@ -77,6 +82,14 @@ const props = defineProps<{
 }>()
 
 const { analyzer: analyzerFactory, units } = usePluginContext()
+
+/**
+ * A cyclist reads km/h, a runner min/km. The narrow column is the one that
+ * survives on mobile, so it has to be the one the sport actually cares about.
+ */
+const speedFirst = computed(
+  () => getSportProfile(props.data?.activity?.type ?? '').primaryMetric === 'speed'
+)
 const analyzer = analyzerFactory.create(props.data.details?.samples ?? [])
 
 /* ===== Distances cibles ====================================== */
