@@ -68,3 +68,44 @@ describe('ActivityTopBlock widget', () => {
     setUnitSystem('metric')
   })
 })
+
+describe('ActivityTopBlock — sports without a pace', () => {
+  beforeEach(() => setUnitSystem('metric'))
+
+  const gym = () =>
+    render({
+      ...makeData({ type: 'strength_training', distance: 0, duration: 3300 }),
+      details: {
+        id: 'a1',
+        stats: { averageHeartRate: 118, maxHeartRate: 158, calories: 410 },
+        samples: []
+      }
+    })
+
+  it('headlines calories when there is no pace or speed to show', () => {
+    // The accent slot used to hold a dash while the calories sat in the second row.
+    const text = gym().text()
+    expect(text).toContain('410')
+    expect(text).toMatch(/CALORIES|Calories/i)
+  })
+
+  it('drops the empty distance and pace slots', () => {
+    const text = gym().text()
+    expect(text).not.toContain('0.00')
+    expect(text).not.toMatch(/Avg pace/i)
+  })
+
+  it('does not print the calories twice', () => {
+    const matches = gym().text().match(/410/g) ?? []
+    expect(matches).toHaveLength(1)
+  })
+
+  it('still keeps calories in the second row for a run', () => {
+    const text = render({
+      ...makeData({ type: 'running' }),
+      details: { id: 'a1', stats: { averageSpeed: 3, calories: 600 }, samples: [] }
+    }).text()
+    expect(text).toMatch(/Avg pace/i)
+    expect(text).toContain('600')
+  })
+})

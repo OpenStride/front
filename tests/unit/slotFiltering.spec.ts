@@ -82,9 +82,15 @@ describe('StandardDetails applicability', () => {
     expect(swim.appliesTo!({ details: createSwimDetails() })).toBe(true)
   })
 
-  it('hides the sample-driven graphs on that same swim', () => {
+  it('keeps the cardio graphs on a swim, and drops the rest', () => {
+    // Heart rate is meaningful in the pool and the watch records it; cadence and
+    // speed are not recorded there. The widget follows the data, not the sport —
+    // which is why no swim-specific rule was ever needed for this.
     const swimDetails = createSwimDetails()
-    for (const id of ['heart-rate', 'heart-zones', 'cadence']) {
+    for (const id of ['heart-rate', 'heart-zones']) {
+      expect(entryFor(id).appliesTo!({ details: swimDetails }), `"${id}" should show`).toBe(true)
+    }
+    for (const id of ['cadence', 'speed']) {
       expect(entryFor(id).appliesTo!({ details: swimDetails }), `"${id}" should be hidden`).toBe(
         false
       )

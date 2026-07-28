@@ -91,14 +91,17 @@ const formatDuration = (seconds?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-/** Which quantity to headline is `primaryMetricSpec`'s call, shared with the card. */
-const formatPrimary = (metersPerSecond?: number): { value: string; unit: string } => {
+/**
+ * Which quantity to headline is `primaryMetricSpec`'s call, shared with the card.
+ * Null when the sport has none — a strength session has no pace to print.
+ */
+const formatPrimary = (metersPerSecond?: number) => {
   const spec = primaryMetricSpec(activity.value.type, {
     speed: metersPerSecond,
     distance: activity.value.distance,
     duration: activity.value.duration
   })
-  return spec ? units.format(spec.dimension, spec.si) : { value: '—', unit: '' }
+  return spec ? units.format(spec.dimension, spec.si) : null
 }
 
 const formatThousands = (n?: number) =>
@@ -120,26 +123,45 @@ type Stat = { label: string; value: string; unit: string; highlight?: boolean }
 const primaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
   const primary = formatPrimary(s?.averageSpeed)
-  const distance = formatDistance(activity.value.distance)
-  const out: Stat[] = [
-    {
+  const out: Stat[] = []
+
+  // A strength session covers no ground; "0.00 km" is noise, not information.
+  if ((activity.value.distance ?? 0) > 0) {
+    const distance = formatDistance(activity.value.distance)
+    out.push({
       label: t('activityDetail.distance', 'Distance'),
       value: distance.value,
       unit: distance.unit
-    },
-    {
-      // The pace is the "metric of the moment" for a run → highlighted in lime
+    })
+  }
+
+  if (primary) {
+    // The pace is the "metric of the moment" for a run → highlighted in lime
+    out.push({
       label: t('activityDetail.avgPace', 'Avg pace'),
       value: primary.value,
       unit: primary.unit,
       highlight: true
-    },
-    {
-      label: t('activityDetail.time', 'Time'),
-      value: formatDuration(activity.value.duration),
-      unit: ''
-    }
-  ]
+    })
+  }
+
+  out.push({
+    label: t('activityDetail.time', 'Time'),
+    value: formatDuration(activity.value.duration),
+    unit: ''
+  })
+
+  // With no pace or speed to headline, the effort worth reading is the energy
+  // spent — so calories take the accent slot rather than sit in the second row.
+  if (!primary && s?.calories != null) {
+    out.push({
+      label: t('activityDetail.calories', 'Calories'),
+      value: formatThousands(s.calories),
+      unit: 'kcal',
+      highlight: true
+    })
+  }
+
   if (s?.totalAscent != null) {
     const ascent = units.format('elevation', s.totalAscent)
     out.push({
@@ -166,7 +188,8 @@ const secondaryStats = computed<Stat[]>(() => {
       value: Math.round(s.averageCadence).toString(),
       unit: 'spm'
     })
-  if (s?.calories != null)
+  // Omitted when the primary block already headlines it (see primaryStats).
+  if (s?.calories != null && formatPrimary(s?.averageSpeed))
     out.push({
       label: t('activityDetail.calories', 'Calories'),
       value: formatThousands(s.calories),

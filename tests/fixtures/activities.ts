@@ -329,7 +329,13 @@ export const createSwimDetails = (
   overrides?: Partial<ActivityDetails>
 ): ActivityDetails =>
   createActivityDetails(activityId, 0, {
-    samples: [],
+    // A pool swim from any modern watch carries optical heart rate — but no
+    // cadence, speed or elevation. That asymmetry is the point: widgets gate on
+    // the data they plot, so heart rate shows and the rest does not.
+    samples: Array.from({ length: 84 }, (_, i) => ({
+      time: i * 30,
+      heartRate: Math.round(134 + Math.sin(i / 7) * 12)
+    })),
     laps: [],
     stats: { averageSpeed: 1500 / 1800, calories: 400 },
     measurements: {
