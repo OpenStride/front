@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { selectSlotLoaders } from '@/services/ExtensionPluginRegistry'
 import type { SlotEntry } from '@/types/extension'
 import StandardDetails from '@plugins/app-extensions/StandardDetails/index'
+import { createSwimDetails } from '../fixtures/activities'
 
 const loaded: string[] = []
 const trackedLoader = (name: string) => async () => {
@@ -77,11 +78,17 @@ describe('StandardDetails applicability', () => {
   it('shows the swim summary only when swim measurements exist', () => {
     const swim = entryFor('swim-summary')
     expect(swim.appliesTo!({ details: details({ samples: [] }) })).toBe(false)
-    expect(
-      swim.appliesTo!({
-        details: details({ measurements: { 'swim.swolf': { value: 38, unit: 'swolf' } } })
-      })
-    ).toBe(true)
+    // The shared swim fixture is what a provider actually supplies.
+    expect(swim.appliesTo!({ details: createSwimDetails() })).toBe(true)
+  })
+
+  it('hides the sample-driven graphs on that same swim', () => {
+    const swimDetails = createSwimDetails()
+    for (const id of ['heart-rate', 'heart-zones', 'cadence']) {
+      expect(entryFor(id).appliesTo!({ details: swimDetails }), `"${id}" should be hidden`).toBe(
+        false
+      )
+    }
   })
 
   it('treats missing details as nothing to show rather than crashing', () => {

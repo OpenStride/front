@@ -235,6 +235,34 @@ Pour les unités : `ctx.units.format()` / `ctx.units.convert()` / `ctx.units.sys
 > vivent dans des plugins. Sans accès au formateur, ils resteraient figés en
 > métrique et la moitié de l'app ignorerait la préférence.
 
+## 13. Écrire un test qui touche aux sports ou aux unités
+
+Partir de `tests/fixtures/activities.ts`, pas d'un objet écrit à la main :
+
+```ts
+import { createActivity, createSwimActivity, createSwimDetails } from '../fixtures/activities'
+```
+
+| Fixture                        | Ce qu'elle représente                                |
+| ------------------------------ | ---------------------------------------------------- |
+| `createActivity()`             | Course avec tracé — allure /km, échelle longue       |
+| `createRideActivity()`         | Vélo — vitesse                                        |
+| `createSwimActivity()`         | Bassin — sans GPS, échelle courte, allure /100       |
+| `createSwimDetails()`          | Les mesures natation telles qu'un provider les fournit |
+| `createGymActivity()`          | Salle — sans distance ni allure                       |
+| `createLegacyActivity()`       | Type brut `"RUNNING"`, antérieur au vocabulaire       |
+| `createActivitiesAcrossSports()` | Une de chaque, pour balayer les formes              |
+
+Un test unitaire qui bascule les unités doit **remettre la préférence** à la fin
+(`setUnitSystem('metric')`) : c'est un singleton de module.
+
+> **Pourquoi.** Le fixture partagé portait `type: 'run'`, qui n'est pas un
+> `SportType`. Il retombait donc sur le profil `other` : tout test rendant une
+> card à partir de lui aurait constaté une absence d'allure sans que ce soit un
+> bug du code. Un fixture qui ment fait mentir tout ce qui s'appuie dessus.
+> `tests/unit/fixtures.spec.ts` vérifie désormais que chaque type est canonique
+> et que chaque clé de mesure existe au registre avec la bonne unité.
+
 ---
 
 ## Avant de merger
@@ -245,6 +273,7 @@ Pour les unités : `ctx.units.format()` / `ctx.units.convert()` / `ctx.units.sys
 - [ ] Les nouvelles clés de mesure ont libellé dans **les deux** locales
 - [ ] Les graphes canvas touchés redessinent au changement de préférence
 - [ ] Testé en impérial **et** en métrique, pas seulement l'un des deux
+- [ ] Les nouveaux tests partent de `tests/fixtures/activities.ts`
 
 ## Symptôme → cause → règle
 

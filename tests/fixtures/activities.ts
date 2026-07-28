@@ -51,7 +51,9 @@ export const createActivity = (overrides?: Partial<Activity>): Activity => ({
   startTime: BASE_TIME,
   duration: 1800, // 30 minutes
   distance: 5000, // 5km
-  type: 'run',
+  // Canonical SportType — 'run' is not one, and would resolve to the `other`
+  // profile, silently dropping the pace from anything rendering this fixture.
+  type: 'running',
   title: 'Morning Run',
   version: 1,
   lastModified: BASE_TIME,
@@ -217,7 +219,7 @@ export const createFriendActivity = (
   startTime: BASE_TIME,
   duration: 1800,
   distance: 5000,
-  type: 'run',
+  type: 'running',
   title: "Friend's Morning Run",
   mapPolyline: [
     [48.8566, 2.3522],
@@ -268,7 +270,7 @@ export const createPublicActivity = (overrides?: Partial<PublicActivity>): Publi
   startTime: BASE_TIME,
   duration: 1800,
   distance: 5000,
-  type: 'run',
+  type: 'running',
   title: 'Morning Run',
   mapPolyline: [
     [48.8566, 2.3522],
@@ -289,3 +291,87 @@ export const createYearActivities = (year = 2026, count = 10): YearActivities =>
     })
   )
 })
+
+// ─── Sport-shaped fixtures ────────────────────────────────────────────────────
+// One per presentation family, so tests exercising sport profiles, units or
+// widget applicability do not each re-invent their own shapes.
+
+/** Wheeled: headlines a speed, reads in long distances. */
+export const createRideActivity = (overrides?: Partial<Activity>): Activity =>
+  createActivity({
+    id: 'ride-1',
+    type: 'cycling',
+    title: 'Sunday Ride',
+    distance: 30000,
+    duration: 3600,
+    ...overrides
+  })
+
+/**
+ * Pool swim: no GPS, reads in short distances, paced per 100.
+ * `mapPolyline` is explicitly empty — that absence is what drives the card to
+ * drop its hero and the detail page to drop its map.
+ */
+export const createSwimActivity = (overrides?: Partial<Activity>): Activity =>
+  createActivity({
+    id: 'swim-1',
+    type: 'pool_swimming',
+    title: 'Pool Session',
+    distance: 1500,
+    duration: 1800,
+    mapPolyline: [],
+    ...overrides
+  })
+
+/** Details carrying the swim-specific measurements a provider supplies. */
+export const createSwimDetails = (
+  activityId = 'swim-1',
+  overrides?: Partial<ActivityDetails>
+): ActivityDetails =>
+  createActivityDetails(activityId, 0, {
+    samples: [],
+    laps: [],
+    stats: { averageSpeed: 1500 / 1800, calories: 400 },
+    measurements: {
+      // Units are canonical SI, as stored. 25 m pool, 60 lengths.
+      'swim.poolLength': { value: 25, unit: 'm' },
+      'swim.lengths': { value: 60, unit: 'count' },
+      'swim.strokes': { value: 720, unit: 'count' },
+      'swim.strokeRate': { value: 34, unit: 'spm' },
+      'swim.swolf': { value: 38, unit: 'swolf' }
+    },
+    ...overrides
+  })
+
+/** Gym: no distance, no meaningful pace — the card shows time alone. */
+export const createGymActivity = (overrides?: Partial<Activity>): Activity =>
+  createActivity({
+    id: 'gym-1',
+    type: 'yoga',
+    title: 'Evening Yoga',
+    distance: 0,
+    duration: 3600,
+    mapPolyline: [],
+    ...overrides
+  })
+
+/**
+ * An activity stored before the canonical vocabulary, carrying the provider's
+ * raw string. Sport lookups must lowercase, or this loses its pace.
+ */
+export const createLegacyActivity = (overrides?: Partial<Activity>): Activity =>
+  createActivity({
+    id: 'legacy-1',
+    type: 'RUNNING',
+    title: 'Legacy Uppercase Run',
+    ...overrides
+  })
+
+/** One activity per presentation shape, for tests that sweep across sports. */
+export const createActivitiesAcrossSports = (): Activity[] => [
+  createActivity(),
+  createRideActivity(),
+  createSwimActivity(),
+  createGymActivity(),
+  createLegacyActivity()
+]

@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import { setUnitSystem } from '@/composables/useUnits'
 import en from '@/locales/en.json'
+import { createActivity } from '../fixtures/activities'
 
 // The card pulls in interactions and Leaflet; neither is under test here.
 vi.mock('@/components/MapPreview.vue', () => ({ default: { template: '<div />' } }))
@@ -21,17 +22,10 @@ vi.mock('@/router', () => ({ default: { push: vi.fn() } }))
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
-const makeActivity = (over: Record<string, unknown> = {}) => ({
-  id: 'a1',
-  version: 1,
-  lastModified: 0,
-  provider: 'test',
-  startTime: 1700000000,
-  duration: 3600,
-  distance: 10000,
-  type: 'running',
-  ...over
-})
+// Shared fixture, so a change to the canonical shape reaches this file too.
+// Overridden to no route by default: the hero is asserted explicitly below.
+const makeActivity = (over: Record<string, unknown> = {}) =>
+  createActivity({ mapPolyline: [], ...over })
 
 const render = (over: Record<string, unknown> = {}) =>
   mount(ActivityCard, {
