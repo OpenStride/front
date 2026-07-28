@@ -50,6 +50,8 @@ Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts
 | `ctx.aggregation`   | `getAggregated(metric, period)`, `listMetrics()`                                      |
 | `ctx.friends`       | `publishPublicData()`, `getMyManifestUrl()`                                           |
 | `ctx.analyzer`      | `create(samples)` returns `{ bestSegments() }`                                        |
+| `ctx.sync`          | `syncNow({ force })`                                                                  |
+| `ctx.units`         | `format(dimension, si)`, `convert(dimension, si)`, `system` -- SI in, display out     |
 
 ### Creating a New Plugin
 
@@ -95,6 +97,17 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - **ALWAYS** use Font Awesome 6 (Free) -- NEVER use emojis in production code
 - **ALWAYS** add `aria-hidden="true"` to icon elements
 
+### Sports & units (see docs/SPORT_AND_UNITS.md)
+
+- **ALWAYS** display figures through `format()` / `ctx.units.format()` -- NEVER write
+  `/ 1000`, `* 3.6` or a hardcoded `'km'`
+- **ALWAYS** store and compute in SI; convert only at the render boundary, never into
+  storage or a cache
+- **ALWAYS** lowercase a sport type before looking it up -- legacy activities carry raw
+  provider strings like `"RUNNING"`
+- A widget decides to show itself from the **data it needs**, not from the sport
+- A block with nothing to show renders nothing -- not a placeholder saying so
+
 ### Code Style
 
 - Prettier: no semi, single quotes, trailing comma none, 100 chars
@@ -136,6 +149,7 @@ rather than to `settings`, which _is_ replicated.
 ## Related Documentation
 
 - Design rules: `docs/DESIGN_GUIDELINES.md`
+- Sports & units recipes: `docs/SPORT_AND_UNITS.md` (design record: `docs/SPORT_TEMPLATES.md`)
 - Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
 - Deployment: `docs/DEPLOYMENT.md`

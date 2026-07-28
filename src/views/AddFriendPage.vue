@@ -23,8 +23,8 @@
           <span>{{ t('addFriend.activities') }}</span>
         </li>
         <li>
-          <strong>{{ Math.round(preview.stats.totalDistance / 1000) }}</strong>
-          <span>{{ t('addFriend.kilometers') }}</span>
+          <strong>{{ totalDistance.value }}</strong>
+          <span>{{ totalDistance.unit }}</span>
         </li>
       </ul>
 
@@ -111,13 +111,15 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useUnits } from '@/composables/useUnits'
 import { useRoute, useRouter } from 'vue-router'
 import { FriendService } from '@/services/FriendService'
 import { ShareUrlService } from '@/services/ShareUrlService'
 import type { PublicManifest } from '@/types/friend'
 
 const { t } = useI18n()
+const { format } = useUnits()
 
 const route = useRoute()
 const router = useRouter()
@@ -129,6 +131,9 @@ const success = ref(false)
 const error = ref(false)
 const invalidLink = ref(false)
 const preview = ref<PublicManifest | null>(null)
+
+// The friend's total, in whichever units the reader prefers.
+const totalDistance = computed(() => format('distance', preview.value?.stats?.totalDistance ?? 0))
 const alreadyAdded = ref(false)
 const moved = ref(false)
 const published = ref(false)

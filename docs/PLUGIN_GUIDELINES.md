@@ -64,6 +64,8 @@ export interface PluginContext {
     aggregation: IAggregationService  // Read aggregated stats
     friends: IFriendService           // Public data & friend management
     analyzer: IAnalyzerFactory        // Activity analysis (best segments)
+    sync: ISyncService                // Trigger a sync
+    units: IUnitsService              // SI values -> the user's unit system
 }
 ```
 
@@ -323,6 +325,35 @@ await db.addItemsToStore('activities', myActivities, (a) => a.id);  // WRONG!
 - No event emission for aggregation
 
 **Fix:** Use `context.activity.saveActivitiesWithDetails()` instead
+
+### ❌ Converting Units by Hand
+
+Most of the app's charts and statistics live in plugins. A conversion written by
+hand is a place that ignores the user's unit preference — an imperial user was
+reading kilometres in their own statistics because of exactly this.
+
+```typescript
+// ❌ WRONG
+const km = activity.distance / 1000
+const kmh = (speed * 3.6).toFixed(1) + ' km/h'
+
+// ✅ CORRECT — values are stored in SI, converted at display time
+const { units } = usePluginContext()
+units.format('distance', activity.distance).text // "6.21 mi" or "10.00 km"
+units.convert('speed', speed).value              // a number, for a chart axis
+```
+
+A `<canvas>` chart sits outside Vue's reactivity, so it must redraw itself:
+
+```typescript
+watch(
+  () => units.system,
+  () => drawCanvas()
+)
+```
+
+**Never store a converted value.** Records and caches must stay in SI, or they
+would depend on a display preference. See `docs/SPORT_AND_UNITS.md`.
 
 ### ❌ Importing Other Plugins
 

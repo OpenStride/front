@@ -1,6 +1,20 @@
 # Templating par sport — proposition d'architecture
 
-> Document de conception. Rien n'est implémenté. À valider avant écriture de code.
+> **Document de conception — archive.** Il retrace les arbitraires et les raisons,
+> pas la façon de faire. L'architecture décrite ici est **implémentée**.
+>
+> Pour écrire du code : **`docs/SPORT_AND_UNITS.md`** (cas d'usage → façon de faire).
+> Ce document reste utile pour comprendre *pourquoi* une règle existe avant de la
+> remettre en cause.
+>
+> Écarts entre la conception et le résultat, assumés :
+>
+> - Le sac de mesures s'appelle `measurements` et porte aussi `labelKey` : le
+>   registre devait être lu par le code, il ne l'était que par un test.
+> - Une dimension `poolLength` a été ajoutée : convertir une longueur de bassin
+>   donnait un nombre qu'aucun nageur ne lit.
+> - La couche unités expose `convert()` en plus de `format()` : les axes de
+>   graphes ont besoin d'un nombre, et sans cela ils redéclaraient les facteurs.
 
 ## 1. Le problème
 
