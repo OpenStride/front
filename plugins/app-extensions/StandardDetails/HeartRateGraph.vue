@@ -65,7 +65,7 @@ onMounted(() => {
           pointHoverRadius: 4
         },
         {
-          label: 'Moyenne',
+          label: t('graphs.average'),
           data: Array(bpmSeries.value.length).fill(meanBPM.value),
           borderColor: cssVar('--color-gray-400', '#9ca3af'),
           borderWidth: 2,

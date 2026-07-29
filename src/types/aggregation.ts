@@ -1,3 +1,6 @@
+import type { ActivitySource } from './activitySources'
+import type { Dimension } from './units'
+
 export type AggregationPeriod = 'week' | 'month' | 'year'
 export type AggregationOp = 'sum' | 'avg' // sprint 1 scope
 
@@ -5,13 +8,20 @@ export interface AggregationMetricDefinition {
   id: string
   label: string
   enabled: boolean
-  sourceRef: string // path in activity/details merged object
+  /** Which numeric field to aggregate — see `ACTIVITY_SOURCES`. */
+  sourceRef: ActivitySource
   aggregation: AggregationOp
   periods: AggregationPeriod[]
   unit?: string
   decimals?: number
-  displayUnit?: string // unité d'affichage (ex: 'km')
-  displayFactor?: number // facteur de conversion pour l'affichage (ex: 0.001 pour m -> km)
+  /**
+   * Which dimension to render the aggregate in, when it has one.
+   *
+   * Not a unit and not a factor: those were a second, preference-blind copy of
+   * the conversion table, so an aggregate read "km" to everyone. The renderer
+   * passes this to `units.format`, which is the only place a factor lives.
+   */
+  dimension?: Dimension
 }
 
 export interface AggregatedRecord {

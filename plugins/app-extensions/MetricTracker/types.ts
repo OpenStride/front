@@ -1,5 +1,6 @@
 import { openRange, rollingRange, type TimeRange } from '@/utils/timeRange'
 import type { DerivedMap } from '@/composables/useActivityMetricsIndex'
+import type { ActivitySource } from '@/types/activitySources'
 
 export type { DerivedMap }
 
@@ -61,20 +62,23 @@ export function availableWindows(granularity: Granularity): WindowId[] {
 /** How the per-activity values of a bucket collapse into a single point */
 export type PeriodOp = 'sum' | 'avg' | 'min' | 'max' | 'ratio'
 
+/**
+ * Where a metric's raw value comes from.
+ *
+ * Either a name from the shared registry — which the compiler ties to the real
+ * `Activity` / `ActivityDetails` fields — or a value of the per-activity index,
+ * whose keys are generated (`derived.time_5000`) and so stay a template.
+ */
+export type MetricSourceRef = ActivitySource | `derived.${string}`
+
 export interface MetricDefinition {
   id: string
-  /**
-   * Path of the raw value, in one of three shapes:
-   * - 'distance'            a top-level Activity field
-   * - 'stats.maxHeartRate'  a stat of its details
-   * - 'derived.time_5000'   a value of the per-activity metric index
-   */
-  sourceRef: string
+  sourceRef: MetricSourceRef
   /**
    * Only for `ratio`: the bucket value is sum(sourceRef) / sum(denominatorRef),
    * which weights each activity by its own size instead of averaging averages.
    */
-  denominatorRef?: string
+  denominatorRef?: MetricSourceRef
   periodOp: PeriodOp
   /** Lower is better (pace, times) — the chart reverses its y axis */
   betterIsLower?: boolean

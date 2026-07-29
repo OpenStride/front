@@ -8,17 +8,19 @@ donnée, parce qu'une règle dont on a oublié le motif finit par être contourn
 
 ## En un coup d'œil
 
-| J'ai besoin de…                              | J'utilise                                |
-| -------------------------------------------- | ---------------------------------------- |
-| Afficher une valeur chiffrée                 | `format(dimension, si)`                  |
-| Alimenter un axe ou une série de graphe      | `convert(dimension, si).value`           |
-| Savoir quelle métrique mettre en avant       | `primaryMetricSpec(sport, …)`            |
-| Afficher une distance totale                 | `distanceDimension(sport)` puis `format` |
-| Ajouter un sport                             | `SPORT_TYPES` + `SPORT_FAMILY`           |
-| Ajouter une donnée propre à un sport         | `MEASUREMENT_KEYS` + `MEASUREMENTS`      |
-| Ajouter un widget de détail                  | un `SlotEntry` avec `appliesTo`          |
-| Accéder à un service core depuis un plugin   | `PluginContext`                          |
-| Afficher sur une card une valeur des détails | `computeValues()` + `DERIVED`            |
+| J'ai besoin de…                                   | J'utilise                                |
+| ------------------------------------------------- | ---------------------------------------- |
+| Afficher une valeur chiffrée                      | `format(dimension, si)`                  |
+| Alimenter un axe ou une série de graphe           | `convert(dimension, si).value`           |
+| Savoir quelle métrique mettre en avant            | `primaryMetricSpec(sport, …)`            |
+| Afficher une distance totale                      | `distanceDimension(sport)` puis `format` |
+| Ajouter un sport                                  | `SPORT_TYPES` + `SPORT_FAMILY`           |
+| Ajouter une donnée propre à un sport              | `MEASUREMENT_KEYS` + `MEASUREMENTS`      |
+| Ajouter un widget de détail                       | un `SlotEntry` avec `appliesTo`          |
+| Accéder à un service core depuis un plugin        | `PluginContext`                          |
+| Afficher sur une card une valeur des détails      | `computeValues()` + `DERIVED`            |
+| Lire une valeur chiffrée saisie par l'utilisateur | `toSI(dimension, valeur)`                |
+| Nommer un champ agrégeable                        | `ACTIVITY_SOURCES`                       |
 
 ---
 
@@ -253,6 +255,60 @@ Trois contraintes, chacune payée une fois :
 > jamais dépassé le seuil de bruit » : on ne le stocke pas, sinon la card
 > afficherait « 0 m » là où il n'y a rien à dire (§9).
 
+## 10 ter. Faire _saisir_ une valeur chiffrée
+
+**`toSI(dimension, valeur)` avant de stocker.** Jamais la valeur brute du champ.
+
+```ts
+const { units } = usePluginContext()
+// L'utilisateur tape 50 ; en impérial cela veut dire 50 miles.
+targetValue = units.toSI('distance', 50) // → 80 467 m
+```
+
+Et le champ annonce l'unité qu'il attend, au lieu de l'écrire en dur :
+
+```ts
+const unitLabel = computed(() => units.convert('distance', 0).unit) // 'km' | 'mi'
+```
+
+`toSI` est l'inverse exact de `convert` et sort de la même table — offset compris,
+donc 212 °F redonne bien 100 °C.
+
+> **Pourquoi.** Les objectifs stockaient `targetValue` en km et en heures, dans
+> `goals_config` — donc dans `settings`, qui **est répliqué**. Un lecteur impérial
+> visant « 50 » obtenait 50 km, et ce nombre faux voyageait ensuite vers tous ses
+> appareils. §10 interdit la valeur convertie dans un cache local ; c'est encore
+> plus vrai d'un réglage synchronisé.
+
+**Unité ≠ langue.** `t('goals.units.km')` traduisait l'unité sans jamais la
+convertir : l'i18n employée comme couche d'unités. Un kilomètre n'est pas une
+langue. Ne passer par `t()` que pour ce qui se lit pareil dans les deux systèmes
+— un nombre d'activités, des heures.
+
+## 10 quater. Rendre un champ agrégeable
+
+**Une entrée dans `ACTIVITY_SOURCES` (`src/types/activitySources.ts`), pas un
+chemin en chaîne.**
+
+```ts
+export const ACTIVITY_SOURCES = {
+  distance: a => a.distance,
+  'stats.totalAscent': (_, d) => d?.stats?.totalAscent
+} satisfies Record<string, SourceAccessor>
+```
+
+Le nom est **persisté** (config d'agrégation, définition de métrique) donc il doit
+survivre à un refactor. Écrit en accesseur, le compilateur tient le lien :
+renommer `totalAscent` casse ce fichier, qui casse les définitions qui le citent.
+
+> **Pourquoi.** C'était `sourceRef: string`, résolu au runtime par un
+> `getValueByPath` générique. Renommer un champ laissait chaque agrégation lire
+> `undefined` — rien ne plantait, la courbe devenait plate et personne ne le
+> voyait.
+
+Un nom absent du registre est **ignoré**, jamais agrégé en `NaN` : une config
+écrite par une version antérieure peut nommer un champ disparu.
+
 ## 11. Longueur de bassin
 
 Dimension `poolLength`, jamais `distanceShort`.
@@ -342,14 +398,16 @@ Un test unitaire qui bascule les unités doit **remettre la préférence** à la
 
 ## Symptôme → cause → règle
 
-| Symptôme                                         | Cause                                              | Règle   |
-| ------------------------------------------------ | -------------------------------------------------- | ------- |
-| Des km apparaissent en mode impérial             | Conversion écrite à la main                        | §1      |
-| Un graphe reste en métrique après changement     | Canvas non redessiné                               | §2      |
-| Une allure disparaît sur d'anciennes activités   | Recherche sensible à la casse                      | §6      |
-| `62` sans savoir si ce sont des pas ou des coups | Mesure stockée sans unité                          | §7      |
-| Un widget vide sur un sport                      | `appliesTo` absent ou basé sur le sport            | §8      |
-| Un grand bloc gris sans information              | Substitut affiché au lieu de rien                  | §9      |
-| Un record change avec la préférence              | Valeur convertie stockée                           | §10     |
-| Un bassin de « 27 yd »                           | `distanceShort` au lieu de `poolLength`            | §11     |
-| Une valeur des détails absente de la card        | Pas remontée au scan, ou `INDEX_VERSION` non bumpé | §10 bis |
+| Symptôme                                         | Cause                                              | Règle      |
+| ------------------------------------------------ | -------------------------------------------------- | ---------- |
+| Des km apparaissent en mode impérial             | Conversion écrite à la main                        | §1         |
+| Un graphe reste en métrique après changement     | Canvas non redessiné                               | §2         |
+| Une allure disparaît sur d'anciennes activités   | Recherche sensible à la casse                      | §6         |
+| `62` sans savoir si ce sont des pas ou des coups | Mesure stockée sans unité                          | §7         |
+| Un widget vide sur un sport                      | `appliesTo` absent ou basé sur le sport            | §8         |
+| Un grand bloc gris sans information              | Substitut affiché au lieu de rien                  | §9         |
+| Un record change avec la préférence              | Valeur convertie stockée                           | §10        |
+| Un bassin de « 27 yd »                           | `distanceShort` au lieu de `poolLength`            | §11        |
+| Une valeur des détails absente de la card        | Pas remontée au scan, ou `INDEX_VERSION` non bumpé | §10 bis    |
+| Un objectif saisi en miles enregistré en km      | Valeur du champ stockée sans `toSI`                | §10 ter    |
+| Une agrégation devenue plate sans erreur         | Champ renommé, `sourceRef` en chaîne               | §10 quater |

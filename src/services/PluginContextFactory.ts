@@ -1,4 +1,4 @@
-import type { PluginContext } from '@/types/plugin-context'
+import type { PluginContext, ProviderImportEvent } from '@/types/plugin-context'
 import { getActivityService } from './ActivityService'
 import { IndexedDBService } from './IndexedDBService'
 import { ToastService } from './ToastService'
@@ -12,10 +12,12 @@ import { StoragePluginManager } from './StoragePluginManager'
 import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
+import { DataProviderService } from './DataProviderService'
 import {
   convertQuantity,
   ensureUnitsLoaded,
   formatQuantity,
+  toSI,
   unitSystem
 } from '@/composables/useUnits'
 
@@ -125,7 +127,17 @@ export async function createPluginContext(): Promise<PluginContext> {
         return unitSystem.value
       },
       format: formatQuantity,
-      convert: convertQuantity
+      convert: convertQuantity,
+      toSI
+    },
+
+    providers: {
+      onActivitiesImported: (handler: (event: ProviderImportEvent) => void) => {
+        const service = DataProviderService.getInstance()
+        const listener = (evt: Event) => handler((evt as CustomEvent<ProviderImportEvent>).detail)
+        service.emitter.addEventListener('provider-activities-imported', listener)
+        return () => service.emitter.removeEventListener('provider-activities-imported', listener)
+      }
     }
   }
 }

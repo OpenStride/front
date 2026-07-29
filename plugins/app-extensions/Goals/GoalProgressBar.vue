@@ -26,10 +26,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePluginContext } from '@/composables/usePluginContext'
 import type { GoalProgress } from './types'
 import { formatSportType } from './sportLabels'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
 
 const props = defineProps<{
   progress: GoalProgress
@@ -51,10 +53,17 @@ const sportLabel = computed(() => {
   return formatSportType(sport)
 })
 
+/**
+ * Values are stored in SI and converted here, at the render boundary.
+ *
+ * A distance follows the reader's preference — km or mi. A count and a duration
+ * in hours read the same in both systems, so they only need a label, which is a
+ * translation rather than a conversion.
+ */
 const unitLabel = computed(() => {
   switch (props.progress.goal.type) {
     case 'distance':
-      return t('goals.units.km')
+      return units.convert('distance', 0).unit
     case 'count':
       return t('goals.units.activities')
     case 'duration':
@@ -64,17 +73,24 @@ const unitLabel = computed(() => {
   }
 })
 
-const formattedCurrent = computed(() => {
-  const val = props.progress.currentValue
-  if (props.progress.goal.type === 'count') return Math.round(val).toString()
-  return val.toFixed(1)
-})
+const SECONDS_PER_HOUR = 3600
 
-const formattedTarget = computed(() => {
-  const val = props.progress.goal.targetValue
-  if (props.progress.goal.type === 'count') return Math.round(val).toString()
-  return val.toFixed(1)
-})
+/** SI → the number shown next to `unitLabel`. */
+const display = (si: number): string => {
+  switch (props.progress.goal.type) {
+    case 'count':
+      return Math.round(si).toString()
+    case 'distance':
+      return units.convert('distance', si).value.toFixed(1)
+    case 'duration':
+      return (si / SECONDS_PER_HOUR).toFixed(1)
+    default:
+      return si.toFixed(1)
+  }
+}
+
+const formattedCurrent = computed(() => display(props.progress.currentValue))
+const formattedTarget = computed(() => display(props.progress.goal.targetValue))
 </script>
 
 <style scoped>
