@@ -57,8 +57,7 @@ describe('segment grade', () => {
     const segments = new ActivityAnalyzer(threeKmProfile()).sampleAverageByDistance(1000)
 
     for (const segment of segments) {
-      expect(segment.segmentDistance).toBeGreaterThan(950)
-      expect(segment.segmentDistance).toBeLessThanOrEqual(1010)
+      expect(segment.segmentDistance).toBe(1000)
     }
   })
 
@@ -120,5 +119,79 @@ describe('elevation profile', () => {
     const trailFiledAsRun = new ActivityAnalyzer(threeKmProfile()).elevationProfile()
 
     expect(trailFiledAsRun.isFlat).toBe(false)
+  })
+})
+
+/** A watch that thins its samples: gaps of 15 to 35 m, not a tidy 10 */
+function coarseTrack(total = 5200): Sample[] {
+  const samples: Sample[] = []
+  let d = 0
+  let i = 0
+  while (d <= total) {
+    samples.push({ time: d / 3, distance: d, elevation: 100 + d * 0.02, speed: 3, heartRate: 150 })
+    d += 15 + ((i++ * 7) % 21)
+  }
+  return samples
+}
+
+describe('split boundaries', () => {
+  it('cuts exactly on the mark whatever the sampling', () => {
+    // Cutting at the first sample past the threshold gave 1005, 1012, 990… —
+    // splits of different lengths, which cannot be compared to each other
+    const segments = new ActivityAnalyzer(coarseTrack()).sampleAverageByDistance(1000)
+
+    for (const segment of segments.slice(0, -1)) {
+      expect(segment.segmentDistance).toBe(1000)
+    }
+  })
+
+  it('holds on a short granularity too', () => {
+    const segments = new ActivityAnalyzer(coarseTrack()).sampleAverageByDistance(200)
+
+    for (const segment of segments.slice(0, -1)) {
+      expect(segment.segmentDistance).toBe(200)
+    }
+  })
+
+  it('keeps the leftover as the real distance it is', () => {
+    const segments = new ActivityAnalyzer(coarseTrack(5200)).sampleAverageByDistance(1000)
+    const last = segments[segments.length - 1]
+
+    expect(last.segmentDistance).toBeGreaterThan(0)
+    expect(last.segmentDistance).toBeLessThan(1000)
+    const total = segments.reduce((sum, s) => sum + (s.segmentDistance ?? 0), 0)
+    expect(total).toBeCloseTo(coarseTrack(5200).at(-1)!.distance!, 0)
+  })
+
+  it('splits a long recording gap into whole marks', () => {
+    // Smart recording can leave kilometres between two samples
+    const sparse: Sample[] = [
+      { time: 0, distance: 0, elevation: 100, speed: 3 },
+      { time: 900, distance: 2700, elevation: 154, speed: 3 }
+    ]
+
+    const segments = new ActivityAnalyzer(sparse).sampleAverageByDistance(1000)
+
+    expect(segments.map(s => s.segmentDistance)).toEqual([1000, 1000, 700])
+  })
+
+  it('adds no empty split when the track ends on a mark', () => {
+    const samples: Sample[] = []
+    for (let d = 0; d <= 2000; d += 10) {
+      samples.push({ time: d / 3, distance: d, elevation: 100, speed: 3 })
+    }
+
+    const segments = new ActivityAnalyzer(samples).sampleAverageByDistance(1000)
+
+    expect(segments).toHaveLength(2)
+    expect(segments.every(s => (s.segmentDistance ?? 0) > 0)).toBe(true)
+  })
+
+  it('still reads the grade correctly on exact splits', () => {
+    const segments = new ActivityAnalyzer(threeKmProfile(23)).sampleAverageByDistance(1000)
+
+    expect(segments[0].slope).toBeCloseTo(5, 1)
+    expect(segments[1].slope).toBeCloseTo(0, 1)
+    expect(segments[2].slope).toBeCloseTo(-5, 1)
   })
 })

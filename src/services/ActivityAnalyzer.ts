@@ -38,32 +38,76 @@ export interface ElevationProfile {
 export class ActivityAnalyzer {
   constructor(private samples: Sample[]) {}
 
+  /**
+   * Split the track every `stepMeters`, cutting exactly on the mark.
+   *
+   * Cutting at the first sample past the threshold instead made every split a
+   * different length — 1005, 1012, 990 m for a "1 km" split, and worse on a
+   * watch that thins its samples. A reader cannot compare splits of unequal
+   * length, and the table read like a list of raw measurements. Interpolating
+   * the crossing point costs one sample per boundary and makes each split
+   * exactly the distance it claims to be.
+   */
   public sampleAverageByDistance(stepMeters: number): SegmentSample[] {
-    if (this.samples.length === 0) return []
+    const points = this.samples.filter(s => s.distance != null)
+    if (points.length === 0 || stepMeters <= 0) return []
 
     const result: SegmentSample[] = []
     let currentSegment: Sample[] = []
     let previousEnd: Sample | undefined
-
     let nextThreshold = stepMeters
-    for (const sample of this.samples) {
-      if (sample.distance == null) continue
 
-      currentSegment.push(sample)
+    for (let i = 0; i < points.length; i++) {
+      const sample = points[i]
 
-      if (sample.distance >= nextThreshold) {
+      // A single gap can span several marks when the watch records sparsely
+      while (sample.distance! >= nextThreshold) {
+        const boundary = this.interpolateAtDistance(points[i - 1] ?? sample, sample, nextThreshold)
+        currentSegment.push(boundary)
         result.push(this.computeAverageSample(currentSegment, previousEnd))
-        previousEnd = currentSegment[currentSegment.length - 1]
-        currentSegment = []
+        previousEnd = boundary
+        currentSegment = [boundary]
         nextThreshold += stepMeters
       }
+
+      currentSegment.push(sample)
     }
 
-    if (currentSegment.length > 0) {
+    // Whatever is left after the last mark — a real, shorter split. Nothing to
+    // report when the track ended exactly on one: the segment is then just the
+    // boundary sample repeated.
+    const tail = currentSegment[currentSegment.length - 1]
+    if (currentSegment.length > 1 && (tail.distance ?? 0) > (previousEnd?.distance ?? -1)) {
       result.push(this.computeAverageSample(currentSegment, previousEnd))
     }
 
     return result
+  }
+
+  /** Linear interpolation between two samples at an exact distance mark */
+  private interpolateAtDistance(before: Sample, after: Sample, distance: number): Sample {
+    const from = before.distance ?? distance
+    const to = after.distance ?? distance
+    const span = to - from
+    const ratio = span > 0 ? (distance - from) / span : 0
+
+    const mix = (a?: number, b?: number) => {
+      if (a == null) return b
+      if (b == null) return a
+      return a + (b - a) * ratio
+    }
+
+    return {
+      time: mix(before.time, after.time) ?? after.time,
+      distance,
+      lat: mix(before.lat, after.lat),
+      lng: mix(before.lng, after.lng),
+      elevation: mix(before.elevation, after.elevation),
+      heartRate: mix(before.heartRate, after.heartRate),
+      cadence: mix(before.cadence, after.cadence),
+      speed: mix(before.speed, after.speed),
+      power: mix(before.power, after.power)
+    }
   }
 
   public sampleByLaps(laps: { time: number }[]): SegmentSample[] {

@@ -23,7 +23,7 @@
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
       <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ tooltip.distance.toFixed(2) }} m
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatSpan(tooltip.distance) }}
       </div>
       <div>
         <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
@@ -45,8 +45,8 @@
       </div>
 
       <div v-for="(s, i) in samples" :key="i" class="flex items-center py-1 text-xs sm:text-sm">
-        <!-- Distance cumulée -->
-        <span class="w-16">{{ segmentDistance(s, i).toFixed(0) }} m</span>
+        <!-- Longueur du tronçon -->
+        <span class="w-16">{{ formatSpan(segmentDistance(s, i)) }}</span>
 
         <!-- Barre horizontale représ. la pace -->
         <div class="flex-1 h-3 bg-gray-100 rounded mx-1 overflow-hidden">
@@ -511,6 +511,14 @@ function hrAvg(sample: Sample) {
 }
 
 /* distance du segment (m) */
+/**
+ * A split reads in kilometres, a 200 m fraction in metres. One dimension for
+ * both would print "0.20 km" on the short granularities.
+ */
+function formatSpan(meters: number) {
+  return units.format(meters >= 1000 ? 'distance' : 'distanceShort', meters).text
+}
+
 function segmentDistance(sample: SegmentSample, i = samples.value.indexOf(sample)) {
   // The analyzer measures the span from raw samples; differencing the averaged
   // `distance` of two segments misses half of each of them

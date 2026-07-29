@@ -25,7 +25,7 @@
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
       <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ tooltip.distance.toFixed(0) }} m
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatSpan(tooltip.distance) }}
       </div>
       <div>
         <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
@@ -126,6 +126,11 @@ async function loadPrefs() {
 }
 
 /* ===== Re-échantillonnage ===== */
+/** Same rule as the pace widget: kilometres for a split, metres for a fraction */
+function formatSpan(meters: number) {
+  return units.format(meters >= 1000 ? 'distance' : 'distanceShort', meters).text
+}
+
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
   showSlope.value = !analyzer.elevationProfile().isFlat
