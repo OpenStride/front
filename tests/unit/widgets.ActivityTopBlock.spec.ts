@@ -3,8 +3,19 @@ import { mount } from '@vue/test-utils'
 import ActivityTopBlock from '@plugins/app-extensions/StandardDetails/ActivityTopBlock.vue'
 import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
 import { formatQuantity, setUnitSystem, unitSystem } from '@/composables/useUnits'
+import type { Activity, ActivityDetails } from '@/types/activity'
 
-function makeData(over: Record<string, unknown> = {}) {
+// Typed rather than inferred: an inferred literal narrows `stats` to the three
+// keys this default happens to carry and `samples` to `never[]`, so every test
+// below that overrides them stops compiling.
+type WidgetData = { activity: Activity; details: ActivityDetails }
+
+type Stats = NonNullable<ActivityDetails['stats']>
+
+function makeData(
+  over: Partial<Activity> = {},
+  detailsOver: Partial<ActivityDetails> = {}
+): WidgetData {
   return {
     activity: {
       id: 'a1',
@@ -13,15 +24,24 @@ function makeData(over: Record<string, unknown> = {}) {
       duration: 1500,
       startTime: Math.floor(Date.now() / 1000),
       provider: 'mock',
+      version: 1,
+      lastModified: Date.now(),
       ...over
     },
-    details: { id: 'a1', stats: { totalAscent: 120, averageSpeed: 3, calories: 400 }, samples: [] }
+    details: {
+      id: 'a1',
+      version: 1,
+      lastModified: Date.now(),
+      stats: { totalAscent: 120, averageSpeed: 3, calories: 400 },
+      samples: [],
+      ...detailsOver
+    }
   }
 }
 
 // The widget formats through the plugin context, as plugins must.
 const pluginContext = {
-    analyzer: {
+  analyzer: {
     create: (samples: { elevation?: number }[]) => ({
       // The real computation, so the fallback path is genuinely exercised.
       elevationChange: () => {
@@ -60,7 +80,7 @@ const pluginContext = {
   }
 }
 
-const render = (data = makeData()) =>
+const render = (data: WidgetData = makeData()) =>
   mount(ActivityTopBlock, {
     props: { data },
     global: { provide: { [PLUGIN_CONTEXT_KEY]: pluginContext } }
@@ -104,14 +124,12 @@ describe('ActivityTopBlock — sports without a pace', () => {
   beforeEach(() => setUnitSystem('metric'))
 
   const gym = () =>
-    render({
-      ...makeData({ type: 'strength_training', distance: 0, duration: 3300 }),
-      details: {
-        id: 'a1',
-        stats: { averageHeartRate: 118, maxHeartRate: 158, calories: 410 },
-        samples: []
-      }
-    })
+    render(
+      makeData(
+        { type: 'strength_training', distance: 0, duration: 3300 },
+        { stats: { averageHeartRate: 118, maxHeartRate: 158, calories: 410 }, samples: [] }
+      )
+    )
 
   it('headlines calories when there is no pace or speed to show', () => {
     // The accent slot used to hold a dash while the calories sat in the second row.
@@ -132,10 +150,9 @@ describe('ActivityTopBlock — sports without a pace', () => {
   })
 
   it('still keeps calories in the second row for a run', () => {
-    const text = render({
-      ...makeData({ type: 'running' }),
-      details: { id: 'a1', stats: { averageSpeed: 3, calories: 600 }, samples: [] }
-    }).text()
+    const text = render(
+      makeData({ type: 'running' }, { stats: { averageSpeed: 3, calories: 600 }, samples: [] })
+    ).text()
     expect(text).toMatch(/Avg pace/i)
     expect(text).toContain('600')
   })
@@ -144,20 +161,21 @@ describe('ActivityTopBlock — sports without a pace', () => {
 describe('ActivityTopBlock — descent and max speed', () => {
   beforeEach(() => setUnitSystem('metric'))
 
-  const ski = (over: Record<string, unknown> = {}) =>
-    render({
-      ...makeData({ type: 'alpine_skiing', distance: 31200, duration: 10800 }),
-      details: {
-        id: 'a1',
-        samples: [
-          { time: 0, elevation: 1800 },
-          { time: 1, elevation: 1200 },
-          { time: 2, elevation: 1750 },
-          { time: 3, elevation: 1100 }
-        ],
-        stats: { averageSpeed: 2.9, maxSpeed: 21.4, totalAscent: 550, ...over }
-      }
-    })
+  const ski = (over: Partial<Stats> = {}) =>
+    render(
+      makeData(
+        { type: 'alpine_skiing', distance: 31200, duration: 10800 },
+        {
+          samples: [
+            { time: 0, elevation: 1800 },
+            { time: 1, elevation: 1200 },
+            { time: 2, elevation: 1750 },
+            { time: 3, elevation: 1100 }
+          ],
+          stats: { averageSpeed: 2.9, maxSpeed: 21.4, totalAscent: 550, ...over }
+        }
+      )
+    )
 
   it('prefers the descent the provider reported', () => {
     expect(ski({ totalDescent: 4200 }).text()).toMatch(/4\s?200\s*m|4200\s*m/)
@@ -175,10 +193,12 @@ describe('ActivityTopBlock — descent and max speed', () => {
   })
 
   it('omits the descent when there is no elevation at all', () => {
-    const flat = render({
-      ...makeData({ type: 'running' }),
-      details: { id: 'a1', samples: [{ time: 0, heartRate: 150 }], stats: { averageSpeed: 3 } }
-    })
+    const flat = render(
+      makeData(
+        { type: 'running' },
+        { samples: [{ time: 0, heartRate: 150 }], stats: { averageSpeed: 3 } }
+      )
+    )
     expect(flat.text()).not.toMatch(/Elevation -|Dénivelé -/i)
   })
 
