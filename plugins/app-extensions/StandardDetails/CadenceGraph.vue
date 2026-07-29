@@ -25,7 +25,7 @@
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
       <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ formatSpan(tooltip.distance) }}
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
       </div>
       <div>
         <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
@@ -43,6 +43,7 @@ import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
@@ -126,10 +127,7 @@ async function loadPrefs() {
 }
 
 /* ===== Re-échantillonnage ===== */
-/** Same rule as the pace widget: kilometres for a split, metres for a fraction */
-function formatSpan(meters: number) {
-  return units.format(meters >= 1000 ? 'distance' : 'distanceShort', meters).text
-}
+const formatDistance = (meters: number) => distanceLabel(units, meters)
 
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
@@ -292,14 +290,14 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
   const xPct = (clientX - rect.left - leftMargin.value) / (rect.width - leftMargin.value)
   const distSel = xPct * (props.data.activity.distance || 0)
 
-  /* recherche du sample cliqué */
-  const idx = samples.value.findIndex((s, i) => {
-    const prev = samples.value[i - 1]
-    return (prev?.distance ?? 0) <= distSel && (s.distance ?? 0) >= distSel
+  /* Segment cliqué, testé sur ses bornes réelles */
+  const idx = samples.value.findIndex(sample => {
+    const end = sample.segmentEnd ?? sample.distance ?? 0
+    const start = sample.segmentDistance != null ? end - sample.segmentDistance : 0
+    return start <= distSel && end >= distSel
   })
   const i = idx === -1 ? samples.value.length - 1 : idx
   const s = samples.value[i]
-  const prev = samples.value[i - 1] ?? s
 
   /* Grade of the segment, measured by the analyzer from the raw track. The
      averaged elevation of two segments cannot be differenced for this: that
@@ -309,7 +307,7 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
   tooltip.value = {
     visible: true,
     style: { left: `${clientX + 10}px`, top: `${clientY + 10}px` },
-    distance: (s.distance ?? 0) - (prev?.distance ?? 0),
+    distance: s.segmentEnd ?? s.distance ?? 0,
     cadence: Math.round(s.cadence ?? 0),
     slope
   }

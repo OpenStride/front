@@ -23,7 +23,7 @@
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
       <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ formatSpan(tooltip.distance) }}
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
       </div>
       <div>
         <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
@@ -45,8 +45,8 @@
       </div>
 
       <div v-for="(s, i) in samples" :key="i" class="flex items-center py-1 text-xs sm:text-sm">
-        <!-- Longueur du tronçon -->
-        <span class="w-16">{{ formatSpan(segmentDistance(s, i)) }}</span>
+        <!-- Repère cumulé : « 1 km, 2 km, 3 km » se lit, « 1 km » répété non -->
+        <span class="w-16">{{ formatDistance(segmentMark(s, i)) }}</span>
 
         <!-- Barre horizontale représ. la pace -->
         <div class="flex-1 h-3 bg-gray-100 rounded mx-1 overflow-hidden">
@@ -81,6 +81,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 import { getSportProfile } from '@/types/sport'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
 import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
@@ -468,7 +469,7 @@ function showTooltip(event: MouseEvent | TouchEvent) {
       left: `${clientX + 10}px`,
       top: `${clientY + 10}px`
     },
-    distance: segmentDistance(s, index),
+    distance: segmentMark(s, index),
     speed,
     pace: paceStr,
     slope,
@@ -525,12 +526,13 @@ function hrAvg(sample: Sample) {
 }
 
 /* distance du segment (m) */
-/**
- * A split reads in kilometres, a 200 m fraction in metres. One dimension for
- * both would print "0.20 km" on the short granularities.
- */
-function formatSpan(meters: number) {
-  return units.format(meters >= 1000 ? 'distance' : 'distanceShort', meters).text
+const formatDistance = (meters: number) => distanceLabel(units, meters)
+
+/** Cumulative distance at the end of the segment — where this row sits on the run */
+function segmentMark(sample: SegmentSample, i = samples.value.indexOf(sample)) {
+  if (sample.segmentEnd != null) return sample.segmentEnd
+  if (sample.distance != null) return sample.distance
+  return segmentDistance(sample, i)
 }
 
 function segmentDistance(sample: SegmentSample, i = samples.value.indexOf(sample)) {
