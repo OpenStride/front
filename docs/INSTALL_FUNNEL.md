@@ -52,7 +52,7 @@ rechargements dans la même session ne disent rien d'une habitude.
 
 ## App native
 
-Pas de lien vers les stores tant qu'il n'y a rien dessus. Le jour où une app
-Capacitor existe, HealthKit et Health Connect entrent tels quels dans le contrat
-`ProviderPlugin` — un dossier par plateforme dans `plugins/data-providers/`,
-sans toucher au core.
+Pas de lien vers les stores tant qu'il n'y a rien dessus. Quand le wrapper
+Capacitor sera fait, **lire `docs/NATIVE_APP.md` avant de commencer** : il
+recense les pièges, dont deux qui touchent directement ce tunnel (le WebView iOS
+se présente comme Safari, et le stockage repart de zéro une fois de plus).

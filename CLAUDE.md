@@ -162,6 +162,7 @@ that stored converted numbers would depend on a display preference. See
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
 - Deployment: `docs/DEPLOYMENT.md`
 - Install funnel (PWA, per-platform timing): `docs/INSTALL_FUNNEL.md`
+- Native app (Capacitor, health plugins) — read before starting: `docs/NATIVE_APP.md`
 
 ---
 
