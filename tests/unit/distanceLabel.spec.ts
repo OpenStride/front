@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { distanceLabel } from '@plugins/app-extensions/StandardDetails/distanceLabel'
 import type { IUnitsService } from '@/types/plugin-context'
+import type { Dimension } from '@/types/units'
 
 /** The metric side of the real units table: km with two decimals, m with none */
 const metric = {
-  format: (dimension, si) => {
+  format: (dimension: Dimension, si: number) => {
     const km = dimension === 'distance'
     const value = km ? (si / 1000).toFixed(2) : si.toFixed(0)
     const unit = km ? 'km' : 'm'

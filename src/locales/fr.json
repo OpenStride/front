@@ -10,7 +10,9 @@
     "calories": "Calories",
     "avgSpeed": "Vitesse moy.",
     "elevationDown": "Dénivelé -",
-    "maxSpeed": "Vitesse max"
+    "maxSpeed": "Vitesse max",
+    "hrAvgMax": "FC moy./max",
+    "elevationUpDown": "Dénivelé +/-"
   },
   "sports": {
     "running": "Course à pied",

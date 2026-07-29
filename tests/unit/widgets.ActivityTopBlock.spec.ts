@@ -184,8 +184,9 @@ describe('ActivityTopBlock — descent and max speed', () => {
   it('computes the descent when the provider gave none', () => {
     // Every activity stored before this existed falls here.
     const text = ski().text()
-    expect(text).toMatch(/Elevation -|Dénivelé/i)
-    expect(text).toMatch(/1250/)
+    // Climbed and descended share one cell now: "Elevation + / -" "550 / 1250 m"
+    expect(text).toMatch(/Elevation \+\/-|Dénivelé/i)
+    expect(text).toMatch(/550\/1250/)
   })
 
   it('shows the max speed, which was stored and displayed nowhere', () => {

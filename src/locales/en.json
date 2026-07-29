@@ -10,7 +10,9 @@
     "calories": "Calories",
     "avgSpeed": "Avg speed",
     "elevationDown": "Elevation -",
-    "maxSpeed": "Max speed"
+    "maxSpeed": "Max speed",
+    "hrAvgMax": "HR avg/max",
+    "elevationUpDown": "Elevation +/-"
   },
   "sports": {
     "running": "Running",

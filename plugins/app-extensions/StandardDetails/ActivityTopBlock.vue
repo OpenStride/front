@@ -189,38 +189,65 @@ const primaryStats = computed<Stat[]>(() => {
     })
   }
 
-  // Omitted when it is already the headline (a hike).
-  if (s?.totalAscent != null && primary?.dimension !== 'elevation') {
-    const ascent = units.format('elevation', s.totalAscent)
-    out.push({
-      label: t('activityDetail.elevation', 'Elevation +'),
-      value: ascent.value,
-      unit: ascent.unit
-    })
-  }
-
+  // Climbed and descended read as one quantity — and as two cells they left an
+  // odd number in a two-column grid, so the last one sat alone on its row.
+  // Ascent is dropped from the pair when it is already the headline (a hike).
+  const ascent =
+    s?.totalAscent != null && primary?.dimension !== 'elevation'
+      ? units.format('elevation', s.totalAscent)
+      : null
   // The twin of the ascent, and the number a skier actually reads — a day on
   // the slopes climbs almost nothing and descends thousands of metres.
-  if (totalDescent.value != null) {
-    const descent = units.format('elevation', totalDescent.value)
-    out.push({
-      label: t('activityDetail.elevationDown', 'Elevation -'),
-      value: descent.value,
-      unit: descent.unit
-    })
-  }
+  const descent = totalDescent.value != null ? units.format('elevation', totalDescent.value) : null
+
+  const elevation = pairStat(
+    ascent && { label: t('activityDetail.elevation', 'Elevation +'), ...ascent },
+    descent && { label: t('activityDetail.elevationDown', 'Elevation -'), ...descent },
+    t('activityDetail.elevationUpDown', 'Elev. +/-')
+  )
+  if (elevation) out.push(elevation)
+
   return out
 })
+
+/**
+ * Two readings of the same quantity in one cell: "148 / 172 bpm".
+ *
+ * Splitting them across two cells made the grid odd-numbered — the last metric
+ * ended up alone on its row — and separated numbers that are read together.
+ * With only one of the two available it keeps that one's own label, so nothing
+ * ever prints "148 / —".
+ */
+function pairStat(
+  first: (Stat & { unit: string }) | null | undefined | false,
+  second: (Stat & { unit: string }) | null | undefined | false,
+  pairedLabel: string
+): Stat | null {
+  if (first && second) {
+    // No spaces around the slash: "320 / 318" wrapped mid-pair in the ink
+    // block, splitting two numbers that only mean something together.
+    return { label: pairedLabel, value: `${first.value}/${second.value}`, unit: second.unit }
+  }
+  return first || second || null
+}
 
 const secondaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
   const out: Stat[] = []
-  if (s?.averageHeartRate != null)
-    out.push({
+  const heartRate = pairStat(
+    s?.averageHeartRate != null && {
       label: t('activityDetail.avgHr', 'Avg HR'),
       value: Math.round(s.averageHeartRate).toString(),
       unit: 'bpm'
-    })
+    },
+    s?.maxHeartRate != null && {
+      label: t('activityDetail.maxHr', 'Max HR'),
+      value: Math.round(s.maxHeartRate).toString(),
+      unit: 'bpm'
+    },
+    t('activityDetail.hrAvgMax', 'HR avg/max')
+  )
+  if (heartRate) out.push(heartRate)
   if (s?.averageCadence != null)
     out.push({
       label: t('activityDetail.cadence', 'Cadence'),
@@ -233,12 +260,6 @@ const secondaryStats = computed<Stat[]>(() => {
       label: t('activityDetail.calories', 'Calories'),
       value: formatThousands(s.calories),
       unit: 'kcal'
-    })
-  if (s?.maxHeartRate != null)
-    out.push({
-      label: t('activityDetail.maxHr', 'Max HR'),
-      value: Math.round(s.maxHeartRate).toString(),
-      unit: 'bpm'
     })
   // Stored by every provider, displayed nowhere until now.
   if (s?.maxSpeed != null) {

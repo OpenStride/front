@@ -21,10 +21,22 @@ const mockPluginContext = {
   },
   analyzer: {
     create: () => ({
-      sampleAverageByDistance: () => [{ distance: 1000, speed: 3, heartRate: 150 }],
+      sampleAverageByDistance: () => [
+        { distance: 500, segmentEnd: 1000, segmentDistance: 1000, speed: 3, heartRate: 150 }
+      ],
       sampleByLaps: () => [],
       sampleBySlopeChange: () => [],
-      bestSegments: () => ({})
+      bestSegments: () => ({}),
+      elevationChange: () => ({ ascent: 0, descent: 0 }),
+      // The widget asks the terrain whether grade is worth showing
+      elevationProfile: () => ({
+        gain: 0,
+        loss: 0,
+        distance: 5000,
+        gainPerKm: 0,
+        isFlat: true,
+        hasElevation: false
+      })
     })
   },
   notifications: { notify: vi.fn() },
