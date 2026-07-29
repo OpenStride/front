@@ -161,6 +161,7 @@ that stored converted numbers would depend on a display preference. See
 - Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
 - Deployment: `docs/DEPLOYMENT.md`
+- Install funnel (PWA, per-platform timing): `docs/INSTALL_FUNNEL.md`
 
 ---
 

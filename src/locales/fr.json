@@ -798,5 +798,17 @@
     "tempo": "Tempo",
     "endurance": "Endurance",
     "recovery": "Récup."
+  },
+  "install": {
+    "title": "Ajouter OpenStride à votre écran d'accueil",
+    "subtitle": "S'ouvre instantanément, fonctionne hors ligne, et garde sa place sur votre téléphone.",
+    "action": "Installer",
+    "later": "Plus tard",
+    "ios": {
+      "subtitle": "Installez avant de connecter une source : sur iPhone, une app installée garde ses propres données — ce qui serait importé dans Safari resterait derrière.",
+      "share": "Touchez Partager dans la barre Safari",
+      "addToHome": "Choisissez « Sur l'écran d'accueil »",
+      "confirm": "Confirmez avec « Ajouter »"
+    }
   }
 }

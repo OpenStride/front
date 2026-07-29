@@ -1,5 +1,7 @@
 <template>
   <div class="space-y-6">
+    <InstallPrompt variant="gate" class="mb-6" />
+
     <h2 class="text-2xl font-bold">{{ t('dataProviders.title') }}</h2>
 
     <!-- Connected Providers -->
@@ -67,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import InstallPrompt from '@/components/InstallPrompt.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { installableProviderPlugins } from '@/services/ProviderPluginRegistry'

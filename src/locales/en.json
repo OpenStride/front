@@ -798,5 +798,17 @@
     "tempo": "Tempo",
     "endurance": "Endurance",
     "recovery": "Recovery"
+  },
+  "install": {
+    "title": "Add OpenStride to your home screen",
+    "subtitle": "Opens instantly, works offline, and keeps its own space on your phone.",
+    "action": "Install",
+    "later": "Not now",
+    "ios": {
+      "subtitle": "Install it before connecting a source: on iPhone a home-screen app keeps its own data, so anything imported in Safari would stay behind.",
+      "share": "Tap Share in the Safari toolbar",
+      "addToHome": "Choose \"Add to Home Screen\"",
+      "confirm": "Confirm with \"Add\""
+    }
   }
 }
