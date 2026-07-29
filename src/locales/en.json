@@ -609,7 +609,8 @@
       "week": "Weekly",
       "month": "Monthly",
       "year": "Yearly"
-    }
+    },
+    "plot": "Plot {metric}"
   },
   "addFriend": {
     "adding": "Adding your friend...",

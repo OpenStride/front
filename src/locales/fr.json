@@ -609,7 +609,8 @@
       "week": "Hebdomadaire",
       "month": "Mensuel",
       "year": "Annuel"
-    }
+    },
+    "plot": "Afficher {metric}"
   },
   "addFriend": {
     "adding": "Ajout de votre ami...",
