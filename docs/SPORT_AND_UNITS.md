@@ -8,16 +8,17 @@ donnée, parce qu'une règle dont on a oublié le motif finit par être contourn
 
 ## En un coup d'œil
 
-| J'ai besoin de…                                    | J'utilise                                        |
-| -------------------------------------------------- | ------------------------------------------------ |
-| Afficher une valeur chiffrée                       | `format(dimension, si)`                          |
-| Alimenter un axe ou une série de graphe            | `convert(dimension, si).value`                   |
-| Savoir quelle métrique mettre en avant             | `primaryMetricSpec(sport, …)`                    |
-| Afficher une distance totale                       | `distanceDimension(sport)` puis `format`         |
-| Ajouter un sport                                   | `SPORT_TYPES` + `SPORT_FAMILY`                   |
-| Ajouter une donnée propre à un sport               | `MEASUREMENT_KEYS` + `MEASUREMENTS`              |
-| Ajouter un widget de détail                        | un `SlotEntry` avec `appliesTo`                  |
-| Accéder à un service core depuis un plugin         | `PluginContext`                                  |
+| J'ai besoin de…                              | J'utilise                                |
+| -------------------------------------------- | ---------------------------------------- |
+| Afficher une valeur chiffrée                 | `format(dimension, si)`                  |
+| Alimenter un axe ou une série de graphe      | `convert(dimension, si).value`           |
+| Savoir quelle métrique mettre en avant       | `primaryMetricSpec(sport, …)`            |
+| Afficher une distance totale                 | `distanceDimension(sport)` puis `format` |
+| Ajouter un sport                             | `SPORT_TYPES` + `SPORT_FAMILY`           |
+| Ajouter une donnée propre à un sport         | `MEASUREMENT_KEYS` + `MEASUREMENTS`      |
+| Ajouter un widget de détail                  | un `SlotEntry` avec `appliesTo`          |
+| Accéder à un service core depuis un plugin   | `PluginContext`                          |
+| Afficher sur une card une valeur des détails | `computeValues()` + `DERIVED`            |
 
 ---
 
@@ -179,7 +180,7 @@ ce qu'était `62`. Une mesure porte toujours son unité.
 sur une nage en bassin parce qu'il n'y a pas d'altitude — pas parce que c'est de
 la natation. Le sport n'intervient que quand la même donnée change de sens.
 
-La sélection renvoie des *loaders* et filtre **avant** l'import : un widget écarté
+La sélection renvoie des _loaders_ et filtre **avant** l'import : un widget écarté
 ne coûte pas son chunk. Ne jamais filtrer après chargement.
 
 Un loader nu (sans `id`) reste accepté et signifie « s'applique toujours ».
@@ -214,6 +215,44 @@ vivaient dans le bloc carte et ont dû être relogés.
 
 La conversion a lieu **au dernier moment, à la frontière du rendu**.
 
+## 10 bis. Afficher sur une card une valeur qui vit dans les détails
+
+**Ajouter la valeur à `computeValues()` dans `useActivityMetricsIndex`, bumper
+`INDEX_VERSION`, lire `derived.value.get(id)` côté composant.**
+
+Une card de feed ne reçoit qu'un `Activity` : ni `stats`, ni `samples`, ni
+`measurements`. Charger les détails par card est exclu — ce sont les samples, la
+partie lourde du stockage, pour afficher un nombre.
+
+Le store `activity_metrics` existe pour ça. Il tient une ligne par activité :
+
+```ts
+{ id, startTime, sport, indexVersion, values: Record<string, number> }
+```
+
+`values` est volontairement ouvert. `DERIVED` en nomme les clés connues
+(`calories`, `ascent`, `descent`, `maxSpeed`, `avgHeartRate`, `maxHeartRate`),
+`timeMetricId(m)` celles des meilleurs temps.
+
+Le scan est **incrémental et paresseux** : `useFeedMetricsIndex(activities)` dans
+une vue de feed n'indexe que la page affichée, et une ligne déjà à jour n'est
+jamais recalculée. Une card sans ligne n'affiche simplement rien — elle ne
+patiente pas, elle se remplit quand la valeur arrive.
+
+Trois contraintes, chacune payée une fois :
+
+- **SI uniquement** (§10) — c'est un cache, une conversion qui y fuit le lie à
+  une préférence d'affichage.
+- **Bumper `INDEX_VERSION`** dès qu'on ajoute une valeur ou change un calcul,
+  sinon les lignes existantes restent muettes pour la nouvelle clé.
+- **Rien de sensible** : le store est dans `LOCAL_ONLY_STORES`, il ne quitte
+  jamais l'appareil. Le perdre coûte un recalcul, jamais une donnée.
+
+> **Zéro calculé ≠ zéro déclaré.** Un `totalDescent` à 0 renvoyé par le provider
+> dit « c'était plat ». Un dénivelé recalculé à 0 dit seulement « la trace n'a
+> jamais dépassé le seuil de bruit » : on ne le stocke pas, sinon la card
+> afficherait « 0 m » là où il n'y a rien à dire (§9).
+
 ## 11. Longueur de bassin
 
 Dimension `poolLength`, jamais `distanceShort`.
@@ -240,13 +279,13 @@ Pour les unités : `ctx.units.format()` / `ctx.units.convert()` / `ctx.units.sys
 Le contrat que le provider doit à core, vérifié à l'écriture par
 `checkActivityContract` (`src/services/activityContract.ts`) :
 
-| Champ | Attendu |
-| ----- | ------- |
-| `type` | un slug canonique — mapper dans le `sportTypes.ts` du provider |
-| `distance` | mètres |
-| `duration` | secondes |
-| `stats.averageSpeed` | m/s |
-| `measurements` | clés du registre, avec l'unité que le registre déclare |
+| Champ                | Attendu                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `type`               | un slug canonique — mapper dans le `sportTypes.ts` du provider |
+| `distance`           | mètres                                                         |
+| `duration`           | secondes                                                       |
+| `stats.averageSpeed` | m/s                                                            |
+| `measurements`       | clés du registre, avec l'unité que le registre déclare         |
 
 `saveActivityWithDetails()` appelle la vérification et **avertit en console en
 développement** — sans jamais refuser l'écriture : une base réelle contient des
@@ -269,15 +308,15 @@ Partir de `tests/fixtures/activities.ts`, pas d'un objet écrit à la main :
 import { createActivity, createSwimActivity, createSwimDetails } from '../fixtures/activities'
 ```
 
-| Fixture                        | Ce qu'elle représente                                |
-| ------------------------------ | ---------------------------------------------------- |
-| `createActivity()`             | Course avec tracé — allure /km, échelle longue       |
-| `createRideActivity()`         | Vélo — vitesse                                        |
-| `createSwimActivity()`         | Bassin — sans GPS, échelle courte, allure /100       |
-| `createSwimDetails()`          | Les mesures natation telles qu'un provider les fournit |
-| `createGymActivity()`          | Salle — sans distance ni allure                       |
-| `createLegacyActivity()`       | Type brut `"RUNNING"`, antérieur au vocabulaire       |
-| `createActivitiesAcrossSports()` | Une de chaque, pour balayer les formes              |
+| Fixture                          | Ce qu'elle représente                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| `createActivity()`               | Course avec tracé — allure /km, échelle longue         |
+| `createRideActivity()`           | Vélo — vitesse                                         |
+| `createSwimActivity()`           | Bassin — sans GPS, échelle courte, allure /100         |
+| `createSwimDetails()`            | Les mesures natation telles qu'un provider les fournit |
+| `createGymActivity()`            | Salle — sans distance ni allure                        |
+| `createLegacyActivity()`         | Type brut `"RUNNING"`, antérieur au vocabulaire        |
+| `createActivitiesAcrossSports()` | Une de chaque, pour balayer les formes                 |
 
 Un test unitaire qui bascule les unités doit **remettre la préférence** à la fin
 (`setUnitSystem('metric')`) : c'est un singleton de module.
@@ -303,13 +342,14 @@ Un test unitaire qui bascule les unités doit **remettre la préférence** à la
 
 ## Symptôme → cause → règle
 
-| Symptôme                                        | Cause                                     | Règle |
-| ----------------------------------------------- | ----------------------------------------- | ----- |
-| Des km apparaissent en mode impérial            | Conversion écrite à la main               | §1    |
-| Un graphe reste en métrique après changement    | Canvas non redessiné                      | §2    |
-| Une allure disparaît sur d'anciennes activités  | Recherche sensible à la casse             | §6    |
-| `62` sans savoir si ce sont des pas ou des coups | Mesure stockée sans unité                 | §7    |
-| Un widget vide sur un sport                     | `appliesTo` absent ou basé sur le sport   | §8    |
-| Un grand bloc gris sans information             | Substitut affiché au lieu de rien         | §9    |
-| Un record change avec la préférence             | Valeur convertie stockée                  | §10   |
-| Un bassin de « 27 yd »                          | `distanceShort` au lieu de `poolLength`   | §11   |
+| Symptôme                                         | Cause                                              | Règle   |
+| ------------------------------------------------ | -------------------------------------------------- | ------- |
+| Des km apparaissent en mode impérial             | Conversion écrite à la main                        | §1      |
+| Un graphe reste en métrique après changement     | Canvas non redessiné                               | §2      |
+| Une allure disparaît sur d'anciennes activités   | Recherche sensible à la casse                      | §6      |
+| `62` sans savoir si ce sont des pas ou des coups | Mesure stockée sans unité                          | §7      |
+| Un widget vide sur un sport                      | `appliesTo` absent ou basé sur le sport            | §8      |
+| Un grand bloc gris sans information              | Substitut affiché au lieu de rien                  | §9      |
+| Un record change avec la préférence              | Valeur convertie stockée                           | §10     |
+| Un bassin de « 27 yd »                           | `distanceShort` au lieu de `poolLength`            | §11     |
+| Une valeur des détails absente de la card        | Pas remontée au scan, ou `INDEX_VERSION` non bumpé | §10 bis |

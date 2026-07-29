@@ -9,7 +9,9 @@
     "maxHr": "FC max",
     "cadence": "Cadence",
     "calories": "Calories",
-    "avgSpeed": "Vitesse moy."
+    "avgSpeed": "Vitesse moy.",
+    "elevationDown": "Dénivelé -",
+    "maxSpeed": "Vitesse max"
   },
   "sports": {
     "running": "Course à pied",
@@ -716,7 +718,9 @@
     "distance": "Distance",
     "time": "Temps",
     "pace": "Allure",
-    "speed": "Vitesse"
+    "speed": "Vitesse",
+    "elevation": "Dénivelé +",
+    "calories": "Calories"
   },
   "time": {
     "justNow": "à l'instant",

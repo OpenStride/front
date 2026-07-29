@@ -210,6 +210,8 @@ export interface IAnalyzerFactory {
     sampleAverageByDistance(stepMeters: number): Sample[]
     sampleBySlopeChange(minDistanceMeters: number): Sample[]
     sampleByLaps(laps: { time: number }[]): Sample[]
+    /** Metres climbed and descended, noise-filtered. */
+    elevationChange(): { ascent: number; descent: number }
   }
 }
 

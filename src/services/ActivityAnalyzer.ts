@@ -68,6 +68,46 @@ export class ActivityAnalyzer {
     return result
   }
 
+  /**
+   * Total climbed and descended, in metres.
+   *
+   * Barometric and GPS altitude jitter by a metre or two at rest, so summing
+   * every delta inflates both figures — a flat run can "climb" a hundred metres
+   * of noise. Only a run of movement that exceeds the threshold counts, which
+   * is the usual way devices compute these.
+   *
+   * Use the provider's own figures when it supplies them; this is for the ones
+   * that do not.
+   */
+  public elevationChange(): { ascent: number; descent: number } {
+    // 3 m, not 2: a barometer resting at ±1 m produces 2 m swings, which a
+    // threshold of 2 would count as real climb on a perfectly flat activity.
+    const THRESHOLD_M = 3
+
+    let ascent = 0
+    let descent = 0
+    let reference: number | null = null
+
+    for (const sample of this.samples) {
+      const elevation = sample.elevation
+      if (elevation == null || !Number.isFinite(elevation)) continue
+      if (reference === null) {
+        reference = elevation
+        continue
+      }
+      const diff = elevation - reference
+      if (diff >= THRESHOLD_M) {
+        ascent += diff
+        reference = elevation
+      } else if (diff <= -THRESHOLD_M) {
+        descent += -diff
+        reference = elevation
+      }
+    }
+
+    return { ascent: Math.round(ascent), descent: Math.round(descent) }
+  }
+
   private classifyByAccumulatedSlope(samples: Sample[]): 'up' | 'down' | 'flat' {
     let gain = 0
     let loss = 0

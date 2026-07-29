@@ -101,6 +101,7 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
         summary.averageBikingCadenceInRevPerMinute ??
         summary.averageSwimCadenceInStrokesPerMinute) as number | undefined,
       totalAscent: summary.totalElevationGainInMeters as number | undefined,
+      totalDescent: summary.totalElevationLossInMeters as number | undefined,
       calories: summary.activeKilocalories as number | undefined
     },
     version: 1,

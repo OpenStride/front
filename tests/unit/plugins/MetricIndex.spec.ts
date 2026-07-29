@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import type { ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
+import { INDEX_VERSION, type ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
 
 const mocks = vi.hoisted(() => ({
   getPluginContext: vi.fn()
@@ -11,8 +11,6 @@ vi.mock('@/services/PluginContextFactory', () => ({
 }))
 
 const { useActivityMetricsIndex } = await import('@/composables/useActivityMetricsIndex')
-
-const INDEX_VERSION = 1
 
 function makeActivity(id: string): Activity {
   return {
@@ -44,6 +42,7 @@ let storedRows: ActivityMetricsRow[]
 let addItemsToStore: ReturnType<typeof vi.fn>
 let getDetails: ReturnType<typeof vi.fn>
 let bestSegments: ReturnType<typeof vi.fn>
+let elevationChange: ReturnType<typeof vi.fn>
 
 /** Every target comes back at a plausible 5 min/km unless overridden */
 function defaultSegments(targets: number[]) {
@@ -61,6 +60,7 @@ function setupContext() {
   })
   getDetails = vi.fn(async (id: string) => makeDetails(id))
   bestSegments = vi.fn(defaultSegments)
+  elevationChange = vi.fn(() => ({ ascent: 640, descent: 610 }))
 
   mocks.getPluginContext.mockResolvedValue({
     storage: {
@@ -70,7 +70,7 @@ function setupContext() {
       addItemsToStore
     },
     activity: { getDetails },
-    analyzer: { create: () => ({ bestSegments }) }
+    analyzer: { create: () => ({ bestSegments, elevationChange }) }
   })
 }
 
@@ -174,5 +174,145 @@ describe('useActivityMetricsIndex', () => {
 
     expect(addItemsToStore).toHaveBeenCalledTimes(1)
     expect(storedRows).toHaveLength(2)
+  })
+
+  it('indexes every list, not just the first of a burst', async () => {
+    // The feed indexes the page it renders while the tracker asks for the whole
+    // history; returning the in-flight promise to the second caller used to drop
+    // its activities on the floor.
+    const { ensureIndex } = useActivityMetricsIndex()
+
+    await Promise.all([ensureIndex([makeActivity('a')]), ensureIndex([makeActivity('b')])])
+
+    expect(storedRows.map(r => r.id).sort()).toEqual(['a', 'b'])
+  })
+})
+
+describe('useActivityMetricsIndex — values lifted out of the details', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setupContext()
+  })
+
+  const withStats = (stats: Record<string, number>) => {
+    getDetails.mockImplementation(async (id: string) => ({ ...makeDetails(id), stats }))
+    return useActivityMetricsIndex()
+  }
+
+  it('lifts the scalars a card cannot reach on its own', async () => {
+    // The feed card only ever holds an Activity; these all live in the details.
+    const { ensureIndex, derived } = withStats({
+      calories: 620,
+      maxSpeed: 5.4,
+      averageHeartRate: 148,
+      maxHeartRate: 181,
+      totalAscent: 430,
+      totalDescent: 410
+    })
+    await ensureIndex([makeActivity('a')])
+
+    expect(derived.value.get('a')).toMatchObject({
+      calories: 620,
+      maxSpeed: 5.4,
+      avgHeartRate: 148,
+      maxHeartRate: 181,
+      ascent: 430,
+      descent: 410
+    })
+  })
+
+  it('keeps them in SI, never in the reader units', async () => {
+    // A converted value in a derived cache would make the cache depend on a
+    // display preference — the invariant the records section already broke once.
+    const { ensureIndex, derived } = withStats({ maxSpeed: 5.4, totalAscent: 430 })
+    await ensureIndex([makeActivity('a')])
+
+    const values = derived.value.get('a')!
+    expect(values.maxSpeed).toBe(5.4) // m/s, not 19.4 km/h
+    expect(values.ascent).toBe(430) // m, not 1411 ft
+  })
+
+  it('recovers the climb from the samples when the provider reported none', async () => {
+    getDetails.mockImplementation(async (id: string) => ({
+      ...makeDetails(id),
+      samples: [
+        { time: 0, distance: 0, elevation: 1200 },
+        { time: 1500, distance: 5000, elevation: 1840 }
+      ],
+      stats: { calories: 300 }
+    }))
+
+    const { ensureIndex, derived } = useActivityMetricsIndex()
+    await ensureIndex([makeActivity('a')])
+
+    expect(derived.value.get('a')).toMatchObject({ ascent: 640, descent: 610 })
+  })
+
+  it('does not record a computed zero, which only means "nothing measured"', async () => {
+    // A climb that never comes back down. A reported 0 is the provider saying
+    // the ground was flat; a computed 0 says the trace stayed under the noise
+    // floor — the detail page already drops that rather than print "0 m".
+    elevationChange.mockReturnValue({ ascent: 590, descent: 0 })
+    getDetails.mockImplementation(async (id: string) => ({
+      ...makeDetails(id),
+      samples: [
+        { time: 0, distance: 0, elevation: 900 },
+        { time: 1500, distance: 5000, elevation: 1490 }
+      ],
+      stats: {}
+    }))
+
+    const { ensureIndex, derived } = useActivityMetricsIndex()
+    await ensureIndex([makeActivity('a')])
+
+    expect(derived.value.get('a')?.ascent).toBe(590)
+    expect(derived.value.get('a')?.descent).toBeUndefined()
+  })
+
+  it('keeps a descent the provider actually reported as zero', async () => {
+    const { ensureIndex, derived } = withStats({ totalAscent: 590, totalDescent: 0 })
+    await ensureIndex([makeActivity('a')])
+
+    expect(derived.value.get('a')?.descent).toBe(0)
+  })
+
+  it('prefers the reported climb over the computed one', async () => {
+    getDetails.mockImplementation(async (id: string) => ({
+      ...makeDetails(id),
+      samples: [
+        { time: 0, distance: 0, elevation: 1200 },
+        { time: 1500, distance: 5000, elevation: 1840 }
+      ],
+      stats: { totalAscent: 655, totalDescent: 655 }
+    }))
+
+    const { ensureIndex, derived } = useActivityMetricsIndex()
+    await ensureIndex([makeActivity('a')])
+
+    expect(elevationChange).not.toHaveBeenCalled()
+    expect(derived.value.get('a')).toMatchObject({ ascent: 655, descent: 655 })
+  })
+
+  it('leaves out what the activity does not have', async () => {
+    // A gym session has calories and a heart rate, and no elevation at all.
+    const { ensureIndex, derived } = withStats({ calories: 410, averageHeartRate: 118 })
+    getDetails.mockImplementation(async (id: string) => ({
+      id,
+      samples: [{ time: 0, heartRate: 118 }],
+      stats: { calories: 410, averageHeartRate: 118 }
+    }))
+    await ensureIndex([makeActivity('a')])
+
+    const values = derived.value.get('a')!
+    expect(values.calories).toBe(410)
+    expect(values.ascent).toBeUndefined()
+    expect(values.maxSpeed).toBeUndefined()
+  })
+
+  it('still records the best times alongside them', async () => {
+    const { ensureIndex, derived } = withStats({ calories: 620 })
+    await ensureIndex([makeActivity('a')])
+
+    expect(derived.value.get('a')?.time_5000).toBe(1500)
   })
 })

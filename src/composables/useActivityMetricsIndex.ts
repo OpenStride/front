@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PluginContext } from '@/types/plugin-context'
@@ -31,6 +31,30 @@ export function timeMetricId(meters: number): string {
   return `time_${meters}`
 }
 
+/**
+ * Scalars lifted out of the details at scan time.
+ *
+ * A feed card only ever holds an `Activity`; everything else a card could show —
+ * the calories of a gym session, the climb of a hike — lives in
+ * `ActivityDetails`, whose samples are far too heavy to load per card. Lifting
+ * the handful of numbers here is what this store is for: they are recomputable,
+ * so they live in a device-local cache and never sync.
+ *
+ * SI throughout, like everything stored: metres, metres per second, bpm.
+ * Converting here would make a cache depend on a display preference.
+ */
+export const DERIVED = {
+  calories: 'calories',
+  /** Metres climbed — reported by the provider, or recovered from the samples. */
+  ascent: 'ascent',
+  /** Metres descended — the figure a skier reads. */
+  descent: 'descent',
+  /** Metres per second. */
+  maxSpeed: 'maxSpeed',
+  avgHeartRate: 'avgHeartRate',
+  maxHeartRate: 'maxHeartRate'
+} as const
+
 /** Per-activity derived values, keyed by activity id */
 export type DerivedMap = Map<string, Record<string, number>>
 
@@ -45,8 +69,8 @@ export interface ActivityMetricsRow {
   values: Record<string, number>
 }
 
-/** Bump to recompute every row after an algorithm change */
-const INDEX_VERSION = 1
+/** Bump to recompute every row after an algorithm change, or a new derived value */
+export const INDEX_VERSION = 2
 
 // Max plausible speed in m/s — 50 km/h filters GPS glitches while keeping any real effort
 const MAX_SPEED_MS = 50 / 3.6
@@ -63,7 +87,10 @@ const derived = ref<DerivedMap>(new Map())
 const indexing = ref(false)
 const progress = ref(0)
 
-let indexRequest: Promise<void> | null = null
+let indexRequest: Promise<void> = Promise.resolve()
+
+/** A failed pass must not poison the queue, nor surface as an unhandled rejection */
+const swallow = () => undefined
 
 async function loadDetails(
   ctx: PluginContext,
@@ -90,10 +117,50 @@ async function loadDetails(
   return detailsMap
 }
 
-/** Best time on each target distance, in seconds */
+/**
+ * Everything worth keeping from one activity's details: the best time on each
+ * target distance (in seconds), plus the `DERIVED` scalars.
+ *
+ * This is the only place details are read for the index, so it is the only place
+ * to add a value to. Anything missing is simply absent from the record — a
+ * caller reads `undefined` and drops its slot, which is the app's rule for
+ * missing data everywhere else.
+ */
 function computeValues(ctx: PluginContext, details: ActivityDetails): Record<string, number> {
   const values: Record<string, number> = {}
+  const set = (key: string, value: number | undefined | null) => {
+    if (typeof value === 'number' && Number.isFinite(value)) values[key] = value
+  }
+
+  const stats = details.stats
+  set(DERIVED.calories, stats?.calories)
+  set(DERIVED.maxSpeed, stats?.maxSpeed)
+  set(DERIVED.avgHeartRate, stats?.averageHeartRate)
+  set(DERIVED.maxHeartRate, stats?.maxHeartRate)
+  set(DERIVED.ascent, stats?.totalAscent)
+  set(DERIVED.descent, stats?.totalDescent)
+
   if (!details.samples?.length) return values
+
+  // Providers that report the elevation win; for everyone else — Strava, and
+  // every activity stored before totalDescent existed — recover it from the
+  // barometric trace rather than leave the card blank.
+  const missingElevation =
+    values[DERIVED.ascent] === undefined || values[DERIVED.descent] === undefined
+  if (missingElevation && details.samples.some(s => s.elevation != null)) {
+    try {
+      const change = ctx.analyzer.create(details.samples).elevationChange()
+      // A *reported* zero is the provider stating the ground was flat; a
+      // *computed* zero only says the trace never moved past the noise floor,
+      // which is "nothing to show", as the detail page already treats it.
+      if (values[DERIVED.ascent] === undefined && change.ascent > 0)
+        set(DERIVED.ascent, change.ascent)
+      if (values[DERIVED.descent] === undefined && change.descent > 0)
+        set(DERIVED.descent, change.descent)
+    } catch {
+      // Samples may lack what the analyzer needs; the other values still stand
+    }
+  }
 
   // An activity with no distance channel can't yield a segment
   if (!details.samples.some(s => s.distance != null && s.time != null)) return values
@@ -184,13 +251,18 @@ async function buildIndex(activities: Activity[]): Promise<void> {
 }
 
 export function useActivityMetricsIndex() {
-  /** Coalesces concurrent calls so a rebuild never runs twice */
+  /**
+   * Queue a pass, never two at once.
+   *
+   * Serialised rather than coalesced: callers pass different lists — the feed
+   * the page it renders, the tracker the whole history — so returning the
+   * in-flight promise would silently leave the second caller's activities
+   * unindexed. A pass with nothing stale costs one read and returns.
+   */
   function ensureIndex(activities: Activity[]): Promise<void> {
-    if (indexRequest) return indexRequest
-    indexRequest = buildIndex(activities).finally(() => {
-      indexRequest = null
-    })
-    return indexRequest
+    const next = indexRequest.catch(swallow).then(() => buildIndex(activities))
+    indexRequest = next
+    return next
   }
 
   return {
@@ -199,4 +271,28 @@ export function useActivityMetricsIndex() {
     progress,
     ensureIndex
   }
+}
+
+/**
+ * Keep the index in step with the activities a feed is showing.
+ *
+ * Indexing what is on screen rather than the whole history is what makes this
+ * affordable on the first screen: a page of ten costs ten targeted detail
+ * reads, and the next page pays for itself only once it is actually scrolled
+ * to. The cards read `derived` and render nothing for a row that is not there
+ * yet, so nothing ever waits on this.
+ */
+export function useFeedMetricsIndex<T extends Activity>(activities: Ref<T[]>): void {
+  const { ensureIndex } = useActivityMetricsIndex()
+
+  watch(
+    // The list is grown by `push`, so its identity never changes — watch the ids.
+    () => activities.value.map(a => a.id).join('|'),
+    () => {
+      // A friend's activity has no local details to derive anything from.
+      const own = activities.value.filter(a => !a.provider?.startsWith('friend_'))
+      if (own.length) void ensureIndex(own).catch(swallow)
+    },
+    { immediate: true }
+  )
 }

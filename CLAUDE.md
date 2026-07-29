@@ -142,9 +142,17 @@ Most stores are replicated to the user's storage provider. A store listed in
 `LOCAL_ONLY_STORES` (`src/services/StorageService.ts`) never leaves the device:
 it holds values derived from data that is already synced, so uploading it would
 cost bandwidth for something we can recompute, and losing it only costs a
-rebuild. `activity_metrics` — the per-activity best times behind the records
-and the metric tracker — is the current example. Add derived caches there
+rebuild. `activity_metrics` is the current example. Add derived caches there
 rather than to `settings`, which _is_ replicated.
+
+`activity_metrics` holds one row per activity, lifted from its details at scan
+time by `useActivityMetricsIndex`: the best times behind the records and the
+metric tracker, plus the `DERIVED` scalars (calories, ascent, descent, max
+speed, heart rates) a feed card needs but cannot reach — a card only ever
+receives an `Activity`. Adding a value means extending `computeValues()` **and**
+bumping `INDEX_VERSION`, which recomputes every row. Values stay SI: a cache
+that stored converted numbers would depend on a display preference. See
+`docs/SPORT_AND_UNITS.md` §10 bis.
 
 ## Related Documentation
 

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ref } from 'vue'
 import type { Activity } from '@/types/activity'
 import type { RecordPeriod } from '@plugins/app-extensions/Statistics/types'
-import type { ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
+import { INDEX_VERSION, type ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
 
 const mocks = vi.hoisted(() => ({
   getPluginContext: vi.fn()
@@ -55,7 +55,7 @@ let deleteData: ReturnType<typeof vi.fn>
 let exportDB: ReturnType<typeof vi.fn>
 
 function row(id: string, startTime: number, values: Record<string, number>): ActivityMetricsRow {
-  return { id, startTime, sport: 'running', indexVersion: 1, values }
+  return { id, startTime, sport: 'running', indexVersion: INDEX_VERSION, values }
 }
 
 function setupContext() {

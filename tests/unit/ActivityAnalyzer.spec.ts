@@ -46,3 +46,53 @@ describe('ActivityAnalyzer.sampleBySlopeChange', () => {
     expect(segs.length).toBeGreaterThan(0)
   })
 })
+
+describe('elevationChange', () => {
+  const withElevations = (elevations: number[]) =>
+    new ActivityAnalyzer(elevations.map((elevation, i) => ({ time: i, distance: i * 10, elevation })))
+
+  it('sums a clean climb and descent', () => {
+    // up 100, down 60
+    expect(withElevations([0, 50, 100, 70, 40]).elevationChange()).toEqual({
+      ascent: 100,
+      descent: 60
+    })
+  })
+
+  it('ignores the jitter a barometer produces at rest', () => {
+    // Ten minutes standing still, ±1 m of noise. Summing every delta would
+    // invent tens of metres of climb on a flat activity.
+    const noise = Array.from({ length: 200 }, (_, i) => 100 + (i % 2 ? 1 : -1))
+    const { ascent, descent } = withElevations(noise).elevationChange()
+    expect(ascent).toBe(0)
+    expect(descent).toBe(0)
+  })
+
+  it('still counts real movement hidden in noisy data', () => {
+    const climb = Array.from({ length: 100 }, (_, i) => i * 3 + (i % 2 ? 1 : -1))
+    expect(withElevations(climb).elevationChange().ascent).toBeGreaterThan(280)
+  })
+
+  it('reads a ski day as almost all descent', () => {
+    // Lifts are not recorded as climbing effort in this synthetic case: the
+    // shape is what matters — thousands down, little up.
+    const runs = [1800, 1200, 1750, 1150, 1700, 1100]
+    const { ascent, descent } = withElevations(runs).elevationChange()
+    expect(descent).toBeGreaterThan(ascent)
+    expect(descent).toBe(1800)
+  })
+
+  it('survives missing and non-finite elevations', () => {
+    const analyzer = new ActivityAnalyzer([
+      { time: 0, elevation: 100 },
+      { time: 1 },
+      { time: 2, elevation: NaN },
+      { time: 3, elevation: 150 }
+    ])
+    expect(analyzer.elevationChange()).toEqual({ ascent: 50, descent: 0 })
+  })
+
+  it('returns zeros with no samples at all', () => {
+    expect(new ActivityAnalyzer([]).elevationChange()).toEqual({ ascent: 0, descent: 0 })
+  })
+})
