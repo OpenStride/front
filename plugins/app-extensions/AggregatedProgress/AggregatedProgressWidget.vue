@@ -1,71 +1,87 @@
 <template>
-  <div class="aggregated-progress-widget">
-    <div class="header-row">
-      <h3 class="title">{{ t('aggregatedProgress.title') }}</h3>
-      <div class="select-row">
-        <select :value="selectedPeriod" @change="onPeriodChange">
-          <option v-for="period in availablePeriods" :key="period" :value="period">
-            {{ t(`aggregatedProgress.periods.${period}`) }}
-          </option>
-        </select>
-        <select :value="selectedMetric" @change="onMetricChanged">
-          <option v-for="metric in availableBaseMetrics" :key="metric.id" :value="metric.id">
-            {{ metricLabel(metric.id) }}
-          </option>
-        </select>
+  <section class="apw">
+    <header class="apw__head">
+      <h3 class="apw__title">{{ t('aggregatedProgress.title') }}</h3>
+      <button
+        class="apw__refresh"
+        :disabled="refreshing"
+        :title="t('aggregatedProgress.recompute')"
+        @click="onRefresh"
+      >
+        <i
+          class="fas fa-arrows-rotate"
+          :class="{ 'is-spinning': refreshing }"
+          aria-hidden="true"
+        ></i>
+      </button>
+    </header>
+
+    <div class="apw__controls">
+      <div class="apw__segments" role="tablist">
         <button
-          class="refresh-btn"
-          @click="onRefresh"
-          :disabled="refreshing"
-          :title="t('aggregatedProgress.recompute')"
+          v-for="period in availablePeriods"
+          :key="period"
+          class="apw__segment"
+          :class="{ 'is-active': period === selectedPeriod }"
+          role="tab"
+          :aria-selected="period === selectedPeriod"
+          @click="selectedPeriod = period"
         >
-          <i v-if="!refreshing" class="fas fa-sync-alt" aria-hidden="true"></i>
-          <span v-else>…</span>
+          {{ t(`aggregatedProgress.periods.${period}`) }}
         </button>
       </div>
     </div>
-    <AggregatedProgressChart :weeks="chartWeeks" :distance="chartDistance" />
-    <div class="metrics">
-      <div v-for="def in availableMetrics" :key="def.id" class="metric">
-        <span class="label">{{ metricLabel(def.id) }}</span>
-        <span class="value">{{
-          format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
-            .value
-        }}</span>
-        <span
-          v-if="
-            format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
-              .unit
-          "
-          class="unit"
-          >{{
-            format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
-              .unit
-          }}</span
-        >
-      </div>
+
+    <!-- Tiles first: the figure the reader came for, then its history -->
+    <div v-if="tiles.length" class="apw__tiles">
+      <button
+        v-for="tile in tiles"
+        :key="tile.id"
+        class="apw__tile"
+        :class="{ 'is-active': tile.id === selectedMetric }"
+        :title="t('aggregatedProgress.plot', { metric: tile.label })"
+        @click="selectedMetric = tile.id"
+      >
+        <span class="apw__label">{{ tile.label }}</span>
+        <span class="apw__value">
+          {{ tile.value }}<small v-if="tile.unit">{{ tile.unit }}</small>
+        </span>
+      </button>
     </div>
-  </div>
+
+    <!-- A chart of one point is a dot, not a progression -->
+    <AggregatedProgressChart
+      v-if="chartValues.length > 1"
+      :labels="chartLabels"
+      :values="chartValues"
+      :unit="chartUnit"
+    />
+  </section>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, watch } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
+import AggregatedProgressChart from './AggregatedProgressChart.vue'
+import type { AggregationMetricDefinition } from '@/types/aggregation'
 
+const { t } = useI18n()
 const { storage, aggregation: aggregationCtx, units } = usePluginContext()
+
+type Period = 'week' | 'month' | 'year'
 
 /**
  * The metrics this widget offers, named by their base id.
  *
  * Labels are looked up at render time rather than stored: the config is
  * replicated, and a stored French string would follow the user who wrote it
- * onto every other device. Same reason `dimension` replaced the old
- * `displayUnit`/`displayFactor` pair — those hardcoded kilometres for everyone.
+ * onto every other device. `dimension` replaced an older
+ * `displayUnit`/`displayFactor` pair, which hardcoded kilometres for everyone.
  */
 const BASE_METRICS = [
   { id: 'distance', sourceRef: 'distance', unit: 'm', dimension: 'distance', decimals: 1 },
-  { id: 'duration', sourceRef: 'duration', unit: 's', decimals: 0 },
+  { id: 'duration', sourceRef: 'duration', unit: 's', decimals: 1 },
   {
     id: 'totalAscent',
     sourceRef: 'stats.totalAscent',
@@ -75,109 +91,88 @@ const BASE_METRICS = [
   }
 ] as const
 
+const PERIODS: Period[] = ['week', 'month', 'year']
+/** Enough history to read a trend, few enough to stay legible on a phone. */
+const CHART_POINTS = 5
+const SECONDS_PER_HOUR = 3600
+
+const selectedPeriod = ref<Period>('week')
+const selectedMetric = ref<string>('distance')
+const availablePeriods = ref<Period[]>(PERIODS)
+const definitions = ref<AggregationMetricDefinition[]>([])
+const latestValues = ref<Record<string, number>>({})
+const refreshing = ref(false)
+
+const chartLabels = ref<string[]>([])
+const chartSI = ref<number[]>([])
+
 /** A metric's name comes from the locale, keyed by its base id. */
 function metricLabel(id: string): string {
-  const base = id.replace(/^(week|month|year)_/, '')
+  const base = baseIdOf(id)
   const key = `aggregatedProgress.metrics.${base}`
   return t(key) === key ? base : t(key)
 }
 
-// Initialise les métriques distance/durée pour chaque période si manquantes
-async function ensureMetricsExist() {
-  const metrics = aggregationCtx.listMetrics()
-  const periods: ('week' | 'month' | 'year')[] = ['week', 'month', 'year']
-  let changed = false
-  for (const base of BASE_METRICS) {
-    for (const period of periods) {
-      const id = `${period}_${base.id}`
-      if (!metrics.find(m => m.id === id)) {
-        metrics.push({
-          id,
-          label: base.id,
-          enabled: true,
-          sourceRef: base.sourceRef,
-          aggregation: 'sum',
-          periods: [period],
-          unit: base.unit,
-          decimals: base.decimals,
-          dimension: 'dimension' in base ? base.dimension : undefined
-        })
-        changed = true
-      }
-    }
-  }
-  if (changed) {
-    await storage.saveData('aggregationConfig', { metrics })
-    await aggregationCtx.loadConfigFromSettings()
-    // Récupère toutes les activités et détails pour rebuildAll
-    const allActs = await storage.exportDB('activities')
-    const allDetails = await storage.exportDB('activity_details')
-    const detailsMap = new Map<string, Record<string, unknown> | null>()
-    for (const d of allDetails) {
-      if (d && (d as Record<string, unknown>).id)
-        detailsMap.set((d as Record<string, unknown>).id as string, d as Record<string, unknown>)
-    }
-    await aggregationCtx.rebuildAll(allActs as Record<string, unknown>[], detailsMap)
-  }
-}
-const selectedPeriod = ref<'week' | 'month' | 'year'>('week')
-const selectedMetric = ref<string>('distance')
-const availablePeriods = ref<Array<'week' | 'month' | 'year'>>(['week', 'month', 'year'])
-const availableBaseMetrics = ref<Array<{ id: string; label: string }>>([])
-// Handlers pour les listes déroulantes
-function onPeriodChange(e: Event) {
-  selectedPeriod.value = (e.target as HTMLSelectElement).value as 'week' | 'month' | 'year'
-}
-
-function onMetricChanged(e: Event) {
-  selectedMetric.value = (e.target as HTMLSelectElement).value
-}
-const availableMetrics = ref<AggregationMetricDefinition[]>([])
-import AggregatedProgressChart from './AggregatedProgressChart.vue'
-import type { AggregationMetricDefinition } from '@/types/aggregation'
-
-const { t } = useI18n()
-
-const metrics = ref<Array<{ def: AggregationMetricDefinition; value: number }>>([])
-const metricsCache = ref<
-  Record<string, Array<{ def: AggregationMetricDefinition; value: number }>>
->({})
-const refreshing = ref(false)
-
-const chartWeeks = ref<string[]>([])
-const chartDistance = ref<number[]>([])
-
-const SECONDS_PER_HOUR = 3600
+const baseIdOf = (id: string): string => id.replace(/^(week|month|year)_/, '')
 
 /**
- * An aggregate is stored in SI and converted here, like every other figure.
+ * One SI value, as a number in the reader's units.
  *
- * A dimension means the units layer owns the conversion. A duration has none —
- * hours read the same in both systems — so it is spelled out once, here.
+ * The single conversion in this widget: the tiles and the chart series both go
+ * through it. They used to convert separately, and when the metric definition
+ * changed only the tiles were updated — leaving the axis plotting metres under
+ * a tile that read kilometres.
  */
-function format(val: number, metric: AggregationMetricDefinition): { value: string; unit: string } {
-  if (val == null || !Number.isFinite(val)) return { value: '—', unit: '' }
-
+function displayOf(
+  metric: AggregationMetricDefinition,
+  si: number
+): { value: number; unit: string; decimals: number } {
+  const decimals = metric.decimals ?? 0
   if (metric.dimension) {
-    const converted = units.convert(metric.dimension, val)
-    return { value: converted.value.toFixed(metric.decimals ?? 0), unit: converted.unit }
+    const converted = units.convert(metric.dimension, si)
+    return { value: converted.value, unit: converted.unit, decimals }
   }
-
+  // A duration has no dimension: hours read the same in both systems.
   if (metric.unit === 's') {
-    return { value: (val / SECONDS_PER_HOUR).toFixed(1), unit: t('goals.units.hours') }
+    return { value: si / SECONDS_PER_HOUR, unit: t('goals.units.hours'), decimals: 1 }
   }
-
-  return { value: val.toFixed(metric.decimals ?? 0), unit: metric.unit ?? '' }
+  return { value: si, unit: metric.unit ?? '', decimals }
 }
 
-// Convertit une clé de mois (ex: 2025-10) en label (ex: 10/2025)
+const tiles = computed(() =>
+  definitions.value.map(def => {
+    const shown = displayOf(def, latestValues.value[def.id] ?? 0)
+    return {
+      id: baseIdOf(def.id),
+      label: metricLabel(def.id),
+      value: Number.isFinite(shown.value) ? shown.value.toFixed(shown.decimals) : '—',
+      unit: shown.unit
+    }
+  })
+)
+
+const selectedDefinition = computed(() =>
+  definitions.value.find(d => baseIdOf(d.id) === selectedMetric.value)
+)
+
+/** Converted from the SI series, so a preference change redraws the axis. */
+const chartValues = computed(() => {
+  const def = selectedDefinition.value
+  if (!def) return []
+  return chartSI.value.map(si => displayOf(def, si).value)
+})
+
+const chartUnit = computed(() =>
+  selectedDefinition.value ? displayOf(selectedDefinition.value, 0).unit : ''
+)
+
+// ── Period keys → readable labels ────────────────────────────────────────────
+
 function monthKeyToLabel(monthKey: string): string {
   const match = monthKey.match(/(\d{4})-(\d{2})/)
-  if (!match) return monthKey
-  return `${match[2]}/${match[1]}`
+  return match ? `${match[2]}/${match[1]}` : monthKey
 }
 
-// Convertit une clé de semaine ISO (ex: 2025-W41) en date du lundi (format JJ/MM)
 function weekKeyToMonday(weekKey: string): string {
   const match = weekKey.match(/(\d{4})-W(\d{2})/)
   if (!match) return weekKey
@@ -186,84 +181,85 @@ function weekKeyToMonday(weekKey: string): string {
   const simple = new Date(year, 0, 1 + (week - 1) * 7)
   const dow = simple.getDay()
   const monday = new Date(simple)
-  if (dow <= 4) {
-    monday.setDate(simple.getDate() - simple.getDay() + 1)
-  } else {
-    monday.setDate(simple.getDate() + 8 - simple.getDay())
+  monday.setDate(dow <= 4 ? simple.getDate() - dow + 1 : simple.getDate() + 8 - dow)
+  // The reader's locale, not a hardcoded one.
+  return monday.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })
+}
+
+const periodLabel = (key: string, period: Period): string => {
+  if (period === 'week') return weekKeyToMonday(key)
+  if (period === 'month') return monthKeyToLabel(key)
+  return key
+}
+
+// ── Loading ─────────────────────────────────────────────────────────────────
+
+/** Register the metrics this widget needs, the first time it is shown. */
+async function ensureMetricsExist() {
+  const metrics = aggregationCtx.listMetrics()
+  let changed = false
+
+  for (const base of BASE_METRICS) {
+    for (const period of PERIODS) {
+      const id = `${period}_${base.id}`
+      if (metrics.find(m => m.id === id)) continue
+      metrics.push({
+        id,
+        label: base.id,
+        enabled: true,
+        sourceRef: base.sourceRef,
+        aggregation: 'sum',
+        periods: [period],
+        unit: base.unit,
+        decimals: base.decimals,
+        dimension: 'dimension' in base ? base.dimension : undefined
+      })
+      changed = true
+    }
   }
-  return monday.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+  if (!changed) return
+
+  await storage.saveData('aggregationConfig', { metrics })
+  await aggregationCtx.loadConfigFromSettings()
+  await rebuildFromScratch()
+}
+
+async function rebuildFromScratch() {
+  const activities = await storage.exportDB('activities')
+  const allDetails = await storage.exportDB('activity_details')
+  const detailsMap = new Map<string, Record<string, unknown> | null>()
+  for (const d of allDetails) {
+    const id = (d as Record<string, unknown> | null)?.id
+    if (typeof id === 'string') detailsMap.set(id, d as Record<string, unknown>)
+  }
+  await aggregationCtx.rebuildAll(activities as Record<string, unknown>[], detailsMap)
 }
 
 async function loadMetrics() {
-  // Parse config to get available periods and base metrics
-  const allDefs = aggregationCtx.listMetrics().filter(m => m.enabled)
-  // Get unique periods
-  availablePeriods.value = Array.from(new Set(allDefs.flatMap(m => m.periods)))
-  // Get unique base metrics
-  const baseMetricMap = new Map<string, { id: string; label: string }>()
-  for (const def of allDefs) {
-    const parts = def.id.split('_')
-    if (parts.length > 1) {
-      baseMetricMap.set(parts.slice(1).join('_'), {
-        id: parts.slice(1).join('_'),
-        label: def.label
-      })
-    } else {
-      baseMetricMap.set(def.id, { id: def.id, label: def.label })
-    }
-  }
-  availableBaseMetrics.value = Array.from(baseMetricMap.values())
+  const enabled = aggregationCtx.listMetrics().filter(m => m.enabled)
+  availablePeriods.value = PERIODS.filter(p => enabled.some(m => m.periods.includes(p)))
 
-  // Build the selected metric key
-  const metricKey = `${selectedPeriod.value}_${selectedMetric.value}`
-  const defs = allDefs.filter(m => m.periods.includes(selectedPeriod.value))
-  availableMetrics.value = defs
-  // Utilise le cache si disponible
-  if (metricsCache.value[selectedPeriod.value]) {
-    metrics.value = metricsCache.value[selectedPeriod.value]
-  } else {
-    const results = await Promise.all(
-      defs.map(async def => {
-        const recs = await aggregationCtx.getAggregated(def.id, selectedPeriod.value)
-        // Prendre la dernière période (max periodKey)
-        const latest = recs.sort((a, b) => b.periodKey.localeCompare(a.periodKey))[0]
-        return {
-          def,
-          value: latest?.value ?? 0
-        }
-      })
-    )
-    metrics.value = results
-    metricsCache.value[selectedPeriod.value] = results
-  }
+  const forPeriod = enabled.filter(m => m.periods.includes(selectedPeriod.value))
+  definitions.value = forPeriod
 
-  // Préparer les données pour le graphe selon la métrique sélectionnée
-  const metricDef = defs.find(d => d.id === metricKey)
-  let periods: string[] = []
-  let values: number[] = []
-  if (metricDef) {
-    const recs = await aggregationCtx.getAggregated(metricDef.id, selectedPeriod.value)
-    // Trie par période décroissante et ne garde que les 5 dernières
-    const sorted = recs
-      .sort((a, b) => b.periodKey.localeCompare(a.periodKey))
-      .slice(0, 5)
-      .reverse()
-    if (selectedPeriod.value === 'week') {
-      periods = sorted.map(r => weekKeyToMonday(r.periodKey))
-    } else if (selectedPeriod.value === 'month') {
-      periods = sorted.map(r => monthKeyToLabel(r.periodKey))
-    } else {
-      periods = sorted.map(r => r.periodKey)
-    }
-    values = sorted.map(r =>
-      metricDef.displayFactor ? r.value * metricDef.displayFactor : r.value
-    )
-  }
-  chartWeeks.value = periods
-  chartDistance.value = values
+  const values: Record<string, number> = {}
+  const series = await Promise.all(
+    forPeriod.map(async def => {
+      const records = (await aggregationCtx.getAggregated(def.id, selectedPeriod.value)).sort(
+        (a, b) => a.periodKey.localeCompare(b.periodKey)
+      )
+      values[def.id] = records[records.length - 1]?.value ?? 0
+      return { def, records }
+    })
+  )
+  latestValues.value = values
+
+  const selected = series.find(s => baseIdOf(s.def.id) === selectedMetric.value)
+  const points = selected ? selected.records.slice(-CHART_POINTS) : []
+  chartLabels.value = points.map(r => periodLabel(r.periodKey, selectedPeriod.value))
+  chartSI.value = points.map(r => r.value)
 }
 
-// Recharge les données quand la sélection change
 watch([selectedPeriod, selectedMetric], loadMetrics)
 
 onMounted(async () => {
@@ -275,82 +271,155 @@ const onRefresh = async () => {
   if (refreshing.value) return
   refreshing.value = true
   try {
-    const allActs = await storage.exportDB('activities')
-    const allDetails = await storage.exportDB('activity_details')
-    const detailsMap = new Map<string, Record<string, unknown> | null>()
-    for (const d of allDetails) {
-      if (d && (d as Record<string, unknown>).id)
-        detailsMap.set((d as Record<string, unknown>).id as string, d as Record<string, unknown>)
-    }
-    await aggregationCtx.rebuildAll(allActs as Record<string, unknown>[], detailsMap)
-    // Vide le cache et recharge les métriques
-    metricsCache.value = {}
+    await rebuildFromScratch()
     await loadMetrics()
   } catch {
-    /* Optionally show error */
+    // A failed rebuild leaves the previous figures on screen, which is honest.
   }
   refreshing.value = false
 }
 </script>
 
 <style scoped>
-.aggregated-progress-widget {
-  .header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.7rem;
-  }
-  .refresh-btn {
-    background: var(--color-gray-100);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 1.1em;
-    color: var(--color-emerald-800);
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .refresh-btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 0.5rem;
-}
-.title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.7rem;
-}
-.metrics {
-  display: flex;
-  gap: 2.2rem;
-  flex-wrap: wrap;
-}
-.metric {
+.apw {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  min-width: 90px;
-  font-size: 1.05rem;
+  gap: 14px;
+  padding: 16px 18px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink);
 }
-.label {
-  color: var(--color-gray-600);
-  font-size: 0.98em;
-  margin-bottom: 2px;
+
+.apw__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.value {
+
+.apw__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 700;
-  font-size: 1.18em;
-  color: var(--color-emerald-800);
+  letter-spacing: -0.01em;
 }
-.unit {
-  font-size: 0.95em;
-  color: var(--color-gray-400);
-  margin-left: 2px;
+
+.apw__refresh {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: var(--text-faint);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.apw__refresh:hover:not(:disabled) {
+  color: var(--color-green-600);
+}
+
+.apw__refresh:disabled {
+  cursor: default;
+}
+
+.is-spinning {
+  animation: apw-spin 0.9s linear infinite;
+}
+
+@keyframes apw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Period segments ─────────────────────────────────────── */
+.apw__segments {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.apw__segment {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 3px);
+  background: none;
+  color: var(--text-faint);
+  font-family: var(--font-condensed);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.apw__segment.is-active {
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+/* ── Tiles ───────────────────────────────────────────────── */
+.apw__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.apw__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  /* A tile is a button so it can be tapped and focused, but the global
+     `button` rule uppercases everything it contains — including the unit,
+     which turned "28.5 km" into "28.5 KM". The label opts back in below. */
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.apw__tile.is-active {
+  border-color: var(--color-green-500);
+  background: var(--color-green-50);
+}
+
+.apw__label {
+  font-family: var(--font-condensed);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.apw__value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.apw__value small {
+  margin-left: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.apw__tile.is-active .apw__value {
+  color: var(--color-green-700);
 }
 </style>

@@ -1,81 +1,119 @@
 <template>
-  <div class="chart-container">
+  <div class="apchart">
     <canvas ref="canvas"></canvas>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{
-  weeks: string[]
-  distance: number[]
-  yLabel?: string
+  /** One label per point, already formatted for reading. */
+  labels: string[]
+  /**
+   * Points **already converted** to the reader's units by the parent.
+   *
+   * The axis used to plot raw SI while the tiles below it showed kilometres —
+   * a chart reading 80 000 next to a tile reading 28.5 km. Whatever converts
+   * the tiles has to convert the series, from the same call.
+   */
+  values: number[]
+  /** Shown on the axis and in the tooltip, never derived here. */
+  unit?: string
 }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 let chart: Chart | null = null
 
-onMounted(async () => {
-  await nextTick()
-  if (canvas.value) {
-    chart = new Chart(canvas.value, {
-      type: 'line',
-      data: {
-        labels: props.weeks,
-        datasets: [
-          {
-            label: '',
-            data: props.distance,
-            borderColor: cssVar('--color-emerald-700', '#047857'),
-            backgroundColor: 'rgba(24,121,78,0.12)',
-            fill: false,
-            tension: 0.2
+/** Numbers read in mono here as they do everywhere else in the app. */
+const mono = () => cssVar('--font-mono', 'monospace')
+
+function build() {
+  if (!canvas.value) return
+  chart = new Chart(canvas.value, {
+    type: 'line',
+    data: {
+      labels: props.labels,
+      datasets: [
+        {
+          label: '',
+          data: props.values,
+          borderColor: cssVar('--color-green-600', '#4d7314'),
+          backgroundColor: cssVar('--color-green-100', '#e8f0d4'),
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: cssVar('--color-green-600', '#4d7314'),
+          pointBorderWidth: 0,
+          fill: true,
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            label: item => `${item.formattedValue}${props.unit ? ` ${props.unit}` : ''}`
           }
-        ]
+        }
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false }
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            font: { family: mono(), size: 10 },
+            color: cssVar('--text-faint', '#6b7280')
+          }
         },
-        scales: {
-          x: { title: { display: false, text: '' } },
-          y: {
-            title: { display: false, text: '' },
-            beginAtZero: true
+        y: {
+          beginAtZero: true,
+          grid: { color: cssVar('--border-subtle', '#e5e7eb') },
+          border: { display: false },
+          ticks: {
+            font: { family: mono(), size: 10 },
+            color: cssVar('--text-faint', '#6b7280'),
+            maxTicksLimit: 5
           }
         }
       }
-    })
-  }
+    }
+  })
+}
+
+onMounted(async () => {
+  await nextTick()
+  build()
+})
+
+onBeforeUnmount(() => {
+  chart?.destroy()
+  chart = null
 })
 
 watch(
-  () => [props.weeks, props.distance, props.yLabel],
-  ([weeks, distance]) => {
-    if (chart) {
-      chart.data.labels = Array.isArray(weeks) ? weeks : []
-      chart.data.datasets[0].data = Array.isArray(distance) ? (distance as number[]) : []
-      // No axis title update needed since labels are hidden
-      chart.update()
-    }
+  () => [props.labels, props.values, props.unit],
+  () => {
+    if (!chart) return
+    chart.data.labels = props.labels
+    chart.data.datasets[0].data = props.values
+    chart.update()
   }
 )
 </script>
 
 <style scoped>
-.chart-container {
+.apchart {
+  position: relative;
   width: 100%;
-  min-height: 220px;
-  margin-bottom: 1.2rem;
-}
-canvas {
-  width: 100% !important;
-  height: 220px !important;
+  height: 180px;
 }
 </style>
