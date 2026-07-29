@@ -38,7 +38,10 @@ withDefaults(
 .graph-card {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  /* Square, like every other card of the activity detail page. The view already
+     flattened the widgets that use Tailwind's rounded-lg; this is the same
+     decision made at the source rather than with an !important override. */
+  border-radius: 0;
   box-shadow: var(--shadow-card);
   padding: 1rem 1.25rem;
 }

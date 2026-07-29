@@ -293,7 +293,8 @@ const secondaryStats = computed<Stat[]>(() => {
 .atb {
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-2xl);
+  /* Square: one card treatment for the whole detail page */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: var(--shadow-float);
   color: var(--color-ink);
@@ -371,7 +372,7 @@ const secondaryStats = computed<Stat[]>(() => {
 /* ── Bloc « encre » : 4 métriques principales ─────── */
 .atb__block {
   background: var(--color-ink);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 20px 22px;
   display: grid;
   /* Two columns, never three: auto-fit picked whatever fitted, so four metrics
@@ -456,7 +457,7 @@ const secondaryStats = computed<Stat[]>(() => {
   flex-direction: column;
   gap: 2px;
   padding: 12px 14px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
 }
