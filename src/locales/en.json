@@ -316,6 +316,20 @@
     "notFound": "Not found."
   },
   "providers": {
+    "recorder": {
+      "intro": "Record a run or ride with your phone's GPS. Your track never leaves your device.",
+      "chooseSport": "What are you doing?",
+      "start": "Start",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Finish",
+      "gpsWaiting": "Waiting for GPS…",
+      "statDuration": "Time",
+      "statDistance": "Distance",
+      "statPace": "Pace",
+      "saved": "Activity saved.",
+      "error": "Error: {message}"
+    },
     "health": {
       "intro": "Import your workouts from your device's health store. Everything stays on your device.",
       "authorize": "Allow access",

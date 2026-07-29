@@ -316,6 +316,20 @@
     "notFound": "Non trouvé."
   },
   "providers": {
+    "recorder": {
+      "intro": "Enregistre une course ou une sortie avec le GPS de ton téléphone. Ton tracé ne quitte pas ton appareil.",
+      "chooseSport": "Tu fais quoi ?",
+      "start": "Démarrer",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "stop": "Terminer",
+      "gpsWaiting": "Recherche du GPS…",
+      "statDuration": "Temps",
+      "statDistance": "Distance",
+      "statPace": "Allure",
+      "saved": "Activité enregistrée.",
+      "error": "Erreur : {message}"
+    },
     "health": {
       "intro": "Importe tes entraînements depuis le hub santé de ton appareil. Tout reste sur ton appareil.",
       "authorize": "Autoriser l'accès",

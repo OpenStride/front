@@ -48,7 +48,7 @@ jobs:
 
       - name: Add Capacitor Android + health plugin
         run: |
-          npm install @capacitor/cli@^8 @capacitor/android@^8 capacitor-health
+          npm install @capacitor/cli@^8 @capacitor/android@^8 capacitor-health @capacitor-community/background-geolocation
           cp ci/capacitor.config.json capacitor.config.json
           npx cap add android
           npx cap sync android
@@ -58,10 +58,10 @@ jobs:
           sed -i 's/minSdkVersion = .*/minSdkVersion = 26/' android/variables.gradle
           cat android/variables.gradle
 
-      - name: Declare Health Connect permissions in the manifest
+      - name: Declare Health Connect + location permissions in the manifest
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n</manifest>|' "$MANIFEST"
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />\n</manifest>|' "$MANIFEST"
           echo "--- patched manifest ---"; cat "$MANIFEST"
 
       - name: Build debug APK
