@@ -90,7 +90,7 @@ const close = () => emit('close')
   width: 100%;
   max-width: 420px;
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-float);
   overflow: hidden;
 }

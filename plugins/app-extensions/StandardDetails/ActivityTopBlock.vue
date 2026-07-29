@@ -372,7 +372,9 @@ const secondaryStats = computed<Stat[]>(() => {
 /* ── Bloc « encre » : 4 métriques principales ─────── */
 .atb__block {
   background: var(--color-ink);
-  border-radius: 0;
+  /* Softened, not square: the ink block and the tiles below sit *inside* the
+     card, and a hard corner against the card's own hard corner read badly. */
+  border-radius: var(--radius-sm);
   padding: 20px 22px;
   display: grid;
   /* Two columns, never three: auto-fit picked whatever fitted, so four metrics
@@ -457,7 +459,7 @@ const secondaryStats = computed<Stat[]>(() => {
   flex-direction: column;
   gap: 2px;
   padding: 12px 14px;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border-subtle);
 }

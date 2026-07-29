@@ -15,7 +15,8 @@ html {
 .section-card {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  /* Square, like every card of the app */
+  border-radius: 0;
   box-shadow: var(--shadow-card);
   padding: 1.2rem 1.4rem;
 }
@@ -24,7 +25,6 @@ html {
    marge latérale, donc la carte reprend le padding à son compte. */
 @media (max-width: 640px) {
   .section-card {
-    border-radius: var(--radius-md);
     padding: 1.1rem 1rem;
   }
 }

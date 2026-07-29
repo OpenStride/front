@@ -5,7 +5,7 @@
 
     <!-- What the section is for, so it comes first rather than under a
          privacy dropdown and a publish button -->
-    <div v-if="publicUrl" class="bg-white shadow rounded-xl p-6 space-y-3">
+    <div v-if="publicUrl" class="bg-white shadow p-6 space-y-3">
       <p class="text-sm font-medium text-gray-700 text-center">
         {{ t('profile.scanToFollow') }}
       </p>
@@ -16,7 +16,7 @@
          here beats letting the button fail with "upload error". -->
     <div
       v-if="!checkingSupport && !canPublish"
-      class="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-3"
+      class="border border-amber-300 bg-amber-50 p-4 space-y-3"
       data-test="publish-requires-storage"
     >
       <p class="text-sm font-medium text-amber-900">
@@ -52,7 +52,7 @@
 
     <!-- Keeping the published copy fresh is the whole point of publishing: a
          profile frozen on the day it was created is what friends see otherwise. -->
-    <div v-if="publicUrl" class="bg-white shadow rounded-xl p-6 space-y-3">
+    <div v-if="publicUrl" class="bg-white shadow p-6 space-y-3">
       <label class="flex items-center gap-3">
         <input
           type="checkbox"
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Privacy Settings -->
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
+    <div class="bg-white shadow p-6 space-y-4">
       <label class="text-sm font-medium text-gray-700">{{ t('profile.defaultPrivacy') }}</label>
       <select
         v-model="defaultPrivacy"

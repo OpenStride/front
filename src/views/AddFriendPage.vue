@@ -250,7 +250,7 @@ function goToFriends() {
   padding: 2rem 1.75rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
 }
 

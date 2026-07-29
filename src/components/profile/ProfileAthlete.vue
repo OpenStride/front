@@ -3,7 +3,7 @@
     <h2 class="text-2xl font-bold">{{ t('profile.athlete.title') }}</h2>
 
     <!-- Section Identité (nom + photo) -->
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
+    <div class="bg-white shadow p-6 space-y-4">
       <h3 class="text-lg font-semibold text-gray-700 mb-3">{{ t('profile.identity.section') }}</h3>
 
       <!-- Mode édition -->
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Section Informations Athlète -->
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
+    <div class="bg-white shadow p-6 space-y-4">
       <h3 class="text-lg font-semibold text-gray-700 mb-3">{{ t('profile.athlete.section') }}</h3>
 
       <div>

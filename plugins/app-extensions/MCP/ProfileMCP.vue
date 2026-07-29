@@ -9,7 +9,7 @@
     <!-- Warning if Google Drive not connected -->
     <div
       v-if="!isGDriveConnected"
-      class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3"
+      class="bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-3"
     >
       <i class="fas fa-exclamation-triangle text-yellow-600 mt-1" aria-hidden="true"></i>
       <div class="flex-1">
@@ -28,7 +28,7 @@
     <!-- MCP Configuration -->
     <div v-else class="space-y-6">
       <!-- Step 1: Publish Data -->
-      <div class="bg-white shadow rounded-xl p-6">
+      <div class="bg-white shadow p-6">
         <div class="flex items-start gap-3 mb-4">
           <div
             class="flex-shrink-0 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold"
@@ -64,7 +64,7 @@
       </div>
 
       <!-- Step 2: Copy Manifest URL -->
-      <div v-if="manifestUrl" class="bg-white shadow rounded-xl p-6">
+      <div v-if="manifestUrl" class="bg-white shadow p-6">
         <div class="flex items-start gap-3 mb-4">
           <div
             class="flex-shrink-0 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold"
@@ -101,7 +101,7 @@
       </div>
 
       <!-- Step 3: Configure MCP Client -->
-      <div class="bg-white shadow rounded-xl p-6">
+      <div class="bg-white shadow p-6">
         <div class="flex items-start gap-3 mb-4">
           <div
             class="flex-shrink-0 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold"
@@ -180,7 +180,7 @@
       </div>
 
       <!-- Statistics -->
-      <div v-if="stats" class="bg-white shadow rounded-xl p-6">
+      <div v-if="stats" class="bg-white shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <i class="fas fa-chart-bar text-green-600" aria-hidden="true"></i>
           {{ t('profile.mcp.statsTitle') }}

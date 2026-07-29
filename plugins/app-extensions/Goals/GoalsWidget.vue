@@ -213,7 +213,7 @@ onUnmounted(() => {
 <style scoped>
 .goals-widget {
   background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   padding: 1.2rem 1.4rem;
   margin-bottom: 0.5rem;

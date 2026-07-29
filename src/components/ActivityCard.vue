@@ -257,7 +257,8 @@ const showDetails = () => {
 .acard {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  /* Square: one card treatment across the app */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: var(--shadow-card);
   margin-bottom: 1.25rem;
@@ -450,11 +451,5 @@ const showDetails = () => {
   border-top: 1px solid var(--border-subtle);
   margin-top: -2px;
   padding-top: 12px;
-}
-
-@media (max-width: 640px) {
-  .acard {
-    border-radius: var(--radius-md);
-  }
 }
 </style>

@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <h2 class="text-2xl font-bold">{{ t('profile.preferences.title') }}</h2>
 
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
+    <div class="bg-white shadow p-6 space-y-4">
       <!-- Language Selector -->
       <div>
         <LanguageSelector />

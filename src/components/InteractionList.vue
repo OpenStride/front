@@ -196,7 +196,7 @@ onUnmounted(() => {
 .interaction-list {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 18px 20px;
   margin-top: 1.25rem;
   color: var(--color-ink);
