@@ -1,5 +1,6 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
 import type { Converted, Dimension, Formatted, UnitSystem } from './units'
+import type { SegmentSample, ElevationProfile } from '@/services/ActivityAnalyzer'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -207,11 +208,13 @@ export interface IAnalyzerFactory {
       number,
       { sample: Sample; duration: number; startIdx: number; endIdx: number } | null | undefined
     >
-    sampleAverageByDistance(stepMeters: number): Sample[]
-    sampleBySlopeChange(minDistanceMeters: number): Sample[]
-    sampleByLaps(laps: { time: number }[]): Sample[]
+    sampleAverageByDistance(stepMeters: number): SegmentSample[]
+    sampleBySlopeChange(minDistanceMeters: number): SegmentSample[]
+    sampleByLaps(laps: { time: number }[]): SegmentSample[]
     /** Metres climbed and descended, noise-filtered. */
     elevationChange(): { ascent: number; descent: number }
+    /** Shape of the course, so widgets can decide whether grade is worth showing */
+    elevationProfile(): ElevationProfile
   }
 }
 

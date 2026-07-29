@@ -2,7 +2,7 @@
   <GraphCard :title="graphTitle" icon="fa-gauge-high" accent="var(--color-green-500)">
     <template #actions>
       <!-- Masque la case si on est en mode “laps” -->
-      <label v-if="slopeGranularity !== 'laps'" class="graph-check">
+      <label v-if="slopeGranularity !== 'laps' && showSlope" class="graph-check">
         <input
           type="checkbox"
           v-model="useSlope"
@@ -28,7 +28,7 @@
       <div>
         <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
       </div>
-      <div>
+      <div v-if="showSlope && tooltip.slope !== null">
         <strong>{{ tooltip.slopeLabel }}</strong
         >({{ tooltip.slope.toFixed(1) }}%)
       </div>
@@ -41,7 +41,7 @@
         <span class="flex-1">{{ graphTitle }}</span>
         <span class="w-10 text-right">{{ paceUnit }}</span>
         <span class="w-12 text-right">{{ t('graphs.colHeartRate') }}</span>
-        <span class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
+        <span v-if="showSlope" class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
       </div>
 
       <div v-for="(s, i) in samples" :key="i" class="flex items-center py-1 text-xs sm:text-sm">
@@ -62,9 +62,12 @@
         </span>
 
         <!-- Icône pente + % -->
-        <span class="w-20 text-right">
-          <span class="inline-block w-4 text-center">{{ slopeIcon(s) }}</span>
-          <span class="ml-1">{{ slopePct(s).toFixed(1) }} %</span>
+        <span v-if="showSlope" class="w-20 text-right">
+          <template v-if="s.slope != null">
+            <span class="inline-block w-4 text-center">{{ slopeIcon(s) }}</span>
+            <span class="ml-1">{{ s.slope.toFixed(1) }} %</span>
+          </template>
+          <span v-else class="text-gray-400">—</span>
         </span>
       </div>
     </div>
@@ -77,6 +80,7 @@ import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { getSportProfile } from '@/types/sport'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import type { SegmentSample } from '@/services/ActivityAnalyzer'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
@@ -120,7 +124,11 @@ const axisLabel = (value: number) => {
 }
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-const samples = ref<Sample[]>([])
+const samples = ref<SegmentSample[]>([])
+// A road run on flat ground has nothing to say about grade, and a column of
+// "0.1 %" is noise. Decided from the terrain, never from the sport label: a
+// watch that files a trail as a run must not hide the climbing.
+const showSlope = ref(true)
 // Left plot margin, computed each draw from the widest axis label; shared with
 // the tooltip hit-testing so a click still maps to the right distance.
 const leftMargin = ref(50)
@@ -196,6 +204,7 @@ function onUseSlopeChange() {
 
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
+  showSlope.value = !analyzer.elevationProfile().isFlat
   if (slopeGranularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
   } else if (useSlope.value) {
@@ -393,7 +402,9 @@ const tooltip = ref({
   speed: 0,
   pace: '',
   distance: 0,
-  slope: 0,
+  // null when the track has no elevation for this segment — a missing grade is
+  // not a flat one
+  slope: null as number | null,
   slopeLabel: ''
 })
 
@@ -428,7 +439,6 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   if (index === -1) index = samples.value.length - 1
 
   const s = samples.value[index]
-  const prev = samples.value[index - 1] ?? s
   if (!s) return
 
   // Whatever the chart plots, shown in the user's units.
@@ -436,12 +446,7 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   const paceStr = axisLabel(toAxis(speedMps))
 
   const speed = speedMps ?? 0
-  const slope =
-    s.elevation !== undefined && index > 0
-      ? ((s.elevation - (samples.value[index - 1].elevation ?? s.elevation)) /
-          ((s.distance ?? 1) - (samples.value[index - 1].distance ?? 0))) *
-        100
-      : 0
+  const slope = s.slope ?? null
 
   tooltip.value = {
     visible: true,
@@ -449,11 +454,11 @@ function showTooltip(event: MouseEvent | TouchEvent) {
       left: `${clientX + 10}px`,
       top: `${clientY + 10}px`
     },
-    distance: (s.distance ?? 0) - (prev?.distance ?? 0),
+    distance: segmentDistance(s, index),
     speed,
     pace: paceStr,
     slope,
-    slopeLabel: classifySlopeValue(slope)
+    slopeLabel: slope === null ? '' : classifySlopeValue(slope)
   }
 
   if (tooltipTimeout) clearTimeout(tooltipTimeout)
@@ -493,16 +498,9 @@ function paceBarWidth(sample: Sample) {
   const ratio = (baselineMax - pace) / (baselineMax - baselineMin || 1)
   return Math.max(5, ratio * 100)
 }
-/* pente (%) entre ce sample et le précédent (ou 0) */
-function slopePct(sample: Sample, i = samples.value.indexOf(sample)) {
-  if (i <= 0) return 0
-  const prev = samples.value[i - 1]
-  const delev = (sample.elevation ?? 0) - (prev.elevation ?? 0)
-  const ddist = (sample.distance ?? 1) - (prev.distance ?? 0)
-  return ddist ? (delev / ddist) * 100 : 0
-}
-function slopeIcon(sample: Sample) {
-  const s = slopePct(sample)
+function slopeIcon(sample: SegmentSample) {
+  const s = sample.slope
+  if (s == null) return '—'
   if (s > 0.5) return '↗︎'
   if (s < -0.5) return '↘︎'
   return '→'
@@ -513,8 +511,11 @@ function hrAvg(sample: Sample) {
 }
 
 /* distance du segment (m) */
-function segmentDistance(sample: Sample, i = samples.value.indexOf(sample)) {
-  if (i === 0) return sample.distance ?? 0
+function segmentDistance(sample: SegmentSample, i = samples.value.indexOf(sample)) {
+  // The analyzer measures the span from raw samples; differencing the averaged
+  // `distance` of two segments misses half of each of them
+  if (sample.segmentDistance != null) return sample.segmentDistance
+  if (i <= 0) return sample.distance ?? 0
   return (sample.distance ?? 0) - (samples.value[i - 1].distance ?? 0)
 }
 

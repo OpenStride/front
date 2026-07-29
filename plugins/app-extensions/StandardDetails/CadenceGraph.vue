@@ -2,7 +2,7 @@
   <GraphCard :title="t('graphs.cadence')" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
     <template #actions>
       <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
-      <label v-if="granularity !== 'laps'" class="graph-check">
+      <label v-if="granularity !== 'laps' && showSlope" class="graph-check">
         <input type="checkbox" v-model="useSlope" @change="onUseSlopeChange" class="accent-cyan" />
         {{ t('graphs.slopeVariation') }}
       </label>
@@ -30,7 +30,7 @@
       <div>
         <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
       </div>
-      <div v-if="tooltip.slope !== null">
+      <div v-if="showSlope && tooltip.slope !== null">
         <strong>{{ t('graphs.slope') }} :</strong> {{ tooltip.slope.toFixed(1) }} %
       </div>
     </div>
@@ -41,7 +41,8 @@
 import { useI18n } from 'vue-i18n'
 import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
-import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import type { Activity, ActivityDetails } from '@/types/activity'
+import type { SegmentSample } from '@/services/ActivityAnalyzer'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
@@ -58,7 +59,10 @@ const { storage, analyzer: analyzerFactory, units } = usePluginContext()
 
 /* ===== Références & états ===== */
 const canvas = ref<HTMLCanvasElement | null>(null)
-const samples = ref<Sample[]>([])
+const samples = ref<SegmentSample[]>([])
+// Same rule as the pace widget: grade is offered when the ground has some, not
+// when the watch says "trail"
+const showSlope = ref(true)
 // Left plot margin, computed each draw from the widest axis label; shared with
 // the tooltip hit-testing so a click still maps to the right distance.
 const leftMargin = ref(50)
@@ -124,6 +128,7 @@ async function loadPrefs() {
 /* ===== Re-échantillonnage ===== */
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
+  showSlope.value = !analyzer.elevationProfile().isFlat
   if (granularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
   } else if (useSlope.value) {
@@ -285,13 +290,10 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
   const s = samples.value[i]
   const prev = samples.value[i - 1] ?? s
 
-  /* pente instantanée (si on a l'élévation) */
-  let slope = null as number | null
-  if (s.elevation != null && prev.elevation != null) {
-    const delev = s.elevation - prev.elevation
-    const ddist = (s.distance ?? 1) - (prev.distance ?? 0)
-    slope = ddist ? (delev / ddist) * 100 : 0
-  }
+  /* Grade of the segment, measured by the analyzer from the raw track. The
+     averaged elevation of two segments cannot be differenced for this: that
+     compares their midpoints and halves the value. */
+  const slope = s.slope ?? null
 
   tooltip.value = {
     visible: true,
