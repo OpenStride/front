@@ -205,9 +205,16 @@ function onUseSlopeChange() {
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
   showSlope.value = !analyzer.elevationProfile().isFlat
+
+  // The preference is remembered across activities, so a flat run inherited the
+  // slope segmentation from the last hilly one — irregular splits, and no
+  // checkbox left to turn it off. Hiding the control has to neutralise it too;
+  // the stored preference is kept, it applies again on a course with relief.
+  const segmentBySlope = useSlope.value && showSlope.value
+
   if (slopeGranularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
-  } else if (useSlope.value) {
+  } else if (segmentBySlope) {
     samples.value = analyzer.sampleBySlopeChange(parseInt(slopeGranularity.value))
   } else {
     samples.value = analyzer.sampleAverageByDistance(parseInt(slopeGranularity.value))
@@ -381,10 +388,16 @@ function drawCanvas() {
   ctx.fill()
 
   // === Barres vitesse ===
+  // On the segment boundaries, not between two segment midpoints: `distance` is
+  // an average for distance-based splits, so using it drew every bar half a
+  // segment to the left of the ground it describes.
   for (let i = 0; i < samples.value.length; i++) {
     const s = samples.value[i]
-    const d0 = i === 0 ? 0 : (samples.value[i - 1]?.distance ?? 0)
-    const d1 = s.distance ?? 0
+    const end = s.segmentEnd ?? s.distance ?? 0
+    const span = s.segmentDistance
+    const d0 =
+      span != null ? end - span : i === 0 ? 0 : (samples.value[i - 1]?.segmentEnd ?? 0)
+    const d1 = end
     const xStart = pxMargin + (d0 / totalDistance) * (width - pxMargin)
     const widthPx = ((d1 - d0) / totalDistance) * (width - pxMargin)
     const speed = s.speed ?? 0
@@ -431,9 +444,10 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   const clickedDistance = relativeX * totalDistance
 
   // Trouver le sample le plus proche
-  let index = samples.value.findIndex((s, i) => {
-    const prev = samples.value[i - 1]
-    return (prev?.distance ?? 0) <= clickedDistance && (s.distance ?? 0) >= clickedDistance
+  let index = samples.value.findIndex(s => {
+    const end = s.segmentEnd ?? s.distance ?? 0
+    const start = s.segmentDistance != null ? end - s.segmentDistance : 0
+    return start <= clickedDistance && end >= clickedDistance
   })
 
   if (index === -1) index = samples.value.length - 1

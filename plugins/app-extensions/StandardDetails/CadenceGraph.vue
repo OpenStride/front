@@ -134,9 +134,15 @@ function formatSpan(meters: number) {
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
   showSlope.value = !analyzer.elevationProfile().isFlat
+
+  // Hiding the checkbox has to switch the mode off as well, otherwise a flat run
+  // keeps the slope segmentation inherited from the last hilly activity with no
+  // control left to undo it. The preference itself is kept.
+  const segmentBySlope = useSlope.value && showSlope.value
+
   if (granularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
-  } else if (useSlope.value) {
+  } else if (segmentBySlope) {
     samples.value = analyzer.sampleBySlopeChange(Number(granularity.value))
   } else {
     samples.value = analyzer.sampleAverageByDistance(Number(granularity.value))

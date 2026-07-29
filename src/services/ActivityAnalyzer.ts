@@ -11,6 +11,14 @@ export interface SegmentSample extends Sample {
   slope?: number
   /** Horizontal length of the segment in metres */
   segmentDistance?: number
+  /**
+   * Cumulative distance at the end of the segment.
+   *
+   * `distance` is an average for distance-based segments and an endpoint for
+   * lap-based ones — a chart cannot know which. This is always the endpoint, so
+   * bars can be drawn on the boundaries instead of between two midpoints.
+   */
+  segmentEnd?: number
 }
 
 /**
@@ -365,7 +373,7 @@ export class ActivityAnalyzer {
     }
 
     // a > 0 means the previous segment ended on the sample just before this one
-    const { slope, segmentDistance } = this.segmentSlope(
+    const { slope, segmentDistance, segmentEnd } = this.segmentSlope(
       seg,
       a > 0 ? this.samples[a - 1] : undefined
     )
@@ -380,7 +388,8 @@ export class ActivityAnalyzer {
       cadence: avg('cadence'),
       speed: avg('speed'),
       slope,
-      segmentDistance
+      segmentDistance,
+      segmentEnd
     }
   }
 
@@ -393,7 +402,7 @@ export class ActivityAnalyzer {
       const v = arr.map(sel).filter((x): x is number => x !== undefined)
       return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined
     }
-    const { slope, segmentDistance } = this.segmentSlope(arr, previousEnd)
+    const { slope, segmentDistance, segmentEnd } = this.segmentSlope(arr, previousEnd)
     return {
       time: Math.round(avg(s => s.time) ?? 0),
       distance: avg(s => s.distance),
@@ -404,7 +413,8 @@ export class ActivityAnalyzer {
       cadence: avg(s => s.cadence),
       speed: avg(s => s.speed),
       slope,
-      segmentDistance
+      segmentDistance,
+      segmentEnd
     }
   }
 
@@ -417,7 +427,7 @@ export class ActivityAnalyzer {
   private segmentSlope(
     arr: Sample[],
     previousEnd?: Sample
-  ): { slope?: number; segmentDistance?: number } {
+  ): { slope?: number; segmentDistance?: number; segmentEnd?: number } {
     const withElevation = arr.filter(s => s.elevation != null)
     const start = previousEnd ?? arr[0]
     const end = arr[arr.length - 1]
@@ -431,10 +441,14 @@ export class ActivityAnalyzer {
     const endElevation = withElevation[withElevation.length - 1]?.elevation
 
     if (run == null || run <= 0 || startElevation == null || endElevation == null) {
-      return { slope: undefined, segmentDistance: run }
+      return { slope: undefined, segmentDistance: run, segmentEnd: endDistance ?? undefined }
     }
 
-    return { slope: ((endElevation - startElevation) / run) * 100, segmentDistance: run }
+    return {
+      slope: ((endElevation - startElevation) / run) * 100,
+      segmentDistance: run,
+      segmentEnd: endDistance
+    }
   }
 
   public bestSegments(

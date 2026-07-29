@@ -195,3 +195,25 @@ describe('split boundaries', () => {
     expect(segments[2].slope).toBeCloseTo(-5, 1)
   })
 })
+
+describe('segment boundaries for drawing', () => {
+  it('exposes the end of each segment, not its middle', () => {
+    // `distance` is an average here, so a chart that differenced it drew every
+    // bar half a segment left of the ground it describes
+    const segments = new ActivityAnalyzer(threeKmProfile()).sampleAverageByDistance(1000)
+
+    expect(segments.map(s => s.segmentEnd)).toEqual([1000, 2000, 3000])
+    expect(segments[0].distance).toBeLessThan(1000)
+  })
+
+  it('lines the segments up end to end with no gap', () => {
+    const segments = new ActivityAnalyzer(coarseTrack()).sampleAverageByDistance(500)
+
+    let expectedStart = 0
+    for (const segment of segments) {
+      const start = (segment.segmentEnd ?? 0) - (segment.segmentDistance ?? 0)
+      expect(start).toBeCloseTo(expectedStart, 6)
+      expectedStart = segment.segmentEnd ?? 0
+    }
+  })
+})
