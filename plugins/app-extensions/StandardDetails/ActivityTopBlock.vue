@@ -28,7 +28,7 @@
           :class="{ 'atb__cell--hi': stat.highlight }"
         >
           <span class="atb__clabel">{{ stat.label }}</span>
-          <span class="atb__cvalue">
+          <span class="atb__cvalue" :class="primaryScale">
             {{ stat.value }}<small v-if="stat.unit">{{ stat.unit }}</small>
           </span>
         </div>
@@ -38,7 +38,7 @@
       <div v-if="secondaryStats.length" class="atb__substats">
         <div v-for="stat in secondaryStats" :key="stat.label" class="atb__substat">
           <span class="atb__label">{{ stat.label }}</span>
-          <span class="atb__subvalue">
+          <span class="atb__subvalue" :class="secondaryScale">
             {{ stat.value }}<small v-if="stat.unit">{{ stat.unit }}</small>
           </span>
         </div>
@@ -146,6 +146,22 @@ const formattedDate = computed(() => {
 // ── Metric models ───────────────────────────────────────────
 type Stat = { label: string; value: string; unit: string; highlight?: boolean }
 
+/**
+ * Long readings step the type down instead of spilling out of their cell.
+ *
+ * A paired value doubles the digits — an ultra reads "4280/4315 m" where a park
+ * run reads "120 m" — and abbreviating it to "4.3k" would drop metres that
+ * runners quote exactly. The step is decided by the longest value of the block
+ * and applied to all of it: sizing each cell on its own content made a row of
+ * numbers that are read together sit at three different sizes.
+ */
+function scaleFor(stats: Stat[]): string {
+  const longest = stats.reduce((max, stat) => Math.max(max, stat.value.length), 0)
+  if (longest >= 11) return 'is-xlong'
+  if (longest >= 8) return 'is-long'
+  return ''
+}
+
 const primaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
   const primary = formatPrimary(s?.averageSpeed)
@@ -230,6 +246,9 @@ function pairStat(
   }
   return first || second || null
 }
+
+const primaryScale = computed(() => scaleFor(primaryStats.value))
+const secondaryScale = computed(() => scaleFor(secondaryStats.value))
 
 const secondaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
@@ -355,8 +374,16 @@ const secondaryStats = computed<Stat[]>(() => {
   border-radius: var(--radius-lg);
   padding: 20px 22px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  /* Two columns, never three: auto-fit picked whatever fitted, so four metrics
+     landed as 3 + 1 and the last one sat alone. Four go two by two, and the
+     fourth column only appears when there is room for all of them. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 18px;
+}
+@media (min-width: 700px) {
+  .atb__block {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .atb__cell {
   display: flex;
@@ -380,6 +407,25 @@ const secondaryStats = computed<Stat[]>(() => {
   line-height: 1;
   color: var(--color-white);
 }
+.atb__cvalue.is-long {
+  font-size: 24px;
+}
+.atb__cvalue.is-xlong {
+  font-size: 20px;
+}
+/* Two columns on a 360px screen leave ~135px per cell: an ultra's "4280/4315"
+   does not fit at any of the sizes above. */
+@media (max-width: 380px) {
+  .atb__cvalue {
+    font-size: 26px;
+  }
+  .atb__cvalue.is-long {
+    font-size: 20px;
+  }
+  .atb__cvalue.is-xlong {
+    font-size: 17px;
+  }
+}
 .atb__cvalue small {
   font-size: 13px;
   font-weight: 500;
@@ -397,8 +443,13 @@ const secondaryStats = computed<Stat[]>(() => {
 /* ── Secondary stats ──────────────────────────────── */
 .atb__substats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+@media (min-width: 700px) {
+  .atb__substats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .atb__substat {
   display: flex;
@@ -422,6 +473,12 @@ const secondaryStats = computed<Stat[]>(() => {
   font-size: 18px;
   font-weight: 500;
   color: var(--color-ink);
+}
+.atb__subvalue.is-long {
+  font-size: 16px;
+}
+.atb__subvalue.is-xlong {
+  font-size: 14px;
 }
 .atb__subvalue small {
   font-size: 12px;

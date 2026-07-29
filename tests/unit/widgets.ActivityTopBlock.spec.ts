@@ -211,3 +211,69 @@ describe('ActivityTopBlock — descent and max speed', () => {
     setUnitSystem('metric')
   })
 })
+
+describe('ActivityTopBlock — pairs and long readings', () => {
+  beforeEach(() => setUnitSystem('metric'))
+
+  const ultra = () =>
+    render(
+      makeData(
+        { type: 'running', distance: 100000, duration: 87120 },
+        {
+          samples: [{ time: 0, elevation: 500 }],
+          stats: {
+            averageSpeed: 1.15,
+            averageHeartRate: 152,
+            maxHeartRate: 198,
+            totalAscent: 4280,
+            totalDescent: 4315
+          }
+        }
+      )
+    )
+
+  it('reads both heart rates from one cell', () => {
+    const text = render(
+      makeData({}, { stats: { averageSpeed: 3, averageHeartRate: 148, maxHeartRate: 176 } })
+    ).text()
+
+    expect(text).toMatch(/148\/176/)
+    // One cell, so the standalone "Max HR" label is gone
+    expect(text).not.toMatch(/Max HR/i)
+  })
+
+  it('keeps its own label when only one of the pair exists', () => {
+    // "148/—" would be worse than a single value under its own name
+    const text = render(makeData({}, { stats: { averageSpeed: 3, averageHeartRate: 148 } })).text()
+
+    expect(text).toMatch(/Avg HR/i)
+    // Not "148/…" — the pace unit legitimately carries a slash, the value must not
+    expect(text).not.toMatch(/148\//)
+  })
+
+  it('steps the type down when the numbers get long', () => {
+    // An ultra reads "4280/4315 m" where a park run reads "120 m"; at 30px that
+    // spills out of a half-width cell on a phone
+    const value = ultra().find('.atb__cvalue')
+
+    expect(value.classes()).toContain('is-long')
+  })
+
+  it('leaves ordinary readings at full size', () => {
+    const value = render().find('.atb__cvalue')
+
+    expect(value.classes()).not.toContain('is-long')
+    expect(value.classes()).not.toContain('is-xlong')
+  })
+
+  it('sizes the whole block together, not cell by cell', () => {
+    // Numbers read side by side must not sit at three different sizes
+    const sizes = new Set(
+      ultra()
+        .findAll('.atb__cvalue')
+        .map(v => v.classes().find(c => c.startsWith('is-')) ?? '')
+    )
+
+    expect(sizes.size).toBe(1)
+  })
+})
