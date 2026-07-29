@@ -18,6 +18,9 @@
       </div>
     </div>
 
+    <!-- Android only, and only once the app has proven useful -->
+    <InstallPrompt variant="banner" />
+
     <!-- Activities Feed -->
     <div ref="scrollArea" class="feed-container">
       <ActivityCard
@@ -59,6 +62,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
+import InstallPrompt from '@/components/InstallPrompt.vue'
 import { useMixedFeed } from '@/composables/useMixedFeed'
 import { useFeedMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { debounce } from '@/utils/debounce'

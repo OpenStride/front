@@ -5,6 +5,10 @@
       {{ t('onboarding.provider.subtitle') }}
     </p>
 
+    <!-- iOS only: installing after connecting a provider would strand the
+         import in Safari's storage, so the invitation comes first. -->
+    <InstallPrompt variant="gate" class="mb-6" />
+
     <!-- Liste de sélection (si aucun provider sélectionné) -->
     <div v-if="!selectedProviderId">
       <ul class="space-y-4">
@@ -60,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import InstallPrompt from '@/components/InstallPrompt.vue'
 import { ref, watch, shallowRef, onMounted, onUnmounted, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { installableProviderPlugins } from '@/services/ProviderPluginRegistry'
