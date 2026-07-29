@@ -160,6 +160,24 @@ export const convertQuantity = (dimension: Dimension, si: number): Converted => 
   return { value: si * scale.factor + (scale.offset ?? 0), unit: label(scale.unitKey) }
 }
 
+/**
+ * Convert a value the user typed back to SI.
+ *
+ * The inverse of `convertQuantity`, off the same table so a factor is still
+ * written once. Needed wherever a number *enters* the app rather than leaving
+ * it: a goal target typed as "50" means 50 km to one reader and 50 mi to
+ * another, and only the SI value may be stored.
+ */
+export const toSI = (dimension: Dimension, value: number): number => {
+  // A pool length is entered as a plain short distance; the snapping in
+  // `formatQuantity` is a display affordance, not a storable quantity.
+  if (dimension === 'poolLength') return toSI('distanceShort', value)
+
+  const spec = DIMENSIONS[dimension]
+  const scale = system.value === 'imperial' ? spec.imperial : spec.metric
+  return (value - (scale.offset ?? 0)) / scale.factor
+}
+
 const build = (value: string, unit: string): Formatted => ({
   value,
   unit,
@@ -206,6 +224,7 @@ export function useUnits() {
   return {
     system: readonly(system),
     format: formatQuantity,
-    convert: convertQuantity
+    convert: convertQuantity,
+    toSI
   }
 }

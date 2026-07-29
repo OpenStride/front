@@ -69,19 +69,48 @@ const heartSamples = computed(
 
 const hasData = computed(() => heartSamples.value.length > 0)
 
-const zoneThresholds = [
-  { zone: 5, min: 0.9, max: 1.1, color: cssVar('--color-orange-700', '#b75e38'), label: 'VO₂ Max' },
-  { zone: 4, min: 0.8, max: 0.9, color: cssVar('--color-orange-300', '#f49268'), label: 'Seuil' },
-  { zone: 3, min: 0.7, max: 0.8, color: cssVar('--color-cyan-500', '#00bbd3'), label: 'Tempo' },
+/**
+ * Bands are fixed; their names are not. Computed rather than a module const so
+ * the labels follow a language change instead of freezing whatever locale was
+ * active when this module was first evaluated.
+ */
+const zoneThresholds = computed(() => [
+  {
+    zone: 5,
+    min: 0.9,
+    max: 1.1,
+    color: cssVar('--color-orange-700', '#b75e38'),
+    label: t('heartZones.vo2max')
+  },
+  {
+    zone: 4,
+    min: 0.8,
+    max: 0.9,
+    color: cssVar('--color-orange-300', '#f49268'),
+    label: t('heartZones.threshold')
+  },
+  {
+    zone: 3,
+    min: 0.7,
+    max: 0.8,
+    color: cssVar('--color-cyan-500', '#00bbd3'),
+    label: t('heartZones.tempo')
+  },
   {
     zone: 2,
     min: 0.6,
     max: 0.7,
     color: cssVar('--color-green-500', '#88aa00'),
-    label: 'Endurance'
+    label: t('heartZones.endurance')
   },
-  { zone: 1, min: 0.5, max: 0.6, color: cssVar('--color-gray-100', '#f3f4f6'), label: 'Récup.' }
-]
+  {
+    zone: 1,
+    min: 0.5,
+    max: 0.6,
+    color: cssVar('--color-gray-100', '#f3f4f6'),
+    label: t('heartZones.recovery')
+  }
+])
 
 const zones = computed(() => {
   if (!props.data.details.samples?.length) return []
@@ -104,12 +133,12 @@ const zones = computed(() => {
     if (hr == null) continue // on ignore la plage sans FC
 
     const ratio = hr / maxHeartRate.value
-    const idx = zoneThresholds.findIndex(z => ratio >= z.min && ratio < z.max)
+    const idx = zoneThresholds.value.findIndex(z => ratio >= z.min && ratio < z.max)
     if (idx !== -1) durationPerZone[idx] += dt
   }
 
   // Construction des objets zone
-  return zoneThresholds.map((thr, i) => {
+  return zoneThresholds.value.map((thr, i) => {
     const seconds = durationPerZone[i]
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)

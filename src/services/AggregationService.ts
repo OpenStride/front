@@ -1,4 +1,5 @@
 import { IndexedDBService } from './IndexedDBService'
+import { readActivitySource } from '@/types/activitySources'
 import { getActivityService, type ActivityServiceEvent } from './ActivityService'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import type {
@@ -10,6 +11,19 @@ import { getISOWeekKey, getMonthKey, periodKey } from '@/utils/dateKeys'
 
 // Re-export for backward compatibility (existing consumers importing from AggregationService)
 export { getISOWeekKey, getMonthKey }
+
+/**
+ * When the activity happened.
+ *
+ * `startTime` is seconds or milliseconds depending on the provider; the storage
+ * contract does not pin that down, so both are accepted. Null when the activity
+ * carries no usable date, which is the one case aggregation must skip.
+ */
+function activityDate(activity: Activity): Date | null {
+  const ts = activity.startTime
+  if (typeof ts !== 'number' || !Number.isFinite(ts) || ts <= 0) return null
+  return new Date(ts < 1e11 ? ts * 1000 : ts)
+}
 
 /**
  * Event-driven aggregation service
@@ -33,7 +47,7 @@ export class AggregationService {
   async loadConfigFromSettings() {
     const db = await IndexedDBService.getInstance()
     const cfg = await db.getData<{ metrics: AggregationMetricDefinition[] }>('aggregationConfig')
-    console.log('[AggregationService] Loaded config:', cfg)
+    console.log(`[AggregationService] Loaded config: ${cfg?.metrics?.length ?? 0} metrics`)
     if (cfg && Array.isArray(cfg.metrics)) {
       this.metrics = cfg.metrics
     } else {
@@ -41,7 +55,7 @@ export class AggregationService {
       this.metrics = []
       await db.saveData('aggregationConfig', { metrics: this.metrics })
     }
-    console.log('[AggregationService] Metrics in use:', this.metrics)
+    console.log(`[AggregationService] ${this.metrics.length} metrics in use`)
   }
 
   /**
@@ -55,8 +69,6 @@ export class AggregationService {
       try {
         const e = evt as CustomEvent<ActivityServiceEvent>
         const { type, activity, details } = e.detail
-
-        console.log(`[AggregationService] Activity ${type}: ${activity.id}`)
 
         if (type === 'deleted') {
           await this.removeActivityFromAggregation(activity, details)
@@ -104,18 +116,6 @@ export class AggregationService {
     })
   }
 
-  private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
-    return path
-      .split('.')
-      .reduce(
-        (acc: unknown, p) =>
-          acc != null && typeof acc === 'object' && p in (acc as Record<string, unknown>)
-            ? (acc as Record<string, unknown>)[p]
-            : undefined,
-        obj as unknown
-      )
-  }
-
   private periodKey(period: AggregationPeriod, date: Date) {
     return periodKey(date, period)
   }
@@ -125,39 +125,17 @@ export class AggregationService {
     details: ActivityDetails | null | undefined
   ) {
     if (!activity) return
-    const merged: Record<string, unknown> = {
-      ...(activity as unknown as Record<string, unknown>),
-      ...(details as unknown as Record<string, unknown>)
-    }
-    console.log('[AggregationService] Merging activity', activity.id, 'merged :', merged)
-    // heuristique startTime ms or sec
-    const startTs = merged.startTime || merged.start_time || merged.timestamp
-    if (!startTs) {
-      console.log('[AggregationService] No startTime for activity', activity.id)
-      return
-    }
-    const date = new Date(
-      typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : (startTs as number)
-    )
+    const date = activityDate(activity)
+    if (!date) return
 
     const db = await IndexedDBService.getInstance()
-    console.log('[AggregationService] Aggregating activity', activity.id, 'details:', details)
 
     for (const metric of this.metrics) {
       if (!metric.enabled) continue
-      const raw = this.getValueByPath(merged, metric.sourceRef)
-      console.log(
-        `[AggregationService] Metric ${metric.id} sourceRef=${metric.sourceRef} raw=`,
-        raw
-      )
-      if (raw == null) continue
-      const numeric = typeof raw === 'number' ? raw : parseFloat(String(raw))
-      if (isNaN(numeric)) {
-        console.log(
-          `[AggregationService] Metric ${metric.id} value is NaN for activity ${activity?.id}`
-        )
-        continue
-      }
+      // An unknown source name — a config written by an older version — yields
+      // undefined and is skipped, rather than aggregating a NaN.
+      const numeric = readActivitySource(metric.sourceRef, activity, details ?? undefined)
+      if (numeric === undefined) continue
 
       for (const p of metric.periods) {
         const key = this.periodKey(p, date)
@@ -185,9 +163,6 @@ export class AggregationService {
         record.count += 1
         record.value = metric.aggregation === 'avg' ? record.sum / record.count : record.sum
         record.lastUpdated = Date.now()
-        console.log(
-          `[AggregationService] Update record ${id}: sum=${record.sum} count=${record.count} value=${record.value}`
-        )
         await db.addItemsToStore('aggregatedData', [record], r => r.id)
         this.notify({ metricId: metric.id, periodType: p, periodKey: key })
       }
@@ -203,30 +178,15 @@ export class AggregationService {
     details: ActivityDetails | null | undefined
   ) {
     if (!activity) return
-    const merged: Record<string, unknown> = {
-      ...(activity as unknown as Record<string, unknown>),
-      ...(details as unknown as Record<string, unknown>)
-    }
-
-    // heuristique startTime ms or sec
-    const startTs = merged.startTime || merged.start_time || merged.timestamp
-    if (!startTs) {
-      console.log('[AggregationService] No startTime for deleted activity', activity.id)
-      return
-    }
-    const date = new Date(
-      typeof startTs === 'number' && startTs < 1e11 ? startTs * 1000 : (startTs as number)
-    )
+    const date = activityDate(activity)
+    if (!date) return
 
     const db = await IndexedDBService.getInstance()
-    console.log('[AggregationService] Removing activity from aggregations', activity?.id)
 
     for (const metric of this.metrics) {
       if (!metric.enabled) continue
-      const raw = this.getValueByPath(merged, metric.sourceRef)
-      if (raw == null) continue
-      const numeric = typeof raw === 'number' ? raw : parseFloat(String(raw))
-      if (isNaN(numeric)) continue
+      const numeric = readActivitySource(metric.sourceRef, activity, details ?? undefined)
+      if (numeric === undefined) continue
 
       for (const p of metric.periods) {
         const key = this.periodKey(p, date)
@@ -252,10 +212,6 @@ export class AggregationService {
               : record.sum
             : 0
         record.lastUpdated = Date.now()
-
-        console.log(
-          `[AggregationService] Decremented record ${id}: sum=${record.sum} count=${record.count} value=${record.value}`
-        )
         await db.addItemsToStore('aggregatedData', [record], r => r.id)
         this.notify({ metricId: metric.id, periodType: p, periodKey: key })
       }

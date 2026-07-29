@@ -5,6 +5,7 @@ import {
   type Granularity,
   type MetricDefinition,
   type MetricSources,
+  type MetricSourceRef,
   type SeriesPoint
 } from './types'
 
@@ -15,7 +16,11 @@ interface Bucket {
 }
 
 /** Read a metric path against the activity, its stats or the derived index */
-function readValue(activity: Activity, sources: MetricSources, path: string): number | null {
+function readValue(
+  activity: Activity,
+  sources: MetricSources,
+  path: MetricSourceRef
+): number | null {
   let value: unknown
 
   if (path.startsWith('stats.')) {

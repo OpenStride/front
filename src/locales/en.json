@@ -1,6 +1,5 @@
 {
   "activityDetail": {
-    "noRoute": "No GPS route",
     "distance": "Distance",
     "avgPace": "Avg pace",
     "time": "Time",
@@ -261,7 +260,6 @@
   "home": {
     "hero": {
       "title": "Explore. Control. Share.",
-      "subtitle": "Your activity companion that respects your privacy. Open-source, free and fully transparent.",
       "cta": "Get started now"
     },
     "features": {
@@ -477,10 +475,7 @@
     },
     "distribution": {
       "title": "Distribution",
-      "bySport": "By sport",
-      "byMonth": "By month",
       "activitiesCount": "Activity count",
-      "distanceKm": "Distance (km)",
       "durationH": "Duration (h)",
       "distance": "Distance"
     },
@@ -542,12 +537,11 @@
       "monthly": "Monthly"
     },
     "units": {
-      "km": "km",
       "activities": "activities",
       "hours": "h"
     },
     "form": {
-      "distanceKm": "Distance (km)",
+      "distance": "Distance ({unit})",
       "activityCount": "Number of activities",
       "durationHours": "Duration (hours)",
       "target": "Target"
@@ -572,9 +566,6 @@
     "heartZones": "HR zones",
     "cadence": "Cadence",
     "pace": "Pace",
-    "elevationProfile": "Elevation profile",
-    "comingSoon": "Chart coming soon",
-    "avgPacePerKm": "Average pace per km & elevation",
     "noHeartRate": "No heart rate data available",
     "average": "Average",
     "maxHr": "Max HR",
@@ -585,7 +576,6 @@
     "slope": "Slope",
     "colDistance": "Dist.",
     "colPace": "Pace",
-    "colPaceValue": "min/km",
     "colHeartRate": "HR",
     "colSlope": "Slope"
   },
@@ -607,7 +597,17 @@
   },
   "aggregatedProgress": {
     "title": "Progress",
-    "recompute": "Rebuild aggregates"
+    "recompute": "Rebuild aggregates",
+    "metrics": {
+      "distance": "Distance",
+      "duration": "Duration",
+      "totalAscent": "Total elevation +"
+    },
+    "periods": {
+      "week": "Weekly",
+      "month": "Monthly",
+      "year": "Yearly"
+    }
   },
   "addFriend": {
     "adding": "Adding your friend...",
@@ -789,5 +789,12 @@
     "swolf": "SWOLF",
     "cadence": "Cadence",
     "normalizedPower": "Norm. power"
+  },
+  "heartZones": {
+    "vo2max": "VO₂ Max",
+    "threshold": "Threshold",
+    "tempo": "Tempo",
+    "endurance": "Endurance",
+    "recovery": "Recovery"
   }
 }

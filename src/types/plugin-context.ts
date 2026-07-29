@@ -228,6 +228,27 @@ export interface ISyncService {
   syncNow(opts?: { force?: boolean }): Promise<void>
 }
 
+/** What a provider reports once it has finished pulling. */
+export interface ProviderImportEvent {
+  providerId: string
+  providerLabel: string
+  timestamp: number
+}
+
+/**
+ * Data-provider events for plugins
+ *
+ * A plugin that reacts to imports — notifications, badges, a sync indicator —
+ * needs to know when one happened, and that was the one thing the context did
+ * not offer. The plugin that needed it reached for `DataProviderService`
+ * directly and typed the payload from memory, inventing a `count` and an
+ * `activities` array the event never carried.
+ */
+export interface IDataProviderEvents {
+  /** Subscribe to completed imports; call the returned function to stop. */
+  onActivitiesImported(handler: (event: ProviderImportEvent) => void): () => void
+}
+
 /**
  * Unit formatting interface for plugins
  *
@@ -243,6 +264,14 @@ export interface IUnitsService {
   format(dimension: Dimension, si: number): Formatted
   /** Same conversion as `format`, as a number — for chart axes and series. */
   convert(dimension: Dimension, si: number): Converted
+  /**
+   * The inverse: a number the user typed, in their units, back to SI.
+   *
+   * Required wherever a quantity *enters* the app. "50" in a goal field means
+   * 50 km to one reader and 50 mi to another; storing it unconverted makes the
+   * stored value depend on a display preference.
+   */
+  toSI(dimension: Dimension, value: number): number
 }
 
 /**
@@ -261,6 +290,7 @@ export interface PluginContext {
   analyzer: IAnalyzerFactory
   sync: ISyncService
   units: IUnitsService
+  providers: IDataProviderEvents
 }
 
 /**

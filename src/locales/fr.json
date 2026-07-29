@@ -1,6 +1,5 @@
 {
   "activityDetail": {
-    "noRoute": "Aucun tracé GPS",
     "distance": "Distance",
     "avgPace": "Allure moy.",
     "time": "Temps",
@@ -261,7 +260,6 @@
   "home": {
     "hero": {
       "title": "Explorez. Contrôlez. Partagez.",
-      "subtitle": "Votre compagnon d'activités qui respecte votre vie privée. Open-source, gratuit et entièrement transparent.",
       "cta": "Commencer maintenant"
     },
     "features": {
@@ -477,10 +475,7 @@
     },
     "distribution": {
       "title": "Repartition",
-      "bySport": "Par sport",
-      "byMonth": "Par mois",
       "activitiesCount": "Nombre d'activites",
-      "distanceKm": "Distance (km)",
       "durationH": "Duree (h)",
       "distance": "Distance"
     },
@@ -542,12 +537,11 @@
       "monthly": "Mensuel"
     },
     "units": {
-      "km": "km",
       "activities": "activités",
       "hours": "h"
     },
     "form": {
-      "distanceKm": "Distance (km)",
+      "distance": "Distance ({unit})",
       "activityCount": "Nombre d'activités",
       "durationHours": "Durée (heures)",
       "target": "Objectif"
@@ -572,9 +566,6 @@
     "heartZones": "Zones de FC",
     "cadence": "Cadence",
     "pace": "Allure",
-    "elevationProfile": "Profil d'altitude",
-    "comingSoon": "Graphique à venir",
-    "avgPacePerKm": "Allure moyenne par km & altitude",
     "noHeartRate": "Aucune donnée de fréquence cardiaque disponible",
     "average": "Moyenne",
     "maxHr": "FC max",
@@ -585,7 +576,6 @@
     "slope": "Pente",
     "colDistance": "Dist.",
     "colPace": "Allure",
-    "colPaceValue": "min/km",
     "colHeartRate": "FC",
     "colSlope": "Pente"
   },
@@ -607,7 +597,17 @@
   },
   "aggregatedProgress": {
     "title": "Progression",
-    "recompute": "Recalculer les agrégats"
+    "recompute": "Recalculer les agrégats",
+    "metrics": {
+      "distance": "Distance",
+      "duration": "Durée",
+      "totalAscent": "D+ cumulé"
+    },
+    "periods": {
+      "week": "Hebdomadaire",
+      "month": "Mensuel",
+      "year": "Annuel"
+    }
   },
   "addFriend": {
     "adding": "Ajout de votre ami...",
@@ -789,5 +789,12 @@
     "swolf": "SWOLF",
     "cadence": "Cadence",
     "normalizedPower": "Puissance norm."
+  },
+  "heartZones": {
+    "vo2max": "VO₂ Max",
+    "threshold": "Seuil",
+    "tempo": "Tempo",
+    "endurance": "Endurance",
+    "recovery": "Récup."
   }
 }

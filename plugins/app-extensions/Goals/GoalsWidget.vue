@@ -49,7 +49,7 @@ import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
 import { usePluginContext } from '@/composables/usePluginContext'
 import GoalProgressBar from './GoalProgressBar.vue'
 import GoalEditForm from './GoalEditForm.vue'
-import type { Goal, GoalsConfig, GoalProgress } from './types'
+import { GOALS_CONFIG_VERSION, type Goal, type GoalsConfig, type GoalProgress } from './types'
 import { COMMON_SPORT_TYPES } from '@/utils/sportLabels'
 
 const { t } = useI18n()
@@ -93,11 +93,14 @@ function goToToday() {
 }
 
 async function loadConfig(): Promise<GoalsConfig> {
-  const config = await storage.getData('goals_config')
-  if (config && Array.isArray((config as GoalsConfig).goals)) {
-    return config as GoalsConfig
+  const config = (await storage.getData('goals_config')) as GoalsConfig | null | undefined
+  // A config from before goals were stored in SI holds kilometres and hours.
+  // Reading those as metres and seconds would turn a 50 km goal into 50 m, so
+  // it is discarded rather than silently misread.
+  if (config && Array.isArray(config.goals) && config.version === GOALS_CONFIG_VERSION) {
+    return config
   }
-  return { version: 1, goals: [] }
+  return { version: GOALS_CONFIG_VERSION, goals: [] }
 }
 
 async function saveConfig(config: GoalsConfig) {
@@ -137,12 +140,14 @@ async function computeProgress(): Promise<GoalProgress[]> {
       const actPeriodKey = getActivityPeriodKey(goal.period, act.startTime)
       if (actPeriodKey !== periodKey) continue
 
+      // Accumulated in SI, like the target it is compared against; the
+      // conversion happens once, in the progress bar.
       switch (goal.type) {
         case 'distance':
-          currentValue += (act.distance || 0) * 0.001 // m -> km
+          currentValue += act.distance || 0 // metres
           break
         case 'duration':
-          currentValue += (act.duration || 0) / 3600 // s -> h
+          currentValue += act.duration || 0 // seconds
           break
         case 'count':
           currentValue += 1

@@ -1,7 +1,6 @@
 import { getToken, type Messaging } from 'firebase/messaging'
 import { getFirebaseMessaging, isFirebaseConfigured } from '../lib/firebase'
-import { DataProviderService } from '@/services/DataProviderService'
-import type { IStorageService } from '@/types/plugin-context'
+import type { IStorageService, ProviderImportEvent } from '@/types/plugin-context'
 
 export interface NotificationState {
   enabled: boolean
@@ -14,12 +13,11 @@ export class NotificationService {
   private static instance: NotificationService | null = null
   private messaging: Messaging | null = null
   private storage: IStorageService | null = null
-  // TODO: migrate to PluginContext when event bus is exposed
-  private dataProviderService: DataProviderService
-  private isListening = false
+  /** Set while subscribed; calling it unsubscribes. */
+  private unsubscribeImports: (() => void) | null = null
 
   private constructor() {
-    this.dataProviderService = DataProviderService.getInstance()
+    /* singleton */
   }
 
   public static getInstance(): NotificationService | null {
@@ -140,49 +138,33 @@ export class NotificationService {
    * Start listening to DataProvider events
    */
   private async startListening(): Promise<void> {
-    if (this.isListening) return
+    if (this.unsubscribeImports) return
 
-    // Listen to provider refresh events
-    // Note: DataProviderService needs to have an emitter
-    const svc = this.dataProviderService as DataProviderService & { emitter?: EventTarget }
-    if (svc.emitter) {
-      svc.emitter.addEventListener('provider-activities-imported', this.handleNewActivities)
-      this.isListening = true
-      console.log('[Firebase Notifications] Started listening to data provider events')
-    } else {
-      console.warn('[Firebase Notifications] DataProviderService does not emit events yet')
-    }
+    // Through the context, like every other core service a plugin touches.
+    const { getPluginContext } = await import('@/services/PluginContextFactory')
+    const ctx = await getPluginContext()
+    this.unsubscribeImports = ctx.providers.onActivitiesImported(this.handleNewActivities)
   }
 
   /**
    * Stop listening to events
    */
   private stopListening(): void {
-    if (!this.isListening) return
-
-    const svc = this.dataProviderService as DataProviderService & { emitter?: EventTarget }
-    if (svc.emitter) {
-      svc.emitter.removeEventListener('provider-activities-imported', this.handleNewActivities)
-    }
-    this.isListening = false
-    console.log('[Firebase Notifications] Stopped listening')
+    this.unsubscribeImports?.()
+    this.unsubscribeImports = null
   }
 
   /**
    * Handle new activities event
    */
-  private handleNewActivities = (event: Event): void => {
-    const customEvent = event as CustomEvent<{
-      providerId: string
-      count: number
-      activities: unknown[]
-    }>
+  private handleNewActivities = (event: ProviderImportEvent): void => {
+    // The payload used to be hand-typed here as `{ providerId, count, activities }`;
+    // the event never carried a count or an activity list, so both read as
+    // undefined. Typing it in the contract is what makes that impossible.
+    console.log('[Firebase Notifications] Import finished:', event.providerLabel)
 
-    console.log('[Firebase Notifications] New activities detected:', customEvent.detail)
-
-    // In a real implementation, this would trigger a notification via the Service Worker
-    // For now, we just log it. The actual notification will be triggered by the backend
-    // sending a push message to the FCM token.
+    // The notification itself comes from the backend pushing to the FCM token;
+    // this hook exists so the plugin knows when to expect one.
   }
 
   /**

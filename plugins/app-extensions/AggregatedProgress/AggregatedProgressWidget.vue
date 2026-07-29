@@ -5,12 +5,12 @@
       <div class="select-row">
         <select :value="selectedPeriod" @change="onPeriodChange">
           <option v-for="period in availablePeriods" :key="period" :value="period">
-            {{ periodLabels[period] || period }}
+            {{ t(`aggregatedProgress.periods.${period}`) }}
           </option>
         </select>
         <select :value="selectedMetric" @change="onMetricChanged">
           <option v-for="metric in availableBaseMetrics" :key="metric.id" :value="metric.id">
-            {{ metric.label }}
+            {{ metricLabel(metric.id) }}
           </option>
         </select>
         <button
@@ -27,12 +27,22 @@
     <AggregatedProgressChart :weeks="chartWeeks" :distance="chartDistance" />
     <div class="metrics">
       <div v-for="def in availableMetrics" :key="def.id" class="metric">
-        <span class="label">{{ def.label }}</span>
+        <span class="label">{{ metricLabel(def.id) }}</span>
         <span class="value">{{
           format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
+            .value
         }}</span>
-        <span v-if="def.displayUnit" class="unit">{{ def.displayUnit }}</span>
-        <span v-else-if="def.unit" class="unit">{{ def.unit }}</span>
+        <span
+          v-if="
+            format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
+              .unit
+          "
+          class="unit"
+          >{{
+            format(metricsCache[selectedPeriod]?.find(m => m.def.id === def.id)?.value ?? 0, def)
+              .unit
+          }}</span
+        >
       </div>
     </div>
   </div>
@@ -43,54 +53,54 @@ import { useI18n } from 'vue-i18n'
 import { ref, onMounted, watch } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 
-const { storage, aggregation: aggregationCtx } = usePluginContext()
+const { storage, aggregation: aggregationCtx, units } = usePluginContext()
+
+/**
+ * The metrics this widget offers, named by their base id.
+ *
+ * Labels are looked up at render time rather than stored: the config is
+ * replicated, and a stored French string would follow the user who wrote it
+ * onto every other device. Same reason `dimension` replaced the old
+ * `displayUnit`/`displayFactor` pair — those hardcoded kilometres for everyone.
+ */
+const BASE_METRICS = [
+  { id: 'distance', sourceRef: 'distance', unit: 'm', dimension: 'distance', decimals: 1 },
+  { id: 'duration', sourceRef: 'duration', unit: 's', decimals: 0 },
+  {
+    id: 'totalAscent',
+    sourceRef: 'stats.totalAscent',
+    unit: 'm',
+    dimension: 'elevation',
+    decimals: 0
+  }
+] as const
+
+/** A metric's name comes from the locale, keyed by its base id. */
+function metricLabel(id: string): string {
+  const base = id.replace(/^(week|month|year)_/, '')
+  const key = `aggregatedProgress.metrics.${base}`
+  return t(key) === key ? base : t(key)
+}
 
 // Initialise les métriques distance/durée pour chaque période si manquantes
 async function ensureMetricsExist() {
   const metrics = aggregationCtx.listMetrics()
-  const required = [
-    {
-      id: 'distance',
-      label: 'Distance',
-      sourceRef: 'distance',
-      unit: 'm',
-      displayUnit: 'km',
-      displayFactor: 0.001
-    },
-    {
-      id: 'duration',
-      label: 'Durée',
-      sourceRef: 'duration',
-      unit: 's',
-      displayUnit: 'min',
-      displayFactor: 1 / 60
-    },
-    {
-      id: 'totalAscent',
-      label: 'D+ cumulé',
-      sourceRef: 'stats.totalAscent',
-      unit: 'm',
-      displayUnit: 'm',
-      displayFactor: 1
-    }
-  ]
   const periods: ('week' | 'month' | 'year')[] = ['week', 'month', 'year']
   let changed = false
-  for (const base of required) {
+  for (const base of BASE_METRICS) {
     for (const period of periods) {
       const id = `${period}_${base.id}`
       if (!metrics.find(m => m.id === id)) {
         metrics.push({
           id,
-          label: `${base.label}`,
+          label: base.id,
           enabled: true,
           sourceRef: base.sourceRef,
           aggregation: 'sum',
           periods: [period],
           unit: base.unit,
-          decimals: base.id === 'distance' ? 1 : 0,
-          displayUnit: base.displayUnit,
-          displayFactor: base.displayFactor
+          decimals: base.decimals,
+          dimension: 'dimension' in base ? base.dimension : undefined
         })
         changed = true
       }
@@ -112,7 +122,6 @@ async function ensureMetricsExist() {
 }
 const selectedPeriod = ref<'week' | 'month' | 'year'>('week')
 const selectedMetric = ref<string>('distance')
-const periodLabels = { week: 'Hebdomadaire', month: 'Mensuel', year: 'Annuel' }
 const availablePeriods = ref<Array<'week' | 'month' | 'year'>>(['week', 'month', 'year'])
 const availableBaseMetrics = ref<Array<{ id: string; label: string }>>([])
 // Handlers pour les listes déroulantes
@@ -138,15 +147,27 @@ const refreshing = ref(false)
 const chartWeeks = ref<string[]>([])
 const chartDistance = ref<number[]>([])
 
-function format(val: number, metric: AggregationMetricDefinition) {
-  if (val == null) return '-'
-  let displayVal = val
-  let unit = metric.unit
-  if (metric.displayFactor) displayVal = val * metric.displayFactor
-  if (metric.displayUnit) unit = metric.displayUnit
-  if (metric.decimals != null) displayVal = Number(displayVal)
-  if (unit === 's') return `${Math.round(displayVal / 60)} min`
-  return metric.decimals != null ? displayVal.toFixed(metric.decimals) : displayVal
+const SECONDS_PER_HOUR = 3600
+
+/**
+ * An aggregate is stored in SI and converted here, like every other figure.
+ *
+ * A dimension means the units layer owns the conversion. A duration has none —
+ * hours read the same in both systems — so it is spelled out once, here.
+ */
+function format(val: number, metric: AggregationMetricDefinition): { value: string; unit: string } {
+  if (val == null || !Number.isFinite(val)) return { value: '—', unit: '' }
+
+  if (metric.dimension) {
+    const converted = units.convert(metric.dimension, val)
+    return { value: converted.value.toFixed(metric.decimals ?? 0), unit: converted.unit }
+  }
+
+  if (metric.unit === 's') {
+    return { value: (val / SECONDS_PER_HOUR).toFixed(1), unit: t('goals.units.hours') }
+  }
+
+  return { value: val.toFixed(metric.decimals ?? 0), unit: metric.unit ?? '' }
 }
 
 // Convertit une clé de mois (ex: 2025-10) en label (ex: 10/2025)
