@@ -304,6 +304,8 @@
     "total": "Total",
     "noActivity": "No activity",
     "noActivityDescription": "Connect a data provider or add friends to see activities here",
+    "noOwnActivity": "No activity yet",
+    "noOwnActivityDescription": "Connect a data source to import your sessions and find them here",
     "configureData": "Configure data",
     "addFriends": "Add friends"
   },

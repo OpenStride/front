@@ -328,4 +328,32 @@ describe('ActivityService - Filters', () => {
       expect(results).toHaveLength(5)
     })
   })
+
+  describe('getAvailableSports', () => {
+    it('lists each sport present once', async () => {
+      await seedActivities()
+      const sports = await service.getAvailableSports()
+      expect(sports.sort()).toEqual(['bike', 'hike', 'run', 'swim'])
+    })
+
+    // Legacy activities carry raw provider strings, so the chips would
+    // otherwise offer "RUNNING" and "running" as two separate sports.
+    it('folds provider casing into one entry', async () => {
+      const activities = [
+        createActivity({ id: 'a', type: 'RUNNING' }),
+        createActivity({ id: 'b', type: 'running' })
+      ]
+      await service.saveActivitiesWithDetails(
+        activities,
+        activities.map(a => createActivityDetails(a.id))
+      )
+      expect(await service.getAvailableSports()).toEqual(['running'])
+    })
+
+    it('ignores deleted activities', async () => {
+      await seedActivities()
+      await service.deleteActivity('2') // the only bike ride
+      expect((await service.getAvailableSports()).sort()).toEqual(['hike', 'run', 'swim'])
+    })
+  })
 })

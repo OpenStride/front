@@ -65,13 +65,13 @@
             type="number"
             class="range-input"
             :placeholder="t('filters.min')"
-            :value="modelValue.ascentMin"
+            :value="ascentMinDisplay"
             min="0"
             step="10"
             data-test="ascent-min"
             @input="onAscentMin"
           />
-          <span class="range-unit">m</span>
+          <span class="range-unit">{{ ascentUnit }}</span>
         </div>
         <span class="range-separator">-</span>
         <div class="range-field">
@@ -79,13 +79,13 @@
             type="number"
             class="range-input"
             :placeholder="t('filters.max')"
-            :value="modelValue.ascentMax"
+            :value="ascentMaxDisplay"
             min="0"
             step="10"
             data-test="ascent-max"
             @input="onAscentMax"
           />
-          <span class="range-unit">m</span>
+          <span class="range-unit">{{ ascentUnit }}</span>
         </div>
       </div>
     </div>
@@ -108,6 +108,7 @@ import { computed } from 'vue'
 import { useUnits } from '@/composables/useUnits'
 import { useI18n } from 'vue-i18n'
 import type { ActivityFilters } from '@/types/activity'
+import type { Dimension } from '@/types/units'
 import { COMMON_SPORT_TYPES, formatSportType, getSportIcon } from '@/utils/sportLabels'
 
 const { t } = useI18n()
@@ -135,14 +136,28 @@ const sportOptions = computed(() => {
 })
 
 // Filters are stored in metres; the input reads and writes in the user's unit.
-const toDisplay = (meters?: number) =>
-  meters != null ? Number(convert('distance', meters).value.toFixed(2)) : undefined
+// Both ranges make the trip — ascent used to be typed and stored raw under a
+// hardcoded `m`, so an imperial reader entered feet and filtered on metres.
+const toDisplay = (dimension: Dimension, meters?: number) =>
+  meters != null ? Number(convert(dimension, meters).value.toFixed(2)) : undefined
 
-const toMeters = (value: number) => value / convert('distance', 1).value
+const toMeters = (dimension: Dimension, value: number) => value / convert(dimension, 1).value
 
 const distanceUnit = computed(() => convert('distance', 0).unit)
-const distanceMinDisplay = computed(() => toDisplay(props.modelValue.distanceMin ?? undefined))
-const distanceMaxDisplay = computed(() => toDisplay(props.modelValue.distanceMax ?? undefined))
+const distanceMinDisplay = computed(() =>
+  toDisplay('distance', props.modelValue.distanceMin ?? undefined)
+)
+const distanceMaxDisplay = computed(() =>
+  toDisplay('distance', props.modelValue.distanceMax ?? undefined)
+)
+
+const ascentUnit = computed(() => convert('elevation', 0).unit)
+const ascentMinDisplay = computed(() =>
+  toDisplay('elevation', props.modelValue.ascentMin ?? undefined)
+)
+const ascentMaxDisplay = computed(() =>
+  toDisplay('elevation', props.modelValue.ascentMax ?? undefined)
+)
 
 function updateFilter(key: keyof ActivityFilters, value: string | number | undefined) {
   emit('update:modelValue', { ...props.modelValue, [key]: value || undefined })
@@ -157,20 +172,22 @@ function parseNumInput(e: Event): number | undefined {
 
 function onDistanceMin(e: Event) {
   const entered = parseNumInput(e)
-  updateFilter('distanceMin', entered != null ? toMeters(entered) : undefined)
+  updateFilter('distanceMin', entered != null ? toMeters('distance', entered) : undefined)
 }
 
 function onDistanceMax(e: Event) {
   const entered = parseNumInput(e)
-  updateFilter('distanceMax', entered != null ? toMeters(entered) : undefined)
+  updateFilter('distanceMax', entered != null ? toMeters('distance', entered) : undefined)
 }
 
 function onAscentMin(e: Event) {
-  updateFilter('ascentMin', parseNumInput(e))
+  const entered = parseNumInput(e)
+  updateFilter('ascentMin', entered != null ? toMeters('elevation', entered) : undefined)
 }
 
 function onAscentMax(e: Event) {
-  updateFilter('ascentMax', parseNumInput(e))
+  const entered = parseNumInput(e)
+  updateFilter('ascentMax', entered != null ? toMeters('elevation', entered) : undefined)
 }
 </script>
 

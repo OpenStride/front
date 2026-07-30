@@ -304,6 +304,8 @@
     "total": "Total",
     "noActivity": "Aucune activité",
     "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
+    "noOwnActivity": "Aucune activité pour l'instant",
+    "noOwnActivityDescription": "Connectez une source de données pour importer vos séances et les retrouver ici",
     "configureData": "Configurer les données",
     "addFriends": "Ajouter des amis"
   },

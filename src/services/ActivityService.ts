@@ -344,6 +344,13 @@ export class ActivityService implements IActivityService {
       result = result.filter(a => a.distance <= filters.distanceMax!)
     }
 
+    // `ascentMin` / `ascentMax` are deliberately not applied here. An `Activity`
+    // carries no elevation — the figure lives in `activity_details`, which this
+    // store cannot join against without reading every detail, and in the
+    // `activity_metrics` cache, which is built lazily for the page on screen.
+    // Serving the range from a partial cache would silently drop every activity
+    // not yet scrolled to, which is worse than the panel's current no-op.
+
     return result
   }
 
@@ -364,6 +371,27 @@ export class ActivityService implements IActivityService {
     const db = this.ensureDB()
     const all = (await db.getAllData('activities')) as Activity[]
     return all.filter(a => !a.deleted).sort((a, b) => b.startTime - a.startTime)
+  }
+
+  /**
+   * The sport types actually present, lowercased and deduped.
+   *
+   * The filter panel used to derive this by calling `getAllActivities()` and
+   * mapping the result, which sorted the whole library by date to build a list
+   * of at most a dozen strings — and did it again on every import burst. Legacy
+   * activities carry raw provider strings like `"RUNNING"`, hence the lowercase.
+   */
+  public async getAvailableSports(): Promise<string[]> {
+    const db = this.ensureDB()
+    const all = (await db.getAllData('activities')) as Activity[]
+
+    const sports = new Set<string>()
+    for (const activity of all) {
+      if (activity.deleted || !activity.type) continue
+      sports.add(activity.type.toLowerCase())
+    }
+
+    return [...sports]
   }
 
   /**

@@ -37,12 +37,19 @@
         data-test="activity-card"
       />
       <p v-if="loading" data-test="loading-message">{{ t('activities.loading') }}</p>
-      <p
-        v-if="!hasMore && !loading && activities.length === 0 && hasActiveFilters"
-        data-test="no-results-message"
-      >
+
+      <!-- Nothing to show splits in two: filters that match nothing, and a
+           library that is genuinely empty. The second is the first screen after
+           onboarding, so it points at the way out instead of announcing that
+           the empty list finished loading. -->
+      <p v-if="isEmpty && hasActiveFilters" data-test="no-results-message">
         {{ t('filters.noResults') }}
       </p>
+      <ActivityEmptyState
+        v-else-if="isEmpty"
+        :title="t('activities.noOwnActivity')"
+        :description="t('activities.noOwnActivityDescription')"
+      />
       <p v-else-if="!hasMore && !loading" data-test="all-loaded-message">
         {{ t('activities.allLoaded') }}
       </p>
@@ -54,6 +61,7 @@
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
+import ActivityEmptyState from '@/components/ActivityEmptyState.vue'
 import ActivitySearchBar from '@/components/ActivitySearchBar.vue'
 import ActivityFiltersPanel from '@/components/ActivityFilters.vue'
 import type { Activity, ActivityFilters } from '@/types/activity'
@@ -88,6 +96,10 @@ const pageSize = 10
 const hasMore = ref(true)
 const totalCount = ref(0)
 const availableSports = ref<string[]>([])
+
+// Nothing left to fetch and nothing fetched: the list is settled on empty,
+// rather than merely between two pages.
+const isEmpty = computed(() => !loading.value && !hasMore.value && activities.value.length === 0)
 
 // Lifts calories, climb and the rest out of the details of the page on screen,
 // so the cards can show what only the details hold.
@@ -201,9 +213,7 @@ const softReload = async () => {
 
 const loadAvailableSports = async () => {
   const activityService = await getActivityService()
-  const all = await activityService.getAllActivities()
-  const sports = new Set(all.map(a => a.type?.toLowerCase()).filter(Boolean))
-  availableSports.value = [...sports] as string[]
+  availableSports.value = await activityService.getAvailableSports()
 }
 
 function onFiltersChange(newFilters: ActivityFilters) {

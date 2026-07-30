@@ -11,7 +11,6 @@ import Callback from '@/views/Callback.vue'
 import GarminOAuthCallback from '@/views/GarminOAuthCallback.vue'
 import FriendsPage from '@/views/FriendsPage.vue'
 import AddFriendPage from '@/views/AddFriendPage.vue'
-import { getActivityService } from '@/services/ActivityService'
 import { IndexedDBService } from '@/services/IndexedDBService'
 
 const routes = [
@@ -81,23 +80,10 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Rediriger home vers activities si l'utilisateur a des données
-  if (to.path === '/') {
-    // Check own activities
-    const activityService = await getActivityService()
-    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 })
-
-    // Check friend activities
-    const db = await IndexedDBService.getInstance()
-    const friendActivities = await db.getAllData('friend_activities')
-
-    // If user has ANY activities (own or friends), stay on HomePage
-    // HomePage will show the mixed feed via ActivityFeedService
-    if (ownActivities.length > 0 || friendActivities.length > 0) {
-      // Don't redirect, let HomePage show the activity feed
-      return next()
-    }
-  }
+  // A guard on '/' used to sit here. It read every friend activity out of
+  // IndexedDB to decide between `next()` and `next()` — the redirect its
+  // comment described had already been removed. It cost a full store read on
+  // every navigation home and changed nothing.
 
   next() // continue normalement
 })
