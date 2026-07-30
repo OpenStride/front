@@ -6,13 +6,13 @@ import { setUnitSystem } from '@/composables/useUnits'
 import type { ActivityFilters } from '@/types/activity'
 import en from '@/locales/en.json'
 
-const METERS_PER_FOOT = 0.3048
-
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
-const render = (modelValue: ActivityFilters = {}) =>
+type Props = { modelValue?: ActivityFilters; hasDistance?: boolean }
+
+const render = ({ modelValue = {}, hasDistance = true }: Props = {}) =>
   mount(ActivityFiltersPanel, {
-    props: { modelValue, hasActiveFilters: false },
+    props: { modelValue, hasActiveFilters: false, hasDistance },
     global: { plugins: [i18n] }
   })
 
@@ -22,58 +22,90 @@ const lastEmit = (wrapper: ReturnType<typeof render>): ActivityFilters => {
   return (events?.[events.length - 1]?.[0] ?? {}) as ActivityFilters
 }
 
-const type = async (wrapper: ReturnType<typeof render>, test: string, value: string) => {
-  const input = wrapper.find(`[data-test="${test}"]`)
-  await input.setValue(value)
-}
+const type = (wrapper: ReturnType<typeof render>, test: string, value: string) =>
+  wrapper.find(`[data-test="${test}"]`).setValue(value)
 
-/**
- * Both ranges are stored in SI and typed in the reader's unit.
- *
- * Ascent used to skip that trip entirely: the panel printed a hardcoded `m` and
- * wrote whatever was typed straight into the filter, so an imperial reader
- * entered feet and filtered on metres.
- */
-describe('ActivityFilters — ranges are typed in the reader’s unit', () => {
-  describe('metric', () => {
-    beforeEach(() => setUnitSystem('metric'))
+const valueOf = (wrapper: ReturnType<typeof render>, test: string) =>
+  (wrapper.find(`[data-test="${test}"]`).element as HTMLInputElement).value
 
-    it('labels the ascent range in metres', () => {
-      expect(render().findAll('.range-unit').at(-1)?.text()).toBe('m')
-    })
+describe('ActivityFilters — every range is stored in SI', () => {
+  beforeEach(() => setUnitSystem('metric'))
 
-    it('stores metres as typed', async () => {
-      const wrapper = render()
-      await type(wrapper, 'ascent-min', '500')
-      expect(lastEmit(wrapper).ascentMin).toBeCloseTo(500, 3)
-    })
-  })
-
-  describe('imperial', () => {
-    beforeEach(() => setUnitSystem('imperial'))
-
-    it('labels the ascent range in feet', () => {
-      expect(render().findAll('.range-unit').at(-1)?.text()).toBe('ft')
-    })
-
-    it('converts feet to metres on the way in', async () => {
-      const wrapper = render()
-      await type(wrapper, 'ascent-max', '1000')
-      expect(lastEmit(wrapper).ascentMax).toBeCloseTo(1000 * METERS_PER_FOOT, 3)
-    })
-
-    it('converts metres to feet on the way out', () => {
-      const wrapper = render({ ascentMin: 1000 * METERS_PER_FOOT })
-      const input = wrapper.find('[data-test="ascent-min"]').element as HTMLInputElement
-      expect(Number(input.value)).toBeCloseTo(1000, 1)
-    })
-
-    // The distance range already made the trip; this pins it so the two stay
-    // symmetrical rather than drifting apart again.
-    it('still converts the distance range', async () => {
+  describe('distance, in the reader’s unit', () => {
+    it('converts miles to metres on the way in', async () => {
+      setUnitSystem('imperial')
       const wrapper = render()
       await type(wrapper, 'distance-min', '1')
       expect(lastEmit(wrapper).distanceMin).toBeCloseTo(1609.344, 2)
+    })
+
+    it('labels the range in the reader’s unit', () => {
+      setUnitSystem('imperial')
+      expect(render().find('.range-unit').text()).toBe('mi')
+    })
+  })
+
+  // Time reads the same in both systems, so minutes need the storage
+  // conversion and nothing else.
+  describe('duration, in minutes', () => {
+    it('stores minutes as seconds', async () => {
+      const wrapper = render()
+      await type(wrapper, 'duration-min', '45')
+      expect(lastEmit(wrapper).durationMin).toBe(2700)
+    })
+
+    it('reads seconds back as minutes', () => {
+      expect(valueOf(render({ modelValue: { durationMax: 5400 } }), 'duration-max')).toBe('90')
+    })
+
+    it('stays in minutes for an imperial reader', async () => {
+      setUnitSystem('imperial')
+      const wrapper = render()
+      await type(wrapper, 'duration-min', '45')
+      expect(lastEmit(wrapper).durationMin).toBe(2700)
+    })
+  })
+
+  describe('date, bounded on the local day', () => {
+    it('opens the range at the first instant of the day', async () => {
+      const wrapper = render()
+      await type(wrapper, 'date-from', '2026-03-01')
+
+      const from = new Date(lastEmit(wrapper).dateFrom!)
+      expect([from.getFullYear(), from.getMonth(), from.getDate()]).toEqual([2026, 2, 1])
+      expect([from.getHours(), from.getMinutes(), from.getSeconds()]).toEqual([0, 0, 0])
+    })
+
+    // An end bound at midnight would keep only the activities logged exactly
+    // at midnight, so a single-day range would read as empty.
+    it('closes the range at the last instant of the day', async () => {
+      const wrapper = render()
+      await type(wrapper, 'date-to', '2026-03-01')
+
+      const to = new Date(lastEmit(wrapper).dateTo!)
+      expect([to.getHours(), to.getMinutes(), to.getSeconds()]).toEqual([23, 59, 59])
+    })
+
+    it('reads a stored instant back as its day', () => {
+      const at = new Date(2026, 2, 1, 9, 30).getTime()
+      expect(valueOf(render({ modelValue: { dateFrom: at } }), 'date-from')).toBe('2026-03-01')
+    })
+  })
+
+  // A widget shows itself from the data it needs, not from the sport.
+  describe('which controls are offered', () => {
+    it('offers the distance range when the library holds distances', () => {
+      expect(render({ hasDistance: true }).find('[data-test="distance-section"]').exists()).toBe(
+        true
+      )
+    })
+
+    it('drops it for a library of pool lengths and gym sessions', () => {
+      const wrapper = render({ hasDistance: false })
+      expect(wrapper.find('[data-test="distance-section"]').exists()).toBe(false)
+      // The two that mean something everywhere stay.
+      expect(wrapper.find('[data-test="duration-min"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="date-from"]').exists()).toBe(true)
     })
   })
 })

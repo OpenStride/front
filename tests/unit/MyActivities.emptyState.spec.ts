@@ -13,13 +13,16 @@ vi.mock('@/composables/useSlotExtensions', () => ({
   useSlotExtensions: () => ({ components: { value: [] } })
 }))
 vi.mock('@/composables/useActivityMetricsIndex', () => ({ useFeedMetricsIndex: () => {} }))
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(() => Promise.resolve()) })
+}))
 
 const activityService = {
   emitter: new EventTarget(),
   getActivities: vi.fn(),
   countActivities: vi.fn(),
-  getAvailableSports: vi.fn()
+  getFilterFacets: vi.fn()
 }
 vi.mock('@/services/ActivityService', () => ({
   getActivityService: vi.fn(),
@@ -46,7 +49,7 @@ describe('MyActivities — an empty list says which kind of empty it is', () => 
     ;(getActivityService as any).mockResolvedValue(activityService)
     activityService.getActivities.mockResolvedValue([])
     activityService.countActivities.mockResolvedValue(0)
-    activityService.getAvailableSports.mockResolvedValue([])
+    activityService.getFilterFacets.mockResolvedValue({ sports: [], hasDistance: false })
   })
 
   it('offers a way out when the library is genuinely empty', async () => {
@@ -88,8 +91,8 @@ describe('MyActivities — an empty list says which kind of empty it is', () => 
     expect(wrapper.find('[data-test="all-loaded-message"]').exists()).toBe(true)
   })
 
-  it('reads the sport chips from the service instead of the whole library', async () => {
+  it('reads the panel’s facets from the service instead of the whole library', async () => {
     await render()
-    expect(activityService.getAvailableSports).toHaveBeenCalled()
+    expect(activityService.getFilterFacets).toHaveBeenCalled()
   })
 })

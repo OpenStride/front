@@ -19,7 +19,8 @@
         v-if="filtersOpen"
         :model-value="filters"
         :has-active-filters="hasActiveFilters"
-        :available-sports="availableSports"
+        :available-sports="facets.sports"
+        :has-distance="facets.hasDistance"
         @update:model-value="onFiltersChange"
         @reset="resetFilters"
       />
@@ -95,7 +96,8 @@ const page = ref(0)
 const pageSize = 10
 const hasMore = ref(true)
 const totalCount = ref(0)
-const availableSports = ref<string[]>([])
+// What the filter panel is allowed to offer, read from the library itself
+const facets = ref<{ sports: string[]; hasDistance: boolean }>({ sports: [], hasDistance: false })
 
 // Nothing left to fetch and nothing fetched: the list is settled on empty,
 // rather than merely between two pages.
@@ -125,8 +127,11 @@ onMounted(async () => {
   activityServiceInstance = await getActivityService()
   activityServiceInstance.emitter.addEventListener('activity-changed', handleActivityChanged)
 
-  await loadAvailableSports()
-  loadActivities()
+  await loadFacets()
+  // Through `reloadWithFilters` rather than `loadActivities`, so a link opened
+  // with filters already in its query gets its result count on the first frame
+  // instead of only after the next keystroke.
+  reloadWithFilters()
   window.addEventListener('scroll', handleScroll)
   window.addEventListener('openstride:activities-refreshed', debouncedSoftReload)
 })
@@ -201,7 +206,7 @@ const softReload = async () => {
       filters: serviceFilters.value
     })
     totalCount.value = await activityService.countActivities(serviceFilters.value)
-    await loadAvailableSports()
+    await loadFacets()
 
     activities.value = fresh
     page.value = Math.ceil(fresh.length / pageSize)
@@ -211,9 +216,9 @@ const softReload = async () => {
   }
 }
 
-const loadAvailableSports = async () => {
+const loadFacets = async () => {
   const activityService = await getActivityService()
-  availableSports.value = await activityService.getAvailableSports()
+  facets.value = await activityService.getFilterFacets()
 }
 
 function onFiltersChange(newFilters: ActivityFilters) {

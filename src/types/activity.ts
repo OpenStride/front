@@ -77,11 +77,25 @@ export interface ActivityDetails extends Timestamped {
   notes?: string
 }
 
+/**
+ * What the list can narrow itself by.
+ *
+ * Every field here is readable straight off an `Activity`, which is what makes
+ * the filters compatible with pagination. An elevation range used to sit in
+ * this interface and was never applied: `Activity` carries no altitude, so
+ * serving it would have meant reading every activity's details. Date and
+ * duration replaced it — both are on the record, and both mean something in a
+ * pool or a gym, where a distance range means nothing.
+ */
 export interface ActivityFilters {
   text?: string
   sportType?: string
   distanceMin?: number // in meters
   distanceMax?: number // in meters
-  ascentMin?: number // in meters
-  ascentMax?: number // in meters
+  /** Local start of the first day, in ms */
+  dateFrom?: number
+  /** Local end of the last day, in ms — the range is inclusive */
+  dateTo?: number
+  durationMin?: number // in seconds
+  durationMax?: number // in seconds
 }

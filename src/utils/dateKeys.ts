@@ -28,6 +28,27 @@ export function getDayKey(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/**
+ * The inverse of `getDayKey`: a `YYYY-MM-DD` back to a local instant.
+ *
+ * Local rather than UTC, because a day filter is read as the user's day —
+ * `new Date('2026-03-01')` is midnight UTC, which lands on the last evening of
+ * February for anyone west of Greenwich and would silently drop a run.
+ * `bound: 'end'` returns the last millisecond, so a range reads as inclusive.
+ */
+export function fromDayKey(key: string, bound: 'start' | 'end' = 'start'): number | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key)
+  if (!match) return undefined
+
+  const [, year, month, day] = match
+  const date =
+    bound === 'start'
+      ? new Date(+year, +month - 1, +day, 0, 0, 0, 0)
+      : new Date(+year, +month - 1, +day, 23, 59, 59, 999)
+
+  return Number.isNaN(date.getTime()) ? undefined : date.getTime()
+}
+
 export function getMonthKey(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`
 }

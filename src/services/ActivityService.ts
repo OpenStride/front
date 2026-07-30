@@ -2,6 +2,7 @@ import { Activity, ActivityDetails, type ActivityFilters } from '@/types/activit
 import { warnOnContractViolations } from './activityContract'
 import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
+import { toMs } from '@/utils/timeRange'
 import type { IActivityService } from '@/types/plugin-context'
 
 /**
@@ -344,12 +345,24 @@ export class ActivityService implements IActivityService {
       result = result.filter(a => a.distance <= filters.distanceMax!)
     }
 
-    // `ascentMin` / `ascentMax` are deliberately not applied here. An `Activity`
-    // carries no elevation — the figure lives in `activity_details`, which this
-    // store cannot join against without reading every detail, and in the
-    // `activity_metrics` cache, which is built lazily for the page on screen.
-    // Serving the range from a partial cache would silently drop every activity
-    // not yet scrolled to, which is worse than the panel's current no-op.
+    // Providers disagree on whether a timestamp is seconds or milliseconds, so
+    // the bounds are compared against the normalised value rather than the raw
+    // field — an activity stored in seconds would otherwise sit in 1970.
+    if (filters.dateFrom != null) {
+      result = result.filter(a => toMs(a.startTime) >= filters.dateFrom!)
+    }
+
+    if (filters.dateTo != null) {
+      result = result.filter(a => toMs(a.startTime) <= filters.dateTo!)
+    }
+
+    if (filters.durationMin != null) {
+      result = result.filter(a => a.duration >= filters.durationMin!)
+    }
+
+    if (filters.durationMax != null) {
+      result = result.filter(a => a.duration <= filters.durationMax!)
+    }
 
     return result
   }
@@ -374,24 +387,32 @@ export class ActivityService implements IActivityService {
   }
 
   /**
-   * The sport types actually present, lowercased and deduped.
+   * What the filter panel needs to decide which controls to offer.
    *
-   * The filter panel used to derive this by calling `getAllActivities()` and
-   * mapping the result, which sorted the whole library by date to build a list
-   * of at most a dozen strings — and did it again on every import burst. Legacy
-   * activities carry raw provider strings like `"RUNNING"`, hence the lowercase.
+   * The panel used to derive its sport chips by calling `getAllActivities()`
+   * and mapping the result, which sorted the whole library by date to build a
+   * list of a dozen strings — and did it again on every import burst.
+   *
+   * `hasDistance` follows the rule the activity card already applies: a widget
+   * shows itself from the data it needs, not from the sport. A library of pool
+   * swims and gym sessions has no distance to narrow, so the range that asks
+   * for one has nothing to offer. Legacy activities carry raw provider strings
+   * like `"RUNNING"`, hence the lowercase.
    */
-  public async getAvailableSports(): Promise<string[]> {
+  public async getFilterFacets(): Promise<{ sports: string[]; hasDistance: boolean }> {
     const db = this.ensureDB()
     const all = (await db.getAllData('activities')) as Activity[]
 
     const sports = new Set<string>()
+    let hasDistance = false
+
     for (const activity of all) {
-      if (activity.deleted || !activity.type) continue
-      sports.add(activity.type.toLowerCase())
+      if (activity.deleted) continue
+      if (activity.type) sports.add(activity.type.toLowerCase())
+      if (activity.distance > 0) hasDistance = true
     }
 
-    return [...sports]
+    return { sports: [...sports], hasDistance }
   }
 
   /**
