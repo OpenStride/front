@@ -814,5 +814,24 @@
       "addToHome": "Choisissez « Sur l'écran d'accueil »",
       "confirm": "Confirmez avec « Ajouter »"
     }
+  },
+  "sync": {
+    "started": "Synchronisation…",
+    "inProgress": "Une synchronisation est déjà en cours",
+    "noStorage": "Aucun stockage distant configuré",
+    "partial": "Synchronisation partielle — {count} erreur | Synchronisation partielle — {count} erreurs",
+    "upToDate": "Tout est à jour",
+    "synced": "{count} activité synchronisée | {count} activités synchronisées",
+    "failed": "Échec de la synchronisation",
+    "conflict": "« {title} » modifiée sur deux appareils. La version la plus récente a été conservée."
+  },
+  "backup": {
+    "completed": "Sauvegarde terminée",
+    "failed": "Échec de la sauvegarde"
+  },
+  "share": {
+    "publishFirst": "Publiez d’abord vos données depuis votre profil",
+    "linkCopied": "Lien de profil copié",
+    "copyFailed": "Impossible de copier le lien"
   }
 }

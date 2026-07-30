@@ -56,9 +56,7 @@ const { allActivities, filteredActivities, selectedSport, sportOptions, loading 
   useStatisticsData()
 
 const { components: rawSections } = useSlotExtensions('statistics.sections')
-const sectionComponents = computed(() =>
-  rawSections.value.map(c => (c as { default?: unknown }).default || c)
-)
+const sectionComponents = computed(() => rawSections.value)
 </script>
 
 <style scoped>

@@ -91,6 +91,21 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 ## Rules -- MUST FOLLOW
 
+### Contracts under guard (tests/unit/contracts.spec.ts)
+
+Three rules that were already written down and got broken anyway, so they are
+now checked by a test rather than by goodwill:
+
+- **A notification reads from the locale.** `ToastService.push('Texte')` and
+  `notifications.notify('Texte')` are refused; pass `t('key')`. Twelve toasts
+  shipped in French to English readers before this existed.
+- **A slot consumer trusts the registry.** `getPluginViewsForSlot` already
+  resolves a loader to a component, so `comp?.default || comp` in a view is dead
+  code. Six copies of that guess existed at once.
+- **A `.vue` file uses `usePluginContext()`**, never `getPluginContext()` — the
+  factory is the door for non-Vue code. Both reach the same singleton, so the
+  difference never surfaces as a bug, only as two ways of doing one thing.
+
 ### Design (see docs/DESIGN_GUIDELINES.md)
 
 - **ALWAYS** use CSS variables from `src/assets/styles/variables.css` -- NEVER hardcode colors

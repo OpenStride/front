@@ -170,9 +170,7 @@ const { t, locale } = useI18n()
 const friendService = FriendService.getInstance()
 
 const { components: rawSharing } = useSlotExtensions('profile.friends')
-const sharingSections = computed(() =>
-  rawSharing.value.map(c => (c as { default?: unknown }).default || c)
-)
+const sharingSections = computed(() => rawSharing.value)
 
 const friends = ref<Friend[]>([])
 const loading = ref(true)

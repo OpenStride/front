@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { getPluginContext } from '@/services/PluginContextFactory'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { ref } from 'vue'
 import JSZip from 'jszip'
 import Papa from 'papaparse'
@@ -22,6 +22,10 @@ import FitFileParser from 'fit-file-parser'
 import pako from 'pako'
 import { adaptZipSummary, adaptZipDetails } from './adapter'
 import type { Activity, ActivityDetails } from '@/types/activity'
+
+// A Vue component reads the context through the composable; the factory is for
+// non-Vue code. Both resolve the same singleton, but only one is reactive-safe.
+const ctx = usePluginContext()
 
 const { t } = useI18n()
 
@@ -169,7 +173,6 @@ function onFileChange(e: Event) {
           )
         )
         // Insertion via PluginContext (atomic, versioned, event-emitting)
-        const ctx = await getPluginContext()
         // Récupérer toutes les activités existantes pour comparer les startTime
         const existingActivities = await ctx.activity.getAllActivities()
         const existingStartTimes = new Set(existingActivities.map((a: Activity) => a.startTime))

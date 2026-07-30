@@ -142,7 +142,7 @@ const copyShareUrl = async () => {
     const rawUrl = (await db.getData('myPublicUrl')) as string | null
 
     if (!rawUrl) {
-      ToastService.push('Publiez vos données d\u2019abord depuis votre profil', {
+      ToastService.push(t('share.publishFirst'), {
         type: 'warning',
         timeout: 4000
       })
@@ -151,11 +151,11 @@ const copyShareUrl = async () => {
 
     const shareUrl = ShareUrlService.wrapManifestUrl(rawUrl)
     await navigator.clipboard.writeText(shareUrl)
-    ToastService.push('Lien de profil copié !', { type: 'success', timeout: 2000 })
+    ToastService.push(t('share.linkCopied'), { type: 'success', timeout: 2000 })
   } catch (error) {
     console.error('[InteractionBar] Error copying share URL:', error)
     const { ToastService } = await import('@/services/ToastService')
-    ToastService.push('Impossible de copier le lien', { type: 'error', timeout: 3000 })
+    ToastService.push(t('share.copyFailed'), { type: 'error', timeout: 3000 })
   }
 }
 
