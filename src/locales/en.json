@@ -298,10 +298,6 @@
   "activities": {
     "loading": "Loading...",
     "allLoaded": "All activities are loaded.",
-    "noActivities": "No activities yet.",
-    "myActivities": "My Activities",
-    "friends": "Friends",
-    "total": "Total",
     "noActivity": "No activity",
     "noActivityDescription": "Connect a data provider or add friends to see activities here",
     "noOwnActivity": "No activity yet",
@@ -605,21 +601,6 @@
     "nowPublic": "Activity made public",
     "nowPrivate": "Activity made private",
     "toggleFailed": "Could not change the privacy"
-  },
-  "aggregatedProgress": {
-    "title": "Progress",
-    "recompute": "Rebuild aggregates",
-    "metrics": {
-      "distance": "Distance",
-      "duration": "Duration",
-      "totalAscent": "Total elevation +"
-    },
-    "periods": {
-      "week": "Weekly",
-      "month": "Monthly",
-      "year": "Yearly"
-    },
-    "plot": "Plot {metric}"
   },
   "addFriend": {
     "adding": "Adding your friend...",

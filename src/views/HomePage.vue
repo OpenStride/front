@@ -1,21 +1,8 @@
 <template>
   <div class="home-page">
-    <!-- Stats Summary -->
-    <div v-if="!loading && counts.total > 0" class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-label">{{ t('activities.myActivities') }}</span>
-        <span class="stat-value">{{ counts.own }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">{{ t('activities.friends') }}</span>
-        <span class="stat-value">{{ counts.friends }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">{{ t('activities.total') }}</span>
-        <span class="stat-value">{{ counts.total }}</span>
-      </div>
+    <!-- Blocks that ask for an action rather than report a figure -->
+    <div v-if="topSlotComponents.length" class="home-top">
+      <component v-for="(comp, i) in topSlotComponents" :is="comp" :key="`home-top-${i}`" />
     </div>
 
     <!-- Android only, and only once the app has proven useful -->
@@ -47,17 +34,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
 import ActivityEmptyState from '@/components/ActivityEmptyState.vue'
 import InstallPrompt from '@/components/InstallPrompt.vue'
 import { useMixedFeed } from '@/composables/useMixedFeed'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useFeedMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { debounce } from '@/utils/debounce'
 
 const { t } = useI18n()
-const { activities, loading, hasMore, loadMore, reload, counts } = useMixedFeed()
+const { activities, loading, hasMore, loadMore, reload } = useMixedFeed()
+
+const { components: topRaw } = useSlotExtensions('home.top')
+const topSlotComponents = computed(() => topRaw.value)
 
 // Lifts calories, climb and the rest out of the details of the page on screen,
 // so the cards can show what only the details hold.
@@ -97,42 +88,11 @@ const handleScroll = () => {
   padding: 0;
 }
 
-.stats-bar {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: var(--color-white);
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-radius: 0.5rem;
-  gap: 0.5rem;
-}
-
-.stat-item {
+.home-top {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--color-gray-500);
-  font-weight: 500;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-gray-900);
-}
-
-.stat-divider {
-  width: 1px;
-  height: 2.5rem;
-  background: var(--color-gray-200);
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .feed-container {
@@ -154,9 +114,8 @@ const handleScroll = () => {
     padding: 0;
   }
 
-  .stats-bar {
-    border-radius: 0;
-    margin-bottom: 0;
+  .home-top {
+    margin-bottom: 0.75rem;
   }
 }
 </style>

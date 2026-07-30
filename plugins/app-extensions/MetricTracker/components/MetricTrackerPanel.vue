@@ -95,7 +95,12 @@
             </div>
           </div>
 
-          <MetricSeriesChart :points="points" :labels="labels" :metric="metric" />
+          <MetricSeriesChart
+            :points="points"
+            :labels="labels"
+            :metric="metric"
+            :granularity="selectedGranularity"
+          />
         </template>
       </section>
     </template>
