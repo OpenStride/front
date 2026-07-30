@@ -43,19 +43,6 @@ vi.mock('@/services/ActivityService', () => ({
   })
 }))
 
-// Mock ActivityDBService pour éviter accès IndexedDB (legacy)
-vi.mock('@/services/ActivityDBService', () => ({
-  getActivityDBService: async () => ({
-    getActivity: async () => ({
-      id: 'test-123',
-      startTime: Date.now() / 1000,
-      distance: 1000,
-      type: 'RUNNING'
-    }),
-    getDetails: async () => ({ id: 'test-123', samples: [] })
-  })
-}))
-
 // Mock analyzer
 vi.mock('@/services/ActivityAnalyzer', () => ({
   ActivityAnalyzer: class {

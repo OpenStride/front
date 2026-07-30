@@ -13,18 +13,6 @@ vi.mock('@/services/ExtensionPluginRegistry', () => ({
   }
 }))
 
-// Mock DB & analyzer comme dans le test ActivityDetails
-vi.mock('@/services/ActivityDBService', () => ({
-  getActivityDBService: async () => ({
-    getActivity: async () => ({
-      id: 'abc',
-      startTime: Date.now() / 1000,
-      distance: 1000,
-      type: 'RUNNING'
-    }),
-    getDetails: async () => ({ id: 'abc', samples: [] })
-  })
-}))
 vi.mock('@/services/ActivityAnalyzer', () => ({
   ActivityAnalyzer: class {
     constructor() {}
@@ -32,19 +20,6 @@ vi.mock('@/services/ActivityAnalyzer', () => ({
       return []
     }
   }
-}))
-
-// Mock ActivityDBService singleton pour éviter IndexedDB réel
-vi.mock('@/services/ActivityDBService', () => ({
-  getActivityDBService: async () => ({
-    getActivity: async () => ({
-      id: 'abc',
-      startTime: Date.now() / 1000,
-      distance: 1000,
-      type: 'RUNNING'
-    }),
-    getDetails: async () => ({ id: 'abc', samples: [] })
-  })
 }))
 
 // Mock ActivityAnalyzer pour ignorer calcul

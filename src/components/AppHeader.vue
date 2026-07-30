@@ -99,52 +99,52 @@ const closeMenu = () => {
  * Event listeners for sync and backup notifications
  */
 const handleSyncStarted = () => {
-  ToastService.push('Synchronisation...', { type: 'info', timeout: 1000 })
+  ToastService.push(t('sync.started'), { type: 'info', timeout: 1000 })
 }
 
 const handleSyncInProgress = () => {
-  ToastService.push('Synchronisation déjà en cours', { type: 'info', timeout: 2000 })
+  ToastService.push(t('sync.inProgress'), { type: 'info', timeout: 2000 })
 }
 
 const handleSyncNoPlugins = () => {
-  ToastService.push('Aucun stockage distant configuré', { type: 'warning', timeout: 3000 })
+  ToastService.push(t('sync.noStorage'), { type: 'warning', timeout: 3000 })
 }
 
 const handleSyncCompleted = (evt: Event) => {
   const detail = (evt as CustomEvent).detail
   if (detail.errors && detail.errors.length > 0) {
-    ToastService.push(`Synchronisation partielle (${detail.errors.length} erreur(s))`, {
+    ToastService.push(t('sync.partial', { count: detail.errors.length }, detail.errors.length), {
       type: 'warning',
       timeout: 4000
     })
   } else {
     ToastService.push(
       detail.activitiesSynced > 0
-        ? `${detail.activitiesSynced} activité(s) synchronisée(s)`
-        : 'Tout est à jour',
+        ? t('sync.synced', { count: detail.activitiesSynced }, detail.activitiesSynced)
+        : t('sync.upToDate'),
       { type: 'success', timeout: 3000 }
     )
   }
 }
 
 const handleSyncFailed = () => {
-  ToastService.push('Échec de la synchronisation', { type: 'error', timeout: 4000 })
+  ToastService.push(t('sync.failed'), { type: 'error', timeout: 4000 })
 }
 
 const handleSyncConflict = (evt: Event) => {
   const detail = (evt as CustomEvent).detail
-  ToastService.push(
-    `"${detail.conflictActivity}" modifiée sur 2 appareils. Version la plus récente appliquée.`,
-    { type: 'warning', timeout: 5000 }
-  )
+  ToastService.push(t('sync.conflict', { title: detail.conflictActivity }), {
+    type: 'warning',
+    timeout: 5000
+  })
 }
 
 const handleBackupCompleted = () => {
-  ToastService.push('Sauvegarde terminée', { type: 'success', timeout: 3000 })
+  ToastService.push(t('backup.completed'), { type: 'success', timeout: 3000 })
 }
 
 const handleBackupFailed = () => {
-  ToastService.push('Echec de la sauvegarde', { type: 'error', timeout: 5000 })
+  ToastService.push(t('backup.failed'), { type: 'error', timeout: 5000 })
 }
 
 /**

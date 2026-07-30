@@ -814,5 +814,24 @@
       "addToHome": "Choose \"Add to Home Screen\"",
       "confirm": "Confirm with \"Add\""
     }
+  },
+  "sync": {
+    "started": "Syncing…",
+    "inProgress": "A sync is already running",
+    "noStorage": "No cloud storage configured",
+    "partial": "Partial sync — {count} error | Partial sync — {count} errors",
+    "upToDate": "Everything is up to date",
+    "synced": "{count} activity synced | {count} activities synced",
+    "failed": "Sync failed",
+    "conflict": "\"{title}\" was edited on two devices. The most recent version was kept."
+  },
+  "backup": {
+    "completed": "Backup finished",
+    "failed": "Backup failed"
+  },
+  "share": {
+    "publishFirst": "Publish your data from your profile first",
+    "linkCopied": "Profile link copied",
+    "copyFailed": "Could not copy the link"
   }
 }
