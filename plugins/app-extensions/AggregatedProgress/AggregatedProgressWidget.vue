@@ -65,6 +65,7 @@ import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import AggregatedProgressChart from './AggregatedProgressChart.vue'
 import type { AggregationMetricDefinition } from '@/types/aggregation'
+import type { Activity, ActivityDetails } from '@/types/activity'
 
 const { t } = useI18n()
 const { storage, aggregation: aggregationCtx, units } = usePluginContext()
@@ -254,14 +255,15 @@ async function reconcileMetrics(): Promise<boolean> {
 }
 
 async function rebuildFromScratch() {
-  const activities = await storage.exportDB('activities')
-  const allDetails = await storage.exportDB('activity_details')
-  const detailsMap = new Map<string, Record<string, unknown> | null>()
+  // `exportDB` cannot know what a store holds, so the shape is asserted once
+  // here rather than smuggled through `Record<string, unknown>` at the call.
+  const activities = (await storage.exportDB('activities')) as Activity[]
+  const allDetails = (await storage.exportDB('activity_details')) as ActivityDetails[]
+  const detailsMap = new Map<string, ActivityDetails | null>()
   for (const d of allDetails) {
-    const id = (d as Record<string, unknown> | null)?.id
-    if (typeof id === 'string') detailsMap.set(id, d as Record<string, unknown>)
+    if (d?.id) detailsMap.set(d.id, d)
   }
-  await aggregationCtx.rebuildAll(activities as Record<string, unknown>[], detailsMap)
+  await aggregationCtx.rebuildAll(activities, detailsMap)
 }
 
 /** True when the store holds no aggregate at all for the current definitions. */

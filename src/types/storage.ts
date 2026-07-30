@@ -1,3 +1,4 @@
+import type { Component } from 'vue'
 import type { PluginContext } from './plugin-context'
 
 export interface StoragePlugin {
@@ -5,7 +6,14 @@ export interface StoragePlugin {
   label: string
   icon?: string
   description?: string
-  setupComponent: () => Promise<unknown>
+  /**
+   * The plugin's configuration screen, loaded on demand.
+   *
+   * Typed as a `Component` rather than `unknown`: every caller assigned the
+   * result straight into a `shallowRef<Component>` and had to be trusted to be
+   * right, which `tsc` never checked because those callers are all `.vue`.
+   */
+  setupComponent: () => Promise<Component>
   //syncData: (onlystores?: string[] | null) => Promise<unknown>
   readRemote(store: string): Promise<unknown[]>
   writeRemote(store: string, data: unknown[]): Promise<void>

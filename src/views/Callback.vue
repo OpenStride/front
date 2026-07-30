@@ -8,6 +8,7 @@
 
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
+import { ONBOARDING_STATE_KEY, type OnboardingState } from '@/types/onboarding'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IndexedDBService } from '@/services/IndexedDBService'
@@ -56,7 +57,7 @@ onMounted(async () => {
   await dbService.saveData('gdrive_access_token', json.access_token)
 
   // Vérifier si l'utilisateur était en onboarding
-  const onboardingState = await dbService.getData('onboarding_state')
+  const onboardingState = await dbService.getData<OnboardingState>(ONBOARDING_STATE_KEY)
 
   if (onboardingState && !onboardingState.completed) {
     // Retourner à l'onboarding

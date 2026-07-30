@@ -55,9 +55,11 @@ describe('SpeedSampled widget', () => {
         provider: 'mock',
         startTime: 0,
         duration: 0,
-        type: 'RUNNING'
+        type: 'RUNNING',
+        version: 1,
+        lastModified: 0
       },
-      details: { id: 'a1', samples: [], laps: [] }
+      details: { id: 'a1', samples: [], laps: [], version: 1, lastModified: 0 }
     }
     const wrapper = mount(SpeedSampled, {
       props: { data },

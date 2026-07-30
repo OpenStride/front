@@ -1,3 +1,4 @@
+import type { Component } from 'vue'
 import type { PluginContext } from './plugin-context'
 
 export interface ProviderPlugin {
@@ -11,7 +12,14 @@ export interface ProviderPlugin {
    * and their imported activities keep their provenance.
    */
   deprecated?: boolean
-  setupComponent: () => Promise<unknown>
+  /**
+   * The plugin's configuration screen, loaded on demand.
+   *
+   * Typed as a `Component` rather than `unknown`: every caller assigned the
+   * result straight into a `shallowRef<Component>` and had to be trusted to be
+   * right, which `tsc` never checked because those callers are all `.vue`.
+   */
+  setupComponent: () => Promise<Component>
   refreshData?: () => Promise<unknown>
   context?: PluginContext
 }

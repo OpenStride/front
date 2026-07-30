@@ -22,7 +22,9 @@
         >
           <span class="toggle-slider"></span>
         </button>
-        <span class="toggle-label">{{ isPublic ? t('privacy.public') : t('privacy.private') }}</span>
+        <span class="toggle-label">{{
+          isPublic ? t('privacy.public') : t('privacy.private')
+        }}</span>
       </div>
     </div>
   </div>
@@ -30,10 +32,9 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import type { FriendServiceEvent } from '@/types/friend'
 
 const { t } = useI18n()
 
@@ -56,30 +57,13 @@ const isPublic = computed(() => {
   return defaultPrivacy.value === 'public'
 })
 
-// Event listener for FriendService events
-const handleFriendEvent = ((...args: unknown[]) => {
-  const event = args[0] as Event
-  const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { message, messageType } = customEvent.detail
-
-  if (message && messageType) {
-    notifications.notify(message, {
-      type: messageType,
-      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    })
-  }
-}) as (...args: unknown[]) => void
-
+// Friend events are surfaced app-wide by `useFriendEventToasts` in the layout.
+// This component used to keep its own listener, reading a `message` field that
+// had been removed from the event in favour of `messageKey` — so the condition
+// guarding it was never true and the toast never fired. A duplicate that did
+// nothing; the layout already does it, and does it through the locale.
 onMounted(async () => {
   await loadPrivacySettings()
-
-  // Listen to FriendService events
-  friends.onEvent('friend-event', handleFriendEvent)
-})
-
-onUnmounted(() => {
-  // Clean up event listener
-  friends.offEvent('friend-event', handleFriendEvent)
 })
 
 const loadPrivacySettings = async () => {
@@ -113,7 +97,7 @@ const togglePrivacy = async () => {
     await storage.saveData(`activityPrivacy_${activity.value.id}`, newValue ? 'public' : 'private')
     activityPrivacy.value = newValue ? 'public' : 'private'
 
-    notifications.notify(newValue ? 'Activité rendue publique' : 'Activité rendue privée', {
+    notifications.notify(t(newValue ? 'privacy.nowPublic' : 'privacy.nowPrivate'), {
       type: 'success',
       timeout: 2000
     })
@@ -122,7 +106,7 @@ const togglePrivacy = async () => {
     republishInBackground()
   } catch (error) {
     console.error('[PrivacyToggle] Error toggling privacy:', error)
-    notifications.notify('Erreur lors de la modification', { type: 'error', timeout: 3000 })
+    notifications.notify(t('privacy.toggleFailed'), { type: 'error', timeout: 3000 })
   } finally {
     saving.value = false
   }

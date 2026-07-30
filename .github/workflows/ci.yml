@@ -31,8 +31,11 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      # vue-tsc, not tsc: plain tsc cannot parse a single-file component, so it
+      # silently skipped every .vue in the repo. A property deleted from an
+      # interface stayed referenced in templates with nothing to report it.
       - name: Run TypeScript type check
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
   unit-tests:
     name: Unit Tests

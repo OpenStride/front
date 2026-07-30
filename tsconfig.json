@@ -16,31 +16,18 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@plugins/*": [
-        "plugins/*"
-      ]
+      "@/*": ["src/*"],
+      "@plugins/*": ["plugins/*"]
     },
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable",
-      "scripthost"
-    ]
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
   },
   "include": [
     "env.d.ts",
     "plugins/**/*.ts",
+    "plugins/**/*.vue",
     "src/**/*.ts",
     "src/**/*.vue",
     "tests/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "coverage",
-    ".firebase"
-  ]
+  "exclude": ["node_modules", "dist", "coverage", ".firebase"]
 }

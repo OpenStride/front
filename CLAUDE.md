@@ -118,6 +118,11 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 - Unit: Vitest + Vue Test Utils + happy-dom. Coverage target: 60%+
 - E2E: Cypress. Use `data-test` attributes for selectors.
+- Typecheck: `npm run typecheck` (**`vue-tsc`, never plain `tsc`**). Plain `tsc`
+  cannot parse a single-file component, so it silently skips every `.vue` — a
+  property deleted from an interface stayed referenced in templates for two
+  releases with nothing to report it. `tsconfig` includes `plugins/**/*.vue` for
+  the same reason.
 
 ### Versioning & Releases (auto-bump)
 

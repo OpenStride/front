@@ -1,5 +1,5 @@
 <template>
-  <div class="chip-select" role="group" :aria-label="ariaLabel">
+  <div class="chip-select" role="group" :aria-label="groupLabel">
     <button
       v-for="option in options"
       :key="option.value"
@@ -14,16 +14,30 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
+/**
+ * Generic over the value type so `v-model` round-trips a union.
+ *
+ * Declared as plain `string`, the emit widened whatever came back: a parent
+ * holding a `Ref<Granularity>` could not accept it, and three call sites were
+ * quietly mistyped. A chip select does not care what the value is, only that it
+ * can be compared and used as a key — which is exactly what a constraint says.
+ */
 defineProps<{
-  modelValue: string
-  options: { value: string; label: string }[]
-  ariaLabel: string
+  modelValue: T
+  options: { value: T; label: string }[]
+  /**
+   * Named `groupLabel`, not `ariaLabel`: Vue treats `aria-*` in a template as an
+   * HTML attribute and never camelizes it into a prop, so `:aria-label` fell
+   * through to the root instead of binding. The group stayed labelled purely by
+   * that accident, and the declared prop was always undefined.
+   */
+  groupLabel: string
   testPrefix: string
 }>()
 
 defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: T]
 }>()
 </script>
 

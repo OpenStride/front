@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ONBOARDING_STATE_KEY, type OnboardingState } from '@/types/onboarding'
 import ProfilePage from '@/views/ProfilePage.vue'
 import MyActivities from '@/views/MyActivities.vue'
 import ActivityDetails from '@/views/ActivityDetails.vue'
@@ -74,7 +75,7 @@ router.beforeEach(async (to, from, next) => {
   // Empêcher accès à /onboarding si déjà complété
   if (to.path === '/onboarding') {
     const db = await IndexedDBService.getInstance()
-    const state = await db.getData<{ completed?: boolean }>('onboarding_state')
+    const state = await db.getData<OnboardingState>(ONBOARDING_STATE_KEY)
     if (state?.completed) {
       return next('/my-activities')
     }

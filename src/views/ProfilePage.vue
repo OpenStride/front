@@ -36,7 +36,11 @@
 import { ref, computed, onMounted, watch, type Component as VueComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { getActiveAppPlugins } from '@/services/ExtensionPluginRegistry'
+import {
+  getActiveAppPlugins,
+  selectSlotLoaders,
+  unwrapModule
+} from '@/services/ExtensionPluginRegistry'
 import ProfileAthlete from '@/components/profile/ProfileAthlete.vue'
 import ProfileFriends from '@/components/profile/ProfileFriends.vue'
 import ProfilePreferences from '@/components/profile/ProfilePreferences.vue'
@@ -123,8 +127,12 @@ onMounted(async () => {
           tabMetadata: { tabId: string; tabLabelKey: string; tabIcon: string }
         }
       ).tabMetadata
-      const loaders = plugin.slots!['profile.tabs']
-      const loader = Array.isArray(loaders) ? loaders[0] : loaders
+      // A slot entry may be a bare loader or a `SlotEntry` object; only the
+      // registry knows how to reduce both to something callable. Reading
+      // `loaders[0]` raw meant a plugin using the object form stored an object
+      // here and `await tab.loader()` would have thrown.
+      const entries = plugin.slots!['profile.tabs']
+      const loader = selectSlotLoaders(Array.isArray(entries) ? entries : [entries], {})[0]
 
       return {
         id: metadata.tabId,
@@ -152,7 +160,7 @@ watch(
     if (tab && tab.loader && !loadedComponents.value[newTabId]) {
       try {
         const component = await tab.loader()
-        loadedComponents.value[newTabId] = component.default || component
+        loadedComponents.value[newTabId] = unwrapModule(component)
         tab.component = loadedComponents.value[newTabId]
       } catch (error) {
         console.error(`[ProfilePage] Failed to load tab component for ${newTabId}:`, error)

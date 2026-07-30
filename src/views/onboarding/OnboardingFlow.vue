@@ -18,6 +18,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IndexedDBService } from '@/services/IndexedDBService'
+import { ONBOARDING_STATE_KEY, type OnboardingState } from '@/types/onboarding'
 import { getActivityService } from '@/services/ActivityService'
 import OnboardingProviderStep from './OnboardingProviderStep.vue'
 import OnboardingStorageStep from './OnboardingStorageStep.vue'
@@ -50,7 +51,7 @@ const currentStepComponent = computed(() => steps[currentStep.value])
 // Charger état au mount (survit aux OAuth redirects)
 onMounted(async () => {
   const db = await IndexedDBService.getInstance()
-  const saved = await db.getData('onboarding_state')
+  const saved = await db.getData<OnboardingState>(ONBOARDING_STATE_KEY)
 
   if (saved && !saved.completed) {
     onboardingState.value = saved
@@ -78,7 +79,7 @@ async function saveState() {
   const db = await IndexedDBService.getInstance()
   // Convertir l'objet réactif en objet plain pour IndexedDB
   const plainState = JSON.parse(JSON.stringify(onboardingState.value))
-  await db.saveData('onboarding_state', plainState)
+  await db.saveData(ONBOARDING_STATE_KEY, plainState)
 }
 
 // Polling pour détecter import d'activités

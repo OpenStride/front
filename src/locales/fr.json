@@ -595,7 +595,10 @@
     "isPublic": "Cette activité est publique",
     "isPrivate": "Cette activité est privée",
     "public": "Public",
-    "private": "Privé"
+    "private": "Privé",
+    "nowPublic": "Activité rendue publique",
+    "nowPrivate": "Activité rendue privée",
+    "toggleFailed": "Erreur lors de la modification"
   },
   "aggregatedProgress": {
     "title": "Progression",
