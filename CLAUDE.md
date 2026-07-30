@@ -133,6 +133,12 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - Le workflow commit `chore(release): vX.Y.Z`, crée le tag, et déploie en prod
 - `deploy-production.yml` reste dispo en `workflow_dispatch` pour redeploy manuel sans bump
 - **Ne JAMAIS** modifier `version` dans `package.json`, créer de commits `chore: bump version`, ou créer de tags `v*` manuellement
+- **Laisser le déploiement finir avant de merger la PR suivante.** Le workflow
+  rebase et réessaie désormais, mais deux merges à quelques secondes d'écart ont
+  déjà cassé la chaîne : le run partait d'un `main` devenu obsolète, poussait le
+  tag et se faisait rejeter la branche. Résultat, un tag orphelin, un
+  `package.json` jamais bumpé, et **quatre merges livrés nulle part**. Vérifier
+  qu'un tag `vX.Y.Z` est apparu avant d'enchaîner.
 
 ### Common Pitfalls
 
