@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createI18n } from 'vue-i18n'
-import { readFileSync } from 'node:fs'
-import { globSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
@@ -16,11 +15,36 @@ import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '..', '..')
 
-function sourceFiles(): string[] {
-  return globSync('{src,plugins}/**/*.{ts,vue}', { cwd: ROOT })
-    .filter(f => !f.includes('locales'))
-    .map(f => join(ROOT, f))
+/**
+ * Walks by hand rather than through `fs.globSync`, which only landed in Node 22
+ * — CI pins 20.19.1, so the glob version passed here and threw there.
+ */
+function walk(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (entry.name !== 'locales' && entry.name !== 'node_modules') walk(full, out)
+    } else if (/\.(ts|vue)$/.test(entry.name)) {
+      out.push(full)
+    }
+  }
+  return out
 }
+
+function sourceFiles(): string[] {
+  return [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'plugins'))]
+}
+
+/**
+ * A guard that scans nothing passes, and passes silently. `globSync` returning
+ * `undefined` on Node 20 would have read as three green contracts had it not
+ * thrown outright, so the corpus itself is asserted first.
+ */
+describe('the guards below have something to scan', () => {
+  it('finds the source tree', () => {
+    expect(sourceFiles().length).toBeGreaterThan(150)
+  })
+})
 
 /**
  * Matches a notification whose first argument opens with a quote.
