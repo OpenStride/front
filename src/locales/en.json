@@ -259,42 +259,6 @@
       "totalDuration": "Total Time"
     }
   },
-  "home": {
-    "hero": {
-      "title": "Explore. Control. Share.",
-      "cta": "Get started now"
-    },
-    "features": {
-      "privacy": {
-        "title": "Privacy first",
-        "description": "Your data stays your data."
-      },
-      "openSource": {
-        "title": "Open-source",
-        "description": "Transparent and evolving by everyone."
-      },
-      "free": {
-        "title": "Free",
-        "description": "No hidden fees, forever."
-      },
-      "customizable": {
-        "title": "Customizable",
-        "description": "Choose your data providers."
-      }
-    },
-    "quickAccess": {
-      "step1": {
-        "title": "1. Connect a data provider",
-        "description": "To see your first activities, connect a data provider (Garmin, Coros, Suunto, etc.).",
-        "button": "Configure data providers"
-      },
-      "step2": {
-        "title": "2. Configure backup",
-        "description": "To secure your data, choose a backup provider (Google Drive, Dropbox, etc.).",
-        "button": "Configure backup"
-      }
-    }
-  },
   "activities": {
     "loading": "Loading...",
     "allLoaded": "All activities are loaded.",
@@ -833,5 +797,65 @@
     "publishFirst": "Publish your data from your profile first",
     "linkCopied": "Profile link copied",
     "copyFailed": "Could not copy the link"
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "Local-first · Open source · Free",
+      "title": "Your training data belongs to you.",
+      "lead": "OpenStride brings your Garmin and Strava activities together in one place, and keeps them on your device. Not on our servers.",
+      "cta": "Import my activities",
+      "ctaCode": "View the code",
+      "note": "No account to create, no subscription, no tracker."
+    },
+    "how": {
+      "title": "How it works",
+      "connect": {
+        "title": "1. Plug in your watch",
+        "text": "Garmin in a few clicks, or your Strava account archive. Your activities arrive whole: GPS track, heart rate, cadence, elevation."
+      },
+      "analyze": {
+        "title": "2. Analyse without a black box",
+        "text": "Personal records, best times, segments, progress over the year. Every calculation is open: if a number surprises you, you can go read where it came from."
+      },
+      "own": {
+        "title": "3. Stay in charge",
+        "text": "Your activities live in your browser. Cloud backup is there if you want it — you switch it on, and you pick the provider."
+      }
+    },
+    "why": {
+      "title": "Why OpenStride",
+      "privacy": {
+        "title": "Privacy",
+        "text": "No account, no tracker. Your data goes nowhere until you ask it to."
+      },
+      "openSource": {
+        "title": "Open source",
+        "text": "The code is public, and so are the algorithms. Including the ones that compute your performance."
+      },
+      "free": {
+        "title": "Free",
+        "text": "No subscription, no premium tier, nothing behind a paywall."
+      },
+      "extensible": {
+        "title": "Extensible",
+        "text": "OpenStride is built from plugins. Missing your watch, or the chart you like? It can be added."
+      }
+    },
+    "sources": {
+      "title": "Your sources",
+      "lead": "What works today. The list grows as plugins land.",
+      "garmin": {
+        "name": "Garmin Connect",
+        "how": "Direct connection"
+      },
+      "strava": {
+        "name": "Strava",
+        "how": "Import your archive — FIT, GPX and TCX included"
+      }
+    },
+    "closing": {
+      "title": "Take your data back.",
+      "text": "A few minutes to import years of training. And nothing to uninstall if you change your mind: it was yours all along."
+    }
   }
 }

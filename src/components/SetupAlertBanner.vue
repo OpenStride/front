@@ -1,6 +1,6 @@
 <template>
   <transition name="setup-banner">
-    <div v-if="bannerType" class="setup-banner">
+    <div v-if="bannerType && !onOwnCallToAction" class="setup-banner">
       <div class="setup-banner-content">
         <i
           :class="bannerType === 'provider' ? 'fas fa-database' : 'fas fa-cloud'"
@@ -40,13 +40,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 import { StoragePluginManager } from '@/services/StoragePluginManager'
 import { IndexedDBService } from '@/services/IndexedDBService'
 
 const { t } = useI18n()
+const route = useRoute()
+
+/**
+ * Pages whose whole job is already this ask.
+ *
+ * The banner is a nudge for someone using the app without a source configured.
+ * On the landing page it reproached a first-time visitor for not having set up
+ * a product they had not yet been told about — above the sentence explaining
+ * what it is. On the onboarding flow it duplicates the step on screen.
+ */
+const SELF_EXPLANATORY_ROUTES = ['/welcome', '/onboarding']
+
+const onOwnCallToAction = computed(() => SELF_EXPLANATORY_ROUTES.includes(route.path))
 
 const bannerType = ref<'provider' | 'storage' | null>(null)
 

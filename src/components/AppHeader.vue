@@ -9,9 +9,13 @@
       tabindex="0"
     >
       <img src="@/assets/logo.svg" :alt="t('app.logo')" />
-      <h1 class="brand-name">
+      <!-- A span, not an h1: this is a logo inside a button that navigates
+           home, not the heading of the document underneath it. As an h1 it
+           competed with every page's real title, and the landing page ended up
+           with two. -->
+      <span class="brand-name">
         <span class="normal">open</span><span class="secondary">Stride</span>
-      </h1>
+      </span>
     </div>
 
     <div class="header-actions">
