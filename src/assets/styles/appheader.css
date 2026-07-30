@@ -36,10 +36,6 @@
   animation-timeline: scroll();
 }
 
-.header h1 {
-  margin: 10px;
-}
-
 .logo * {
   cursor: pointer;
 }
@@ -55,6 +51,8 @@
 }
 
 .brand-name {
+  /* Carried over from the `.header h1` rule this used to inherit */
+  margin: 10px;
   font-family: var(--font-main);
   font-size: var(--font-size-logo);
   font-weight: var(--font-weight-bold);

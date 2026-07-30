@@ -259,42 +259,6 @@
       "totalDuration": "Temps total"
     }
   },
-  "home": {
-    "hero": {
-      "title": "Explorez. Contrôlez. Partagez.",
-      "cta": "Commencer maintenant"
-    },
-    "features": {
-      "privacy": {
-        "title": "Respect de votre vie privée",
-        "description": "Vos données restent vos données."
-      },
-      "openSource": {
-        "title": "Open-source",
-        "description": "Transparent et évolutif par tous."
-      },
-      "free": {
-        "title": "Gratuit",
-        "description": "Aucun frais caché, pour toujours."
-      },
-      "customizable": {
-        "title": "Personnalisable",
-        "description": "Choisissez vos fournisseurs de données."
-      }
-    },
-    "quickAccess": {
-      "step1": {
-        "title": "1. Connectez un fournisseur de données",
-        "description": "Pour pouvoir voir vos premières activités, connectez un fournisseur de données (Garmin, Coros, Suunto etc.).",
-        "button": "Configurer les fournisseurs de données"
-      },
-      "step2": {
-        "title": "2. Configurez la sauvegarde",
-        "description": "Pour sécuriser vos données, choisissez un fournisseur de sauvegarde (Google Drive, Dropbox, etc.).",
-        "button": "Configurer la sauvegarde"
-      }
-    }
-  },
   "activities": {
     "loading": "Chargement...",
     "allLoaded": "Toutes les activités sont chargées.",
@@ -833,5 +797,65 @@
     "publishFirst": "Publiez d’abord vos données depuis votre profil",
     "linkCopied": "Lien de profil copié",
     "copyFailed": "Impossible de copier le lien"
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "Local-first · Open source · Gratuit",
+      "title": "Vos données d'entraînement vous appartiennent.",
+      "lead": "OpenStride rassemble vos sorties Garmin et Strava au même endroit, et les garde sur votre appareil. Pas sur nos serveurs.",
+      "cta": "Importer mes activités",
+      "ctaCode": "Voir le code",
+      "note": "Sans compte à créer, sans abonnement, sans traceur."
+    },
+    "how": {
+      "title": "Comment ça marche",
+      "connect": {
+        "title": "1. Branchez votre montre",
+        "text": "Garmin en quelques clics, ou l'archive de votre compte Strava. Vos sorties arrivent complètes : trace GPS, fréquence cardiaque, cadence, dénivelé."
+      },
+      "analyze": {
+        "title": "2. Analysez sans boîte noire",
+        "text": "Records personnels, meilleurs temps, segments, progression sur l'année. Chaque calcul est ouvert : un chiffre vous surprend, vous pouvez aller lire d'où il sort."
+      },
+      "own": {
+        "title": "3. Gardez la main",
+        "text": "Vos activités vivent dans votre navigateur. Une sauvegarde cloud existe si vous la voulez — c'est vous qui l'allumez, et vous choisissez chez qui."
+      }
+    },
+    "why": {
+      "title": "Pourquoi OpenStride",
+      "privacy": {
+        "title": "Vie privée",
+        "text": "Aucun compte, aucun traceur. Vos données ne partent nulle part tant que vous ne l'avez pas demandé."
+      },
+      "openSource": {
+        "title": "Open source",
+        "text": "Le code est public, les algorithmes aussi. Y compris ceux qui calculent vos performances."
+      },
+      "free": {
+        "title": "Gratuit",
+        "text": "Pas d'abonnement, pas de version premium, rien derrière un paywall."
+      },
+      "extensible": {
+        "title": "Extensible",
+        "text": "OpenStride est fait de plugins. Il manque votre montre ou votre graphique préféré ? Il peut être ajouté."
+      }
+    },
+    "sources": {
+      "title": "Vos sources",
+      "lead": "Ce qui fonctionne aujourd'hui. La liste s'allonge au rythme des plugins.",
+      "garmin": {
+        "name": "Garmin Connect",
+        "how": "Connexion directe"
+      },
+      "strava": {
+        "name": "Strava",
+        "how": "Import de votre archive — FIT, GPX et TCX inclus"
+      }
+    },
+    "closing": {
+      "title": "Reprenez vos données.",
+      "text": "Quelques minutes pour importer des années d'entraînement. Et rien à désinstaller si ça ne vous plaît pas : tout est chez vous."
+    }
   }
 }

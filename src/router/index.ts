@@ -4,6 +4,7 @@ import ProfilePage from '@/views/ProfilePage.vue'
 import MyActivities from '@/views/MyActivities.vue'
 import ActivityDetails from '@/views/ActivityDetails.vue'
 import HomePage from '@/views/HomePage.vue'
+import LandingPage from '@/views/LandingPage.vue'
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue'
 import LegalPage from '@/views/LegalPage.vue'
 import CGUPage from '@/views/CGUPage.vue'
@@ -16,6 +17,7 @@ import { IndexedDBService } from '@/services/IndexedDBService'
 
 const routes = [
   { path: '/', component: HomePage },
+  { path: '/welcome', component: LandingPage },
   { path: '/onboarding', component: OnboardingFlow },
   { path: '/legal', component: LegalPage },
   { path: '/cgu', component: CGUPage },
@@ -81,25 +83,34 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Rediriger home vers activities si l'utilisateur a des données
-  if (to.path === '/') {
-    // Check own activities
-    const activityService = await getActivityService()
-    const ownActivities = await activityService.getActivities({ limit: 1, offset: 0 })
-
-    // Check friend activities
-    const db = await IndexedDBService.getInstance()
-    const friendActivities = await db.getAllData('friend_activities')
-
-    // If user has ANY activities (own or friends), stay on HomePage
-    // HomePage will show the mixed feed via ActivityFeedService
-    if (ownActivities.length > 0 || friendActivities.length > 0) {
-      // Don't redirect, let HomePage show the activity feed
-      return next()
-    }
+  /**
+   * `/` is the feed for someone who has data, and the pitch for someone who
+   * has none.
+   *
+   * The check below already existed and its answer was thrown away, so a first
+   * visitor to openstride.org landed on the feed's empty state — a page that
+   * says what is missing without ever saying what the product is.
+   *
+   * `/welcome` bounces the other way so the pitch is never a dead end for
+   * someone who already imported.
+   */
+  if (to.path === '/' || to.path === '/welcome') {
+    const wantsFeed = await hasAnyActivity()
+    const destination = wantsFeed ? '/' : '/welcome'
+    return destination === to.path ? next() : next(destination)
   }
 
   next() // continue normalement
 })
+
+async function hasAnyActivity(): Promise<boolean> {
+  const activityService = await getActivityService()
+  const own = await activityService.getActivities({ limit: 1, offset: 0 })
+  if (own.length > 0) return true
+
+  const db = await IndexedDBService.getInstance()
+  const friendActivities = await db.getAllData('friend_activities')
+  return friendActivities.length > 0
+}
 
 export default router
