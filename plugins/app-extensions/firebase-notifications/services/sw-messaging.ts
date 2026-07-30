@@ -60,7 +60,7 @@ export function setupBackgroundMessageHandler(messaging: Messaging): void {
       badge: '/badge.png',
       tag: 'openstride-activity-update',
       data: {
-        url: payload.data?.url || '/my-activities',
+        url: payload.data?.url || '/',
         timestamp: Date.now()
       },
       requireInteraction: false,
@@ -81,7 +81,7 @@ export function setupNotificationClickHandler(): void {
 
     event.notification.close()
 
-    const urlToOpen = event.notification.data?.url || '/my-activities'
+    const urlToOpen = event.notification.data?.url || '/'
 
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {

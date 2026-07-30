@@ -28,11 +28,11 @@ import { useI18n } from 'vue-i18n'
 /**
  * The screen a list shows when it holds nothing at all.
  *
- * Shared between the feed and the activity list rather than copied: both are
- * reached before any data exists — `/my-activities` is where the router sends a
- * user the moment onboarding completes — and both need to point at the same way
- * out. The friends button is optional: a list of one's own activities is not
- * made less empty by adding a friend.
+ * Kept as a component rather than inlined: the list is the first screen a new
+ * account ever sees, so its empty state has to point at the way out instead of
+ * announcing that nothing finished loading. The friends button is optional — a
+ * list narrowed to one's own activities is not made less empty by adding a
+ * friend.
  */
 defineProps<{
   title: string

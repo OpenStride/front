@@ -1,117 +1,109 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import { ActivityFeedService, type FeedActivity } from '@/services/ActivityFeedService'
+import { applyActivityFilters, filterFacets } from '@/utils/activityFilters'
+import type { ActivityFilters } from '@/types/activity'
 
 // Re-export FeedActivity type for convenience
 export type { FeedActivity }
 
+/** Whose activities the list is showing. */
+export type FeedScope = 'all' | 'own' | 'friends'
+
+interface FeedOptions {
+  filters?: Ref<ActivityFilters | undefined>
+  scope?: Ref<FeedScope>
+}
+
+const PAGE_SIZE = 10
+
 /**
- * Composable for managing mixed activity feed state
- * Handles pagination, loading states, and UI interactions
- * Delegates data loading and transformation to ActivityFeedService
+ * The one activity list.
+ *
+ * The app used to have two: a feed on `/` and a searchable list on
+ * `/my-activities`, showing the same cards in the same order for anyone
+ * without friends — which is most people, since following someone means
+ * scanning their QR code. Two views meant two loading paths, two scroll
+ * handlers and two refresh strategies for one screen.
+ *
+ * The whole corpus is read once and kept in memory; scope, filters and paging
+ * are derived from it. That is what lets a page turn cost nothing, and what
+ * keeps the mounted cards — and the Leaflet map each one owns — alive across
+ * a refresh: the rendered list is a slice of a stable array, so the keyed diff
+ * reuses them instead of tearing down every tile.
  */
-export function useMixedFeed() {
-  // State
-  const activities = ref<FeedActivity[]>([])
+export function useMixedFeed(options: FeedOptions = {}) {
+  const { filters, scope } = options
+
+  const all = ref<FeedActivity[]>([])
   const loading = ref(false)
-  const hasMore = ref(true)
-  const page = ref(0)
-  const pageSize = 10
+  const loaded = ref(false)
+  /** How many of the matching activities are on screen */
+  const shown = ref(PAGE_SIZE)
 
-  // Cached data and concurrency control. Reactive so `counts` recomputes once a
-  // refresh brings in new data.
-  const allActivities = ref<FeedActivity[]>([])
-  let loadMorePromise: Promise<void> | null = null
-
-  // Service dependency
   const feedService = ActivityFeedService.getInstance()
 
-  /**
-   * Load all activities from service
-   */
-  const loadAllActivities = async (): Promise<FeedActivity[]> => {
-    allActivities.value = await feedService.loadAllActivities()
-    return allActivities.value
+  const inScope = computed(() => {
+    switch (scope?.value) {
+      case 'own':
+        return all.value.filter(a => a.source === 'own')
+      case 'friends':
+        return all.value.filter(a => a.source === 'friend')
+      default:
+        return all.value
+    }
+  })
+
+  const matching = computed(() => applyActivityFilters(inScope.value, filters?.value))
+
+  const activities = computed(() => matching.value.slice(0, shown.value))
+  const hasMore = computed(() => shown.value < matching.value.length)
+  /** Everything the current filters match, not just what is on screen */
+  const totalCount = computed(() => matching.value.length)
+
+  const counts = computed(() => feedService.getActivityCounts(all.value))
+
+  // The panel offers what the list can actually narrow, so it follows the
+  // scope: browsing a friend's swims should not offer a distance range the
+  // corpus on screen has no answer for.
+  const facets = computed(() => filterFacets(inScope.value))
+
+  const fetchAll = async () => {
+    loading.value = true
+    try {
+      all.value = await feedService.loadAllActivities()
+      loaded.value = true
+    } catch (error) {
+      console.error('[useMixedFeed] Error loading activities:', error)
+    } finally {
+      loading.value = false
+    }
   }
 
-  /**
-   * Load next page of activities
-   */
+  /** Show one more page, reading the corpus in on the first call. */
   const loadMore = async () => {
-    // If already loading, wait for existing operation to complete
-    if (loadMorePromise) {
-      return loadMorePromise
+    if (!loaded.value) {
+      if (loading.value) return
+      await fetchAll()
+      return
     }
-
-    // Early return if no more data
     if (!hasMore.value) return
-
-    const run = async () => {
-      loading.value = true
-
-      try {
-        // Load all activities if not loaded yet
-        if (allActivities.value.length === 0) {
-          await loadAllActivities()
-        }
-
-        // Calculate pagination
-        const start = page.value * pageSize
-        const end = start + pageSize
-        const newActivities = allActivities.value.slice(start, end)
-
-        if (newActivities.length < pageSize) {
-          hasMore.value = false
-        }
-
-        activities.value.push(...newActivities)
-        page.value += 1
-      } catch (error) {
-        console.error('[useMixedFeed] Error loading activities:', error)
-      } finally {
-        loading.value = false
-      }
-    }
-
-    // The guard must be cleared in a `.finally()` callback, which always runs as
-    // a microtask — i.e. after the assignment below. Clearing it inside the body
-    // instead only works while the body suspends: once the cache is warm it runs
-    // straight through, the assignment lands afterwards, and the stale promise
-    // blocks every later page.
-    loadMorePromise = run().finally(() => {
-      loadMorePromise = null
-    })
-
-    return loadMorePromise
+    shown.value += PAGE_SIZE
   }
 
   /**
-   * Refresh the feed in place.
+   * Re-read the corpus, keeping however many pages were scrolled through.
    *
-   * Emptying `activities` first would unmount every card between the two
-   * renders, and each card owns a Leaflet map that refetches its OSM tiles when
-   * it mounts. Fetching first and assigning once lets the keyed diff reuse the
-   * existing cards, so the maps are never torn down. It also keeps however many
-   * pages the user had already scrolled through.
+   * `shown` is left alone on purpose: it counts positions, not identities, so
+   * the same stretch of the list stays on screen.
    */
   const reload = async () => {
-    // Wait for any ongoing load to complete
-    if (loadMorePromise) {
-      await loadMorePromise
-    }
-
-    const visible = Math.max(activities.value.length, pageSize)
-    await loadAllActivities()
-
-    activities.value = allActivities.value.slice(0, visible)
-    page.value = Math.ceil(activities.value.length / pageSize)
-    hasMore.value = activities.value.length < allActivities.value.length
+    await fetchAll()
   }
 
-  /**
-   * Get count of activities by source
-   */
-  const counts = computed(() => {
-    return feedService.getActivityCounts(allActivities.value)
+  // A narrower question deserves a fresh first page rather than the scroll
+  // depth of the previous one.
+  watch([() => filters?.value, () => scope?.value], () => {
+    shown.value = PAGE_SIZE
   })
 
   return {
@@ -120,6 +112,8 @@ export function useMixedFeed() {
     hasMore,
     loadMore,
     reload,
-    counts
+    counts,
+    facets,
+    totalCount
   }
 }

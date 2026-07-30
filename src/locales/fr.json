@@ -122,7 +122,6 @@
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
-    "myActivities": "Mes activités",
     "statistics": "Statistiques",
     "metricTracker": "Suivi de métriques"
   },
@@ -820,5 +819,12 @@
     "publishFirst": "Publiez d’abord vos données depuis votre profil",
     "linkCopied": "Lien de profil copié",
     "copyFailed": "Impossible de copier le lien"
+  },
+  "feed": {
+    "scopes": {
+      "all": "Tout",
+      "own": "Moi",
+      "friends": "Amis"
+    }
   }
 }

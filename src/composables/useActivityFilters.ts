@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import { getDayKey, fromDayKey } from '@/utils/dateKeys'
+import type { FeedScope } from '@/composables/useMixedFeed'
 import type { ActivityFilters } from '@/types/activity'
 
 const DEFAULT_FILTERS: ActivityFilters = {
@@ -25,6 +26,7 @@ const DEFAULT_FILTERS: ActivityFilters = {
  * count is not.
  */
 const QUERY_KEYS = {
+  scope: 'who',
   text: 'q',
   sportType: 'sport',
   distanceMin: 'distMin',
@@ -76,6 +78,19 @@ export function filtersToQuery(filters: ActivityFilters): LocationQueryRaw {
   return query
 }
 
+/**
+ * Whose activities to show.
+ *
+ * Deliberately not a field of `ActivityFilters`: every field there is readable
+ * off an `Activity`, which is what keeps the filters usable against the local
+ * store. Ownership is not — only the merged feed knows where a card came
+ * from — so it travels beside them rather than inside them.
+ */
+export function scopeFromQuery(query: LocationQuery): FeedScope {
+  const value = readString(query[QUERY_KEYS.scope])
+  return value === 'own' || value === 'friends' ? value : 'all'
+}
+
 export function useActivityFilters() {
   const route = useRoute()
   const router = useRouter()
@@ -84,6 +99,7 @@ export function useActivityFilters() {
   // activity and coming back reset it, and it could not be shared or
   // bookmarked. Reading the URL first makes the link the source of truth.
   const filters = ref<ActivityFilters>(filtersFromQuery(route.query))
+  const scope = ref<FeedScope>(scopeFromQuery(route.query))
   const filtersOpen = ref(false)
 
   const hasActiveFilters = computed(() => {
@@ -132,7 +148,11 @@ export function useActivityFilters() {
   // `replace`, not `push`: narrowing a list is not a step the back button
   // should have to walk through one keystroke at a time.
   watch(
-    () => filtersToQuery(filters.value),
+    () => {
+      const query = filtersToQuery(filters.value)
+      if (scope.value !== 'all') query[QUERY_KEYS.scope] = scope.value
+      return query
+    },
     query => {
       if (JSON.stringify(query) === JSON.stringify(route.query)) return
       void router.replace({ query }).catch(() => {
@@ -142,6 +162,8 @@ export function useActivityFilters() {
     { deep: true }
   )
 
+  // The scope is not reset with the rest: "show me my own outings" is a place
+  // the reader chose to be, not a filter they applied to it.
   function resetFilters() {
     filters.value = { ...DEFAULT_FILTERS }
   }
@@ -160,6 +182,7 @@ export function useActivityFilters() {
 
   return {
     filters,
+    scope,
     filtersOpen,
     hasActiveFilters,
     activeFilterCount,

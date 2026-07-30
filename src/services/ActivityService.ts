@@ -2,7 +2,7 @@ import { Activity, ActivityDetails, type ActivityFilters } from '@/types/activit
 import { warnOnContractViolations } from './activityContract'
 import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
-import { toMs } from '@/utils/timeRange'
+import { applyActivityFilters, filterFacets } from '@/utils/activityFilters'
 import type { IActivityService } from '@/types/plugin-context'
 
 /**
@@ -325,46 +325,7 @@ export class ActivityService implements IActivityService {
   }
 
   private applyFilters(activities: Activity[], filters: ActivityFilters): Activity[] {
-    let result = activities
-
-    if (filters.text) {
-      const search = filters.text.toLowerCase()
-      result = result.filter(a => a.title?.toLowerCase().includes(search))
-    }
-
-    if (filters.sportType) {
-      const sport = filters.sportType.toLowerCase()
-      result = result.filter(a => a.type?.toLowerCase() === sport)
-    }
-
-    if (filters.distanceMin != null) {
-      result = result.filter(a => a.distance >= filters.distanceMin!)
-    }
-
-    if (filters.distanceMax != null) {
-      result = result.filter(a => a.distance <= filters.distanceMax!)
-    }
-
-    // Providers disagree on whether a timestamp is seconds or milliseconds, so
-    // the bounds are compared against the normalised value rather than the raw
-    // field — an activity stored in seconds would otherwise sit in 1970.
-    if (filters.dateFrom != null) {
-      result = result.filter(a => toMs(a.startTime) >= filters.dateFrom!)
-    }
-
-    if (filters.dateTo != null) {
-      result = result.filter(a => toMs(a.startTime) <= filters.dateTo!)
-    }
-
-    if (filters.durationMin != null) {
-      result = result.filter(a => a.duration >= filters.durationMin!)
-    }
-
-    if (filters.durationMax != null) {
-      result = result.filter(a => a.duration <= filters.durationMax!)
-    }
-
-    return result
+    return applyActivityFilters(activities, filters)
   }
 
   /**
@@ -402,17 +363,7 @@ export class ActivityService implements IActivityService {
   public async getFilterFacets(): Promise<{ sports: string[]; hasDistance: boolean }> {
     const db = this.ensureDB()
     const all = (await db.getAllData('activities')) as Activity[]
-
-    const sports = new Set<string>()
-    let hasDistance = false
-
-    for (const activity of all) {
-      if (activity.deleted) continue
-      if (activity.type) sports.add(activity.type.toLowerCase())
-      if (activity.distance > 0) hasDistance = true
-    }
-
-    return { sports: [...sports], hasDistance }
+    return filterFacets(all.filter(a => !a.deleted))
   }
 
   /**

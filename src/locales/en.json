@@ -122,7 +122,6 @@
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
-    "myActivities": "My Activities",
     "statistics": "Statistics",
     "metricTracker": "Metric Tracker"
   },
@@ -820,5 +819,12 @@
     "publishFirst": "Publish your data from your profile first",
     "linkCopied": "Profile link copied",
     "copyFailed": "Could not copy the link"
+  },
+  "feed": {
+    "scopes": {
+      "all": "All",
+      "own": "Me",
+      "friends": "Friends"
+    }
   }
 }

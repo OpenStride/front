@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { ONBOARDING_STATE_KEY, type OnboardingState } from '@/types/onboarding'
 import ProfilePage from '@/views/ProfilePage.vue'
-import MyActivities from '@/views/MyActivities.vue'
 import ActivityDetails from '@/views/ActivityDetails.vue'
 import HomePage from '@/views/HomePage.vue'
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue'
@@ -34,7 +33,6 @@ const routes = [
       requiresAuth: false
     }
   },
-  { path: '/my-activities', component: MyActivities },
   {
     // Legacy alias kept for links shared before /activity-details existed. Its
     // param used to be named `parameter`, which useActivityDetails never reads,
@@ -60,6 +58,10 @@ const routes = [
     component: () => import('@/views/StorageSetupView.vue')
   },
   // Redirects for backward compatibility
+  // `/my-activities` was the searchable list, next to a feed on `/` that showed
+  // the same cards in the same order for anyone without friends. One list now,
+  // on the app root; the old path keeps every link that was shared to it.
+  { path: '/my-activities', redirect: '/' },
   { path: '/data-providers', redirect: '/profile?tab=data-sources' },
   { path: '/storage-providers', redirect: '/profile?tab=cloud-backup' },
   { path: '/app-extensions', redirect: '/profile?tab=app-extensions' }
@@ -76,7 +78,7 @@ router.beforeEach(async (to, from, next) => {
     const db = await IndexedDBService.getInstance()
     const state = await db.getData<OnboardingState>(ONBOARDING_STATE_KEY)
     if (state?.completed) {
-      return next('/my-activities')
+      return next('/')
     }
   }
 
