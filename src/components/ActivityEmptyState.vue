@@ -28,11 +28,12 @@ import { useI18n } from 'vue-i18n'
 /**
  * The screen a list shows when it holds nothing at all.
  *
- * Kept as a component rather than inlined: the list is the first screen a new
- * account ever sees, so its empty state has to point at the way out instead of
- * announcing that nothing finished loading. The friends button is optional — a
- * list narrowed to one's own activities is not made less empty by adding a
- * friend.
+ * The router sends someone with no data to the landing page, so this is no
+ * longer the welcome screen it started as. What reaches it now is a list that
+ * emptied out under the reader: narrowed to their own outings when only
+ * friends' are stored, or left behind after deleting the last activity. Both
+ * want the same thing — a way out rather than a blank page announcing that
+ * nothing finished loading.
  */
 defineProps<{
   title: string

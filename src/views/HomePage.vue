@@ -67,9 +67,10 @@
       </p>
 
       <!-- Nothing to show splits in two: filters that match nothing, and a
-           library that is genuinely empty. The second is the first screen a new
-           account ever sees, so it points at the way out instead of announcing
-           that the empty list finished loading. -->
+           list with nothing behind it. The router sends a first visitor to the
+           landing page, so the second case is not a welcome — it is a reader
+           who narrowed to their own outings while only friends' are stored, or
+           who just deleted their last one. -->
       <p v-if="isEmpty && hasActiveFilters" class="end-text" data-test="no-results-message">
         {{ t('filters.noResults') }}
       </p>
