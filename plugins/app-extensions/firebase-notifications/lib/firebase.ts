@@ -18,7 +18,7 @@ let messaging: Messaging | null = null
  * Initialize Firebase app and messaging.
  * Returns null if Firebase is not properly configured (missing env variables).
  */
-export function initializeFirebase(): { app: FirebaseApp; messaging: Messaging } | null {
+function initializeFirebase(): { app: FirebaseApp; messaging: Messaging } | null {
   try {
     // Check if all required config values are present
     const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId']

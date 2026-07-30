@@ -6,7 +6,7 @@ const PLUGIN_PREFIX = 'plugin:garmin'
 /**
  * Get plugin-specific data from IndexedDB via PluginContext
  */
-export async function getPluginData<T>(key: string): Promise<T | null> {
+async function getPluginData<T>(key: string): Promise<T | null> {
   const ctx = await getPluginContext()
   return (await ctx.storage.getData<T>(`${PLUGIN_PREFIX}:${key}`)) ?? null
 }
@@ -14,7 +14,7 @@ export async function getPluginData<T>(key: string): Promise<T | null> {
 /**
  * Save plugin-specific data to IndexedDB via PluginContext
  */
-export async function setPluginData<T>(key: string, value: T): Promise<void> {
+async function setPluginData<T>(key: string, value: T): Promise<void> {
   const ctx = await getPluginContext()
   await ctx.storage.saveData(`${PLUGIN_PREFIX}:${key}`, value)
 }
@@ -61,14 +61,6 @@ export async function setTokens(tokens: GarminTokens): Promise<void> {
 
 export async function deleteTokens(): Promise<void> {
   return deletePluginData('tokens')
-}
-
-export async function getGarminUserId(): Promise<string | null> {
-  return getPluginData<string>('userId')
-}
-
-export async function setGarminUserId(userId: string): Promise<void> {
-  return setPluginData('userId', userId)
 }
 
 export async function getSyncState(): Promise<GarminSyncState> {

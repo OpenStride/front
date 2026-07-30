@@ -113,7 +113,6 @@ function snapToOffered(stored: string): string {
     )
 }
 
-
 /* ===== Persistance (PluginContext) ===== */
 async function savePrefs() {
   await storage.saveData('granularity_for_cadence', granularity.value)

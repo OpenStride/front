@@ -2,11 +2,7 @@ import { ref, watch, type Ref } from 'vue'
 import type { Activity } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import { inRange } from '@/utils/timeRange'
-import {
-  useActivityMetricsIndex,
-  DISTANCE_TARGETS,
-  timeMetricId
-} from '@/composables/useActivityMetricsIndex'
+import { useActivityMetricsIndex, timeMetricId } from '@/composables/useActivityMetricsIndex'
 import { getRecordPeriodRange, type PersonalRecord, type RecordPeriod } from '../types'
 
 /** Distances shown in the records table, a subset of what the index computes */
@@ -114,6 +110,3 @@ export function usePersonalRecords(
     progress
   }
 }
-
-/** Distances the records table can show, for callers that need the vocabulary */
-export const RECORD_DISTANCES = DISTANCE_TARGETS.filter(t => PR_TARGETS.includes(t.meters))

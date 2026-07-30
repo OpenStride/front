@@ -4,9 +4,9 @@ import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 /** Indicator travel, in px, that arms the refresh. */
 export const TRIGGER_DISTANCE = 64
 /** Asymptote of the damping curve — the indicator never travels past this. */
-export const MAX_DISTANCE = 140
+const MAX_DISTANCE = 140
 /** Where the indicator parks while the refresh runs. */
-export const RESTING_DISTANCE = 56
+const RESTING_DISTANCE = 56
 /** Finger travel before we claim the gesture from the page scroller. */
 const TOUCH_SLOP = 8
 

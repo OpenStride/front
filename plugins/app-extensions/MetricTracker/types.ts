@@ -113,8 +113,6 @@ export interface MetricSources {
   derived: DerivedMap
 }
 
-export const EMPTY_SOURCES: MetricSources = { stats: new Map(), derived: new Map() }
-
 export { toMs } from '@/utils/timeRange'
 
 function refsOf(metric: MetricDefinition): string[] {
