@@ -194,34 +194,63 @@ const periodLabel = (key: string, period: Period): string => {
 
 // ── Loading ─────────────────────────────────────────────────────────────────
 
-/** Register the metrics this widget needs, the first time it is shown. */
-async function ensureMetricsExist() {
+/**
+ * Bring the stored definitions in line with what this widget expects.
+ *
+ * Reconciled every time, not merely completed when absent. Only adding the
+ * missing ids left a config written by an older version frozen in its old
+ * shape: it still carried `displayUnit`/`displayFactor` and no `dimension`, so
+ * a distance rendered as raw metres — and because nothing "changed", the
+ * aggregates were never rebuilt either, leaving the whole widget on zeroes.
+ *
+ * `enabled` is the one field a user can own, so it is preserved.
+ */
+async function reconcileMetrics(): Promise<boolean> {
   const metrics = aggregationCtx.listMetrics()
   let changed = false
 
   for (const base of BASE_METRICS) {
     for (const period of PERIODS) {
       const id = `${period}_${base.id}`
-      if (metrics.find(m => m.id === id)) continue
-      metrics.push({
-        id,
-        label: base.id,
-        enabled: true,
+      const expected = {
         sourceRef: base.sourceRef,
-        aggregation: 'sum',
+        aggregation: 'sum' as const,
         periods: [period],
         unit: base.unit,
         decimals: base.decimals,
         dimension: 'dimension' in base ? base.dimension : undefined
-      })
+      }
+      const existing = metrics.find(m => m.id === id)
+
+      if (!existing) {
+        metrics.push({ id, label: base.id, enabled: true, ...expected })
+        changed = true
+        continue
+      }
+
+      // Fields this widget owns; anything else the user set is left alone.
+      const stale =
+        existing.sourceRef !== expected.sourceRef ||
+        existing.unit !== expected.unit ||
+        existing.decimals !== expected.decimals ||
+        existing.dimension !== expected.dimension ||
+        'displayFactor' in existing ||
+        'displayUnit' in existing
+
+      if (!stale) continue
+
+      Object.assign(existing, expected)
+      // Drop what the type no longer knows about, so the shape converges.
+      delete (existing as Record<string, unknown>).displayFactor
+      delete (existing as Record<string, unknown>).displayUnit
       changed = true
     }
   }
-  if (!changed) return
+  if (!changed) return false
 
   await storage.saveData('aggregationConfig', { metrics })
   await aggregationCtx.loadConfigFromSettings()
-  await rebuildFromScratch()
+  return true
 }
 
 async function rebuildFromScratch() {
@@ -235,7 +264,8 @@ async function rebuildFromScratch() {
   await aggregationCtx.rebuildAll(activities as Record<string, unknown>[], detailsMap)
 }
 
-async function loadMetrics() {
+/** True when the store holds no aggregate at all for the current definitions. */
+async function loadMetrics(): Promise<{ empty: boolean }> {
   const enabled = aggregationCtx.listMetrics().filter(m => m.enabled)
   availablePeriods.value = PERIODS.filter(p => enabled.some(m => m.periods.includes(p)))
 
@@ -258,13 +288,30 @@ async function loadMetrics() {
   const points = selected ? selected.records.slice(-CHART_POINTS) : []
   chartLabels.value = points.map(r => periodLabel(r.periodKey, selectedPeriod.value))
   chartSI.value = points.map(r => r.value)
+
+  return { empty: series.every(s => s.records.length === 0) }
 }
 
-watch([selectedPeriod, selectedMetric], loadMetrics)
+watch([selectedPeriod, selectedMetric], () => {
+  void loadMetrics()
+})
 
 onMounted(async () => {
-  await ensureMetricsExist()
-  await loadMetrics()
+  const reconciled = await reconcileMetrics()
+  if (reconciled) await rebuildFromScratch()
+
+  const { empty } = await loadMetrics()
+  // A definition can exist with no aggregate behind it — the aggregation is
+  // event-driven, so activities imported before the metric was registered were
+  // never counted. Rebuilding once here is what turns a widget of zeroes into
+  // a widget of figures; `rebuildAll` purges first, so it cannot double-count.
+  if (empty) {
+    const activities = await storage.exportDB('activities')
+    if (activities.length > 0) {
+      await rebuildFromScratch()
+      await loadMetrics()
+    }
+  }
 })
 
 const onRefresh = async () => {
