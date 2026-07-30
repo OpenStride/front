@@ -595,7 +595,10 @@
     "isPublic": "This activity is public",
     "isPrivate": "This activity is private",
     "public": "Public",
-    "private": "Private"
+    "private": "Private",
+    "nowPublic": "Activity made public",
+    "nowPrivate": "Activity made private",
+    "toggleFailed": "Could not change the privacy"
   },
   "aggregatedProgress": {
     "title": "Progress",

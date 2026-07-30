@@ -39,7 +39,11 @@ function createOrUpdate() {
   if (chart) {
     chart.data.labels = props.labels
     chart.data.datasets[0].data = values
-    chart.data.datasets[0].pointRadius = pointRadius(props.points.length)
+    // `datasets` is typed for any chart kind; a line dataset is the one that
+    // carries pointRadius.
+    ;(chart.data.datasets[0] as { pointRadius?: number }).pointRadius = pointRadius(
+      props.points.length
+    )
     chart.data.datasets[1].data = trend
     // The axis direction belongs to the metric, so it follows the selection
     const scales = chart.options.scales as Record<string, Record<string, unknown>>

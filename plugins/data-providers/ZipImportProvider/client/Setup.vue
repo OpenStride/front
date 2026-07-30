@@ -110,12 +110,18 @@ function onFileChange(e: Event) {
                 elapsedRecordField: true
               })
               await new Promise<void>((resolve, reject) => {
-                fitParser.parse(fitData.buffer, (err, result) => {
+                // The parser hands back a plain string on failure, not an Error,
+                // so reading `.message` produced "undefined" in the banner. And
+                // its buffer type is narrower than what JSZip returns.
+                fitParser.parse(fitData.buffer as ArrayBuffer, (err, result) => {
                   if (err) {
-                    error.value = 'Erreur de parsing FIT: ' + err.message
-                    reject(err)
+                    error.value = `Erreur de parsing FIT: ${String(err)}`
+                    reject(new Error(String(err)))
                   } else {
-                    fitResult = result
+                    // The parser's own `ParsedFit` and this file's structural
+                    // `FitParseResult` describe the same payload without sharing
+                    // a declaration, so the widening step is explicit.
+                    fitResult = (result ?? {}) as unknown as FitParseResult
                     resolve()
                   }
                 })

@@ -13,7 +13,7 @@
       <div class="top-container">
         <component
           v-for="(comp, i) in topSlotComponents"
-          :is="comp?.default || comp"
+          :is="comp"
           :key="`top-${i}`"
           :data="activityData"
         />
@@ -23,7 +23,7 @@
       <div class="widgets-container">
         <component
           v-for="(comp, i) in widgetSlotComponents"
-          :is="comp?.default || comp"
+          :is="comp"
           :key="`widget-${i}`"
           :data="activityData"
           class="w-full"
@@ -75,12 +75,8 @@ const slotContext = () => activityData.value as SlotContext
 const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets', slotContext)
 const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top', slotContext)
 
-const widgetSlotComponents = computed(() =>
-  widgetSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
-const topSlotComponents = computed(() =>
-  topSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
+const widgetSlotComponents = computed(() => widgetSlotComponentsRaw.value)
+const topSlotComponents = computed(() => topSlotComponentsRaw.value)
 
 onMounted(loadActivity)
 </script>

@@ -34,7 +34,7 @@
           <ChipSelect
             v-model="selectedGranularity"
             :options="granularityOptions"
-            :aria-label="t('metricTracker.granularity')"
+            :group-label="t('metricTracker.granularity')"
             test-prefix="granularity"
           />
         </div>
@@ -44,7 +44,7 @@
           <ChipSelect
             v-model="selectedWindow"
             :options="windowOptions"
-            :aria-label="t('metricTracker.window')"
+            :group-label="t('metricTracker.window')"
             test-prefix="window"
           />
         </div>
@@ -54,7 +54,7 @@
           <ChipSelect
             v-model="ownSport"
             :options="sportChoices"
-            :aria-label="t('metricTracker.sport')"
+            :group-label="t('metricTracker.sport')"
             test-prefix="sport"
           />
         </div>

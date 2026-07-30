@@ -12,9 +12,11 @@ const updateService = getPWAUpdateService()
 
 const handleUpdateInstalling = () => {
   // Afficher une notification avant le reload
+  // `duration` is not an option — the toast takes `timeout`, so this value was
+  // silently dropped and the notice used the default lifetime.
   ToastService.push(t('update.autoUpdating'), {
     type: 'info',
-    duration: 3000
+    timeout: 3000
   })
 
   console.log('[AutoUpdateNotification] Update installing, reload imminent...')

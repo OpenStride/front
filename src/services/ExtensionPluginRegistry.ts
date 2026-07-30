@@ -38,6 +38,19 @@ export function selectSlotLoaders(
 }
 
 /** Components contributed to a slot by the active plugins. */
+/**
+ * A slot loader may hand back the component or the whole module.
+ *
+ * `async () => (await import('./X.vue')).default` yields the component, while
+ * the shorter `() => import('./X.vue')` yields the module. Both spellings are
+ * in use across the plugins, so every view that rendered a slot carried its own
+ * `comp?.default || comp` — four copies of the same guess, and the signature
+ * claimed `Component[]` regardless. Unwrapped once, here.
+ */
+export function unwrapModule(loaded: Component | { default: Component }): Component {
+  return loaded && typeof loaded === 'object' && 'default' in loaded ? loaded.default : loaded
+}
+
 export async function getPluginViewsForSlot(
   slotName: string,
   ctx: SlotContext = {}
@@ -51,7 +64,7 @@ export async function getPluginViewsForSlot(
 
     const entries = Array.isArray(slot) ? slot : [slot]
     for (const load of selectSlotLoaders(entries, ctx)) {
-      views.push(await load())
+      views.push(unwrapModule(await load()))
     }
   }
 

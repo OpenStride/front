@@ -77,7 +77,8 @@ import { useAppRefresh } from '@/composables/useAppRefresh'
 const { t } = useI18n()
 
 const { components: navRaw } = useSlotExtensions('navigation.main')
-const navSlotComponents = computed(() => navRaw.value.map(c => c.default || c))
+// The registry already unwraps a module into its component.
+const navSlotComponents = computed(() => navRaw.value)
 
 const isMenuOpen = ref(false)
 const syncService = getSyncService()

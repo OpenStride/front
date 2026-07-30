@@ -226,11 +226,14 @@ const isGDriveConnected = ref(false)
 const lastSyncTime = ref<number | null>(null)
 const urlInput = ref<HTMLInputElement>()
 const selectedPlatform = ref('macos')
-const stats = ref<{
+/** What `publishPublicData` records about the last publish. */
+interface PublicDataStats {
   totalActivities: number
   totalDistance: number
   totalDuration: number
-} | null>(null)
+}
+
+const stats = ref<PublicDataStats | null>(null)
 
 const platforms = [
   {
@@ -288,13 +291,13 @@ async function loadMCPSettings() {
       }
 
       // Load stats from storage
-      const savedStats = await storage.getData('publicDataStats')
+      const savedStats = await storage.getData<PublicDataStats>('publicDataStats')
       if (savedStats) {
         stats.value = savedStats
       }
 
       // Load last sync time
-      const savedLastSync = await storage.getData('lastPublicDataSync')
+      const savedLastSync = await storage.getData<number>('lastPublicDataSync')
       if (savedLastSync) {
         lastSyncTime.value = savedLastSync
       }

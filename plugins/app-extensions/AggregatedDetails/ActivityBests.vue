@@ -118,9 +118,11 @@ function badgeColor(d: number): string {
 const totalDistance = props.data.activity.distance ?? 0
 
 // Handle case where samples are empty or invalid
+// A target the activity never reached has no entry at all, so `undefined` is
+// part of the shape — the contract says so, this local copy had dropped it.
 let bestRaw: Record<
   number,
-  { sample: Sample; duration: number; startIdx: number; endIdx: number } | null
+  { sample: Sample; duration: number; startIdx: number; endIdx: number } | null | undefined
 > = {}
 try {
   bestRaw = analyzer.bestSegments(targets)

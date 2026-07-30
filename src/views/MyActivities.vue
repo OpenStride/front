@@ -67,9 +67,7 @@ const { t } = useI18n()
 
 // Allow plugins to inject aggregated overview widgets
 const { components: topRaw } = useSlotExtensions('myactivities.top')
-const topSlotComponents = computed(() =>
-  topRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
+const topSlotComponents = computed(() => topRaw.value)
 
 // Filters
 const {
