@@ -20,6 +20,8 @@ jobs:
   build:
     name: Build debug APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to publish the release
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,3 +78,18 @@ jobs:
           name: openstride-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Publish the APK to a moving "android-latest" prerelease so it has a stable,
+      # public, no-login download URL you can open directly on your phone:
+      #   https://github.com/OpenStride/front/releases/download/android-latest/OpenStride-debug.apk
+      - name: Publish APK to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk OpenStride-debug.apk
+          gh release delete android-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create android-latest OpenStride-debug.apk \
+            --title "Android test build (latest)" \
+            --notes "Latest debug APK from \`${GITHUB_REF_NAME}\` (commit \`${GITHUB_SHA:0:7}\`). Install: allow install from unknown sources, then open the APK." \
+            --prerelease \
+            --target "${GITHUB_SHA}"
