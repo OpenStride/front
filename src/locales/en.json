@@ -427,6 +427,21 @@
     "allSports": "All sports",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
+    "summary": {
+      "title": "Totals",
+      "periodLabel": "Totals period",
+      "allSports": "All sports: the filter does not apply to these totals",
+      "periods": {
+        "week": "This week",
+        "month": "This month",
+        "year": "This year"
+      },
+      "metrics": {
+        "distance": "Distance",
+        "duration": "Duration",
+        "totalAscent": "Ascent"
+      }
+    },
     "trends": {
       "title": "Trends",
       "distance": "Distance (km)",
@@ -438,7 +453,6 @@
     },
     "distribution": {
       "title": "Distribution",
-      "activitiesCount": "Activity count",
       "durationH": "Duration (h)",
       "distance": "Distance"
     },

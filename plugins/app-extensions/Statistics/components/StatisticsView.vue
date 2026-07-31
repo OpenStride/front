@@ -20,6 +20,7 @@
     </div>
 
     <div v-else class="statistics-sections">
+      <SummarySection :selected-sport="selectedSport" />
       <CalendarHeatmap :activities="filteredActivities" />
       <TrendsSection :activities="filteredActivities" />
       <DistributionSection
@@ -46,6 +47,7 @@ import { useI18n } from 'vue-i18n'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useStatisticsData } from '../composables/useStatisticsData'
 import SportFilter from './SportFilter.vue'
+import SummarySection from './SummarySection.vue'
 import TrendsSection from './TrendsSection.vue'
 import DistributionSection from './DistributionSection.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
