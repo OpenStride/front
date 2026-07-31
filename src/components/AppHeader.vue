@@ -43,7 +43,9 @@
         :key="`nav-${i}`"
         @navigate="closeMenu"
       />
-      <router-link to="/friends" @click="closeMenu">{{ t('navigation.friends') }}</router-link>
+      <router-link to="/?who=friends" @click="closeMenu">{{
+        t('navigation.friends')
+      }}</router-link>
       <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">
