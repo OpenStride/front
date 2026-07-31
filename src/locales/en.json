@@ -122,7 +122,6 @@
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
-    "myActivities": "My Activities",
     "statistics": "Statistics",
     "metricTracker": "Metric Tracker"
   },
@@ -262,10 +261,6 @@
   "activities": {
     "loading": "Loading...",
     "allLoaded": "All activities are loaded.",
-    "noActivities": "No activities yet.",
-    "myActivities": "My Activities",
-    "friends": "Friends",
-    "total": "Total",
     "noActivity": "No activity",
     "noActivityDescription": "Connect a data provider or add friends to see activities here",
     "configureData": "Configure data",
@@ -276,12 +271,16 @@
     "sportType": "Sport type",
     "allSports": "All",
     "distance": "Distance",
-    "ascent": "Elevation gain",
     "min": "Min",
     "max": "Max",
     "reset": "Reset",
     "resultCount": "{count} activity | {count} activities",
-    "noResults": "No activities match the current filters."
+    "noResults": "No activities match the current filters.",
+    "date": "Period",
+    "dateFrom": "From",
+    "dateTo": "Until",
+    "duration": "Duration",
+    "minutes": "min"
   },
   "friends": {
     "title": "Friends' Activities",
@@ -564,21 +563,6 @@
     "nowPrivate": "Activity made private",
     "toggleFailed": "Could not change the privacy"
   },
-  "aggregatedProgress": {
-    "title": "Progress",
-    "recompute": "Rebuild aggregates",
-    "metrics": {
-      "distance": "Distance",
-      "duration": "Duration",
-      "totalAscent": "Total elevation +"
-    },
-    "periods": {
-      "week": "Weekly",
-      "month": "Monthly",
-      "year": "Yearly"
-    },
-    "plot": "Plot {metric}"
-  },
   "addFriend": {
     "adding": "Adding your friend...",
     "added": "{name} added!",
@@ -856,6 +840,13 @@
     "closing": {
       "title": "Take your data back.",
       "text": "A few minutes to import years of training. And nothing to uninstall if you change your mind: it was yours all along."
+    }
+  },
+  "feed": {
+    "scopes": {
+      "all": "All",
+      "own": "Me",
+      "friends": "Friends"
     }
   }
 }

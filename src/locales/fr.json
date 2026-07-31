@@ -122,7 +122,6 @@
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
-    "myActivities": "Mes activités",
     "statistics": "Statistiques",
     "metricTracker": "Suivi de métriques"
   },
@@ -262,10 +261,6 @@
   "activities": {
     "loading": "Chargement...",
     "allLoaded": "Toutes les activités sont chargées.",
-    "noActivities": "Aucune activité pour le moment.",
-    "myActivities": "Mes activités",
-    "friends": "Amis",
-    "total": "Total",
     "noActivity": "Aucune activité",
     "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
     "configureData": "Configurer les données",
@@ -276,12 +271,16 @@
     "sportType": "Type de sport",
     "allSports": "Tous",
     "distance": "Distance",
-    "ascent": "Dénivelé positif",
     "min": "Min",
     "max": "Max",
     "reset": "Réinitialiser",
     "resultCount": "{count} activité | {count} activités",
-    "noResults": "Aucune activité ne correspond aux filtres."
+    "noResults": "Aucune activité ne correspond aux filtres.",
+    "date": "Période",
+    "dateFrom": "À partir du",
+    "dateTo": "Jusqu'au",
+    "duration": "Durée",
+    "minutes": "min"
   },
   "friends": {
     "title": "Activités des amis",
@@ -564,21 +563,6 @@
     "nowPrivate": "Activité rendue privée",
     "toggleFailed": "Erreur lors de la modification"
   },
-  "aggregatedProgress": {
-    "title": "Progression",
-    "recompute": "Recalculer les agrégats",
-    "metrics": {
-      "distance": "Distance",
-      "duration": "Durée",
-      "totalAscent": "D+ cumulé"
-    },
-    "periods": {
-      "week": "Hebdomadaire",
-      "month": "Mensuel",
-      "year": "Annuel"
-    },
-    "plot": "Afficher {metric}"
-  },
   "addFriend": {
     "adding": "Ajout de votre ami...",
     "added": "{name} ajouté !",
@@ -856,6 +840,13 @@
     "closing": {
       "title": "Reprenez vos données.",
       "text": "Quelques minutes pour importer des années d'entraînement. Et rien à désinstaller si ça ne vous plaît pas : tout est chez vous."
+    }
+  },
+  "feed": {
+    "scopes": {
+      "all": "Tout",
+      "own": "Moi",
+      "friends": "Amis"
     }
   }
 }

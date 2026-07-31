@@ -36,9 +36,7 @@
       <button class="close-menu" @click="closeMenu" :aria-label="t('app.close')">
         <i class="fas fa-times" aria-hidden="true"></i>
       </button>
-      <router-link to="/my-activities" @click="closeMenu">{{
-        t('navigation.myActivities')
-      }}</router-link>
+      <router-link to="/" @click="closeMenu">{{ t('navigation.home') }}</router-link>
       <component
         v-for="(comp, i) in navSlotComponents"
         :is="comp"

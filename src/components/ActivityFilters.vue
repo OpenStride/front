@@ -22,8 +22,9 @@
       </div>
     </div>
 
-    <!-- Distance range -->
-    <div class="filter-section">
+    <!-- Distance range. A library of pool lengths and gym sessions has no
+         distance to narrow, so the control that asks for one stays away. -->
+    <div v-if="hasDistance" class="filter-section" data-test="distance-section">
       <label class="filter-label">{{ t('filters.distance') }}</label>
       <div class="range-inputs">
         <div class="range-field">
@@ -56,22 +57,53 @@
       </div>
     </div>
 
-    <!-- Ascent range -->
+    <!-- Date range: how one actually looks for a session again -->
     <div class="filter-section">
-      <label class="filter-label">{{ t('filters.ascent') }}</label>
+      <label class="filter-label">{{ t('filters.date') }}</label>
+      <div class="range-inputs">
+        <div class="range-field">
+          <input
+            type="date"
+            class="range-input range-input--date"
+            :value="dateFromDisplay"
+            :max="dateToDisplay || undefined"
+            :aria-label="t('filters.dateFrom')"
+            data-test="date-from"
+            @input="onDateFrom"
+          />
+        </div>
+        <span class="range-separator">-</span>
+        <div class="range-field">
+          <input
+            type="date"
+            class="range-input range-input--date"
+            :value="dateToDisplay"
+            :min="dateFromDisplay || undefined"
+            :aria-label="t('filters.dateTo')"
+            data-test="date-to"
+            @input="onDateTo"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Duration range. The one volume every sport has: a pool set and a
+         strength session have no distance, but they both took time. -->
+    <div class="filter-section">
+      <label class="filter-label">{{ t('filters.duration') }}</label>
       <div class="range-inputs">
         <div class="range-field">
           <input
             type="number"
             class="range-input"
             :placeholder="t('filters.min')"
-            :value="modelValue.ascentMin"
+            :value="durationMinDisplay"
             min="0"
-            step="10"
-            data-test="ascent-min"
-            @input="onAscentMin"
+            step="5"
+            data-test="duration-min"
+            @input="onDurationMin"
           />
-          <span class="range-unit">m</span>
+          <span class="range-unit">{{ t('filters.minutes') }}</span>
         </div>
         <span class="range-separator">-</span>
         <div class="range-field">
@@ -79,13 +111,13 @@
             type="number"
             class="range-input"
             :placeholder="t('filters.max')"
-            :value="modelValue.ascentMax"
+            :value="durationMaxDisplay"
             min="0"
-            step="10"
-            data-test="ascent-max"
-            @input="onAscentMax"
+            step="5"
+            data-test="duration-max"
+            @input="onDurationMax"
           />
-          <span class="range-unit">m</span>
+          <span class="range-unit">{{ t('filters.minutes') }}</span>
         </div>
       </div>
     </div>
@@ -108,7 +140,9 @@ import { computed } from 'vue'
 import { useUnits } from '@/composables/useUnits'
 import { useI18n } from 'vue-i18n'
 import type { ActivityFilters } from '@/types/activity'
+import type { Dimension } from '@/types/units'
 import { COMMON_SPORT_TYPES, formatSportType, getSportIcon } from '@/utils/sportLabels'
+import { getDayKey, fromDayKey } from '@/utils/dateKeys'
 
 const { t } = useI18n()
 
@@ -116,6 +150,8 @@ const props = defineProps<{
   modelValue: ActivityFilters
   hasActiveFilters: boolean
   availableSports?: string[]
+  /** Whether the library holds anything measured in distance at all */
+  hasDistance?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -134,15 +170,37 @@ const sportOptions = computed(() => {
   }))
 })
 
-// Filters are stored in metres; the input reads and writes in the user's unit.
-const toDisplay = (meters?: number) =>
-  meters != null ? Number(convert('distance', meters).value.toFixed(2)) : undefined
+// Filters are stored in SI; the input reads and writes in the user's unit.
+const toDisplay = (dimension: Dimension, si?: number) =>
+  si != null ? Number(convert(dimension, si).value.toFixed(2)) : undefined
 
-const toMeters = (value: number) => value / convert('distance', 1).value
+const toSIValue = (dimension: Dimension, value: number) => value / convert(dimension, 1).value
 
 const distanceUnit = computed(() => convert('distance', 0).unit)
-const distanceMinDisplay = computed(() => toDisplay(props.modelValue.distanceMin ?? undefined))
-const distanceMaxDisplay = computed(() => toDisplay(props.modelValue.distanceMax ?? undefined))
+const distanceMinDisplay = computed(() =>
+  toDisplay('distance', props.modelValue.distanceMin ?? undefined)
+)
+const distanceMaxDisplay = computed(() =>
+  toDisplay('distance', props.modelValue.distanceMax ?? undefined)
+)
+
+// Time is not a `Dimension`: a minute reads the same in both systems, so it
+// needs the storage conversion (seconds) and no unit system.
+const SECONDS_PER_MINUTE = 60
+const toMinutes = (seconds?: number) =>
+  seconds != null ? Math.round(seconds / SECONDS_PER_MINUTE) : undefined
+
+const durationMinDisplay = computed(() => toMinutes(props.modelValue.durationMin ?? undefined))
+const durationMaxDisplay = computed(() => toMinutes(props.modelValue.durationMax ?? undefined))
+
+// `<input type="date">` speaks `YYYY-MM-DD` in both directions; the filter
+// holds the local instant that bounds the day.
+const dateFromDisplay = computed(() =>
+  props.modelValue.dateFrom != null ? getDayKey(new Date(props.modelValue.dateFrom)) : ''
+)
+const dateToDisplay = computed(() =>
+  props.modelValue.dateTo != null ? getDayKey(new Date(props.modelValue.dateTo)) : ''
+)
 
 function updateFilter(key: keyof ActivityFilters, value: string | number | undefined) {
   emit('update:modelValue', { ...props.modelValue, [key]: value || undefined })
@@ -157,20 +215,32 @@ function parseNumInput(e: Event): number | undefined {
 
 function onDistanceMin(e: Event) {
   const entered = parseNumInput(e)
-  updateFilter('distanceMin', entered != null ? toMeters(entered) : undefined)
+  updateFilter('distanceMin', entered != null ? toSIValue('distance', entered) : undefined)
 }
 
 function onDistanceMax(e: Event) {
   const entered = parseNumInput(e)
-  updateFilter('distanceMax', entered != null ? toMeters(entered) : undefined)
+  updateFilter('distanceMax', entered != null ? toSIValue('distance', entered) : undefined)
 }
 
-function onAscentMin(e: Event) {
-  updateFilter('ascentMin', parseNumInput(e))
+function onDurationMin(e: Event) {
+  const entered = parseNumInput(e)
+  updateFilter('durationMin', entered != null ? entered * SECONDS_PER_MINUTE : undefined)
 }
 
-function onAscentMax(e: Event) {
-  updateFilter('ascentMax', parseNumInput(e))
+function onDurationMax(e: Event) {
+  const entered = parseNumInput(e)
+  updateFilter('durationMax', entered != null ? entered * SECONDS_PER_MINUTE : undefined)
+}
+
+// The bound lands on the edge of the day, so a single-day range keeps the
+// activities of that day rather than only the ones logged at midnight.
+function onDateFrom(e: Event) {
+  updateFilter('dateFrom', fromDayKey((e.target as HTMLInputElement).value, 'start'))
+}
+
+function onDateTo(e: Event) {
+  updateFilter('dateTo', fromDayKey((e.target as HTMLInputElement).value, 'end'))
 }
 </script>
 
@@ -256,6 +326,11 @@ function onAscentMax(e: Event) {
   background: var(--color-white);
   color: var(--text-color);
   -moz-appearance: textfield;
+}
+
+/* No trailing unit label to clear, and the native picker needs the room. */
+.range-input--date {
+  padding-right: 0.6rem;
 }
 
 .range-input::-webkit-outer-spin-button,

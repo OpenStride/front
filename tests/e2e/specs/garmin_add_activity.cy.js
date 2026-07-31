@@ -89,8 +89,8 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Small delay to ensure IndexedDB write completes
     cy.wait(1000)
 
-    // Navigate to activities page - don't wait for full sync (takes 90s+)
-    cy.visit('/my-activities')
+    // Navigate to the activity list - don't wait for full sync (takes 90s+)
+    cy.visit('/')
     cy.waitForApp()
 
     // Verify the activity card exists

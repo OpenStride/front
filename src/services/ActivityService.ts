@@ -2,6 +2,7 @@ import { Activity, ActivityDetails, type ActivityFilters } from '@/types/activit
 import { warnOnContractViolations } from './activityContract'
 import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
+import { applyActivityFilters, filterFacets } from '@/utils/activityFilters'
 import type { IActivityService } from '@/types/plugin-context'
 
 /**
@@ -324,27 +325,7 @@ export class ActivityService implements IActivityService {
   }
 
   private applyFilters(activities: Activity[], filters: ActivityFilters): Activity[] {
-    let result = activities
-
-    if (filters.text) {
-      const search = filters.text.toLowerCase()
-      result = result.filter(a => a.title?.toLowerCase().includes(search))
-    }
-
-    if (filters.sportType) {
-      const sport = filters.sportType.toLowerCase()
-      result = result.filter(a => a.type?.toLowerCase() === sport)
-    }
-
-    if (filters.distanceMin != null) {
-      result = result.filter(a => a.distance >= filters.distanceMin!)
-    }
-
-    if (filters.distanceMax != null) {
-      result = result.filter(a => a.distance <= filters.distanceMax!)
-    }
-
-    return result
+    return applyActivityFilters(activities, filters)
   }
 
   /**
@@ -364,6 +345,25 @@ export class ActivityService implements IActivityService {
     const db = this.ensureDB()
     const all = (await db.getAllData('activities')) as Activity[]
     return all.filter(a => !a.deleted).sort((a, b) => b.startTime - a.startTime)
+  }
+
+  /**
+   * What the filter panel needs to decide which controls to offer.
+   *
+   * The panel used to derive its sport chips by calling `getAllActivities()`
+   * and mapping the result, which sorted the whole library by date to build a
+   * list of a dozen strings — and did it again on every import burst.
+   *
+   * `hasDistance` follows the rule the activity card already applies: a widget
+   * shows itself from the data it needs, not from the sport. A library of pool
+   * swims and gym sessions has no distance to narrow, so the range that asks
+   * for one has nothing to offer. Legacy activities carry raw provider strings
+   * like `"RUNNING"`, hence the lowercase.
+   */
+  public async getFilterFacets(): Promise<{ sports: string[]; hasDistance: boolean }> {
+    const db = this.ensureDB()
+    const all = (await db.getAllData('activities')) as Activity[]
+    return filterFacets(all.filter(a => !a.deleted))
   }
 
   /**

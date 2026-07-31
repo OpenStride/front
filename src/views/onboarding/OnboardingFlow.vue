@@ -143,7 +143,7 @@ async function completeOnboarding() {
 
   stopActivityPolling()
 
-  router.push('/my-activities')
+  router.push('/')
 }
 </script>
 

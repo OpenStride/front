@@ -8,6 +8,7 @@
  */
 
 import { IndexedDBService } from '@/services/IndexedDBService'
+import { toMs } from '@/utils/timeRange'
 import type { Activity } from '@/types/activity'
 import type { FriendActivity } from '@/types/friend'
 
@@ -66,7 +67,10 @@ export class ActivityFeedService {
    * Sort activities by startTime descending (newest first)
    */
   private sortActivities(activities: FeedActivity[]): FeedActivity[] {
-    return activities.sort((a, b) => b.startTime - a.startTime)
+    // Through `toMs`, because the two sides of this merge do not agree: a
+    // provider storing seconds would sort every one of its activities below
+    // 1970 and sink them to the bottom of the feed.
+    return activities.sort((a, b) => toMs(b.startTime) - toMs(a.startTime))
   }
 
   /**
@@ -76,8 +80,13 @@ export class ActivityFeedService {
   public async loadAllActivities(): Promise<FeedActivity[]> {
     const db = await IndexedDBService.getInstance()
 
-    // Load own activities
-    const ownActivities: Activity[] = await db.getAllData<Activity>('activities')
+    // Load own activities. A soft-deleted one used to reach the feed: this
+    // store keeps the record around for the sync to propagate the deletion,
+    // and only the activity list was filtering them out — so deleting an
+    // outing removed it from one screen and left it on the other.
+    const ownActivities: Activity[] = (await db.getAllData<Activity>('activities')).filter(
+      a => !a.deleted
+    )
     const ownFeedActivities = ownActivities.map(a => this.transformOwnActivity(a))
 
     // Load friend activities
