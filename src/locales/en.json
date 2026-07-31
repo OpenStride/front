@@ -256,7 +256,9 @@
       "totalActivities": "Activities",
       "totalDistance": "Total Distance",
       "totalDuration": "Total Time"
-    }
+    },
+    "myPublicProfile": "My public profile",
+    "myPublicProfileLead": "What your friends see of you, and how often it refreshes."
   },
   "activities": {
     "loading": "Loading...",
@@ -617,7 +619,6 @@
   "friendsList": {
     "empty": "No friend added",
     "emptyHelp": "Scan a friend's QR code to start following their activities",
-    "scanQr": "Scan a QR code",
     "sync": "Sync",
     "syncFull": "Sync the full history",
     "syncedFull": "Full history synced",
@@ -627,7 +628,8 @@
     "mutual": "Follows you",
     "notMutual": "Doesn't follow you yet",
     "addedOn": "Added {date}",
-    "lastSync": "Synced {time}"
+    "lastSync": "Synced {time}",
+    "title": "My friends"
   },
   "activityDetailPage": {
     "friendActivity": "Activity by",
