@@ -285,6 +285,9 @@ function onDateTo(e: Event) {
   background: var(--surface);
   color: var(--text-color);
   font-size: 0.8rem;
+  /* Same reason as the scope tabs: a sport name is a label, not a shout */
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   transition:
     background 0.2s,

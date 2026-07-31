@@ -229,9 +229,12 @@ function onFiltersChange(newFilters: ActivityFilters) {
 }
 
 /* A track inside a panel, so it takes the recessed surface rather than the
-   grey it used to borrow from the page background */
+   grey it used to borrow from the page background. Capped, because three short
+   words stretched across six hundred pixels read as an empty row rather than as
+   a control — on a phone the cap is wider than the screen, so it fills. */
 .scope-tabs {
   display: flex;
+  max-width: 22rem;
   gap: 0.2rem;
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
@@ -249,6 +252,10 @@ function onFiltersChange(newFilters: ActivityFilters) {
   font-family: var(--font-main);
   font-size: 0.85rem;
   font-weight: 500;
+  /* Global button styling shouts in uppercase; a scope is a label, not a call
+     to action, and the friend chips below already opted out of it */
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   transition: all 0.2s;
 }
