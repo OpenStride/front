@@ -193,16 +193,15 @@
       "section": "Identity"
     },
     "athlete": {
-      "title": "Profile",
       "section": "Athlete Information",
       "weight": "Weight (kg)",
       "maxHR": "Max Heart Rate (bpm)",
       "restingHR": "Resting Heart Rate (bpm)",
       "ftp": "FTP (watts)",
-      "saveSuccess": "Athlete profile saved"
+      "saveSuccess": "Athlete profile saved",
+      "lead": "Used for heart-rate zones, calories and power estimates."
     },
     "preferences": {
-      "title": "App Preferences",
       "units": "Unit System",
       "metric": "Metric (km)",
       "imperial": "Imperial (mi)",
@@ -296,20 +295,19 @@
     "quickManage": "Manage"
   },
   "dataProviders": {
-    "title": "Connected Data Providers",
-    "available": "Available Providers",
-    "noProviders": "No providers connected.",
-    "myProviders": "My Data Sources"
+    "available": "Available to connect",
+    "noProviders": "No source connected yet.",
+    "myProviders": "My sources"
   },
   "storageProviders": {
-    "title": "Connected File Plugins",
-    "available": "Available plugins",
-    "noPlugins": "No File Plugin connected.",
-    "myPlugins": "My Cloud Backups"
+    "available": "Available to connect",
+    "noPlugins": "No backup set up yet.",
+    "myPlugins": "My backup"
   },
   "appExtensions": {
-    "title": "App Extensions",
-    "description": "Manage widgets and features displayed throughout the app"
+    "title": "Extensions",
+    "description": "Each extension adds screens or blocks to the app. Turn off the ones you do not use.",
+    "toggle": "Turn {name} on or off"
   },
   "onboarding": {
     "provider": {
@@ -848,6 +846,44 @@
       "all": "All",
       "own": "Me",
       "friends": "Friends"
+    }
+  },
+  "extensions": {
+    "activity-privacy": {
+      "label": "Activity privacy",
+      "description": "Choose activity by activity what your friends can see."
+    },
+    "aggregated-details": {
+      "label": "Records and rankings",
+      "description": "Shows your personal bests and how each outing ranks against the rest."
+    },
+    "goals": {
+      "label": "Training goals",
+      "description": "Set weekly or monthly goals and follow your progress live."
+    },
+    "mcp": {
+      "label": "AI assistant (MCP)",
+      "description": "Connect your training data to Claude, ChatGPT or another assistant through the MCP protocol."
+    },
+    "metric-tracker": {
+      "label": "Single metric tracker",
+      "description": "Follow how one metric evolves over time, per outing or per period."
+    },
+    "profile-sharing": {
+      "label": "Sharing and privacy",
+      "description": "Manages your sharing settings and the publication of your public profile."
+    },
+    "standard-details": {
+      "label": "Activity detail",
+      "description": "Heart rate, cadence, speed graphs and zones for each outing."
+    },
+    "statistics": {
+      "label": "Statistics",
+      "description": "Trends, distributions, personal records and an activity calendar."
+    },
+    "firebase-notifications": {
+      "label": "Push notifications",
+      "description": "Get notified when new activities are imported."
     }
   }
 }

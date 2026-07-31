@@ -1,151 +1,129 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-2xl font-bold">{{ t('profile.athlete.title') }}</h2>
+  <div class="profile-panel">
+    <section>
+      <h3>{{ t('profile.identity.section') }}</h3>
 
-    <!-- Section Identité (nom + photo) -->
-    <div class="bg-white shadow p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-700 mb-3">{{ t('profile.identity.section') }}</h3>
+      <div class="card">
+        <!-- Mode édition -->
+        <template v-if="!isProfileSaved">
+          <div class="field">
+            <label for="username">{{ t('profile.enterUsername') }}</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              :placeholder="t('profile.enterUsername')"
+            />
+          </div>
 
-      <!-- Mode édition -->
-      <div v-if="!isProfileSaved" class="space-y-4">
-        <div>
-          <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
-            {{ t('profile.enterUsername') }}
-          </label>
-          <input
-            id="username"
-            v-model="username"
-            :placeholder="t('profile.enterUsername')"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-          />
-        </div>
+          <div class="field">
+            <label for="file-upload" class="dropzone">
+              <i class="fas fa-camera" aria-hidden="true"></i>
+              {{ t('profile.choosePhoto') }}
+            </label>
+            <input
+              type="file"
+              id="file-upload"
+              class="visually-hidden"
+              capture="user"
+              accept="image/*"
+              @change="onFileChange"
+            />
+          </div>
 
-        <div>
-          <label
-            for="file-upload"
-            class="block w-full text-center py-2 border border-dashed border-gray-400 rounded-md cursor-pointer hover:bg-gray-50"
-          >
-            {{ t('profile.choosePhoto') }}
-          </label>
-          <input
-            type="file"
-            id="file-upload"
-            class="hidden"
-            capture="user"
-            accept="image/*"
-            @change="onFileChange"
-          />
-        </div>
-
-        <div v-if="photoPreview" class="flex justify-center">
           <img
+            v-if="photoPreview"
             :src="photoPreview"
             :alt="t('profile.profilePhoto')"
-            class="w-24 h-24 rounded-full object-cover border"
+            class="avatar"
+          />
+
+          <button @click="saveProfile" class="btn btn--primary btn--block">
+            {{ t('common.save') }}
+          </button>
+        </template>
+
+        <!-- Mode affichage -->
+        <template v-else>
+          <div class="identity">
+            <img
+              v-if="savedProfile.photo"
+              :src="savedProfile.photo"
+              :alt="t('profile.profilePhoto')"
+              class="avatar"
+            />
+            <p class="identity__name">{{ savedProfile.username }}</p>
+            <button @click="editProfile" class="btn btn--quiet">
+              <i class="fas fa-pen" aria-hidden="true"></i>
+              {{ t('profile.editProfile') }}
+            </button>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <section>
+      <h3>{{ t('profile.athlete.section') }}</h3>
+      <p class="panel-lead">{{ t('profile.athlete.lead') }}</p>
+
+      <div class="card">
+        <div class="field">
+          <label for="weight">{{ t('profile.athlete.weight') }}</label>
+          <input
+            id="weight"
+            v-model.number="athleteData.weight"
+            type="number"
+            min="0"
+            step="0.1"
+            placeholder="70.0"
           />
         </div>
 
-        <button
-          @click="saveProfile"
-          class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
-        >
+        <div class="field">
+          <label for="maxHR">{{ t('profile.athlete.maxHR') }}</label>
+          <input
+            id="maxHR"
+            v-model.number="athleteData.maxHR"
+            type="number"
+            min="0"
+            max="250"
+            placeholder="190"
+          />
+        </div>
+
+        <div class="field">
+          <label for="restingHR">{{ t('profile.athlete.restingHR') }}</label>
+          <input
+            id="restingHR"
+            v-model.number="athleteData.restingHR"
+            type="number"
+            min="0"
+            max="150"
+            placeholder="60"
+          />
+        </div>
+
+        <div class="field">
+          <label for="ftp">{{ t('profile.athlete.ftp') }}</label>
+          <input
+            id="ftp"
+            v-model.number="athleteData.ftp"
+            type="number"
+            min="0"
+            placeholder="250"
+          />
+        </div>
+
+        <button @click="saveAthleteProfile" class="btn btn--primary btn--block">
           {{ t('common.save') }}
         </button>
+
+        <p v-if="saveSuccess" class="saved" role="status">
+          <i class="fas fa-check" aria-hidden="true"></i>
+          {{ t('profile.athlete.saveSuccess') }}
+        </p>
       </div>
-
-      <!-- Mode affichage -->
-      <div v-else class="text-center space-y-4">
-        <div class="flex justify-center">
-          <img
-            v-if="savedProfile.photo"
-            :src="savedProfile.photo"
-            :alt="t('profile.profilePhoto')"
-            class="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
-          />
-        </div>
-
-        <p class="text-lg font-semibold">{{ savedProfile.username }}</p>
-
-        <button @click="editProfile" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md">
-          {{ t('profile.editProfile') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Section Informations Athlète -->
-    <div class="bg-white shadow p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-700 mb-3">{{ t('profile.athlete.section') }}</h3>
-
-      <div>
-        <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ t('profile.athlete.weight') }}
-        </label>
-        <input
-          id="weight"
-          v-model.number="athleteData.weight"
-          type="number"
-          min="0"
-          step="0.1"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-          placeholder="70.0"
-        />
-      </div>
-
-      <div>
-        <label for="maxHR" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ t('profile.athlete.maxHR') }}
-        </label>
-        <input
-          id="maxHR"
-          v-model.number="athleteData.maxHR"
-          type="number"
-          min="0"
-          max="250"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-          placeholder="190"
-        />
-      </div>
-
-      <div>
-        <label for="restingHR" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ t('profile.athlete.restingHR') }}
-        </label>
-        <input
-          id="restingHR"
-          v-model.number="athleteData.restingHR"
-          type="number"
-          min="0"
-          max="150"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-          placeholder="60"
-        />
-      </div>
-
-      <div>
-        <label for="ftp" class="block text-sm font-medium text-gray-700 mb-1">
-          {{ t('profile.athlete.ftp') }}
-        </label>
-        <input
-          id="ftp"
-          v-model.number="athleteData.ftp"
-          type="number"
-          min="0"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-          placeholder="250"
-        />
-      </div>
-
-      <button
-        @click="saveAthleteProfile"
-        class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
-      >
-        {{ t('common.save') }}
-      </button>
-
-      <div v-if="saveSuccess" class="text-green-600 text-sm text-center">
-        {{ t('profile.athlete.saveSuccess') }}
-      </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -263,3 +241,70 @@ const saveAthleteProfile = async () => {
   }, 3000)
 }
 </script>
+
+<style scoped>
+.dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  border-color: var(--color-green-400);
+  color: var(--color-ink);
+}
+
+/* `display: none` on a file input makes it unreachable by keyboard, and the
+   label is the only way in. This hides it without removing it from the tree. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.avatar {
+  align-self: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.identity__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-green-700);
+}
+</style>

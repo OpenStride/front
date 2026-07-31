@@ -193,16 +193,15 @@
       "section": "Identité"
     },
     "athlete": {
-      "title": "Profil",
       "section": "Informations athlète",
       "weight": "Poids (kg)",
       "maxHR": "FC max (bpm)",
       "restingHR": "FC repos (bpm)",
       "ftp": "FTP (watts)",
-      "saveSuccess": "Profil athlète sauvegardé"
+      "saveSuccess": "Profil athlète sauvegardé",
+      "lead": "Sert aux zones cardiaques, aux calories et aux estimations de puissance."
     },
     "preferences": {
-      "title": "Préférences de l'application",
       "units": "Système d'unités",
       "metric": "Métrique (km)",
       "imperial": "Impérial (mi)",
@@ -296,20 +295,19 @@
     "quickManage": "Gérer"
   },
   "dataProviders": {
-    "title": "Fournisseurs de données connectés",
-    "available": "Fournisseurs disponibles",
-    "noProviders": "Aucun fournisseur connecté.",
-    "myProviders": "Mes sources de données"
+    "available": "À connecter",
+    "noProviders": "Aucune source connectée pour l'instant.",
+    "myProviders": "Mes sources"
   },
   "storageProviders": {
-    "title": "Plugins de stockage connectés",
-    "available": "Plugins disponibles",
-    "noPlugins": "Aucun plugin de stockage connecté.",
-    "myPlugins": "Mes sauvegardes cloud"
+    "available": "À connecter",
+    "noPlugins": "Aucune sauvegarde configurée pour l'instant.",
+    "myPlugins": "Ma sauvegarde"
   },
   "appExtensions": {
-    "title": "Extensions d'application",
-    "description": "Gérez les widgets et fonctionnalités affichés dans l'application"
+    "title": "Extensions",
+    "description": "Chaque extension ajoute des écrans ou des blocs dans l'application. Désactivez celles dont vous ne vous servez pas.",
+    "toggle": "Activer ou désactiver {name}"
   },
   "onboarding": {
     "provider": {
@@ -848,6 +846,44 @@
       "all": "Tout",
       "own": "Moi",
       "friends": "Amis"
+    }
+  },
+  "extensions": {
+    "activity-privacy": {
+      "label": "Confidentialité des activités",
+      "description": "Choisissez activité par activité ce que vos amis peuvent voir."
+    },
+    "aggregated-details": {
+      "label": "Records et classements",
+      "description": "Affiche vos meilleures performances et votre classement sur l'ensemble de vos sorties."
+    },
+    "goals": {
+      "label": "Objectifs d'entraînement",
+      "description": "Fixez des objectifs hebdomadaires ou mensuels et suivez leur progression en direct."
+    },
+    "mcp": {
+      "label": "Assistant IA (MCP)",
+      "description": "Connectez vos données d'entraînement à Claude, ChatGPT ou un autre assistant via le protocole MCP."
+    },
+    "metric-tracker": {
+      "label": "Suivi d'une métrique",
+      "description": "Suivez l'évolution d'une seule métrique dans le temps, par sortie ou par période."
+    },
+    "profile-sharing": {
+      "label": "Partage et confidentialité",
+      "description": "Gère vos réglages de partage et la publication de votre profil public."
+    },
+    "standard-details": {
+      "label": "Détail des activités",
+      "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."
+    },
+    "statistics": {
+      "label": "Statistiques",
+      "description": "Tendances, répartitions, records personnels et calendrier d'activité."
+    },
+    "firebase-notifications": {
+      "label": "Notifications push",
+      "description": "Recevez une notification quand de nouvelles activités sont importées."
     }
   }
 }

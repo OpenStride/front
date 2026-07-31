@@ -1,64 +1,51 @@
 <template>
-  <div class="space-y-6">
-    <InstallPrompt variant="gate" class="mb-6" />
+  <!-- No <h2> here: the tab strip a few pixels above already says "Data
+       sources", and the panel repeating it produced three headings for one
+       list. The panel is labelled by its tab through aria-labelledby. -->
+  <div class="profile-panel">
+    <InstallPrompt variant="gate" />
 
-    <h2 class="text-2xl font-bold">{{ t('dataProviders.title') }}</h2>
-
-    <!-- Connected Providers -->
     <section data-test="connected-providers-section">
-      <h3 class="text-lg font-semibold mb-3" data-test="connected-providers-title">
-        {{ t('dataProviders.myProviders', 'My Data Sources') }}
-      </h3>
-      <ul v-if="userProviders.length" class="space-y-3" data-test="connected-providers-list">
+      <h3 data-test="connected-providers-title">{{ t('dataProviders.myProviders') }}</h3>
+      <ul v-if="userProviders.length" class="stack" data-test="connected-providers-list">
         <li
           v-for="provider in userProviders"
           :key="provider.id"
           :data-test="`connected-provider-${provider.id}`"
-          class="flex items-center justify-between bg-white p-4 rounded-lg shadow hover:shadow-md transition"
+          class="row-card"
         >
-          <div class="flex items-center space-x-3">
-            <img :src="provider.icon" :alt="t('app.providerLogo')" class="w-6 h-6" />
-            <span class="font-semibold">{{ provider.label }}</span>
-          </div>
+          <img :src="provider.icon" :alt="t('app.providerLogo')" class="row-card__icon" />
+          <span class="row-card__label">{{ provider.label }}</span>
           <router-link
             :to="`/data-provider/${provider.id}`"
             :data-test="`configure-provider-${provider.id}`"
-            class="inline-flex items-center gap-2 px-4 py-1.5 border border-green-600 text-green-600 rounded-md text-sm font-medium hover:bg-green-600 hover:text-white transition-colors duration-200"
+            class="btn btn--outline"
           >
             <i class="fas fa-cog" aria-hidden="true"></i>
             {{ t('common.configure') }}
           </router-link>
         </li>
       </ul>
-      <p
-        v-else
-        class="text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-200"
-        data-test="no-providers-message"
-      >
+      <p v-else class="panel-empty" data-test="no-providers-message">
         {{ t('dataProviders.noProviders') }}
       </p>
     </section>
 
-    <!-- Available Providers -->
     <section data-test="available-providers-section">
-      <h3 class="text-lg font-semibold mb-3" data-test="available-providers-title">
-        {{ t('dataProviders.available') }}
-      </h3>
-      <ul class="space-y-3" data-test="available-providers-list">
+      <h3 data-test="available-providers-title">{{ t('dataProviders.available') }}</h3>
+      <ul class="stack" data-test="available-providers-list">
         <li
           v-for="provider in availableProviders"
           :key="provider.id"
           :data-test="`available-provider-${provider.id}`"
-          class="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
+          class="row-card"
         >
-          <div class="flex items-center space-x-3">
-            <img :src="provider.icon" :alt="t('app.providerLogo')" class="w-6 h-6" />
-            <span>{{ provider.label }}</span>
-          </div>
+          <img :src="provider.icon" :alt="t('app.providerLogo')" class="row-card__icon" />
+          <span class="row-card__label">{{ provider.label }}</span>
           <button
             @click="installProvider(provider.id)"
             :data-test="`add-provider-${provider.id}`"
-            class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 text-sm font-medium"
+            class="btn btn--primary"
           >
             {{ t('common.add') }}
           </button>

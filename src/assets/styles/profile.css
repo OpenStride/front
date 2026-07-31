@@ -1,0 +1,212 @@
+/**
+ * The shared vocabulary of a profile tab.
+ *
+ * Six panels used to carry six copies of "a card", "a section title" and "a
+ * button", and they had drifted: square cards next to rounded ones, three
+ * heading sizes, buttons that were green here and outlined there. Defining
+ * them once is the only way the tabs stay in agreement.
+ *
+ * Everything is namespaced under `.profile-panel`, so nothing leaks out of the
+ * profile — these are panel primitives, not an app-wide design system.
+ */
+
+.profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* A group of related settings. No panel carries a title of its own: the tab
+   strip sitting directly above already names it, and repeating it produced
+   three headings for one list. */
+.profile-panel section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.profile-panel .panel-lead {
+  margin: -0.25rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ===== Cards ===== */
+
+.profile-panel .card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+/* A card whose whole content is one row: an item and what you can do to it. */
+.profile-panel .row-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.profile-panel .row-card__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.profile-panel .row-card__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* ===== Lists ===== */
+
+.profile-panel .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== Empty states ===== */
+
+.profile-panel .panel-empty {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ===== Fields ===== */
+
+.profile-panel .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-panel .field > label,
+.profile-panel .field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.profile-panel .field-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.profile-panel input[type='text'],
+.profile-panel input[type='number'],
+.profile-panel select {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.profile-panel input[type='text']:focus,
+.profile-panel input[type='number']:focus,
+.profile-panel select:focus {
+  outline: 2px solid var(--color-green-400);
+  outline-offset: 1px;
+}
+
+/* ===== Buttons =====
+   One shape, three weights: filled for the act the panel exists for, quiet for
+   everything else, and outlined for a per-item action inside a list. */
+
+.profile-panel .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.profile-panel .btn--block {
+  width: 100%;
+}
+
+.profile-panel .btn--primary {
+  background: var(--color-green-600);
+  color: var(--color-white);
+}
+
+.profile-panel .btn--primary:hover:not(:disabled) {
+  background: var(--color-green-700);
+}
+
+.profile-panel .btn--quiet {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--color-ink);
+}
+
+.profile-panel .btn--quiet:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.profile-panel .btn--outline {
+  background: transparent;
+  border-color: var(--color-green-600);
+  color: var(--color-green-700);
+}
+
+.profile-panel .btn--outline:hover {
+  background: var(--color-green-600);
+  color: var(--color-white);
+}
+
+.profile-panel .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
