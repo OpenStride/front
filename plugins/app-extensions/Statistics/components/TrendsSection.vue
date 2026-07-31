@@ -44,7 +44,8 @@ const { t } = useI18n()
 const { units } = usePluginContext()
 
 // The axis carries the unit, so it has to follow the preference.
-const distanceLabel = () => `${t('statistics.trends.distanceLabel')} (${units.convert('distance', 0).unit})`
+const distanceLabel = () =>
+  `${t('statistics.trends.distanceLabel')} (${units.convert('distance', 0).unit})`
 
 const props = defineProps<{
   activities: Activity[]
@@ -201,7 +202,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -229,6 +229,10 @@ onUnmounted(() => {
   background: var(--bg-color);
   color: var(--text-color);
   font-size: 0.8rem;
+  /* Global button styling shouts in uppercase; a granularity is a label, not a
+     call to action — and the totals above carry the same control */
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   transition:
     background 0.2s,

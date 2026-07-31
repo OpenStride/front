@@ -1,7 +1,7 @@
 <template>
   <section class="section-card">
     <h3 class="section-title">
-      <i class="fas fa-chart-pie" aria-hidden="true"></i>
+      <i class="fas fa-chart-column" aria-hidden="true"></i>
       {{ t('statistics.distribution.title') }}
     </h3>
 
@@ -11,9 +11,6 @@
 
     <template v-else-if="!selectedSport">
       <div class="distribution-grid">
-        <div class="chart-container chart-doughnut">
-          <canvas ref="doughnutCanvas"></canvas>
-        </div>
         <div class="chart-container chart-bar">
           <canvas ref="distanceCanvas"></canvas>
         </div>
@@ -54,12 +51,10 @@ const props = defineProps<{
   selectedSport: string
 }>()
 
-const doughnutCanvas = ref<HTMLCanvasElement | null>(null)
 const distanceCanvas = ref<HTMLCanvasElement | null>(null)
 const durationCanvas = ref<HTMLCanvasElement | null>(null)
 const monthlyCanvas = ref<HTMLCanvasElement | null>(null)
 
-let doughnutChart: Chart | null = null
 let distanceChart: Chart | null = null
 let durationChart: Chart | null = null
 let monthlyChart: Chart | null = null
@@ -81,26 +76,26 @@ const sportColors = [
 ]
 
 function getSportData(activities: Activity[]) {
-  const map = new Map<string, { count: number; distance: number; duration: number }>()
+  const map = new Map<string, { distance: number; duration: number }>()
   for (const a of activities) {
     const sport = (a.type || 'other').toLowerCase()
     const existing = map.get(sport)
     if (existing) {
-      existing.count++
       existing.distance += units.convert('distance', a.distance || 0).value
       existing.duration += (a.duration || 0) / 3600
     } else {
       map.set(sport, {
-        count: 1,
         distance: units.convert('distance', a.distance || 0).value,
         duration: (a.duration || 0) / 3600
       })
     }
   }
-  const entries = Array.from(map.entries()).sort((a, b) => b[1].count - a[1].count)
+  // By distance rather than by activity count: the count was the doughnut's
+  // quantity, and ordering the two bar charts by a figure neither of them
+  // draws made each read as an unsorted list.
+  const entries = Array.from(map.entries()).sort((a, b) => b[1].distance - a[1].distance)
   return {
     labels: entries.map(([s]) => formatSportType(s)),
-    counts: entries.map(([, d]) => d.count),
     distances: entries.map(([, d]) => Math.round(d.distance * 10) / 10),
     durations: entries.map(([, d]) => Math.round(d.duration * 10) / 10),
     colors: entries.map((_, i) => sportColors[i % sportColors.length])
@@ -124,8 +119,6 @@ function getMonthlyData(activities: Activity[]) {
 }
 
 function destroyAllCharts() {
-  doughnutChart?.destroy()
-  doughnutChart = null
   distanceChart?.destroy()
   distanceChart = null
   durationChart?.destroy()
@@ -137,23 +130,6 @@ function destroyAllCharts() {
 function createSportCharts() {
   const data = getSportData(props.allActivities)
   if (data.labels.length === 0) return
-
-  if (doughnutCanvas.value) {
-    doughnutChart = new Chart(doughnutCanvas.value, {
-      type: 'doughnut',
-      data: {
-        labels: data.labels,
-        datasets: [{ data: data.counts, backgroundColor: data.colors, borderWidth: 0 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } }
-        }
-      }
-    })
-  }
 
   if (distanceCanvas.value) {
     distanceChart = new Chart(distanceCanvas.value, {
@@ -173,7 +149,10 @@ function createSportCharts() {
         responsive: true,
         maintainAspectRatio: false,
         indexAxis: 'y',
-        plugins: { legend: { display: false } },
+        // The doughnut carried the only caption in this block; without it two
+        // bar charts of bare numbers sit side by side with nothing saying
+        // which quantity each one draws.
+        plugins: { legend: { display: false }, title: { display: true, text: distanceLabel() } },
         scales: { x: { beginAtZero: true } }
       }
     })
@@ -197,7 +176,10 @@ function createSportCharts() {
         responsive: true,
         maintainAspectRatio: false,
         indexAxis: 'y',
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: t('statistics.distribution.durationH') }
+        },
         scales: { x: { beginAtZero: true } }
       }
     })
@@ -263,7 +245,6 @@ onUnmounted(destroyAllCharts)
 </script>
 
 <style scoped>
-
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -282,11 +263,6 @@ onUnmounted(destroyAllCharts)
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-}
-
-.chart-doughnut {
-  grid-column: 1 / -1;
-  height: 260px;
 }
 
 .chart-bar {
