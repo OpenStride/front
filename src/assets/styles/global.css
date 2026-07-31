@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @import './variables.css';
+@import './profile.css';
 @import 'tailwindcss';
 
 html {

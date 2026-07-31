@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-friends">
+  <div class="profile-panel profile-friends">
     <!-- "Being followed" belongs with "following": the sharing plugin renders
          your own profile and QR code here -->
     <component
@@ -289,14 +289,8 @@ const formatRelativeTime = (timestamp: number): string => {
 </script>
 
 <style scoped>
-.profile-friends {
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
+/* Layout, cards and buttons come from profile.css — this file keeps only what
+   is specific to a friend row. */
 .friends-block {
   display: flex;
   flex-direction: column;
@@ -331,44 +325,6 @@ const formatRelativeTime = (timestamp: number): string => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn--primary {
-  background: var(--color-green-600);
-  color: var(--color-white);
-}
-
-.btn--primary:hover {
-  background: var(--color-green-700);
-}
-
-.btn--quiet {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--color-ink);
-}
-
-.btn--quiet:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.btn--quiet:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .spinning {
