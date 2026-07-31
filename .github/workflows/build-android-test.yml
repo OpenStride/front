@@ -66,6 +66,15 @@ jobs:
           sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />\n</manifest>|' "$MANIFEST"
           echo "--- patched manifest ---"; cat "$MANIFEST"
 
+      # Persist the debug signing key across builds so updates install over each
+      # other (a fresh runner would otherwise sign every build with a different
+      # random debug key → "App not installed" on reinstall).
+      - name: Cache the debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
       - name: Build debug APK
         run: |
           cd android
