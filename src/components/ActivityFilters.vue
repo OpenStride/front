@@ -249,10 +249,12 @@ function onDateTo(e: Event) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
-  background: var(--color-white);
-  border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  padding: 0.85rem;
+  /* Nested one level inside the controls panel, so it recedes rather than
+     repeating the surface it sits on */
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 
 .filter-section {
@@ -264,7 +266,7 @@ function onDateTo(e: Event) {
 .filter-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-gray-500);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -277,11 +279,15 @@ function onDateTo(e: Event) {
 
 .chip {
   padding: 0.35rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-green-200);
-  background: var(--bg-color);
+  /* Raised on the recessed panel, the way the selected scope tab is */
+  background: var(--surface);
   color: var(--text-color);
   font-size: 0.8rem;
+  /* Same reason as the scope tabs: a sport name is a label, not a shout */
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   transition:
     background 0.2s,
@@ -319,11 +325,11 @@ function onDateTo(e: Event) {
 .range-input {
   width: 100%;
   padding: 0.5rem 2.2rem 0.5rem 0.6rem;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-family: var(--font-main);
-  background: var(--color-white);
+  background: var(--surface);
   color: var(--text-color);
   -moz-appearance: textfield;
 }
@@ -351,7 +357,7 @@ function onDateTo(e: Event) {
 .range-unit {
   position: absolute;
   right: 0.6rem;
-  color: var(--color-gray-400);
+  color: var(--text-faint);
   font-size: 0.8rem;
   pointer-events: none;
 }
