@@ -86,11 +86,13 @@ function onInput(e: Event) {
 .search-input {
   width: 100%;
   padding: 0.6rem 2rem 0.6rem 2.25rem;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   font-family: var(--font-main);
-  background: var(--color-white);
+  /* Recessed: the row now sits on a white panel, and a white field on a white
+     panel is only findable by its hairline */
+  background: var(--surface-2);
   color: var(--text-color);
   transition: border-color 0.2s;
 }
@@ -126,10 +128,10 @@ function onInput(e: Event) {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  background: var(--color-white);
-  color: var(--color-gray-500);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;

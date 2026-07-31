@@ -196,7 +196,11 @@ function onFiltersChange(newFilters: ActivityFilters) {
 </script>
 
 <style scoped>
+/* One rhythm for the whole column: `--home-gap` is the gap the cards already
+   keep between themselves, so the goals block, the controls and the first card
+   are all spaced alike instead of each picking their own value. */
 .home-page {
+  --home-gap: 1.25rem;
   max-width: 600px;
   margin: 0 auto;
   padding: 0;
@@ -205,34 +209,43 @@ function onFiltersChange(newFilters: ActivityFilters) {
 .home-top {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: var(--home-gap);
 }
 
-/* One rhythm for the whole column: the search row, the scope tabs and the
-   filter panel are spaced like the cards are spaced between themselves */
+/* Same treatment as a card — surface, hairline, shadow, square corners — so
+   the controls read as a block of the page rather than as an extension of the
+   sticky header they sit under. Two white boxes a few pixels apart read as one
+   region, which is what put the search bar inside the header. */
 .home-controls {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  padding: 0.85rem;
+  margin-bottom: var(--home-gap);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
 }
 
+/* A track inside a panel, so it takes the recessed surface rather than the
+   grey it used to borrow from the page background */
 .scope-tabs {
   display: flex;
-  gap: 0.25rem;
-  background: var(--color-gray-100);
-  border-radius: 8px;
+  gap: 0.2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   padding: 0.2rem;
 }
 
 .scope-tab {
   flex: 1;
-  padding: 0.45rem 0.6rem;
+  padding: 0.4rem 0.6rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-gray-500);
+  color: var(--text-muted);
   font-family: var(--font-main);
   font-size: 0.85rem;
   font-weight: 500;
@@ -240,10 +253,14 @@ function onFiltersChange(newFilters: ActivityFilters) {
   transition: all 0.2s;
 }
 
+.scope-tab:hover:not(.is-active) {
+  color: var(--text-color);
+}
+
 .scope-tab.is-active {
-  background: var(--color-white);
-  color: var(--color-gray-900);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--surface);
+  color: var(--text-color);
+  box-shadow: var(--shadow-card);
 }
 
 .friends-empty {
@@ -273,9 +290,10 @@ function onFiltersChange(newFilters: ActivityFilters) {
   font-size: 0.875rem;
 }
 
+/* Sits last inside the panel, so it needs no margin of its own */
 .result-count {
-  font-size: 0.85rem;
-  color: var(--color-gray-500);
+  font-size: 0.8rem;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -316,9 +334,8 @@ function onFiltersChange(newFilters: ActivityFilters) {
     padding: 0;
   }
 
-  .home-top,
-  .home-controls {
-    margin-bottom: 0.75rem;
+  .home-page {
+    --home-gap: 1rem;
   }
 }
 </style>

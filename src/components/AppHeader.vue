@@ -43,7 +43,9 @@
         :key="`nav-${i}`"
         @navigate="closeMenu"
       />
-      <router-link to="/?who=friends" @click="closeMenu">{{ t('navigation.friends') }}</router-link>
+      <!-- No entry for friends: they are a scope of the list, reachable from
+           its own tabs. A menu line leading to `/?who=friends` was a second
+           door onto a tab already on screen. -->
       <router-link to="/profile" @click="closeMenu">{{ t('navigation.profile') }}</router-link>
       <button class="refresh-btn" @click="onRefresh" :disabled="refreshing">
         <span :class="['icon', { spinning: refreshing }]" aria-hidden="true">

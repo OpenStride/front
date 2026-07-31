@@ -118,7 +118,6 @@
   "navigation": {
     "home": "Accueil",
     "profile": "Profil",
-    "friends": "Amis",
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
