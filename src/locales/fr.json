@@ -256,7 +256,9 @@
       "totalActivities": "Activités",
       "totalDistance": "Distance totale",
       "totalDuration": "Temps total"
-    }
+    },
+    "myPublicProfile": "Mon profil public",
+    "myPublicProfileLead": "Ce que vos amis voient de vous, et à quelle fréquence c'est rafraîchi."
   },
   "activities": {
     "loading": "Chargement...",
@@ -617,7 +619,6 @@
   "friendsList": {
     "empty": "Aucun ami ajouté",
     "emptyHelp": "Scannez le QR code d'un ami pour commencer à suivre ses activités",
-    "scanQr": "Scanner un QR Code",
     "sync": "Synchroniser",
     "syncFull": "Synchroniser l'historique complet",
     "syncedFull": "Historique complet synchronisé",
@@ -627,7 +628,8 @@
     "mutual": "Vous suit",
     "notMutual": "Ne vous suit pas encore",
     "addedOn": "Ajouté le {date}",
-    "lastSync": "Sync {time}"
+    "lastSync": "Sync {time}",
+    "title": "Mes amis"
   },
   "activityDetailPage": {
     "friendActivity": "Activité de",
