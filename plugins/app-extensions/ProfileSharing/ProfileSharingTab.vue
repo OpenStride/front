@@ -5,11 +5,33 @@
       <p class="sharing__lead">{{ t('profile.myPublicProfileLead') }}</p>
     </header>
 
-    <!-- What the section is for, so it comes first rather than under a
-         privacy dropdown and a publish button -->
-    <div v-if="publicUrl" class="card card--center">
-      <p class="card__label">{{ t('profile.scanToFollow') }}</p>
-      <QRCodeDisplay :url="publicUrl" />
+    <!-- The state of the profile, not the mechanics of it.
+         A 450px QR code used to sit here, and the same code — same component,
+         same link, same copy button — is one tap away behind "My QR code".
+         What was missing is what a friend actually receives. -->
+    <div v-if="publicUrl" class="card status" data-test="public-status">
+      <p class="status__line">
+        <i class="fas fa-users status__icon" aria-hidden="true"></i>
+        <span>{{
+          t('profile.sharedCount', { count: summary.activityCount }, summary.activityCount)
+        }}</span>
+      </p>
+      <p v-if="summary.publishedAt" class="status__line status__line--faint">
+        <i class="fas fa-clock-rotate-left status__icon" aria-hidden="true"></i>
+        <span>{{ t('profile.publishedAt', { time: relativePublished }) }}</span>
+      </p>
+
+      <!-- `defaultPrivacy` ships as `private`, so publishing without touching
+           it produces a profile a friend can follow and find empty. Nothing
+           said so before. -->
+      <p v-if="summary.activityCount === 0" class="status__empty" data-test="nothing-shared">
+        {{ t('profile.nothingShared') }}
+      </p>
+
+      <button @click="qrOpen = true" class="btn btn--quiet" data-test="show-my-qr">
+        <i class="fas fa-qrcode" aria-hidden="true"></i>
+        {{ t('profile.shareMyProfile') }}
+      </button>
     </div>
 
     <!-- Publishing needs a cloud provider that can host public files. Saying so
@@ -71,14 +93,16 @@
       </select>
       <p class="card__hint">{{ t('profile.privacyHint') }}</p>
     </div>
+
+    <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
-import QRCodeDisplay from '@/components/QRCodeDisplay.vue'
+import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 
 const { t } = useI18n()
 const { storage, notifications, friends } = usePluginContext()
@@ -90,6 +114,22 @@ const publishing = ref(false)
 const canPublish = ref(false)
 const checkingSupport = ref(true)
 const autoPublish = ref(false)
+const qrOpen = ref(false)
+const summary = ref<{ activityCount: number; publishedAt: number | null }>({
+  activityCount: 0,
+  publishedAt: null
+})
+
+const relativePublished = computed(() => {
+  if (!summary.value.publishedAt) return ''
+  const days = Math.floor((Date.now() - summary.value.publishedAt) / 86_400_000)
+  if (days < 1) return t('time.today')
+  return t('time.daysAgo', { count: days }, days)
+})
+
+const loadSummary = async () => {
+  summary.value = await friends.getPublicSummary()
+}
 
 // Toasts for friend events are raised once by the app layout — not here
 onMounted(async () => {
@@ -99,6 +139,7 @@ onMounted(async () => {
 
   // Load public URL if available
   publicUrl.value = await friends.getMyPublicUrl()
+  if (publicUrl.value) await loadSummary()
 
   canPublish.value = await friends.canPublish()
   checkingSupport.value = false
@@ -108,6 +149,9 @@ onMounted(async () => {
 // Privacy & Sharing functions
 const saveDefaultPrivacy = async () => {
   await storage.saveData('defaultPrivacy', defaultPrivacy.value)
+  // The count above is a direct consequence of this setting — the whole point
+  // of showing it is that it answers back.
+  if (publicUrl.value) await loadSummary()
 }
 
 const publishData = async () => {
@@ -116,6 +160,7 @@ const publishData = async () => {
     const url = await friends.publishPublicData()
     if (url) {
       publicUrl.value = url
+      await loadSummary()
       // The first publish arms auto-publish, so reflect the new state
       autoPublish.value = await friends.isAutoPublishEnabled()
     }
@@ -176,8 +221,44 @@ const toggleAutoPublish = async (event: Event) => {
   box-shadow: var(--shadow-card);
 }
 
-.card--center {
+.status__line {
+  display: flex;
   align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.status__line--faint {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.status__icon {
+  width: 1rem;
+  text-align: center;
+  color: var(--color-green-600);
+}
+
+.status__line--faint .status__icon {
+  color: var(--text-faint);
+}
+
+.status__empty {
+  margin: 0.25rem 0 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-yellow-50);
+  color: var(--color-yellow-800);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.status .btn {
+  align-self: flex-start;
+  margin-top: 0.25rem;
 }
 
 .card__label {
@@ -288,6 +369,16 @@ const toggleAutoPublish = async (event: Event) => {
 .btn--primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn--quiet {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-ink);
+}
+
+.btn--quiet:hover {
+  background: var(--surface-2);
 }
 
 .btn--notice {

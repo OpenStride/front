@@ -75,6 +75,25 @@ export class PublicDataService {
   }
 
   /**
+   * How many activities a friend would actually receive.
+   *
+   * Answers this through the same predicate the publisher uses, so the number
+   * on screen and the number uploaded cannot drift apart. It matters because
+   * `defaultPrivacy` ships as `private`: publishing without touching it
+   * produces a profile a friend can follow and find empty.
+   */
+  public async countPublicActivities(): Promise<number> {
+    const db = await IndexedDBService.getInstance()
+    const allActivities: Activity[] = await db.getAllData<Activity>('activities')
+
+    let count = 0
+    for (const activity of allActivities) {
+      if (await this.isActivityPublic(activity.id)) count += 1
+    }
+    return count
+  }
+
+  /**
    * Generate public activities grouped by year
    */
   public async generateYearFiles(): Promise<Map<number, YearActivities>> {

@@ -16,29 +16,24 @@
           <span v-if="friends.length" class="block-count">{{ friends.length }}</span>
         </h3>
 
-        <!-- Adding a friend is why anyone opens this tab, so on a phone it gets
-             the full width and the only filled button. Sync and the QR code are
-             things you come back for, and share the row below. -->
+        <!-- Two actions, both about the people in this list. "My QR code" used
+             to sit here too, but it is about me, not about them — it belongs to
+             the public-profile section above, and having it in both places was
+             one modal behind two doors. -->
         <div class="actions">
           <button @click="openScanner" class="btn btn--primary" data-test="add-friend">
             <i class="fas fa-user-plus" aria-hidden="true"></i>
             {{ t('friends.addFriend') }}
           </button>
-          <div class="actions__secondary">
-            <button @click="qrOpen = true" class="btn btn--quiet" data-test="open-my-qr">
-              <i class="fas fa-qrcode" aria-hidden="true"></i>
-              {{ t('myQr.title') }}
-            </button>
-            <button
-              @click="refreshAll"
-              :disabled="refreshing"
-              class="btn btn--quiet"
-              data-test="sync-friends"
-            >
-              <i :class="['fas fa-sync', { spinning: refreshing }]" aria-hidden="true"></i>
-              {{ t('friendsList.sync') }}
-            </button>
-          </div>
+          <button
+            @click="refreshAll"
+            :disabled="refreshing"
+            class="btn btn--quiet"
+            data-test="sync-friends"
+          >
+            <i :class="['fas fa-sync', { spinning: refreshing }]" aria-hidden="true"></i>
+            {{ t('friendsList.sync') }}
+          </button>
         </div>
       </div>
 
@@ -154,8 +149,6 @@
     <!-- Scanning navigates to /add-friend for confirmation; nothing to reload here -->
     <QRScanner :is-open="scannerOpen" @close="scannerOpen = false" />
 
-    <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
-
     <!-- Remove Confirmation Modal -->
     <div v-if="friendToRemove" class="modal-overlay" @click.self="friendToRemove = null">
       <div class="modal-content">
@@ -178,7 +171,6 @@ import { ref, computed, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import QRScanner from '@/components/QRScanner.vue'
-import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import type { Friend } from '@/types/friend'
 
 const { t, locale } = useI18n()
@@ -194,7 +186,6 @@ const refreshing = ref(false)
 const refreshingFriend = ref<string | null>(null)
 const syncingFriendId = ref<string | null>(null)
 const scannerOpen = ref(false)
-const qrOpen = ref(false)
 const friendToRemove = ref<Friend | null>(null)
 
 // Toasts for friend events are handled once, in the layout
@@ -340,15 +331,6 @@ const formatRelativeTime = (timestamp: number): string => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.actions__secondary {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.actions__secondary .btn {
-  flex: 1;
 }
 
 .btn {
@@ -706,14 +688,6 @@ const formatRelativeTime = (timestamp: number): string => {
   .actions {
     flex-direction: row;
     justify-content: flex-end;
-  }
-
-  .actions__secondary {
-    order: -1;
-  }
-
-  .actions__secondary .btn {
-    flex: 0 0 auto;
   }
 
   .friend-card {

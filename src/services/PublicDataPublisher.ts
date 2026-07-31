@@ -110,6 +110,9 @@ export class PublicDataPublisher {
       }
 
       await db.saveData('myPublicUrl', manifestUrl)
+      // With auto-publish off, this is the only way to tell a fresh profile
+      // from one frozen three months ago.
+      await db.saveData('myPublicPublishedAt', Date.now())
       const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl)
 
       this.emitEvent({
@@ -193,5 +196,23 @@ export class PublicDataPublisher {
   public async hasPublishedData(): Promise<boolean> {
     const url = await this.getMyPublicUrl()
     return url !== null && url !== undefined
+  }
+
+  /**
+   * What the profile screen needs to state rather than imply: how many
+   * activities a friend receives, and how stale the published copy is.
+   *
+   * `publishedAt` is null for a profile published before the timestamp
+   * existed — unknown, which is not the same as never.
+   */
+  public async getPublicSummary(): Promise<{
+    activityCount: number
+    publishedAt: number | null
+  }> {
+    const db = await IndexedDBService.getInstance()
+    return {
+      activityCount: await PublicDataService.getInstance().countPublicActivities(),
+      publishedAt: (await db.getData<number>('myPublicPublishedAt')) ?? null
+    }
   }
 }

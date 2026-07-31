@@ -71,6 +71,19 @@ describe('ProfileFriends.vue', () => {
   })
 
   /**
+   * The friends bar holds the two acts that concern the people in the list.
+   * "My QR code" is about me, so it moved to the public-profile section above
+   * — it was the same modal behind two doors on one screen.
+   */
+  it('keeps the friends bar to actions about friends', async () => {
+    const wrapper = await mountIn('en')
+    expect(wrapper.find('[data-test="add-friend"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="sync-friends"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="open-my-qr"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain(en.myQr.title)
+  })
+
+  /**
    * One action, one button. The empty state used to offer "Scan a QR code"
    * a few pixels under "Add a friend", and both opened the same scanner.
    */
