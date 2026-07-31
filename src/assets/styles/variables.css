@@ -94,7 +94,12 @@
   --color-red-600: #dc2626;
   --color-red-800: #991b1b;
 
+  /* 50 and 200 complete the scale: a warning surface light enough to sit under
+     body text needed them, and their absence is why a plugin reached for
+     Tailwind's amber instead — a second warning tone on the same screen. */
+  --color-yellow-50: #fffbeb;
   --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
   --color-yellow-500: #f59e0b;
   --color-yellow-600: #d97706;
   --color-yellow-800: #92400e;

@@ -221,7 +221,6 @@
     "publishing": "Publishing...",
     "updateData": "Update",
     "publishData": "Publish my data",
-    "scanToFollow": "Scan this code to follow me",
     "publishNeedsStorage": "Publishing needs a cloud provider",
     "publishNeedsStorageHelp": "Your public profile is hosted on your own cloud storage. Connect Google Drive to publish it and let friends follow you.",
     "connectStorage": "Connect a provider",
@@ -255,7 +254,13 @@
       "totalActivities": "Activities",
       "totalDistance": "Total Distance",
       "totalDuration": "Total Time"
-    }
+    },
+    "myPublicProfile": "My public profile",
+    "myPublicProfileLead": "What your friends see of you, and how often it refreshes.",
+    "sharedCount": "{count} activity shared | {count} activities shared",
+    "publishedAt": "Published {time}",
+    "nothingShared": "Your friends see nothing yet: your activities are private by default. Switch the default below to public, or open a single activity to share just that one.",
+    "shareMyProfile": "Share my profile"
   },
   "activities": {
     "loading": "Loading...",
@@ -630,7 +635,6 @@
   "friendsList": {
     "empty": "No friend added",
     "emptyHelp": "Scan a friend's QR code to start following their activities",
-    "scanQr": "Scan a QR code",
     "sync": "Sync",
     "syncFull": "Sync the full history",
     "syncedFull": "Full history synced",
@@ -640,7 +644,8 @@
     "mutual": "Follows you",
     "notMutual": "Doesn't follow you yet",
     "addedOn": "Added {date}",
-    "lastSync": "Synced {time}"
+    "lastSync": "Synced {time}",
+    "title": "My friends"
   },
   "activityDetailPage": {
     "friendActivity": "Activity by",
@@ -689,7 +694,8 @@
     "justNow": "just now",
     "minutesAgo": "{count} min ago",
     "hoursAgo": "{count}h ago",
-    "daysAgo": "{count}d ago"
+    "daysAgo": "{count}d ago",
+    "today": "today"
   },
   "friendEvents": {
     "invalidShareUrl": "Invalid share link",

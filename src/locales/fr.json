@@ -221,7 +221,6 @@
     "publishing": "Publication...",
     "updateData": "Mettre à jour",
     "publishData": "Publier mes données",
-    "scanToFollow": "Scannez ce code pour me suivre",
     "publishNeedsStorage": "La publication nécessite un espace cloud",
     "publishNeedsStorageHelp": "Votre profil public est hébergé sur votre propre espace cloud. Connectez Google Drive pour le publier et permettre à vos amis de vous suivre.",
     "connectStorage": "Connecter un espace",
@@ -255,7 +254,13 @@
       "totalActivities": "Activités",
       "totalDistance": "Distance totale",
       "totalDuration": "Temps total"
-    }
+    },
+    "myPublicProfile": "Mon profil public",
+    "myPublicProfileLead": "Ce que vos amis voient de vous, et à quelle fréquence c'est rafraîchi.",
+    "sharedCount": "{count} activité partagée | {count} activités partagées",
+    "publishedAt": "Publié {time}",
+    "nothingShared": "Vos amis ne voient rien pour l'instant : vos activités sont privées par défaut. Passez la confidentialité en public ci-dessous, ou ouvrez une activité pour la partager seule.",
+    "shareMyProfile": "Partager mon profil"
   },
   "activities": {
     "loading": "Chargement...",
@@ -630,7 +635,6 @@
   "friendsList": {
     "empty": "Aucun ami ajouté",
     "emptyHelp": "Scannez le QR code d'un ami pour commencer à suivre ses activités",
-    "scanQr": "Scanner un QR Code",
     "sync": "Synchroniser",
     "syncFull": "Synchroniser l'historique complet",
     "syncedFull": "Historique complet synchronisé",
@@ -640,7 +644,8 @@
     "mutual": "Vous suit",
     "notMutual": "Ne vous suit pas encore",
     "addedOn": "Ajouté le {date}",
-    "lastSync": "Sync {time}"
+    "lastSync": "Sync {time}",
+    "title": "Mes amis"
   },
   "activityDetailPage": {
     "friendActivity": "Activité de",
@@ -689,7 +694,8 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {count} min",
     "hoursAgo": "il y a {count}h",
-    "daysAgo": "il y a {count}j"
+    "daysAgo": "il y a {count}j",
+    "today": "aujourd'hui"
   },
   "friendEvents": {
     "invalidShareUrl": "Lien de partage invalide",

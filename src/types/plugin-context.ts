@@ -191,6 +191,12 @@ export interface IFriendService {
   canPublish(): Promise<boolean>
   isAutoPublishEnabled(): Promise<boolean>
   setAutoPublish(enabled: boolean): Promise<void>
+  /**
+   * What a friend actually receives, so a screen can state it instead of
+   * implying it. `publishedAt` is null when the profile predates the
+   * timestamp — unknown, not never.
+   */
+  getPublicSummary(): Promise<{ activityCount: number; publishedAt: number | null }>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
 }
