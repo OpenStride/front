@@ -19,8 +19,10 @@
         @toggle-filters="toggleFiltersPanel"
       />
 
-      <!-- Nothing to choose between until someone is followed -->
-      <div v-if="counts.friends > 0" class="scope-tabs" role="tablist" data-test="scope-tabs">
+      <!-- Always offered, including with nobody followed: the Friends tab is
+           now the only door to adding one, so hiding it until you already have
+           a friend would close the door on the people who need it. -->
+      <div class="scope-tabs" role="tablist" data-test="scope-tabs">
         <button
           v-for="option in SCOPES"
           :key="option"
@@ -34,6 +36,10 @@
           {{ t(`feed.scopes.${option}`) }}
         </button>
       </div>
+
+      <!-- Showing your code, adding someone and managing the list follow the
+           scope that needs them, rather than a page of their own. -->
+      <FriendsQuickActions v-if="scope === 'friends'" data-test="friends-actions" />
 
       <Transition name="slide">
         <ActivityFiltersPanel
@@ -74,6 +80,17 @@
       <p v-if="isEmpty && hasActiveFilters" class="end-text" data-test="no-results-message">
         {{ t('filters.noResults') }}
       </p>
+      <!-- Under the Friends scope the way out is the row of actions just above,
+           so this only names what is missing instead of repeating the buttons. -->
+      <div
+        v-else-if="isEmpty && scope === 'friends'"
+        class="friends-empty"
+        data-test="friends-empty"
+      >
+        <i class="fas fa-user-friends" aria-hidden="true"></i>
+        <p class="friends-empty__title">{{ t('friends.noActivities') }}</p>
+        <p class="friends-empty__hint">{{ t('friends.noActivitiesDescription') }}</p>
+      </div>
       <ActivityEmptyState
         v-else-if="isEmpty"
         :title="t('activities.noActivity')"
@@ -94,6 +111,7 @@ import ActivityCard from '@/components/ActivityCard.vue'
 import ActivityEmptyState from '@/components/ActivityEmptyState.vue'
 import ActivitySearchBar from '@/components/ActivitySearchBar.vue'
 import ActivityFiltersPanel from '@/components/ActivityFilters.vue'
+import FriendsQuickActions from '@/components/FriendsQuickActions.vue'
 import InstallPrompt from '@/components/InstallPrompt.vue'
 import { useMixedFeed, type FeedScope } from '@/composables/useMixedFeed'
 import { useActivityFilters } from '@/composables/useActivityFilters'
@@ -122,12 +140,10 @@ const {
   toggleFiltersPanel
 } = useActivityFilters()
 
-const { activities, loading, hasMore, loadMore, reload, counts, facets, totalCount } = useMixedFeed(
-  {
-    filters: serviceFilters,
-    scope
-  }
-)
+const { activities, loading, hasMore, loadMore, reload, facets, totalCount } = useMixedFeed({
+  filters: serviceFilters,
+  scope
+})
 
 // Lifts calories, climb and the rest out of the details of the page on screen,
 // so the cards can show what only the details hold.
@@ -228,6 +244,33 @@ function onFiltersChange(newFilters: ActivityFilters) {
   background: var(--color-white);
   color: var(--color-gray-900);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.friends-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-gray-500);
+}
+
+.friends-empty i {
+  font-size: 2.5rem;
+  color: var(--color-green-300);
+  margin-bottom: 0.5rem;
+}
+
+.friends-empty__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.friends-empty__hint {
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 .result-count {

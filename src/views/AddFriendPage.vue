@@ -230,7 +230,7 @@ async function retry() {
 }
 
 function goToFriends() {
-  router.push('/friends')
+  router.push('/?who=friends')
 }
 </script>
 

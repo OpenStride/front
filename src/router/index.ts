@@ -9,7 +9,6 @@ import LegalPage from '@/views/LegalPage.vue'
 import CGUPage from '@/views/CGUPage.vue'
 import Callback from '@/views/Callback.vue'
 import GarminOAuthCallback from '@/views/GarminOAuthCallback.vue'
-import FriendsPage from '@/views/FriendsPage.vue'
 import AddFriendPage from '@/views/AddFriendPage.vue'
 import { getActivityService } from '@/services/ActivityService'
 import { IndexedDBService } from '@/services/IndexedDBService'
@@ -26,7 +25,6 @@ const routes = [
     name: 'GarminOAuthCallback',
     component: GarminOAuthCallback
   },
-  { path: '/friends', component: FriendsPage },
   {
     path: '/add-friend',
     name: 'AddFriend',
@@ -65,6 +63,9 @@ const routes = [
   // same cards in the same order for anyone without friends. One list now, on
   // the app root; the old path keeps every link that was shared to it.
   { path: '/my-activities', redirect: '/' },
+  // `/friends` was a feed of friends' activities — the same cards the list
+  // shows under its Friends scope — plus the three actions that now sit there.
+  { path: '/friends', redirect: '/?who=friends' },
   { path: '/data-providers', redirect: '/profile?tab=data-sources' },
   { path: '/storage-providers', redirect: '/profile?tab=cloud-backup' },
   { path: '/app-extensions', redirect: '/profile?tab=app-extensions' }

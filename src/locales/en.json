@@ -283,13 +283,9 @@
     "minutes": "min"
   },
   "friends": {
-    "title": "Friends' Activities",
-    "activities": "Activities",
-    "sync": "Sync",
     "addFriend": "Add Friend",
     "noActivities": "No friends' activities",
     "noActivitiesDescription": "Add friends to see their activities here",
-    "manageFriends": "Manage Friends",
     "actions": "Friend actions",
     "quickQr": "My QR",
     "quickAdd": "Add",

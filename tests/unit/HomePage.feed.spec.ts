@@ -10,6 +10,10 @@ vi.mock('@/components/ActivityCard.vue', () => ({
   default: { props: ['activity', 'friendUsername'], template: '<div class="stub-card" />' }
 }))
 vi.mock('@/components/InstallPrompt.vue', () => ({ default: { template: '<div />' } }))
+// Pulls in a camera scanner and a QR renderer; its presence is what matters.
+vi.mock('@/components/FriendsQuickActions.vue', () => ({
+  default: { template: '<div data-test="friends-actions" />' }
+}))
 vi.mock('@/composables/useSlotExtensions', () => ({
   useSlotExtensions: () => ({ components: { value: [] } })
 }))
@@ -102,15 +106,10 @@ describe('HomePage — the one activity list', () => {
   })
 
   describe('whose activities', () => {
-    // Following someone means scanning their QR code, so most readers have no
-    // friends — and nothing to choose between.
-    it('hides the scope tabs until someone is followed', async () => {
+    // The Friends tab is the only door to adding a friend, so hiding it until
+    // you already have one would close the door on the people who need it.
+    it('offers the scope tabs even with nobody followed', async () => {
       feed = [own()]
-      expect((await render()).find('[data-test="scope-tabs"]').exists()).toBe(false)
-    })
-
-    it('offers them once a friend’s activity is in the feed', async () => {
-      feed = [own(), friend()]
       expect((await render()).find('[data-test="scope-tabs"]').exists()).toBe(true)
     })
 
@@ -155,6 +154,35 @@ describe('HomePage — the one activity list', () => {
 
       expect(cards(wrapper)).toHaveLength(3)
       expect(wrapper.find('[data-test="all-loaded-message"]').exists()).toBe(true)
+    })
+  })
+
+  // `/friends` was a page whose only content was these actions and a feed of
+  // the very cards this scope already shows.
+  describe('what became of the friends page', () => {
+    it('offers its actions under the Friends scope', async () => {
+      feed = [own(), friend()]
+      route.query = { who: 'friends' }
+
+      expect((await render()).find('[data-test="friends-actions"]').exists()).toBe(true)
+    })
+
+    it('keeps them out of the way under the other scopes', async () => {
+      feed = [own(), friend()]
+
+      expect((await render()).find('[data-test="friends-actions"]').exists()).toBe(false)
+    })
+
+    it('offers them with nobody followed — that is when they are needed', async () => {
+      feed = [own()]
+      route.query = { who: 'friends' }
+
+      const wrapper = await render()
+
+      expect(wrapper.find('[data-test="friends-actions"]').exists()).toBe(true)
+      // Names what is missing rather than repeating the buttons just above it.
+      expect(wrapper.find('[data-test="friends-empty"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="activity-empty-state"]').exists()).toBe(false)
     })
   })
 })

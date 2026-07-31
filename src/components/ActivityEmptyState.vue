@@ -45,7 +45,7 @@ const router = useRouter()
 const { t } = useI18n()
 
 const goToDataProviders = () => router.push('/profile?tab=data-sources')
-const goToFriends = () => router.push('/friends')
+const goToFriends = () => router.push('/?who=friends')
 </script>
 
 <style scoped>
