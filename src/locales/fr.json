@@ -340,19 +340,35 @@
     "notFound": "Non trouvé."
   },
   "providers": {
-    "strava": {
-      "title": "Importer depuis Strava",
-      "intro": "L'API Strava n'est pas compatible avec le modèle de confidentialité d'OpenStride ; on importe donc l'archive de données que tu demandes à Strava — ce sont tes données, elles ne quittent pas ton appareil.",
-      "step1": "Ouvre ta page d'export de données Strava et connecte-toi :",
-      "step1Link": "Page d'export Strava",
-      "step2": "Demande ton archive, puis attends l'e-mail de Strava avec le lien de téléchargement (ça peut prendre quelques heures).",
-      "step3": "Télécharge l'archive ZIP, puis sélectionne-la ci-dessous.",
-      "selectZip": "Sélectionne ton export Strava (.zip)",
-      "parsing": "Lecture de ton export…",
+    "recorder": {
+      "intro": "Enregistre une course ou une sortie avec le GPS de ton téléphone. Ton tracé ne quitte pas ton appareil.",
+      "chooseSport": "Tu fais quoi ?",
+      "start": "Démarrer",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "stop": "Terminer",
+      "gpsWaiting": "Recherche du GPS…",
+      "gpsAccuracy": "Recherche d'un point GPS exploitable (précision {meters} m pour l'instant)…",
+      "statDuration": "Temps",
+      "statDistance": "Distance",
+      "statPace": "Allure",
+      "saved": "Activité enregistrée.",
+      "nothingRecorded": "Aucun point GPS enregistré — rien à sauvegarder.",
+      "permissionDenied": "Sans accès à ta position, OpenStride ne peut rien enregistrer.",
+      "openSettings": "Ouvrir les réglages",
+      "notificationTitle": "OpenStride",
+      "notificationMessage": "Enregistrement de ton activité",
+      "error": "Erreur : {message}"
+    },
+    "health": {
+      "intro": "Importe tes entraînements depuis le hub santé de ton appareil. Tout reste sur ton appareil.",
+      "authorize": "Autoriser l'accès",
+      "authorizing": "Demande d'accès…",
+      "connected": "Accès autorisé",
+      "import": "Importer les entraînements",
       "importing": "Import en cours… {done}/{total}",
       "done": "{count} activités importées.",
-      "noCsv": "Ce fichier ne ressemble pas à un export Strava (activities.csv introuvable).",
-      "error": "Échec de l'import : {message}"
+      "error": "Erreur : {message}"
     },
     "setup": {
       "title": "{provider} – Connexion",
@@ -405,6 +421,20 @@
       "oauthError": "Erreur OAuth : {error}",
       "wrongBrowser": "Cette page s'est ouverte dans un autre navigateur.",
       "wrongBrowserHint": "Retournez sur votre navigateur principal (Chrome) et réessayez."
+    },
+    "strava": {
+      "title": "Importer depuis Strava",
+      "intro": "L'API Strava n'est pas compatible avec le modèle de confidentialité d'OpenStride ; on importe donc l'archive de données que tu demandes à Strava — ce sont tes données, elles ne quittent pas ton appareil.",
+      "step1": "Ouvre ta page d'export de données Strava et connecte-toi :",
+      "step1Link": "Page d'export Strava",
+      "step2": "Demande ton archive, puis attends l'e-mail de Strava avec le lien de téléchargement (ça peut prendre quelques heures).",
+      "step3": "Télécharge l'archive ZIP, puis sélectionne-la ci-dessous.",
+      "selectZip": "Sélectionne ton export Strava (.zip)",
+      "parsing": "Lecture de ton export…",
+      "importing": "Import en cours… {done}/{total}",
+      "done": "{count} activités importées.",
+      "noCsv": "Ce fichier ne ressemble pas à un export Strava (activities.csv introuvable).",
+      "error": "Échec de l'import : {message}"
     }
   },
   "update": {

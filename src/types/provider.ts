@@ -21,5 +21,7 @@ export interface ProviderPlugin {
    */
   setupComponent: () => Promise<Component>
   refreshData?: () => Promise<unknown>
+  /** If provided, the plugin is only visible when this returns true (e.g. native-only plugins). */
+  available?: () => boolean
   context?: PluginContext
 }

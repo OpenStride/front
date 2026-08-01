@@ -23,8 +23,26 @@ describe('provider registry', () => {
     expect(typeof zip?.setupComponent).toBe('function')
   })
 
-  it('still offers every provider that is not deprecated', () => {
-    const live = allProviderPlugins.filter(p => !p.deprecated).map(p => p.id)
+  it('still offers every provider that is not deprecated and belongs here', () => {
+    const live = allProviderPlugins
+      .filter(p => !p.deprecated && (!p.available || p.available()))
+      .map(p => p.id)
     expect(installableProviderPlugins.map(p => p.id).sort()).toEqual(live.sort())
+  })
+
+  it('hides the native-only providers in a browser, without losing them', () => {
+    // Apple Health, Health Connect and the GPS recorder have nothing to talk to
+    // on the web. They drop out of the offer for the same reason a deprecated
+    // plugin does — and stay resolvable for the same reason too.
+    const nativeOnly = allProviderPlugins.filter(p => p.available && !p.available())
+    expect(nativeOnly.length, 'no native-only provider to check').toBeGreaterThan(0)
+
+    for (const plugin of nativeOnly) {
+      expect(
+        installableProviderPlugins.some(p => p.id === plugin.id),
+        `"${plugin.id}" is native-only but offered in the browser`
+      ).toBe(false)
+      expect(typeof plugin.setupComponent).toBe('function')
+    }
   })
 })

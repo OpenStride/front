@@ -1,0 +1,110 @@
+name: Build Android (test APK)
+
+# Manually-triggered build of an UNSIGNED DEBUG APK you can sideload onto your
+# own phone to test — no Play Store, no signing secrets required.
+#
+# How to use:
+#   1. GitHub → Actions → "Build Android (test APK)" → Run workflow (this branch).
+#   2. When it finishes, open the run → download the "openstride-debug-apk" artifact.
+#   3. Unzip, transfer app-debug.apk to your phone, enable "install unknown apps",
+#      and open it to install.
+
+on:
+  # Runs automatically on every push to this branch (so it works without the
+  # workflow being on the default branch), plus a manual trigger.
+  push:
+    branches: [feat/health-native]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to publish the release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Capacitor 8 CLI requires Node >= 22 (project .nvmrc is 20, kept for the web app).
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java (JDK 21 — required by Capacitor 8)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Add Capacitor Android + health plugin
+        run: |
+          npm install @capacitor/cli@^8 @capacitor/android@^8 capacitor-health @capacitor-community/background-geolocation
+          # ci/capacitor.config.json carries android.useLegacyBridge — without it
+          # background-geolocation stops delivering fixes ~5 min after the app is
+          # backgrounded, which reads exactly like "the GPS module gave up".
+          cp ci/capacitor.config.json capacitor.config.json
+          npx cap add android
+          npx cap sync android
+
+      - name: Bump minSdk to 26 (Health Connect requirement)
+        run: |
+          sed -i 's/minSdkVersion = .*/minSdkVersion = 26/' android/variables.gradle
+          cat android/variables.gradle
+
+      # POST_NOTIFICATIONS is not decoration: on Android 13+ the foreground-service
+      # notification is what keeps the location service alive and visible, and it
+      # is suppressed without the permission.
+      - name: Declare Health Connect + location permissions in the manifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>|' "$MANIFEST"
+          echo "--- patched manifest ---"; cat "$MANIFEST"
+
+      # Persist the debug signing key across builds so updates install over each
+      # other (a fresh runner would otherwise sign every build with a different
+      # random debug key → "App not installed" on reinstall).
+      - name: Cache the debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstride-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      # Publish the APK to a moving "android-latest" prerelease so it has a stable,
+      # public, no-login download URL you can open directly on your phone:
+      #   https://github.com/OpenStride/front/releases/download/android-latest/OpenStride-debug.apk
+      - name: Publish APK to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk OpenStride-debug.apk
+          gh release delete android-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create android-latest OpenStride-debug.apk \
+            --title "Android test build (latest)" \
+            --notes "Latest debug APK from \`${GITHUB_REF_NAME}\` (commit \`${GITHUB_SHA:0:7}\`). Install: allow install from unknown sources, then open the APK." \
+            --prerelease \
+            --target "${GITHUB_SHA}"

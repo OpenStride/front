@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Health Connect">
+  <rect width="48" height="48" rx="10" fill="#fff"/>
+  <circle cx="19" cy="24" r="8" fill="#4285f4"/>
+  <circle cx="29" cy="24" r="8" fill="#34a853" fill-opacity="0.85"/>
+</svg>
