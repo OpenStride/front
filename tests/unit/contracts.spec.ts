@@ -174,3 +174,61 @@ describe('the notification keys resolve in both locales', () => {
     })
   }
 })
+
+/**
+ * A French string carries its accents.
+ *
+ * Nineteen shipped without them, all on the statistics screen: "Duree",
+ * "Denivele +", "Calendrier d'activite", "Aucun record trouve", "Les records
+ * sont calcules a partir des donnees GPS". Fourteen had been there a while and
+ * four arrived with a new section, which is how it spreads — the surrounding
+ * copy already looked like that.
+ *
+ * The list below is deliberately narrow: each entry is a spelling that is not
+ * a French word at all. "moyenne" is correctly spelt without one and is not
+ * here; neither is anything that doubles as English.
+ */
+describe('the French locale is written in French', () => {
+  const UNACCENTED = [
+    'activite',
+    'activites',
+    'annee',
+    'annees',
+    'calcule',
+    'calcules',
+    'calculee',
+    'calculees',
+    'denivele',
+    'deniveles',
+    'donnee',
+    'donnees',
+    'duree',
+    'durees',
+    'energie',
+    'frequence',
+    'periode',
+    'periodes',
+    'repartition',
+    'selectionne',
+    'selectionnee',
+    'trouve',
+    'trouvee'
+  ]
+
+  it('no value drops an accent that makes the word French', async () => {
+    const messages = (await import('@/locales/fr.json')).default as Record<string, unknown>
+    const rx = new RegExp(`\\b(${UNACCENTED.join('|')})\\b`, 'i')
+
+    const offenders: string[] = []
+    const walk = (node: unknown, path: string) => {
+      if (typeof node === 'string') {
+        if (rx.test(node)) offenders.push(`${path} = ${node}`)
+      } else if (node && typeof node === 'object') {
+        for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k)
+      }
+    }
+    walk(messages, '')
+
+    expect(offenders, `Accents missing in fr.json:\n${offenders.join('\n')}`).toEqual([])
+  })
+})
