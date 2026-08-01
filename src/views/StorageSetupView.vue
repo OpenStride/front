@@ -3,13 +3,16 @@
   <div v-if="setupComponent">
     <component :is="setupComponent" />
   </div>
-  <p v-else>Provider not found.</p>
+  <p v-else>{{ t('setup.providerNotFound') }}</p>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { shallowRef, onMounted, type Component as VueComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { allStoragePlugins } from '@/services/StoragePluginRegistry'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const setupComponent = shallowRef<VueComponent | null>(null)

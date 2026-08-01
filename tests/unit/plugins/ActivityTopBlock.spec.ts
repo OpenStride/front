@@ -2,6 +2,31 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ActivityTopBlock from '@plugins/app-extensions/StandardDetails/ActivityTopBlock.vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
+import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
+import { formatQuantity, unitSystem } from '@/composables/useUnits'
+
+// The widget formats through the plugin context, as plugins must.
+const global = {
+  provide: {
+    [PLUGIN_CONTEXT_KEY]: {
+            analyzer: {
+        create: () => ({
+          elevationChange: () => ({ ascent: 0, descent: 0 }),
+          sampleAverageByDistance: () => [],
+          sampleByLaps: () => [],
+          sampleBySlopeChange: () => [],
+          bestSegments: () => ({})
+        })
+      },
+      units: {
+        get system() {
+          return unitSystem.value
+        },
+        format: formatQuantity
+      }
+    }
+  }
+}
 
 describe('ActivityTopBlock.vue', () => {
   const mockActivity: Activity = {
@@ -40,7 +65,8 @@ describe('ActivityTopBlock.vue', () => {
           activity: mockActivity,
           details: mockDetails
         }
-      }
+      },
+      global
     })
 
     expect(wrapper.find('h1').exists()).toBe(true)
@@ -54,7 +80,8 @@ describe('ActivityTopBlock.vue', () => {
           activity: mockActivity,
           details: undefined as any
         }
-      }
+      },
+      global
     })
 
     // Should not crash, polyline should be empty
@@ -73,7 +100,8 @@ describe('ActivityTopBlock.vue', () => {
           activity: mockActivity,
           details: detailsWithoutSamples as any
         }
-      }
+      },
+      global
     })
 
     // Should not crash
@@ -92,7 +120,8 @@ describe('ActivityTopBlock.vue', () => {
           activity: mockActivity,
           details: detailsWithEmptySamples
         }
-      }
+      },
+      global
     })
 
     // Should not crash, polyline should be empty
@@ -115,7 +144,8 @@ describe('ActivityTopBlock.vue', () => {
           activity: mockActivity,
           details: detailsWithMixedSamples as any
         }
-      }
+      },
+      global
     })
 
     // Should filter out samples without GPS

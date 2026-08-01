@@ -25,25 +25,21 @@
   --text-muted: #77776f;
   --text-faint: #8c8c84;
 
-  /* — Rayons — */
-  --radius-sm: 5px; /* badges */
-  --radius-md: 12px; /* cartes / champs */
-  --radius-lg: 16px; /* blocs métriques */
-  --radius-xl: 24px;
-  --radius-2xl: 30px; /* grandes surfaces / cadre mobile */
-  --radius-pill: 999px;
+  /* — Rayons, typo mono et graisse : voir le bloc @theme plus bas. Tailwind
+     émet ses propres --radius-*, --font-mono et --font-weight-* dans un
+     `:root, :host` injecté APRÈS ce fichier ; déclarés ici, nos tokens
+     seraient écrasés en silence. Déclarés dans @theme, ce sont les nôtres qui
+     gagnent. — */
 
   /* — Ombres douces — */
   --shadow-card: 0 2px 8px rgba(30, 30, 46, 0.06);
   --shadow-float: 0 22px 50px -24px rgba(30, 30, 46, 0.3);
 
   /* 🖋 Typographie */
-  --font-main: "Barlow", Helvetica, Arial, sans-serif; /* corps */
-  --font-display: "Archivo", var(--font-main); /* titres 800 */
-  --font-condensed: "Barlow Condensed", var(--font-main); /* labels majuscules */
-  --font-mono: "JetBrains Mono", ui-monospace, monospace; /* chiffres / métriques */
+  --font-main: 'Barlow', Helvetica, Arial, sans-serif; /* corps */
+  --font-display: 'Archivo', var(--font-main); /* titres 800 */
+  --font-condensed: 'Barlow Condensed', var(--font-main); /* labels majuscules */
   --font-size-logo: 32px;
-  --font-weight-bold: 600;
 
   /* — Aliases sémantiques (rétro-compatibilité) — */
   --primary-color: var(--color-ink); /* texte principal */
@@ -52,6 +48,18 @@
 }
 
 @theme {
+  /* — Rayons — */
+  --radius-sm: 5px; /* badges */
+  --radius-md: 12px; /* cartes / champs */
+  --radius-lg: 16px; /* blocs métriques */
+  --radius-xl: 24px;
+  --radius-2xl: 30px; /* grandes surfaces / cadre mobile */
+  --radius-pill: 999px;
+
+  /* — Typo mono & graisse (mêmes noms que Tailwind, d'où leur place ici) — */
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace; /* chiffres / métriques */
+  --font-weight-bold: 600;
+
   /* Vert OpenStride — rampe olive/herbe (direction 1a) */
   --color-green-50: #f2f7e8;
   --color-green-100: #e6f0cf;
@@ -86,7 +94,12 @@
   --color-red-600: #dc2626;
   --color-red-800: #991b1b;
 
+  /* 50 and 200 complete the scale: a warning surface light enough to sit under
+     body text needed them, and their absence is why a plugin reached for
+     Tailwind's amber instead — a second warning tone on the same screen. */
+  --color-yellow-50: #fffbeb;
   --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
   --color-yellow-500: #f59e0b;
   --color-yellow-600: #d97706;
   --color-yellow-800: #92400e;

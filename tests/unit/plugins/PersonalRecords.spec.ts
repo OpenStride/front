@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ref } from 'vue'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity } from '@/types/activity'
 import type { RecordPeriod } from '@plugins/app-extensions/Statistics/types'
+import { INDEX_VERSION, type ActivityMetricsRow } from '@/composables/useActivityMetricsIndex'
 
 const mocks = vi.hoisted(() => ({
   getPluginContext: vi.fn()
@@ -11,135 +12,160 @@ vi.mock('@/services/PluginContextFactory', () => ({
   getPluginContext: mocks.getPluginContext
 }))
 
-const { usePersonalRecords } =
-  await import('@plugins/app-extensions/Statistics/composables/usePersonalRecords')
+/**
+ * The composable and the index it reads both hold module-level state — the
+ * cached rows, and the once-per-session cleanup of the legacy cache.
+ * Re-importing per test keeps each case independent of that state.
+ */
+async function loadComposable() {
+  vi.resetModules()
+  const mod = await import('@plugins/app-extensions/Statistics/composables/usePersonalRecords')
+  return mod.usePersonalRecords
+}
 
 const now = new Date()
 
-function makeActivity(index: number, startTime: number): Activity {
+function makeActivity(id: string, startTime: number): Activity {
   return {
-    id: `act-${index}`,
+    id,
     startTime,
-    distance: 5000,
-    duration: 1500,
+    distance: 12000,
+    duration: 3600,
     type: 'running',
     provider: 'test',
     version: 1,
-    lastModified: 1000 + index
+    lastModified: 1
   } as Activity
 }
 
-function makeDetails(id: string): ActivityDetails {
-  return {
-    id,
-    samples: [
-      { timeOffset: 0, time: 0, distance: 0 },
-      { timeOffset: 300, time: 300, distance: 1000 }
-    ],
-    laps: [],
-    version: 1,
-    lastModified: 1
-  } as unknown as ActivityDetails
+/** An activity inside the current calendar month */
+function thisMonth(dayOffset = 0): number {
+  return new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0).getTime() + dayOffset * 3600_000
 }
 
-/** `count` activities inside the current calendar month */
-function thisMonthActivities(count: number): Activity[] {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0).getTime()
-  return Array.from({ length: count }, (_, i) => makeActivity(i, start + i * 1000))
+function lastYear(): number {
+  return new Date(now.getFullYear() - 1, 5, 10, 12, 0, 0).getTime()
 }
 
-let exportDB: ReturnType<typeof vi.fn>
+let indexRows: ActivityMetricsRow[]
 let getDetails: ReturnType<typeof vi.fn>
-let saveData: ReturnType<typeof vi.fn>
+let addItemsToStore: ReturnType<typeof vi.fn>
+let getData: ReturnType<typeof vi.fn>
+let deleteData: ReturnType<typeof vi.fn>
+let exportDB: ReturnType<typeof vi.fn>
+
+function row(id: string, startTime: number, values: Record<string, number>): ActivityMetricsRow {
+  return { id, startTime, sport: 'running', indexVersion: INDEX_VERSION, values }
+}
 
 function setupContext() {
-  exportDB = vi.fn(async () => [] as ActivityDetails[])
-  getDetails = vi.fn(async (id: string) => makeDetails(id))
-  saveData = vi.fn(async () => undefined)
+  getDetails = vi.fn(async () => undefined)
+  addItemsToStore = vi.fn(async () => undefined)
+  deleteData = vi.fn(async () => undefined)
+  getData = vi.fn(async () => null)
+  exportDB = vi.fn(async (store: string) => (store === 'activity_metrics' ? indexRows : []))
 
   mocks.getPluginContext.mockResolvedValue({
-    storage: {
-      getData: vi.fn(async () => null),
-      saveData,
-      exportDB
-    },
+    storage: { exportDB, addItemsToStore, getData, deleteData, saveData: vi.fn() },
     activity: { getDetails },
-    analyzer: {
-      // Every activity yields the same 1K segment, so records stay deterministic
-      create: () => ({ bestSegments: () => ({ 1000: { duration: 300 } }) })
-    }
+    analyzer: { create: () => ({ bestSegments: () => ({}) }) }
   })
 }
 
-async function runRecords(activities: Activity[], period: RecordPeriod) {
+async function run(activities: Activity[], period: RecordPeriod) {
+  const usePersonalRecords = await loadComposable()
   const state = usePersonalRecords(ref(activities), ref('running'), ref(period))
-  await vi.waitFor(() => {
-    expect(saveData).toHaveBeenCalled()
-  })
+  await vi.waitFor(() => expect(exportDB).toHaveBeenCalled())
+  await vi.waitFor(() => expect(state.computing.value).toBe(false))
   return state
 }
 
-describe('usePersonalRecords details loading', () => {
+describe('usePersonalRecords', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    indexRows = []
     setupContext()
   })
 
-  it('fetches only the activities of the period when the period is small', async () => {
-    const activities = thisMonthActivities(5)
-    await runRecords(activities, 'month')
+  it('reads the times straight from the index, without touching any sample', async () => {
+    const activities = [makeActivity('a', thisMonth())]
+    indexRows = [row('a', thisMonth(), { time_5000: 1300, time_10000: 2700 })]
 
-    expect(exportDB).not.toHaveBeenCalled()
-    expect(getDetails).toHaveBeenCalledTimes(5)
-    expect(getDetails.mock.calls.map(c => c[0]).sort()).toEqual(activities.map(a => a.id).sort())
-  })
+    const { records } = await run(activities, 'all')
 
-  it('falls back to a single bulk read above the targeted-fetch threshold', async () => {
-    await runRecords(thisMonthActivities(200), 'month')
-
-    expect(exportDB).toHaveBeenCalledTimes(1)
-    expect(exportDB).toHaveBeenCalledWith('activity_details')
     expect(getDetails).not.toHaveBeenCalled()
+    expect(records.value.map(r => r.distanceLabel)).toEqual(['5K', '10K'])
+    expect(records.value[0].duration).toBe(1300)
   })
 
-  it('ignores activities outside the selected period', async () => {
-    const lastYear = new Date(now.getFullYear() - 1, 5, 10, 12, 0, 0).getTime()
-    const activities = [...thisMonthActivities(3), makeActivity(99, lastYear)]
+  it('keeps the fastest time across activities', async () => {
+    const activities = [makeActivity('a', thisMonth()), makeActivity('b', thisMonth(2))]
+    indexRows = [
+      row('a', thisMonth(), { time_5000: 1300 }),
+      row('b', thisMonth(2), { time_5000: 1255 })
+    ]
 
-    await runRecords(activities, 'month')
+    const { records } = await run(activities, 'all')
 
-    expect(getDetails).toHaveBeenCalledTimes(3)
-    expect(getDetails.mock.calls.map(c => c[0])).not.toContain('act-99')
+    expect(records.value[0].duration).toBe(1255)
+    expect(records.value[0].activityId).toBe('b')
   })
 
-  it('scans the whole history for the all-time period', async () => {
-    const lastYear = new Date(now.getFullYear() - 1, 5, 10, 12, 0, 0).getTime()
-    const activities = [...thisMonthActivities(3), makeActivity(99, lastYear)]
+  it('restricts the records to the selected period', async () => {
+    const activities = [makeActivity('old', lastYear()), makeActivity('recent', thisMonth())]
+    indexRows = [
+      row('old', lastYear(), { time_5000: 1200 }),
+      row('recent', thisMonth(), { time_5000: 1400 })
+    ]
 
-    await runRecords(activities, 'all')
+    const allTime = await run(activities, 'all')
+    expect(allTime.records.value[0].duration).toBe(1200)
 
-    expect(getDetails).toHaveBeenCalledTimes(4)
-    expect(getDetails.mock.calls.map(c => c[0])).toContain('act-99')
+    vi.clearAllMocks()
+    setupContext()
+    const month = await run(activities, 'month')
+    expect(month.records.value[0].duration).toBe(1400)
+    expect(month.records.value[0].activityId).toBe('recent')
   })
 
-  it('caches the computed records under the selected period', async () => {
-    const { records } = await runRecords(thisMonthActivities(4), 'quarter')
+  it('derives pace and speed from the stored duration', async () => {
+    indexRows = [row('a', thisMonth(), { time_10000: 2700 })]
 
-    expect(records.value).toHaveLength(1)
-    expect(records.value[0].distanceLabel).toBe('1K')
+    const { records } = await run([makeActivity('a', thisMonth())], 'all')
 
-    const [key, payload] = saveData.mock.calls[0]
-    expect(key).toBe('statistics_pr_cache_running')
-    expect(payload.periods.quarter.records).toHaveLength(1)
-    expect(payload.periods.quarter.periodKey).toMatch(/^\d{4}-Q[1-4]$/)
+    // Stored in SI, not in display units: a record must not depend on whether
+    // the reader prefers kilometres or miles.
+    // 10 km in 45 min -> 0.27 s/m (4'30/km), 3.70 m/s (13.33 km/h)
+    expect(records.value[0].pace).toBeCloseTo(0.27, 5)
+    expect(records.value[0].speed).toBeCloseTo(3.7037, 3)
   })
 
-  it('skips loading entirely when the period holds no activity', async () => {
-    const lastYear = new Date(now.getFullYear() - 1, 5, 10, 12, 0, 0).getTime()
-    const { records } = await runRecords([makeActivity(1, lastYear)], 'month')
+  it('ignores distances the index has no time for', async () => {
+    indexRows = [row('a', thisMonth(), { time_5000: 1300, time_50000: 20000 })]
+
+    const { records } = await run([makeActivity('a', thisMonth())], 'all')
+
+    // 50 km is indexed but not part of the records table
+    expect(records.value.map(r => r.distance)).toEqual([5000])
+  })
+
+  it('returns nothing when the period holds no indexed activity', async () => {
+    const activities = [makeActivity('old', lastYear())]
+    indexRows = [row('old', lastYear(), { time_5000: 1200 })]
+
+    const { records } = await run(activities, 'month')
 
     expect(records.value).toEqual([])
-    expect(exportDB).not.toHaveBeenCalled()
-    expect(getDetails).not.toHaveBeenCalled()
+  })
+
+  it('drops the legacy settings cache that used to be synced to the cloud', async () => {
+    getData.mockImplementation(async (key: string) =>
+      key === 'statistics_pr_cache_running' ? { records: [] } : null
+    )
+    indexRows = [row('a', thisMonth(), { time_5000: 1300 })]
+
+    await run([makeActivity('a', thisMonth())], 'all')
+
+    await vi.waitFor(() => expect(deleteData).toHaveBeenCalledWith('statistics_pr_cache_running'))
   })
 })

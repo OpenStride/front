@@ -7,10 +7,10 @@
       @click="showDetails"
       @keydown.enter="showDetails"
     >
-      <!-- Héro : tracé GPS (ou placeholder grille) -->
-      <div class="acard__hero">
-        <MapPreview v-if="hasMap" class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
-        <div v-else class="acard__map acard__map--empty" aria-hidden="true"></div>
+      <!-- Héro : uniquement s'il y a un tracé. Une nage en bassin ou une séance
+           de renfo n'a pas de GPS : lui réserver 186 px de vide n'apprend rien. -->
+      <div v-if="hasMap" class="acard__hero">
+        <MapPreview class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
 
         <div v-if="friendUsername" class="acard__friend">
           <i class="fas fa-user" aria-hidden="true"></i>
@@ -26,26 +26,45 @@
             <i :class="iconClass" aria-hidden="true"></i>
           </div>
           <div class="acard__headtext">
-            <div class="acard__kicker">{{ formatSportType(activity.type) }}</div>
+            <div class="acard__kicker">
+              <span>{{ formatSportType(activity.type) }}</span>
+              <!-- Without a hero these have nowhere to sit, so they move here. -->
+              <template v-if="!hasMap">
+                <span class="acard__meta">{{ shortDate }}</span>
+                <span v-if="friendUsername" class="acard__meta">
+                  <i class="fas fa-user" aria-hidden="true"></i> {{ friendUsername }}
+                </span>
+              </template>
+            </div>
             <h3 class="acard__title">{{ activity.title || formatSportType(activity.type) }}</h3>
           </div>
         </div>
 
         <!-- Métriques clés -->
         <div class="acard__metrics">
-          <div class="acard__metric">
+          <!-- A yoga session has no distance; "0.00 km" is noise, not information -->
+          <div v-if="hasDistance" class="acard__metric">
             <span class="acard__label">{{ t('activityCard.distance', 'Distance') }}</span>
-            <span class="acard__value">{{ distanceValue }}<small>km</small></span>
+            <span class="acard__value"
+              >{{ distance.value }}<small>{{ distance.unit }}</small></span
+            >
           </div>
           <div class="acard__metric">
             <span class="acard__label">{{ t('activityCard.time', 'Time') }}</span>
             <span class="acard__value">{{ formatDuration(activity.duration) }}</span>
           </div>
-          <div class="acard__metric acard__metric--accent">
+          <!-- Gym sports have no meaningful pace or speed: the energy spent takes
+               the accent slot instead, once the scan has lifted it out of the details -->
+          <div v-if="primaryMetric.label" class="acard__metric acard__metric--accent">
             <span class="acard__label">{{ primaryMetric.label }}</span>
             <span class="acard__value">
-              {{ primaryMetric.value }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
+              {{ primaryMetric.value
+              }}<small v-if="primaryMetric.unit">{{ primaryMetric.unit }}</small>
             </span>
+          </div>
+          <div v-else-if="calories" class="acard__metric acard__metric--accent">
+            <span class="acard__label">{{ t('activityCard.calories', 'Calories') }}</span>
+            <span class="acard__value">{{ calories }}<small>kcal</small></span>
           </div>
         </div>
       </div>
@@ -74,12 +93,16 @@ import { getInteractionService } from '@/services/InteractionService'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import type { Friend, FriendActivity } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
+import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
+import { useUnits } from '@/composables/useUnits'
+import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 
 const props = defineProps<{
   activity: Activity
   friendUsername?: string
 }>()
 const { t } = useI18n()
+const { format } = useUnits()
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -101,24 +124,48 @@ const formatDuration = (sec?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`
 }
 
-const distanceValue = computed(() => ((props.activity.distance ?? 0) / 1000).toFixed(2))
+// A swim reads in metres, a ride in kilometres — and either in the user's units.
+const distance = computed(() =>
+  format(distanceDimension(props.activity.type), props.activity.distance ?? 0)
+)
 
-// Pace (min/km) for foot sports, speed (km/h) for cycling
-const isCycling = computed(() => /cycl|bike|bik|velo|vélo|vtt|ride/i.test(props.activity.type || ''))
+/**
+ * Values the scan lifted out of this activity's details (see
+ * `useActivityMetricsIndex`). Absent until the feed has indexed the page — the
+ * card renders without them rather than waiting, and fills in when they land.
+ */
+const { derived } = useActivityMetricsIndex()
+const scanned = computed(() => derived.value.get(props.activity.id))
 
-const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
-  const dist = props.activity.distance ?? 0
-  const dur = props.activity.duration ?? 0
-  if (isCycling.value) {
-    const kmh = dur > 0 ? dist / 1000 / (dur / 3600) : 0
-    return { label: t('activityCard.speed', 'Speed'), value: kmh > 0 ? kmh.toFixed(1) : '—', unit: 'km/h' }
-  }
-  if (!dist || !dur) return { label: t('activityCard.pace', 'Pace'), value: '—', unit: '' }
-  const secPerKm = dur / (dist / 1000)
-  const m = Math.floor(secPerKm / 60)
-  const s = Math.round(secPerKm % 60)
-  return { label: t('activityCard.pace', 'Pace'), value: `${m}'${pad(s)}`, unit: '/km' }
+const calories = computed(() => {
+  const kcal = scanned.value?.[DERIVED.calories]
+  return kcal ? Math.round(kcal) : 0
 })
+
+/**
+ * The accent metric. The sport decides *which* quantity, the user's preference
+ * decides the unit; `primaryMetricSpec` owns the first half for every caller.
+ */
+const primaryMetric = computed<{ label: string; value: string; unit: string }>(() => {
+  const spec = primaryMetricSpec(props.activity.type, {
+    distance: props.activity.distance,
+    duration: props.activity.duration,
+    // Only reachable through the scan: a hike headlines its climb here just as
+    // it does on the detail page, instead of falling back to a pace.
+    ascent: scanned.value?.[DERIVED.ascent]
+  })
+  if (!spec) return { label: '', value: '', unit: '' }
+
+  const label =
+    spec.dimension === 'speed'
+      ? t('activityCard.speed', 'Speed')
+      : spec.dimension === 'elevation'
+        ? t('activityCard.elevation', 'Elevation +')
+        : t('activityCard.pace', 'Pace')
+  return { label, ...format(spec.dimension, spec.si) }
+})
+
+const hasDistance = computed(() => (props.activity.distance ?? 0) > 0)
 
 const iconClass = computed(() => getSportIcon(props.activity.type))
 
@@ -210,12 +257,15 @@ const showDetails = () => {
 .acard {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  /* Square: one card treatment across the app */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: var(--shadow-card);
   margin-bottom: 1.25rem;
   width: 100%;
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 .acard:hover {
   box-shadow: 0 14px 34px -18px rgba(30, 30, 46, 0.28);
@@ -240,15 +290,6 @@ const showDetails = () => {
 .acard__map {
   width: 100%;
   height: 100%;
-}
-.acard__map--empty {
-  background: var(--surface-muted);
-  background-image: repeating-linear-gradient(
-      0deg,
-      rgba(30, 30, 46, 0.05) 0 1px,
-      transparent 1px 38px
-    ),
-    repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 38px);
 }
 .acard__datechip {
   position: absolute;
@@ -317,12 +358,37 @@ const showDetails = () => {
   min-width: 0;
 }
 .acard__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
   font-family: var(--font-condensed);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-faint);
+}
+
+/* Date and friend, when there is no hero to carry them. */
+.acard__meta {
+  position: relative;
+  padding-left: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.acard__meta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
 }
 .acard__title {
   margin: 0;
@@ -385,11 +451,5 @@ const showDetails = () => {
   border-top: 1px solid var(--border-subtle);
   margin-top: -2px;
   padding-top: 12px;
-}
-
-@media (max-width: 640px) {
-  .acard {
-    border-radius: var(--radius-md);
-  }
 }
 </style>

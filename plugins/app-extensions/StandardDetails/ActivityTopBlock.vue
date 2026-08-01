@@ -1,18 +1,9 @@
 <template>
   <article v-if="activity && details" class="atb">
-    <!-- Hero : tracé GPS (ou placeholder grille) -->
-    <div class="atb__hero">
-      <MapPreview
-        v-if="polyline.length"
-        class="atb__map"
-        :polyline="polyline"
-        :canzoom="true"
-        theme="osm"
-      />
-      <div v-else class="atb__map atb__map--empty">
-        <i class="fas fa-map-location-dot" aria-hidden="true"></i>
-        <span>{{ t('activityDetail.noRoute', 'No GPS route') }}</span>
-      </div>
+    <!-- Hero : uniquement s'il y a un tracé. Annoncer "pas de trace GPS" sur une
+         nage en bassin, c'est signaler l'absence de ce qui n'a pas lieu d'être. -->
+    <div v-if="polyline.length" class="atb__hero">
+      <MapPreview class="atb__map" :polyline="polyline" :canzoom="true" theme="osm" />
     </div>
 
     <div class="atb__body">
@@ -37,7 +28,7 @@
           :class="{ 'atb__cell--hi': stat.highlight }"
         >
           <span class="atb__clabel">{{ stat.label }}</span>
-          <span class="atb__cvalue">
+          <span class="atb__cvalue" :class="primaryScale">
             {{ stat.value }}<small v-if="stat.unit">{{ stat.unit }}</small>
           </span>
         </div>
@@ -47,7 +38,7 @@
       <div v-if="secondaryStats.length" class="atb__substats">
         <div v-for="stat in secondaryStats" :key="stat.label" class="atb__substat">
           <span class="atb__label">{{ stat.label }}</span>
-          <span class="atb__subvalue">
+          <span class="atb__subvalue" :class="secondaryScale">
             {{ stat.value }}<small v-if="stat.unit">{{ stat.unit }}</small>
           </span>
         </div>
@@ -62,6 +53,8 @@ import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
+import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
+import { usePluginContext } from '@/composables/usePluginContext'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { t } = useI18n()
@@ -85,7 +78,26 @@ const iconClass = computed(() => getSportIcon(activity.value.type))
 // ── Formatters ──────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const formatDistance = (meters?: number) => ((meters ?? 0) / 1000).toFixed(2)
+const { units, analyzer: analyzerFactory } = usePluginContext()
+
+/**
+ * Metres descended.
+ *
+ * Providers that report it win; for everyone else — every activity stored
+ * before this existed, and Strava — it is recomputed from the elevation
+ * samples, noise-filtered.
+ */
+const totalDescent = computed<number | undefined>(() => {
+  const reported = details.value?.stats?.totalDescent
+  if (reported != null) return reported
+  const samples = details.value?.samples
+  if (!samples?.length) return undefined
+  const { descent } = analyzerFactory.create(samples).elevationChange()
+  return descent > 0 ? descent : undefined
+})
+
+const formatDistance = (meters?: number) =>
+  units.format(distanceDimension(activity.value.type), meters ?? 0)
 
 const formatDuration = (seconds?: number) => {
   const s = Math.max(0, Math.round(seconds ?? 0))
@@ -95,13 +107,27 @@ const formatDuration = (seconds?: number) => {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-/** m/s → { value: "5'24", unit: "/km" } */
-const formatPace = (metersPerSecond?: number): { value: string; unit: string } => {
-  if (!metersPerSecond || metersPerSecond <= 0) return { value: '—', unit: '' }
-  const paceMinPerKm = 1000 / metersPerSecond / 60
-  const min = Math.floor(paceMinPerKm)
-  const sec = Math.round((paceMinPerKm - min) * 60)
-  return { value: `${min}'${pad(sec)}`, unit: '/km' }
+/**
+ * Which quantity to headline is `primaryMetricSpec`'s call, shared with the card.
+ * Null when the sport has none — a strength session has no pace to print.
+ */
+const formatPrimary = (metersPerSecond?: number) => {
+  const spec = primaryMetricSpec(activity.value.type, {
+    speed: metersPerSecond,
+    distance: activity.value.distance,
+    duration: activity.value.duration,
+    // The detail page has the ascent, so a hike headlines its climb here even
+    // though the feed card cannot.
+    ascent: details.value?.stats?.totalAscent
+  })
+  return spec ? { ...units.format(spec.dimension, spec.si), dimension: spec.dimension } : null
+}
+
+/** The accent slot's label follows the quantity actually shown there. */
+const primaryLabel = (dimension: string) => {
+  if (dimension === 'speed') return t('activityDetail.avgSpeed', 'Avg speed')
+  if (dimension === 'elevation') return t('activityDetail.elevation', 'Elevation +')
+  return t('activityDetail.avgPace', 'Avg pace')
 }
 
 const formatThousands = (n?: number) =>
@@ -120,65 +146,145 @@ const formattedDate = computed(() => {
 // ── Metric models ───────────────────────────────────────────
 type Stat = { label: string; value: string; unit: string; highlight?: boolean }
 
+/**
+ * Long readings step the type down instead of spilling out of their cell.
+ *
+ * A paired value doubles the digits — an ultra reads "4280/4315 m" where a park
+ * run reads "120 m" — and abbreviating it to "4.3k" would drop metres that
+ * runners quote exactly. The step is decided by the longest value of the block
+ * and applied to all of it: sizing each cell on its own content made a row of
+ * numbers that are read together sit at three different sizes.
+ */
+function scaleFor(stats: Stat[]): string {
+  const longest = stats.reduce((max, stat) => Math.max(max, stat.value.length), 0)
+  if (longest >= 11) return 'is-xlong'
+  if (longest >= 8) return 'is-long'
+  return ''
+}
+
 const primaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
-  const pace = formatPace(s?.averageSpeed)
-  const out: Stat[] = [
-    {
-      label: t('activityDetail.distance', 'Distance'),
-      value: formatDistance(activity.value.distance),
-      unit: 'km'
-    },
-    {
-      // The pace is the "metric of the moment" for a run → highlighted in lime
-      label: t('activityDetail.avgPace', 'Avg pace'),
-      value: pace.value,
-      unit: pace.unit,
-      highlight: true
-    },
-    {
-      label: t('activityDetail.time', 'Time'),
-      value: formatDuration(activity.value.duration),
-      unit: ''
-    }
-  ]
-  if (s?.totalAscent != null) {
+  const primary = formatPrimary(s?.averageSpeed)
+  const out: Stat[] = []
+
+  // A strength session covers no ground; "0.00 km" is noise, not information.
+  if ((activity.value.distance ?? 0) > 0) {
+    const distance = formatDistance(activity.value.distance)
     out.push({
-      label: t('activityDetail.elevation', 'Elevation +'),
-      value: Math.round(s.totalAscent).toString(),
-      unit: 'm'
+      label: t('activityDetail.distance', 'Distance'),
+      value: distance.value,
+      unit: distance.unit
     })
   }
+
+  if (primary) {
+    // The "metric of the moment": a pace for a run, a speed for a ride, the
+    // climb for a hike — highlighted in lime.
+    out.push({
+      label: primaryLabel(primary.dimension),
+      value: primary.value,
+      unit: primary.unit,
+      highlight: true
+    })
+  }
+
+  out.push({
+    label: t('activityDetail.time', 'Time'),
+    value: formatDuration(activity.value.duration),
+    unit: ''
+  })
+
+  // With no pace or speed to headline, the effort worth reading is the energy
+  // spent — so calories take the accent slot rather than sit in the second row.
+  if (!primary && s?.calories != null) {
+    out.push({
+      label: t('activityDetail.calories', 'Calories'),
+      value: formatThousands(s.calories),
+      unit: 'kcal',
+      highlight: true
+    })
+  }
+
+  // Climbed and descended read as one quantity — and as two cells they left an
+  // odd number in a two-column grid, so the last one sat alone on its row.
+  // Ascent is dropped from the pair when it is already the headline (a hike).
+  const ascent =
+    s?.totalAscent != null && primary?.dimension !== 'elevation'
+      ? units.format('elevation', s.totalAscent)
+      : null
+  // The twin of the ascent, and the number a skier actually reads — a day on
+  // the slopes climbs almost nothing and descends thousands of metres.
+  const descent = totalDescent.value != null ? units.format('elevation', totalDescent.value) : null
+
+  const elevation = pairStat(
+    ascent && { label: t('activityDetail.elevation', 'Elevation +'), ...ascent },
+    descent && { label: t('activityDetail.elevationDown', 'Elevation -'), ...descent },
+    t('activityDetail.elevationUpDown', 'Elev. +/-')
+  )
+  if (elevation) out.push(elevation)
+
   return out
 })
+
+/**
+ * Two readings of the same quantity in one cell: "148 / 172 bpm".
+ *
+ * Splitting them across two cells made the grid odd-numbered — the last metric
+ * ended up alone on its row — and separated numbers that are read together.
+ * With only one of the two available it keeps that one's own label, so nothing
+ * ever prints "148 / —".
+ */
+function pairStat(
+  first: (Stat & { unit: string }) | null | undefined | false,
+  second: (Stat & { unit: string }) | null | undefined | false,
+  pairedLabel: string
+): Stat | null {
+  if (first && second) {
+    // No spaces around the slash: "320 / 318" wrapped mid-pair in the ink
+    // block, splitting two numbers that only mean something together.
+    return { label: pairedLabel, value: `${first.value}/${second.value}`, unit: second.unit }
+  }
+  return first || second || null
+}
+
+const primaryScale = computed(() => scaleFor(primaryStats.value))
+const secondaryScale = computed(() => scaleFor(secondaryStats.value))
 
 const secondaryStats = computed<Stat[]>(() => {
   const s = details.value?.stats
   const out: Stat[] = []
-  if (s?.averageHeartRate != null)
-    out.push({
+  const heartRate = pairStat(
+    s?.averageHeartRate != null && {
       label: t('activityDetail.avgHr', 'Avg HR'),
       value: Math.round(s.averageHeartRate).toString(),
       unit: 'bpm'
-    })
+    },
+    s?.maxHeartRate != null && {
+      label: t('activityDetail.maxHr', 'Max HR'),
+      value: Math.round(s.maxHeartRate).toString(),
+      unit: 'bpm'
+    },
+    t('activityDetail.hrAvgMax', 'HR avg/max')
+  )
+  if (heartRate) out.push(heartRate)
   if (s?.averageCadence != null)
     out.push({
       label: t('activityDetail.cadence', 'Cadence'),
       value: Math.round(s.averageCadence).toString(),
       unit: 'spm'
     })
-  if (s?.calories != null)
+  // Omitted when the primary block already headlines it (see primaryStats).
+  if (s?.calories != null && formatPrimary(s?.averageSpeed))
     out.push({
       label: t('activityDetail.calories', 'Calories'),
       value: formatThousands(s.calories),
       unit: 'kcal'
     })
-  if (s?.maxHeartRate != null)
-    out.push({
-      label: t('activityDetail.maxHr', 'Max HR'),
-      value: Math.round(s.maxHeartRate).toString(),
-      unit: 'bpm'
-    })
+  // Stored by every provider, displayed nowhere until now.
+  if (s?.maxSpeed != null) {
+    const max = units.format('speed', s.maxSpeed)
+    out.push({ label: t('activityDetail.maxSpeed', 'Max speed'), value: max.value, unit: max.unit })
+  }
   return out
 })
 </script>
@@ -187,7 +293,8 @@ const secondaryStats = computed<Stat[]>(() => {
 .atb {
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-2xl);
+  /* Square: one card treatment for the whole detail page */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: var(--shadow-float);
   color: var(--color-ink);
@@ -205,28 +312,6 @@ const secondaryStats = computed<Stat[]>(() => {
   height: 100%;
   padding: 0;
   margin: 0;
-}
-.atb__map--empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-faint);
-  font-family: var(--font-condensed);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 13px;
-  background: var(--surface-muted);
-  background-image: repeating-linear-gradient(
-      0deg,
-      rgba(30, 30, 46, 0.05) 0 1px,
-      transparent 1px 40px
-    ),
-    repeating-linear-gradient(90deg, rgba(30, 30, 46, 0.05) 0 1px, transparent 1px 40px);
-}
-.atb__map--empty i {
-  font-size: 22px;
 }
 
 /* ── Body ─────────────────────────────────────────── */
@@ -287,11 +372,21 @@ const secondaryStats = computed<Stat[]>(() => {
 /* ── Bloc « encre » : 4 métriques principales ─────── */
 .atb__block {
   background: var(--color-ink);
-  border-radius: var(--radius-lg);
+  /* Softened, not square: the ink block and the tiles below sit *inside* the
+     card, and a hard corner against the card's own hard corner read badly. */
+  border-radius: var(--radius-sm);
   padding: 20px 22px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  /* Two columns, never three: auto-fit picked whatever fitted, so four metrics
+     landed as 3 + 1 and the last one sat alone. Four go two by two, and the
+     fourth column only appears when there is room for all of them. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 18px;
+}
+@media (min-width: 700px) {
+  .atb__block {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .atb__cell {
   display: flex;
@@ -315,6 +410,25 @@ const secondaryStats = computed<Stat[]>(() => {
   line-height: 1;
   color: var(--color-white);
 }
+.atb__cvalue.is-long {
+  font-size: 24px;
+}
+.atb__cvalue.is-xlong {
+  font-size: 20px;
+}
+/* Two columns on a 360px screen leave ~135px per cell: an ultra's "4280/4315"
+   does not fit at any of the sizes above. */
+@media (max-width: 380px) {
+  .atb__cvalue {
+    font-size: 26px;
+  }
+  .atb__cvalue.is-long {
+    font-size: 20px;
+  }
+  .atb__cvalue.is-xlong {
+    font-size: 17px;
+  }
+}
 .atb__cvalue small {
   font-size: 13px;
   font-weight: 500;
@@ -332,15 +446,20 @@ const secondaryStats = computed<Stat[]>(() => {
 /* ── Secondary stats ──────────────────────────────── */
 .atb__substats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+@media (min-width: 700px) {
+  .atb__substats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .atb__substat {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 12px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border-subtle);
 }
@@ -357,6 +476,12 @@ const secondaryStats = computed<Stat[]>(() => {
   font-size: 18px;
   font-weight: 500;
   color: var(--color-ink);
+}
+.atb__subvalue.is-long {
+  font-size: 16px;
+}
+.atb__subvalue.is-xlong {
+  font-size: 14px;
 }
 .atb__subvalue small {
   font-size: 12px;

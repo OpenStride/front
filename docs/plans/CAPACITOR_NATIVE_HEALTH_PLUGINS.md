@@ -59,7 +59,7 @@ export interface ProviderPlugin {
   description?: string
   setupComponent: () => Promise<any>
   refreshData?: () => Promise<any>
-  available?: () => boolean   // NEW — if absent, plugin is always available
+  available?: () => boolean // NEW — if absent, plugin is always available
   context?: PluginContext
 }
 ```
@@ -133,19 +133,19 @@ plugins/data-providers/HealthConnectProvider/
 
 ### 2.4 GitHub Secrets needed
 
-| Secret | Platform |
-|---|---|
-| `APPLE_CERTIFICATE_P12` | iOS |
-| `APPLE_CERTIFICATE_PASSWORD` | iOS |
-| `APPLE_PROVISIONING_PROFILE` | iOS |
-| `APPLE_TEAM_ID` | iOS |
-| `APP_STORE_CONNECT_API_KEY` | iOS |
-| `KEYCHAIN_PASSWORD` | iOS |
-| `ANDROID_KEYSTORE` | Android |
-| `ANDROID_KEYSTORE_PASSWORD` | Android |
-| `ANDROID_KEY_ALIAS` | Android |
-| `ANDROID_KEY_PASSWORD` | Android |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT` | Android |
+| Secret                        | Platform |
+| ----------------------------- | -------- |
+| `APPLE_CERTIFICATE_P12`       | iOS      |
+| `APPLE_CERTIFICATE_PASSWORD`  | iOS      |
+| `APPLE_PROVISIONING_PROFILE`  | iOS      |
+| `APPLE_TEAM_ID`               | iOS      |
+| `APP_STORE_CONNECT_API_KEY`   | iOS      |
+| `KEYCHAIN_PASSWORD`           | iOS      |
+| `ANDROID_KEYSTORE`            | Android  |
+| `ANDROID_KEYSTORE_PASSWORD`   | Android  |
+| `ANDROID_KEY_ALIAS`           | Android  |
+| `ANDROID_KEY_PASSWORD`        | Android  |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT` | Android  |
 
 ---
 
@@ -153,11 +153,11 @@ plugins/data-providers/HealthConnectProvider/
 
 ### Options to evaluate
 
-| Package | HealthKit | Health Connect | GPS routes | HR samples | Maturity |
-|---|---|---|---|---|---|
-| `@capawesome/capacitor-health` | Yes | Yes | TBD | TBD | Recent |
-| `capacitor-health-connect` | No | Yes | TBD | TBD | Community |
-| Custom Capacitor plugin | Full control | Full control | Yes | Yes | DIY |
+| Package                        | HealthKit    | Health Connect | GPS routes | HR samples | Maturity  |
+| ------------------------------ | ------------ | -------------- | ---------- | ---------- | --------- |
+| `@capawesome/capacitor-health` | Yes          | Yes            | TBD        | TBD        | Recent    |
+| `capacitor-health-connect`     | No           | Yes            | TBD        | TBD        | Community |
+| Custom Capacitor plugin        | Full control | Full control   | Yes        | Yes        | DIY       |
 
 Decision deferred until Phase 1 is complete and we can test locally.
 
@@ -165,12 +165,12 @@ Decision deferred until Phase 1 is complete and we can test locally.
 
 ## Costs
 
-| Item | Cost |
-|---|---|
-| Apple Developer Program | 99 EUR/year |
-| Google Play Developer | 25 USD one-time |
-| GitHub Actions (public repo) | Free |
-| PWA hosting | Unchanged |
+| Item                         | Cost            |
+| ---------------------------- | --------------- |
+| Apple Developer Program      | 99 EUR/year     |
+| Google Play Developer        | 25 USD one-time |
+| GitHub Actions (public repo) | Free            |
+| PWA hosting                  | Unchanged       |
 
 ---
 

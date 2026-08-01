@@ -1,19 +1,19 @@
 <template>
   <div class="activity-details">
-    <div v-if="loading">Chargement...</div>
+    <div v-if="loading">{{ t('common.loading') }}</div>
     <div v-else-if="activity">
       <!-- Friend activity banner -->
       <div v-if="isFriendActivity" class="friend-banner">
         <i class="fas fa-user-friends" aria-hidden="true"></i>
         <span
-          >Activité de <strong>{{ friendUsername }}</strong></span
+          >{{ t('activityDetailPage.friendActivity') }} <strong>{{ friendUsername }}</strong></span
         >
       </div>
 
       <div class="top-container">
         <component
           v-for="(comp, i) in topSlotComponents"
-          :is="comp?.default || comp"
+          :is="comp"
           :key="`top-${i}`"
           :data="activityData"
         />
@@ -23,7 +23,7 @@
       <div class="widgets-container">
         <component
           v-for="(comp, i) in widgetSlotComponents"
-          :is="comp?.default || comp"
+          :is="comp"
           :key="`widget-${i}`"
           :data="activityData"
           class="w-full"
@@ -40,26 +40,20 @@
       />
     </div>
     <div v-else>
-      <p>Activité introuvable.</p>
+      <p>{{ t('activityDetailPage.notFound') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed, onMounted } from 'vue'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
+import type { SlotContext } from '@/types/extension'
 import InteractionList from '@/components/InteractionList.vue'
 
-const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets')
-const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top')
-
-const widgetSlotComponents = computed(() =>
-  widgetSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
-const topSlotComponents = computed(() =>
-  topSlotComponentsRaw.value.map(c => (c as { default?: unknown }).default || c)
-)
+const { t } = useI18n()
 
 const {
   activity,
@@ -73,6 +67,16 @@ const {
   activityData,
   loadActivity
 } = useActivityDetails()
+
+// Widgets decide for themselves whether they have anything to show, so they
+// need the activity — which only lands after the slot's initial resolution.
+const slotContext = () => activityData.value as SlotContext
+
+const { components: widgetSlotComponentsRaw } = useSlotExtensions('activity.widgets', slotContext)
+const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top', slotContext)
+
+const widgetSlotComponents = computed(() => widgetSlotComponentsRaw.value)
+const topSlotComponents = computed(() => topSlotComponentsRaw.value)
 
 onMounted(loadActivity)
 </script>

@@ -27,6 +27,42 @@ describe('SportType canonical vocabulary', () => {
   })
 })
 
+/**
+ * Discovered, not listed. Naming the mappers by hand is how ZipImport shipped
+ * with no mapping at all: the test covered the two providers that were already
+ * correct, so the one that was not never showed up.
+ */
+const mapperModules = import.meta.glob('../../plugins/data-providers/*/client/sportTypes.ts', {
+  eager: true
+}) as Record<string, Record<string, unknown>>
+
+const providerFolder = (path: string) => path.split('/data-providers/')[1]?.split('/')[0] ?? path
+
+describe('every provider that maps sports honours the contract', () => {
+  it('exposes a mapper returning canonical slugs, whatever the input', () => {
+    const entries = Object.entries(mapperModules)
+    expect(entries.length, 'no provider sport mapper found').toBeGreaterThan(0)
+
+    for (const [path, mod] of entries) {
+      const provider = providerFolder(path)
+      const mapper = Object.values(mod).find(v => typeof v === 'function') as
+        | ((raw: unknown) => string)
+        | undefined
+      expect(mapper, `${provider} exports no mapper function`).toBeTruthy()
+
+      // Junk, empty and wrong-cased input must all land on a real slug rather
+      // than pass through — that pass-through is exactly what broke ZipImport.
+      for (const raw of ['Nonsense', '', 'Trail Running', 'RUNNING', null, undefined, 42]) {
+        const mapped = mapper!(raw)
+        expect(
+          isSportType(mapped),
+          `${provider} mapped ${JSON.stringify(raw)} to "${mapped}", not a SportType`
+        ).toBe(true)
+      }
+    }
+  })
+})
+
 describe('provider sport mappers return canonical SportTypes', () => {
   it('Garmin maps known types and falls back to "other"', () => {
     expect(mapGarminSport('TRAIL_RUNNING')).toBe('trail_running')

@@ -1,299 +1,222 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
-  <div>
-    <DefaultProviderSetupView
-      provider-name="Strava"
-      :is-connected="isConnected"
-      :is-loading="isWaitingForOAuth"
-      @connect="connectToStrava"
-      @disconnect="disconnectStrava"
-    />
+  <div class="strava-import">
+    <h3 class="title">{{ t('providers.strava.title') }}</h3>
+    <p class="intro">{{ t('providers.strava.intro') }}</p>
 
-    <div v-if="isConnected" class="mt-6 text-center" data-test="strava-status-section">
-      <div v-if="syncState.status === 'syncing'" class="text-gray-600">
-        <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
-        <span>{{
-          syncProgress
-            ? t('providers.importingCount', { count: syncProgress })
-            : t('providers.importing')
-        }}</span>
-      </div>
-      <div v-else-if="syncState.status === 'error'" class="text-red-600">
-        <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
-        <span>{{ t('providers.errorLabel', { message: syncState.lastError }) }}</span>
-        <button @click="retryImport" class="ml-4 text-sm text-blue-600 hover:underline">
-          {{ t('providers.retry') }}
-        </button>
-      </div>
-      <div v-else class="space-y-2">
-        <p class="text-gray-700">
-          <i class="fas fa-check-circle text-green-600 mr-2" aria-hidden="true"></i>
-          <span v-if="syncState.initialImportDone">{{ t('providers.synced') }}</span>
-          <span v-else>{{ t('providers.connectedPending') }}</span>
-        </p>
-        <button
-          @click="manualRefresh"
-          :disabled="isRefreshing"
-          class="text-sm text-gray-500 hover:text-gray-700 transition"
-          data-test="strava-refresh-button"
-        >
-          <i
-            class="fas fa-sync-alt mr-1"
-            :class="{ 'fa-spin': isRefreshing }"
-            aria-hidden="true"
-          ></i>
-          {{ t('common.refresh') }}
-        </button>
+    <ol class="steps">
+      <li>
+        {{ t('providers.strava.step1') }}
+        <a :href="EXPORT_URL" target="_blank" rel="noopener noreferrer" class="link">
+          {{ t('providers.strava.step1Link') }}
+          <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+        </a>
+      </li>
+      <li>{{ t('providers.strava.step2') }}</li>
+      <li>{{ t('providers.strava.step3') }}</li>
+    </ol>
+
+    <label class="filepick" :class="{ 'filepick--busy': importing }">
+      <i class="fas fa-file-zipper" aria-hidden="true"></i>
+      <span>{{ t('providers.strava.selectZip') }}</span>
+      <input type="file" accept=".zip" :disabled="importing" @change="onFileChange" />
+    </label>
+
+    <div v-if="importing" class="status" aria-live="polite">
+      <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+      <span v-if="total > 0">{{ t('providers.strava.importing', { done, total }) }}</span>
+      <span v-else>{{ t('providers.strava.parsing') }}</span>
+      <div v-if="total > 0" class="bar">
+        <div class="bar__fill" :style="{ width: pct + '%' }"></div>
       </div>
     </div>
+
+    <p v-if="doneMessage" class="ok" aria-live="polite">
+      <i class="fas fa-check-circle" aria-hidden="true"></i> {{ doneMessage }}
+    </p>
+    <p v-if="error" class="err" aria-live="polite">
+      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {{ error }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
+import JSZip from 'jszip'
+import Papa from 'papaparse'
 import { usePluginContext } from '@/composables/usePluginContext'
-import {
-  getTokens,
-  deleteTokens,
-  getSyncState,
-  updateSyncState,
-  type StravaSyncState
-} from './storage'
-import {
-  getStravaSyncManager,
-  syncEmitter,
-  type SyncCompleteEvent,
-  type SyncProgressEvent
-} from './StravaSyncManager'
-import { exchangeCodeForTokens } from './stravaAuth'
-import pluginEnv from './env'
+import type { Activity } from '@/types/activity'
+import { adaptStravaExport, type StravaCsvRow } from './adapter'
+import { parseTrackFile } from './parseTrack'
 
-const isConnected = ref(false)
-const isRefreshing = ref(false)
-const isWaitingForOAuth = ref(false)
-const syncProgress = ref<number | null>(null)
-let oauthPopup: Window | null = null
-let oauthChannel: BroadcastChannel | null = null
+const EXPORT_URL = 'https://www.strava.com/athlete/delete_your_account'
 
-const syncState = reactive<StravaSyncState>({
-  status: 'idle',
-  initialImportDone: false,
-  lastActivityDate: null,
-  lastSyncDate: null,
-  lastError: null
-})
-
-const ctx = usePluginContext()
-const { notifications, plugins } = ctx
 const { t } = useI18n()
+const ctx = usePluginContext()
 
-function buildAuthUrl(state: string): string {
-  const redirectUri = `${window.location.origin}/oauth/strava/callback`
-  return (
-    `${pluginEnv.authUrl}?client_id=${pluginEnv.clientId}` +
-    `&response_type=code` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&approval_prompt=auto` +
-    `&scope=${encodeURIComponent('activity:read_all')}` +
-    `&state=${state}`
-  )
-}
+const importing = ref(false)
+const done = ref(0)
+const total = ref(0)
+const doneMessage = ref('')
+const error = ref('')
+const pct = computed(() => (total.value ? Math.round((done.value / total.value) * 100) : 0))
 
-async function connectToStrava() {
-  const state = crypto.randomUUID()
-  sessionStorage.setItem('strava_oauth_state', state)
+/** Yield to the event loop so the progress UI can repaint during a big import. */
+const tick = () => new Promise(r => setTimeout(r, 0))
 
-  const width = 600
-  const height = 700
-  const left = window.screenX + (window.outerWidth - width) / 2
-  const top = window.screenY + (window.outerHeight - height) / 2
-  oauthPopup = window.open(
-    buildAuthUrl(state),
-    'StravaOAuth',
-    `width=${width},height=${height},left=${left},top=${top},popup=yes`
-  )
-
-  if (!oauthPopup || oauthPopup.closed) {
-    // Popup blocked — fall back to full redirect.
-    window.location.href = buildAuthUrl(state)
-    return
-  }
-
-  isWaitingForOAuth.value = true
-  window.addEventListener('message', handleOAuthMessage)
-  oauthChannel = new BroadcastChannel('strava-oauth')
-  oauthChannel.onmessage = (event: MessageEvent) =>
-    handleOAuthMessage({ ...event, origin: window.location.origin } as MessageEvent)
-}
-
-async function handleOAuthMessage(event: MessageEvent) {
-  if (event.origin !== window.location.origin) return
-  if (event.data?.type !== 'strava-oauth-callback') return
-
-  window.removeEventListener('message', handleOAuthMessage)
-  cleanupChannel()
-  isWaitingForOAuth.value = false
-  oauthPopup?.close()
-
-  const expectedState = sessionStorage.getItem('strava_oauth_state')
-  if (event.data.state !== expectedState) {
-    notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
-    return
-  }
-  sessionStorage.removeItem('strava_oauth_state')
-
-  if (event.data.error) {
-    notifications.notify(
-      t('providers.notify.generic', { provider: 'Strava', message: event.data.error }),
-      { type: 'error' }
-    )
-    return
-  }
-
-  await completeConnection(event.data.code)
-}
-
-async function completeConnection(code: string | null) {
-  if (!code) return
-  try {
-    await exchangeCodeForTokens(code)
-    isConnected.value = true
-    await plugins.enablePlugin('strava')
-    getStravaSyncManager().startInitialImportAsync()
-    notifications.notify(t('providers.notify.connected', { provider: 'Strava' }), { type: 'info' })
-  } catch (err: unknown) {
-    notifications.notify(
-      t('providers.notify.generic', {
-        provider: 'Strava',
-        message: err instanceof Error ? err.message : 'Error'
-      }),
-      { type: 'error' }
-    )
-  }
-}
-
-function cleanupChannel() {
-  if (oauthChannel) {
-    oauthChannel.close()
-    oauthChannel = null
-  }
-}
-
-async function disconnectStrava() {
-  const all = await ctx.activity.getAllActivities()
-  const stravaActivities = all.filter((a: { id: string }) => a.id.startsWith('strava_'))
-  for (const activity of stravaActivities) await ctx.activity.deleteActivity(activity.id)
-
-  await deleteTokens()
-  await updateSyncState({
-    status: 'idle',
-    initialImportDone: false,
-    lastActivityDate: null,
-    lastSyncDate: null,
-    lastError: null
+function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as ArrayBuffer)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsArrayBuffer(file)
   })
-  isConnected.value = false
-  Object.assign(syncState, await getSyncState())
-  notifications.notify(
-    t('providers.notify.disconnected', {
-      provider: 'Strava',
-      count: stravaActivities.length
-    }),
-    {
-      type: 'info'
-    }
-  )
 }
 
-async function retryImport() {
-  await updateSyncState({ status: 'idle', lastError: null, initialImportDone: false })
-  Object.assign(syncState, await getSyncState())
-  getStravaSyncManager().startInitialImportAsync()
-}
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
 
-async function manualRefresh() {
-  isRefreshing.value = true
+  importing.value = true
+  error.value = ''
+  doneMessage.value = ''
+  done.value = 0
+  total.value = 0
+
   try {
-    const count = await getStravaSyncManager().dailyRefresh()
-    notifications.notify(t('providers.notify.synced', { provider: 'Strava', count }), {
-      type: 'success'
-    })
-  } catch (err: unknown) {
-    notifications.notify(
-      t('providers.notify.generic', {
-        provider: 'Strava',
-        message: err instanceof Error ? err.message : 'Error'
-      }),
-      { type: 'error' }
-    )
-  } finally {
-    isRefreshing.value = false
-    Object.assign(syncState, await getSyncState())
-  }
-}
+    const zip = await JSZip.loadAsync(await readAsArrayBuffer(file))
 
-function handleSyncComplete(event: Event) {
-  const { success, count, error } = (event as CustomEvent<SyncCompleteEvent>).detail
-  notifications.notify(
-    success
-      ? t('providers.notify.imported', { provider: 'Strava', count })
-      : t('providers.notify.generic', {
-          provider: 'Strava',
-          message: error || t('providers.notify.importError')
-        }),
-    { type: success ? 'success' : 'error' }
-  )
-  syncProgress.value = null
-  getSyncState().then(state => Object.assign(syncState, state))
-}
-
-function handleSyncProgress(event: Event) {
-  const detail = (event as CustomEvent<SyncProgressEvent>).detail
-  if (detail.type === 'started') {
-    syncState.status = 'syncing'
-    syncProgress.value = null
-  } else if (detail.type === 'progress') {
-    syncProgress.value = detail.completed ?? null
-  }
-}
-
-onMounted(async () => {
-  syncEmitter.addEventListener('sync-complete', handleSyncComplete)
-  syncEmitter.addEventListener('sync-progress', handleSyncProgress)
-
-  // Redirect-callback flow (popup blocked): code+state arrive as URL params.
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('code')
-  const state = params.get('state')
-  if (code && state) {
-    const expectedState = sessionStorage.getItem('strava_oauth_state')
-    sessionStorage.removeItem('strava_oauth_state')
-    if (state === expectedState) await completeConnection(code)
-    window.history.replaceState({}, '', window.location.pathname)
-  } else {
-    const tokens = await getTokens()
-    if (tokens) {
-      isConnected.value = true
-      await plugins.enablePlugin('strava')
-      const current = await getSyncState()
-      if (!current.initialImportDone) getStravaSyncManager().startInitialImportAsync()
+    // Strava export keeps activities.csv at the root (locate it defensively).
+    const csvEntry = Object.keys(zip.files).find(k => k.toLowerCase().endsWith('activities.csv'))
+    if (!csvEntry) {
+      error.value = t('providers.strava.noCsv')
+      importing.value = false
+      return
     }
-  }
 
-  const loaded = await getSyncState()
-  if (loaded.status === 'syncing') {
-    loaded.status = 'idle'
-    await updateSyncState({ status: 'idle' })
-  }
-  Object.assign(syncState, loaded)
-})
+    const csv = await zip.files[csvEntry].async('string')
+    const rows = (
+      Papa.parse(csv, { header: true, skipEmptyLines: true }).data as StravaCsvRow[]
+    ).filter(r => r['Activity ID'])
+    total.value = rows.length
 
-onUnmounted(() => {
-  window.removeEventListener('message', handleOAuthMessage)
-  cleanupChannel()
-  syncEmitter.removeEventListener('sync-complete', handleSyncComplete)
-  syncEmitter.removeEventListener('sync-progress', handleSyncProgress)
-})
+    // Skip activities already present (by startTime), like the ZIP importer.
+    const existing = await ctx.activity.getAllActivities()
+    const existingStartTimes = new Set(existing.map((a: Activity) => a.startTime))
+
+    let imported = 0
+    for (const row of rows) {
+      try {
+        // The Filename column points at the per-activity file (activities/<id>.<ext>).
+        const rel = row.Filename?.trim()
+        let track = null
+        if (rel) {
+          const entry =
+            zip.files[rel] ?? zip.files[Object.keys(zip.files).find(k => k.endsWith(rel)) ?? '']
+          if (entry) {
+            const data = await entry.async('uint8array')
+            track = await parseTrackFile(rel, data)
+          }
+        }
+
+        const { activity, details } = adaptStravaExport(row, track)
+        if (!existingStartTimes.has(activity.startTime)) {
+          await ctx.activity.saveActivityWithDetails(activity, details)
+          existingStartTimes.add(activity.startTime)
+          imported++
+        }
+      } catch (err) {
+        console.warn('[StravaImport] Failed to import an activity:', err)
+      }
+      done.value++
+      if (done.value % 10 === 0) await tick() // keep the UI responsive
+    }
+
+    doneMessage.value = t('providers.strava.done', { count: imported })
+    ctx.notifications.notify(doneMessage.value, { type: 'success' })
+  } catch (err) {
+    error.value = t('providers.strava.error', {
+      message: err instanceof Error ? err.message : String(err)
+    })
+  } finally {
+    importing.value = false
+    ;(e.target as HTMLInputElement).value = ''
+  }
+}
 </script>
+
+<style scoped>
+.strava-import {
+  padding: 1.2rem;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+.title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.intro {
+  color: var(--color-gray-600, #4b5563);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+.steps {
+  margin: 0 0 1.2rem 1.1rem;
+  padding: 0;
+  color: var(--color-gray-700, #374151);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.link {
+  color: var(--color-green-600, #88aa00);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.filepick {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  border: 2px dashed var(--color-gray-300, #d1d5db);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.filepick:hover {
+  border-color: var(--color-green-500, #88aa00);
+}
+.filepick--busy {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.filepick input {
+  display: none;
+}
+.status {
+  margin-top: 1rem;
+  color: var(--color-gray-600, #4b5563);
+  font-size: 0.9rem;
+}
+.bar {
+  margin-top: 0.5rem;
+  height: 6px;
+  background: var(--color-gray-200, #e5e7eb);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar__fill {
+  height: 100%;
+  background: var(--color-green-500, #88aa00);
+  transition: width 0.2s;
+}
+.ok {
+  margin-top: 1rem;
+  color: var(--color-emerald-700, #047857);
+}
+.err {
+  margin-top: 1rem;
+  color: var(--color-red-600, #dc2626);
+}
+</style>

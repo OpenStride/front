@@ -1,15 +1,10 @@
 <template>
-  <GraphCard title="Cadence" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
+  <GraphCard :title="t('graphs.cadence')" icon="fa-shoe-prints" accent="var(--color-cyan-500)">
     <template #actions>
       <!-- Case à cocher “Variation de pente” : masquée si on affiche les laps -->
-      <label v-if="granularity !== 'laps'" class="graph-check">
-        <input
-          type="checkbox"
-          v-model="useSlope"
-          @change="onUseSlopeChange"
-          class="accent-cyan"
-        />
-        Variation&nbsp;de&nbsp;pente
+      <label v-if="granularity !== 'laps' && showSlope" class="graph-check">
+        <input type="checkbox" v-model="useSlope" @change="onUseSlopeChange" class="accent-cyan" />
+        {{ t('graphs.slopeVariation') }}
       </label>
 
       <!-- Sélecteur de granularité -->
@@ -29,20 +24,29 @@
       :style="tooltip.style"
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
-      <div><strong>Distance :</strong> {{ tooltip.distance.toFixed(0) }} m</div>
-      <div><strong>Cadence :</strong> {{ tooltip.cadence }} pas/min</div>
-      <div v-if="tooltip.slope !== null">
-        <strong>Pente :</strong> {{ tooltip.slope.toFixed(1) }} %
+      <div>
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
+      </div>
+      <div>
+        <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
+      </div>
+      <div v-if="showSlope && tooltip.slope !== null">
+        <strong>{{ t('graphs.slope') }} :</strong> {{ tooltip.slope.toFixed(1) }} %
       </div>
     </div>
   </GraphCard>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
-import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import type { Activity, ActivityDetails } from '@/types/activity'
+import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
@@ -52,11 +56,14 @@ const props = defineProps<{
   data: { activity: Activity; details: ActivityDetails }
 }>()
 
-const { storage, analyzer: analyzerFactory } = usePluginContext()
+const { storage, analyzer: analyzerFactory, units } = usePluginContext()
 
 /* ===== Références & états ===== */
 const canvas = ref<HTMLCanvasElement | null>(null)
-const samples = ref<Sample[]>([])
+const samples = ref<SegmentSample[]>([])
+// Same rule as the pace widget: grade is offered when the ground has some, not
+// when the watch says "trail"
+const showSlope = ref(true)
 // Left plot margin, computed each draw from the widest axis label; shared with
 // the tooltip hit-testing so a click still maps to the right distance.
 const leftMargin = ref(50)
@@ -64,15 +71,47 @@ const granularity = ref('1000') // distance (m) ou 'laps'
 const useSlope = ref(false) // mode variation de pente
 
 /* ===== Options de granularité ===== */
-const granularities = [
-  { label: '100 m', value: '100' },
-  { label: '200 m', value: '200' },
-  { label: '500 m', value: '500' },
-  { label: '1 km', value: '1000' },
-  { label: '2 km', value: '2000' },
-  { label: '5 km', value: '5000' },
-  { label: 'Laps', value: 'laps' }
-]
+/**
+ * Smoothing steps that are round in the unit being read.
+ *
+ * Values stay in metres so the analyser and stored preference are unchanged;
+ * only the ladder offered differs, because "0.62 mi" is not a step anyone picks.
+ */
+const granularities = computed(() =>
+  units.system === 'imperial'
+    ? [
+        { label: '100 yd', value: '91' },
+        { label: '200 yd', value: '183' },
+        { label: '¼ mi', value: '402' },
+        { label: '½ mi', value: '805' },
+        { label: '1 mi', value: '1609' },
+        { label: '3 mi', value: '4828' },
+        { label: 'Laps', value: 'laps' }
+      ]
+    : [
+        { label: '100 m', value: '100' },
+        { label: '200 m', value: '200' },
+        { label: '500 m', value: '500' },
+        { label: '1 km', value: '1000' },
+        { label: '2 km', value: '2000' },
+        { label: '5 km', value: '5000' },
+        { label: 'Laps', value: 'laps' }
+      ]
+)
+
+/** A stored step from the other ladder would leave the select blank. */
+function snapToOffered(stored: string): string {
+  const offered = granularities.value.map(g => g.value)
+  if (offered.includes(stored)) return stored
+  if (stored === 'laps') return 'laps'
+  const meters = Number(stored)
+  if (!Number.isFinite(meters)) return offered[3]
+  return offered
+    .filter(v => v !== 'laps')
+    .reduce((best, v) =>
+      Math.abs(Number(v) - meters) < Math.abs(Number(best) - meters) ? v : best
+    )
+}
 
 /* ===== Persistance (PluginContext) ===== */
 async function savePrefs() {
@@ -82,16 +121,25 @@ async function savePrefs() {
 async function loadPrefs() {
   const g = await storage.getData('granularity_for_cadence')
   const s = await storage.getData('use_slope_for_cadence')
-  if (typeof g === 'string') granularity.value = g
+  if (typeof g === 'string') granularity.value = snapToOffered(g)
   if (typeof s === 'boolean') useSlope.value = s
 }
 
 /* ===== Re-échantillonnage ===== */
+const formatDistance = (meters: number) => distanceLabel(units, meters)
+
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
+  showSlope.value = !analyzer.elevationProfile().isFlat
+
+  // Hiding the checkbox has to switch the mode off as well, otherwise a flat run
+  // keeps the slope segmentation inherited from the last hilly activity with no
+  // control left to undo it. The preference itself is kept.
+  const segmentBySlope = useSlope.value && showSlope.value
+
   if (granularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
-  } else if (useSlope.value) {
+  } else if (segmentBySlope) {
     samples.value = analyzer.sampleBySlopeChange(Number(granularity.value))
   } else {
     samples.value = analyzer.sampleAverageByDistance(Number(granularity.value))
@@ -162,13 +210,15 @@ function drawCanvas() {
   }
 
   /* === Grille verticale (distance) === */
-  const kmTotal = totalDist / 1000
-  const rawStep = kmTotal / 10
+  // Ticks in the unit being read, not kilometres relabelled.
+  const totalDisplay = units.convert('distance', totalDist).value
+  const rawStep = totalDisplay / 10
   const mag = 10 ** Math.floor(Math.log10(rawStep))
   const niceBase = [1, 2, 5].find(b => b * mag >= rawStep) || 10
-  const stepKm = niceBase * mag
-  for (let km = stepKm; km < kmTotal; km += stepKm) {
-    const x = pxMargin + ((km * 1000) / totalDist) * (W - pxMargin)
+  const stepDisplay = niceBase * mag
+  const metersPerDisplayUnit = 1 / units.convert('distance', 1).value
+  for (let d = stepDisplay; d < totalDisplay; d += stepDisplay) {
+    const x = pxMargin + ((d * metersPerDisplayUnit) / totalDist) * (W - pxMargin)
     ctx.beginPath()
     ctx.moveTo(x, plotTop)
     ctx.lineTo(x, baseline)
@@ -239,27 +289,24 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
   const xPct = (clientX - rect.left - leftMargin.value) / (rect.width - leftMargin.value)
   const distSel = xPct * (props.data.activity.distance || 0)
 
-  /* recherche du sample cliqué */
-  const idx = samples.value.findIndex((s, i) => {
-    const prev = samples.value[i - 1]
-    return (prev?.distance ?? 0) <= distSel && (s.distance ?? 0) >= distSel
+  /* Segment cliqué, testé sur ses bornes réelles */
+  const idx = samples.value.findIndex(sample => {
+    const end = sample.segmentEnd ?? sample.distance ?? 0
+    const start = sample.segmentDistance != null ? end - sample.segmentDistance : 0
+    return start <= distSel && end >= distSel
   })
   const i = idx === -1 ? samples.value.length - 1 : idx
   const s = samples.value[i]
-  const prev = samples.value[i - 1] ?? s
 
-  /* pente instantanée (si on a l'élévation) */
-  let slope = null as number | null
-  if (s.elevation != null && prev.elevation != null) {
-    const delev = s.elevation - prev.elevation
-    const ddist = (s.distance ?? 1) - (prev.distance ?? 0)
-    slope = ddist ? (delev / ddist) * 100 : 0
-  }
+  /* Grade of the segment, measured by the analyzer from the raw track. The
+     averaged elevation of two segments cannot be differenced for this: that
+     compares their midpoints and halves the value. */
+  const slope = s.slope ?? null
 
   tooltip.value = {
     visible: true,
     style: { left: `${clientX + 10}px`, top: `${clientY + 10}px` },
-    distance: (s.distance ?? 0) - (prev?.distance ?? 0),
+    distance: s.segmentEnd ?? s.distance ?? 0,
     cadence: Math.round(s.cadence ?? 0),
     slope
   }
@@ -294,6 +341,12 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
 })
+
+// Canvas content sits outside Vue's reactivity: switching units has to redraw.
+watch(
+  () => units.system,
+  () => drawCanvas()
+)
 </script>
 
 <style scoped>

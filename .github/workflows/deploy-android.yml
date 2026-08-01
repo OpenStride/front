@@ -1,8 +1,12 @@
 name: Build & Deploy Android
 
 on:
-  push:
-    tags: ['v*']
+  # Manual-only, like the iOS deploy: this workflow signs an App Bundle and
+  # pushes it to the Play Store, and `version-bump.yml` tags every merge to
+  # main. Left on `push: tags: ['v*']` it would try to publish a release of the
+  # native app each time the PWA's version is bumped — with store credentials
+  # that are not set up yet. Re-add the tag trigger once ANDROID_KEYSTORE and
+  # GOOGLE_PLAY_SERVICE_ACCOUNT exist and a track is chosen.
   workflow_dispatch:
 
 concurrency:

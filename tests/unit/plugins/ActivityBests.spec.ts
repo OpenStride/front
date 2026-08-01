@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ActivityBests from '@plugins/app-extensions/AggregatedDetails/ActivityBests.vue'
+import { convertQuantity, formatQuantity, unitSystem } from '@/composables/useUnits'
 import type { Activity, ActivityDetails } from '@/types/activity'
 
 // Mock router for RouterLink components
@@ -24,6 +25,13 @@ const fakeBestResult = {
 
 // Mock PluginContext with analyzer factory
 const mockPluginContext = {
+  units: {
+    get system() {
+      return unitSystem.value
+    },
+    format: formatQuantity,
+    convert: convertQuantity
+  },
   analyzer: {
     create: (samples: any[]) => ({
       bestSegments: vi.fn().mockReturnValue(samples.length ? fakeBestResult : {}),

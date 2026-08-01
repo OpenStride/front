@@ -1,11 +1,19 @@
 <script setup>
 import AppHeader from '@/components/AppHeader.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
 import SetupAlertBanner from '@/components/SetupAlertBanner.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
 import MigrationProgress from '@/components/MigrationProgress.vue'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { useFriendEventToasts } from '@/composables/useFriendEventToasts'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+// One listener for the whole app: friend events are announced exactly once
+useFriendEventToasts()
 
 // App version from build-time injection
 const appVersion = __APP_VERSION__
@@ -19,6 +27,7 @@ const forceRefresh = async () => {
 <template>
   <div class="layout">
     <AppHeader />
+    <PullToRefresh />
     <SetupAlertBanner />
     <UpdateBanner />
     <AutoUpdateNotification />
@@ -29,7 +38,8 @@ const forceRefresh = async () => {
     <MigrationProgress />
     <footer class="footer">
       <p>
-        <a href="/legal">Privacy Policy</a> | <a href="/cgu">Terms of Service</a> |
+        <a href="/legal">{{ t('legal.privacyPolicy') }}</a> |
+        <a href="/cgu">{{ t('legal.terms') }}</a> |
         <a href="https://discord.gg/V7HHvHC4t7" target="_blank" rel="noopener noreferrer"
           >Discord</a
         >
@@ -38,7 +48,7 @@ const forceRefresh = async () => {
           >GitHub</a
         >
       </p>
-      <p class="version" @click="forceRefresh" title="Cliquer pour forcer la mise à jour">
+      <p class="version" @click="forceRefresh" :title="t('app.forceUpdate')">
         OpenStride v{{ appVersion }}
       </p>
     </footer>

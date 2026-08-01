@@ -20,6 +20,13 @@ export interface StorageServiceEvent {
  */
 const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details']
 
+/**
+ * Stores that never leave the device. They hold values derived from data that
+ * is already synced, so uploading them would cost bandwidth for something we
+ * can recompute. Losing them only costs a rebuild.
+ */
+const LOCAL_ONLY_STORES = ['activity_metrics']
+
 export class StorageService {
   private static instance: StorageService
   private pluginManager = StoragePluginManager.getInstance()
@@ -94,8 +101,11 @@ export class StorageService {
         }
       }
 
-      // Never touch stores owned by SyncService (activities / activity_details)
-      uniqueStores = uniqueStores.filter(s => !SYNC_SERVICE_OWNED_STORES.includes(s))
+      // Never touch stores owned by SyncService (activities / activity_details),
+      // nor the device-local derived stores
+      uniqueStores = uniqueStores.filter(
+        s => !SYNC_SERVICE_OWNED_STORES.includes(s) && !LOCAL_ONLY_STORES.includes(s)
+      )
       if (uniqueStores.length === 0) return
 
       const changed = await this.syncStores(uniqueStores.map(store => ({ store, key: '' })))

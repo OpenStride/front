@@ -2,7 +2,7 @@
   <div class="qr-scanner-modal" v-if="isOpen" @click.self="close">
     <div class="scanner-container">
       <div class="scanner-header">
-        <h3>Scanner un QR Code</h3>
+        <h3>{{ t('qrScanner.title') }}</h3>
         <button @click="close" class="close-btn">
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
@@ -12,27 +12,31 @@
         <div v-if="!hasPermission && !permissionDenied" class="permission-request">
           <p>
             <i class="fas fa-camera permission-icon" aria-hidden="true"></i>
-            L'accès à la caméra est nécessaire
+            {{ t('qrScanner.cameraNeeded') }}
           </p>
-          <button @click="startScanning" class="start-btn">Activer la caméra</button>
+          <button @click="startScanning" class="start-btn">
+            {{ t('qrScanner.enableCamera') }}
+          </button>
         </div>
 
         <div v-if="permissionDenied" class="permission-denied">
           <p>
             <i class="fas fa-times-circle permission-icon error" aria-hidden="true"></i>
-            Accès caméra refusé
+            {{ t('qrScanner.cameraDenied') }}
           </p>
-          <p class="text-sm">Veuillez autoriser l'accès dans les paramètres de votre navigateur</p>
-          <button @click="switchToManual" class="manual-btn">Saisir l'URL manuellement</button>
+          <p class="text-sm">{{ t('qrScanner.permissionHelp') }}</p>
+          <button @click="switchToManual" class="manual-btn">
+            {{ t('qrScanner.enterManually') }}
+          </button>
         </div>
 
         <div v-if="scanning" class="scanner-viewport">
           <div id="qr-reader"></div>
-          <p class="scanner-hint">Positionnez le QR code dans le cadre</p>
+          <p class="scanner-hint">{{ t('qrScanner.frameHint') }}</p>
         </div>
 
         <div v-if="showManualInput" class="manual-input">
-          <label for="friend-public-url">URL publique de votre ami:</label>
+          <label for="friend-public-url">{{ t('qrScanner.friendUrl') }}</label>
           <input
             id="friend-public-url"
             v-model="manualUrl"
@@ -40,11 +44,15 @@
             placeholder="https://drive.google.com/..."
             class="url-input"
           />
-          <button @click="addManually" class="add-btn" :disabled="!manualUrl">Ajouter</button>
+          <button @click="addManually" class="add-btn" :disabled="!manualUrl">
+            {{ t('common.add') }}
+          </button>
         </div>
 
         <div v-if="scanning" class="scanner-actions">
-          <button @click="switchToManual" class="secondary-btn">Saisir manuellement</button>
+          <button @click="switchToManual" class="secondary-btn">
+            {{ t('qrScanner.manualEntry') }}
+          </button>
         </div>
       </div>
     </div>
@@ -52,11 +60,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ref, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
-import type { FriendServiceEvent } from '@/types/friend'
+
+const { t } = useI18n()
+const router = useRouter()
 
 const props = defineProps<{
   isOpen: boolean
@@ -64,7 +76,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  friendAdded: [friendId: string]
 }>()
 
 const friendService = FriendService.getInstance()
@@ -77,24 +88,6 @@ const manualUrl = ref('')
 
 let html5QrCode: Html5Qrcode | null = null
 
-// Event listener for FriendService events
-const handleFriendEvent = (event: Event) => {
-  const customEvent = event as CustomEvent<FriendServiceEvent>
-  const { message, messageType } = customEvent.detail
-
-  if (message && messageType) {
-    ToastService.push(message, {
-      type: messageType,
-      timeout: messageType === 'error' ? 5000 : messageType === 'warning' ? 4000 : 3000
-    })
-  }
-}
-
-onMounted(() => {
-  // Listen to FriendService events
-  friendService.emitter.addEventListener('friend-event', handleFriendEvent)
-})
-
 const startScanning = async () => {
   try {
     html5QrCode = new Html5Qrcode('qr-reader')
@@ -105,8 +98,7 @@ const startScanning = async () => {
       // Stop scanning
       await stopScanning()
 
-      // Add friend
-      await addFriendByUrl(decodedText)
+      openConfirmation(decodedText)
     }
 
     const config = {
@@ -123,7 +115,7 @@ const startScanning = async () => {
     console.error('[QRScanner] Error starting scanner:', error)
     permissionDenied.value = true
     hasPermission.value = false
-    ToastService.push("Impossible d'accéder à la caméra", { type: 'error', timeout: 4000 })
+    ToastService.push(t('qrScanner.cameraDenied'), { type: 'error', timeout: 4000 })
   }
 }
 
@@ -138,12 +130,21 @@ const stopScanning = async () => {
   }
 }
 
-const addFriendByUrl = async (url: string) => {
-  const friend = await friendService.addFriendByUrl(url)
-  if (friend) {
-    emit('friendAdded', friend.id)
-    close()
+/**
+ * Hand the scanned link to /add-friend rather than adding on the spot: scanning
+ * and pasting then land on the same confirmation screen, and the user sees who
+ * they are about to follow before anything is written.
+ */
+const openConfirmation = (url: string) => {
+  const manifestUrl = friendService.resolveManifestUrl(url.trim())
+
+  if (!manifestUrl) {
+    ToastService.push(t('qrScanner.invalidCode'), { type: 'error', timeout: 4000 })
+    return
   }
+
+  close()
+  router.push({ path: '/add-friend', query: { manifest: manifestUrl } })
 }
 
 const switchToManual = () => {
@@ -151,9 +152,9 @@ const switchToManual = () => {
   showManualInput.value = true
 }
 
-const addManually = async () => {
+const addManually = () => {
   if (!manualUrl.value) return
-  await addFriendByUrl(manualUrl.value)
+  openConfirmation(manualUrl.value)
 }
 
 const close = () => {
@@ -175,8 +176,6 @@ watch(
 
 onUnmounted(() => {
   stopScanning()
-  // Clean up event listener
-  friendService.emitter.removeEventListener('friend-event', handleFriendEvent)
 })
 </script>
 

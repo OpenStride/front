@@ -1,83 +1,45 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-2xl font-bold">{{ t('profile.preferences.title') }}</h2>
-
-    <div class="bg-white shadow rounded-xl p-6 space-y-4">
-      <!-- Language Selector -->
-      <div>
+  <div class="profile-panel">
+    <!-- No heading: a section title tells two sections apart, and this panel
+         has one. The tab strip above already says "Preferences". -->
+    <section>
+      <div class="card">
         <LanguageSelector />
+
+        <fieldset class="field units">
+          <legend class="field-label">{{ t('profile.preferences.units') }}</legend>
+          <div class="units__choices">
+            <label class="choice">
+              <input
+                type="radio"
+                v-model="preferences.units"
+                value="metric"
+                data-test="units-metric"
+              />
+              <span>{{ t('profile.preferences.metric') }}</span>
+            </label>
+            <label class="choice">
+              <input
+                type="radio"
+                v-model="preferences.units"
+                value="imperial"
+                data-test="units-imperial"
+              />
+              <span>{{ t('profile.preferences.imperial') }}</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <button @click="savePreferences" class="btn btn--primary btn--block">
+          {{ t('common.save') }}
+        </button>
+
+        <p v-if="saveSuccess" class="saved" role="status">
+          <i class="fas fa-check" aria-hidden="true"></i>
+          {{ t('profile.preferences.saveSuccess') }}
+        </p>
       </div>
-
-      <!-- Unit System -->
-      <!-- <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          {{ t('profile.preferences.units') }}
-        </label>
-        <div class="flex gap-4">
-          <label class="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              v-model="preferences.units"
-              value="metric"
-              class="mr-2 text-green-600 focus:ring-green-500"
-            />
-            <span>{{ t('profile.preferences.metric') }}</span>
-          </label>
-          <label class="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              v-model="preferences.units"
-              value="imperial"
-              class="mr-2 text-green-600 focus:ring-green-500"
-            />
-            <span>{{ t('profile.preferences.imperial') }}</span>
-          </label>
-        </div>
-      </div> -->
-
-      <!-- Theme -->
-      <!-- <div>
-        <label for="theme" class="block text-sm font-medium text-gray-700 mb-2">
-          {{ t('profile.preferences.theme') }}
-        </label>
-        <select
-          id="theme"
-          v-model="preferences.theme"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-        >
-          <option value="light">{{ t('profile.preferences.themeLight') }}</option>
-          <option value="dark">{{ t('profile.preferences.themeDark') }}</option>
-          <option value="auto">{{ t('profile.preferences.themeAuto') }}</option>
-        </select>
-      </div> -->
-
-      <!-- Date Format -->
-      <!-- <div>
-        <label for="dateFormat" class="block text-sm font-medium text-gray-700 mb-2">
-          {{ t('profile.preferences.dateFormat') }}
-        </label>
-        <select
-          id="dateFormat"
-          v-model="preferences.dateFormat"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-green-300"
-        >
-          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-        </select>
-      </div> -->
-
-      <button
-        @click="savePreferences"
-        class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
-      >
-        {{ t('common.save') }}
-      </button>
-
-      <div v-if="saveSuccess" class="text-green-600 text-sm text-center">
-        {{ t('profile.preferences.saveSuccess') }}
-      </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -86,6 +48,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import LanguageSelector from '@/components/LanguageSelector.vue'
+import { setUnitSystem, unitSystem } from '@/composables/useUnits'
 
 const { t } = useI18n()
 
@@ -110,12 +73,17 @@ onMounted(async () => {
   if (savedPrefs) {
     preferences.value = savedPrefs as AppPreferences
   }
+  // Stay in step with the shared source in case it loaded first.
+  preferences.value.units = unitSystem.value
 })
 
 const savePreferences = async () => {
   if (!dbService) return
 
   await dbService.saveData('app_preferences', preferences.value)
+  // Push into the shared reactive source so every mounted screen switches now,
+  // rather than only the ones rendered after the next reload.
+  setUnitSystem(preferences.value.units)
 
   saveSuccess.value = true
   setTimeout(() => {
@@ -123,3 +91,34 @@ const savePreferences = async () => {
   }, 3000)
 }
 </script>
+
+<style scoped>
+.units__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.choice input {
+  accent-color: var(--color-green-600);
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-green-700);
+}
+</style>

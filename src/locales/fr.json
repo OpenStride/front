@@ -1,6 +1,5 @@
 {
   "activityDetail": {
-    "noRoute": "Aucun tracé GPS",
     "distance": "Distance",
     "avgPace": "Allure moy.",
     "time": "Temps",
@@ -8,7 +7,12 @@
     "avgHr": "FC moy.",
     "maxHr": "FC max",
     "cadence": "Cadence",
-    "calories": "Calories"
+    "calories": "Calories",
+    "avgSpeed": "Vitesse moy.",
+    "elevationDown": "Dénivelé -",
+    "maxSpeed": "Vitesse max",
+    "hrAvgMax": "FC moy./max",
+    "elevationUpDown": "Dénivelé +/-"
   },
   "sports": {
     "running": "Course à pied",
@@ -114,12 +118,59 @@
   "navigation": {
     "home": "Accueil",
     "profile": "Profil",
-    "friends": "Amis",
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
-    "myActivities": "Mes activités",
-    "statistics": "Statistiques"
+    "statistics": "Statistiques",
+    "metricTracker": "Suivi de métriques"
+  },
+  "metricTracker": {
+    "title": "Suivi de métriques",
+    "metric": "Métrique",
+    "granularity": "Granularité",
+    "sport": "Sport",
+    "allSports": "Tous les sports",
+    "noData": "Aucune donnée disponible",
+    "noDataHint": "Importez des activités pour suivre vos métriques",
+    "noPoints": "Aucune valeur pour cette métrique",
+    "noPointsHint": "Aucune de vos activités ne porte cette donnée sur la sélection en cours",
+    "loadingStats": "Chargement des données détaillées...",
+    "indexing": "Analyse de vos activités...",
+    "indexingHint": "Ce calcul n'a lieu qu'une fois, les prochaines visites seront immédiates",
+    "timeOn": "Temps au {distance}",
+    "groups": {
+      "direct": "Données de séance",
+      "bestTimes": "Meilleurs temps"
+    },
+    "window": "Fenêtre",
+    "windows": {
+      "all": "Tout",
+      "12m": "12 mois",
+      "6m": "6 mois",
+      "3m": "3 mois"
+    },
+    "granularities": {
+      "activity": "Par sortie",
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
+    },
+    "metrics": {
+      "distance": "Distance",
+      "duration": "Durée",
+      "pace": "Allure",
+      "speed": "Vitesse moyenne",
+      "maxHeartRate": "FC max",
+      "avgHeartRate": "FC moyenne",
+      "totalAscent": "Dénivelé +",
+      "calories": "Calories"
+    },
+    "summary": {
+      "best": "Meilleur",
+      "average": "Moyenne",
+      "points": "Points"
+    },
+    "openFullPage": "Ouvrir la page complète"
   },
   "profile": {
     "createProfile": "Créer un Profil",
@@ -135,23 +186,22 @@
       "cloudBackup": "Sauvegarde cloud",
       "appExtensions": "Extensions",
       "sharing": "Partage & Confidentialité",
-      "friends": "Amis",
+      "friends": "Amis & partage",
       "mcp": "Assistant IA (MCP)"
     },
     "identity": {
       "section": "Identité"
     },
     "athlete": {
-      "title": "Profil",
       "section": "Informations athlète",
       "weight": "Poids (kg)",
       "maxHR": "FC max (bpm)",
       "restingHR": "FC repos (bpm)",
       "ftp": "FTP (watts)",
-      "saveSuccess": "Profil athlète sauvegardé"
+      "saveSuccess": "Profil athlète sauvegardé",
+      "lead": "Sert aux zones cardiaques, aux calories et aux estimations de puissance."
     },
     "preferences": {
-      "title": "Préférences de l'application",
       "units": "Système d'unités",
       "metric": "Métrique (km)",
       "imperial": "Impérial (mi)",
@@ -170,7 +220,13 @@
     "publishing": "Publication...",
     "updateData": "Mettre à jour",
     "publishData": "Publier mes données",
-    "scanToFollow": "Scannez ce code pour me suivre",
+    "publishNeedsStorage": "La publication nécessite un espace cloud",
+    "publishNeedsStorageHelp": "Votre profil public est hébergé sur votre propre espace cloud. Connectez Google Drive pour le publier et permettre à vos amis de vous suivre.",
+    "connectStorage": "Connecter un espace",
+    "autoPublish": "Garder mon profil public à jour",
+    "autoPublishHint": "Republie automatiquement quand vos activités changent, pour que vos amis voient vos dernières sorties sans que vous ayez à y penser.",
+    "autoPublishOn": "Votre profil public restera à jour",
+    "autoPublishOff": "Mise à jour automatique désactivée — il faudra publier manuellement",
     "mcp": {
       "title": "Assistant IA (MCP)",
       "description": "Connectez vos données d'entraînement aux assistants IA comme Claude, ChatGPT, et plus encore en utilisant le Model Context Protocol (MCP).",
@@ -197,52 +253,17 @@
       "totalActivities": "Activités",
       "totalDistance": "Distance totale",
       "totalDuration": "Temps total"
-    }
-  },
-  "home": {
-    "hero": {
-      "title": "Explorez. Contrôlez. Partagez.",
-      "subtitle": "Votre compagnon d'activités qui respecte votre vie privée. Open-source, gratuit et entièrement transparent.",
-      "cta": "Commencer maintenant"
     },
-    "features": {
-      "privacy": {
-        "title": "Respect de votre vie privée",
-        "description": "Vos données restent vos données."
-      },
-      "openSource": {
-        "title": "Open-source",
-        "description": "Transparent et évolutif par tous."
-      },
-      "free": {
-        "title": "Gratuit",
-        "description": "Aucun frais caché, pour toujours."
-      },
-      "customizable": {
-        "title": "Personnalisable",
-        "description": "Choisissez vos fournisseurs de données."
-      }
-    },
-    "quickAccess": {
-      "step1": {
-        "title": "1. Connectez un fournisseur de données",
-        "description": "Pour pouvoir voir vos premières activités, connectez un fournisseur de données (Garmin, Coros, Suunto etc.).",
-        "button": "Configurer les fournisseurs de données"
-      },
-      "step2": {
-        "title": "2. Configurez la sauvegarde",
-        "description": "Pour sécuriser vos données, choisissez un fournisseur de sauvegarde (Google Drive, Dropbox, etc.).",
-        "button": "Configurer la sauvegarde"
-      }
-    }
+    "myPublicProfile": "Mon profil public",
+    "myPublicProfileLead": "Ce que vos amis voient de vous, et à quelle fréquence c'est rafraîchi.",
+    "sharedCount": "{count} activité partagée | {count} activités partagées",
+    "publishedAt": "Publié {time}",
+    "nothingShared": "Vos amis ne voient rien pour l'instant : vos activités sont privées par défaut. Passez la confidentialité en public ci-dessous, ou ouvrez une activité pour la partager seule.",
+    "shareMyProfile": "Partager mon profil"
   },
   "activities": {
     "loading": "Chargement...",
     "allLoaded": "Toutes les activités sont chargées.",
-    "noActivities": "Aucune activité pour le moment.",
-    "myActivities": "Mes activités",
-    "friends": "Amis",
-    "total": "Total",
     "noActivity": "Aucune activité",
     "noActivityDescription": "Connectez un fournisseur de données ou ajoutez des amis pour voir des activités ici",
     "configureData": "Configurer les données",
@@ -253,37 +274,40 @@
     "sportType": "Type de sport",
     "allSports": "Tous",
     "distance": "Distance",
-    "ascent": "Dénivelé positif",
     "min": "Min",
     "max": "Max",
     "reset": "Réinitialiser",
     "resultCount": "{count} activité | {count} activités",
-    "noResults": "Aucune activité ne correspond aux filtres."
+    "noResults": "Aucune activité ne correspond aux filtres.",
+    "date": "Période",
+    "dateFrom": "À partir du",
+    "dateTo": "Jusqu'au",
+    "duration": "Durée",
+    "minutes": "min"
   },
   "friends": {
-    "title": "Activités des amis",
-    "activities": "Activités",
-    "sync": "Synchroniser",
     "addFriend": "Ajouter un ami",
     "noActivities": "Aucune activité d'amis",
     "noActivitiesDescription": "Ajoutez des amis pour voir leurs activités ici",
-    "manageFriends": "Gérer mes amis"
+    "actions": "Actions amis",
+    "quickQr": "Mon QR",
+    "quickAdd": "Ajouter",
+    "quickManage": "Gérer"
   },
   "dataProviders": {
-    "title": "Fournisseurs de données connectés",
-    "available": "Fournisseurs disponibles",
-    "noProviders": "Aucun fournisseur connecté.",
-    "myProviders": "Mes sources de données"
+    "available": "À connecter",
+    "noProviders": "Aucune source connectée pour l'instant.",
+    "myProviders": "Mes sources"
   },
   "storageProviders": {
-    "title": "Plugins de stockage connectés",
-    "available": "Plugins disponibles",
-    "noPlugins": "Aucun plugin de stockage connecté.",
-    "myPlugins": "Mes sauvegardes cloud"
+    "available": "À connecter",
+    "noPlugins": "Aucune sauvegarde configurée pour l'instant.",
+    "myPlugins": "Ma sauvegarde"
   },
   "appExtensions": {
-    "title": "Extensions d'application",
-    "description": "Gérez les widgets et fonctionnalités affichés dans l'application"
+    "title": "Extensions",
+    "description": "Chaque extension ajoute des écrans ou des blocs dans l'application. Désactivez celles dont vous ne vous servez pas.",
+    "toggle": "Activer ou désactiver {name}"
   },
   "onboarding": {
     "provider": {
@@ -397,6 +421,20 @@
       "oauthError": "Erreur OAuth : {error}",
       "wrongBrowser": "Cette page s'est ouverte dans un autre navigateur.",
       "wrongBrowserHint": "Retournez sur votre navigateur principal (Chrome) et réessayez."
+    },
+    "strava": {
+      "title": "Importer depuis Strava",
+      "intro": "L'API Strava n'est pas compatible avec le modèle de confidentialité d'OpenStride ; on importe donc l'archive de données que tu demandes à Strava — ce sont tes données, elles ne quittent pas ton appareil.",
+      "step1": "Ouvre ta page d'export de données Strava et connecte-toi :",
+      "step1Link": "Page d'export Strava",
+      "step2": "Demande ton archive, puis attends l'e-mail de Strava avec le lien de téléchargement (ça peut prendre quelques heures).",
+      "step3": "Télécharge l'archive ZIP, puis sélectionne-la ci-dessous.",
+      "selectZip": "Sélectionne ton export Strava (.zip)",
+      "parsing": "Lecture de ton export…",
+      "importing": "Import en cours… {done}/{total}",
+      "done": "{count} activités importées.",
+      "noCsv": "Ce fichier ne ressemble pas à un export Strava (activities.csv introuvable).",
+      "error": "Échec de l'import : {message}"
     }
   },
   "update": {
@@ -417,23 +455,36 @@
   "statistics": {
     "title": "Statistiques",
     "allSports": "Tous les sports",
-    "noData": "Aucune donnee disponible",
-    "noDataHint": "Importez des activites pour voir vos statistiques",
+    "noData": "Aucune donnée disponible",
+    "noDataHint": "Importez des activités pour voir vos statistiques",
+    "summary": {
+      "title": "Totaux",
+      "periodLabel": "Période des totaux",
+      "allSports": "Tous sports confondus : le filtre ne s'applique pas a ces totaux",
+      "periods": {
+        "week": "Cette semaine",
+        "month": "Ce mois",
+        "year": "Cette année"
+      },
+      "metrics": {
+        "distance": "Distance",
+        "duration": "Durée",
+        "totalAscent": "Dénivelé +"
+      }
+    },
     "trends": {
       "title": "Tendances",
       "distance": "Distance (km)",
-      "activities": "Activites",
+      "activities": "Activités",
       "week": "Semaine",
       "month": "Mois",
-      "year": "Annee"
+      "year": "Année",
+      "distanceLabel": "Distance"
     },
     "distribution": {
-      "title": "Repartition",
-      "bySport": "Par sport",
-      "byMonth": "Par mois",
-      "activitiesCount": "Nombre d'activites",
-      "distanceKm": "Distance (km)",
-      "durationH": "Duree (h)"
+      "title": "Répartition",
+      "durationH": "Durée (h)",
+      "distance": "Distance"
     },
     "records": {
       "title": "Records personnels",
@@ -442,26 +493,26 @@
       "pace": "Allure",
       "speed": "Vitesse",
       "date": "Date",
-      "activity": "Activite",
+      "activity": "Activité",
       "computing": "Calcul des records en cours...",
-      "noRecords": "Aucun record trouve",
-      "noRecordsHint": "Les records sont calcules a partir des donnees GPS de vos activites",
-      "noRecordsPeriodHint": "Aucun record sur la periode selectionnee",
-      "periodLabel": "Periode des records",
+      "noRecords": "Aucun record trouvé",
+      "noRecordsHint": "Les records sont calculés à partir des données GPS de vos activités",
+      "noRecordsPeriodHint": "Aucun record sur la période sélectionnée",
+      "periodLabel": "Période des records",
       "period": {
         "all": "Tout",
         "month": "Ce mois",
         "quarter": "Ce trimestre",
-        "year": "Cette annee"
+        "year": "Cette année"
       }
     },
     "heatmap": {
-      "title": "Calendrier d'activite",
+      "title": "Calendrier d'activité",
       "less": "Moins",
       "more": "Plus",
       "distance": "Distance",
-      "duration": "Duree",
-      "count": "Activites"
+      "duration": "Durée",
+      "count": "Activités"
     }
   },
   "setupBanner": {
@@ -493,12 +544,11 @@
       "monthly": "Mensuel"
     },
     "units": {
-      "km": "km",
       "activities": "activités",
       "hours": "h"
     },
     "form": {
-      "distanceKm": "Distance (km)",
+      "distance": "Distance ({unit})",
       "activityCount": "Nombre d'activités",
       "durationHours": "Durée (heures)",
       "target": "Objectif"
@@ -516,6 +566,372 @@
       "9": "Octobre",
       "10": "Novembre",
       "11": "Décembre"
+    }
+  },
+  "graphs": {
+    "heartRate": "Fréquence cardiaque",
+    "heartZones": "Zones de FC",
+    "cadence": "Cadence",
+    "pace": "Allure",
+    "noHeartRate": "Aucune donnée de fréquence cardiaque disponible",
+    "average": "Moyenne",
+    "maxHr": "FC max",
+    "slopeVariation": "Variation de pente",
+    "zone": "Zone",
+    "distance": "Distance",
+    "speed": "Vitesse",
+    "slope": "Pente",
+    "colDistance": "Dist.",
+    "colPace": "Allure",
+    "colHeartRate": "FC",
+    "colSlope": "Pente"
+  },
+  "bests": {
+    "title": "Bests de la séance",
+    "distance": "Distance",
+    "time": "Temps",
+    "pace": "Allure",
+    "speed": "Vitesse",
+    "graph": "Graph",
+    "viewProgress": "Voir l'évolution sur cette distance"
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "isPublic": "Cette activité est publique",
+    "isPrivate": "Cette activité est privée",
+    "public": "Public",
+    "private": "Privé",
+    "nowPublic": "Activité rendue publique",
+    "nowPrivate": "Activité rendue privée",
+    "toggleFailed": "Erreur lors de la modification"
+  },
+  "addFriend": {
+    "adding": "Ajout de votre ami...",
+    "added": "{name} ajouté !",
+    "redirecting": "Redirection vers vos amis...",
+    "error": "Erreur",
+    "retry": "Réessayer",
+    "backToFriends": "Retour aux amis",
+    "invalidLink": "Lien invalide",
+    "invalidLinkHelp": "Ce lien de partage n'est pas valide ou a expiré.",
+    "loadingProfile": "Chargement du profil…",
+    "activities": "activités",
+    "confirm": "Suivre {name}",
+    "confirmHelp": "Ses activités publiques seront copiées sur cet appareil. Vous pouvez le retirer à tout moment.",
+    "alreadyAdded": "Cette personne fait déjà partie de vos amis.",
+    "profileUnreachable": "Ce profil n'a pas pu être chargé. Il a peut-être été dépublié.",
+    "unknownError": "Erreur inconnue",
+    "nextStepTitle": "Encore une étape",
+    "nextStepPublish": "Il ne vous voit pas encore. Publiez votre profil pour qu'il puisse vous suivre en retour — les likes et commentaires nécessitent les deux sens.",
+    "nextStepShare": "Il ne vous verra que s'il vous ajoute aussi. Montrez-lui votre QR code pour boucler la boucle.",
+    "publishMyProfile": "Publier mon profil",
+    "showMyQr": "Afficher mon QR code",
+    "seeTheirActivities": "Voir ses activités",
+    "movedHelp": "Vous suivez déjà {name}. Son profil a changé d'adresse — mettez le lien à jour pour continuer à recevoir ses activités.",
+    "updateLink": "Mettre à jour le lien"
+  },
+  "callback": {
+    "connecting": "Connexion en cours...",
+    "error": "Erreur"
+  },
+  "setup": {
+    "providerNotFound": "Fournisseur introuvable."
+  },
+  "qrScanner": {
+    "title": "Scanner un QR Code",
+    "enableCamera": "Activer la caméra",
+    "permissionHelp": "Veuillez autoriser l'accès dans les paramètres de votre navigateur",
+    "enterManually": "Saisir l'URL manuellement",
+    "frameHint": "Positionnez le QR code dans le cadre",
+    "friendUrl": "URL publique de votre ami :",
+    "manualEntry": "Saisir manuellement",
+    "cameraNeeded": "L'accès à la caméra est nécessaire",
+    "cameraDenied": "Accès caméra refusé",
+    "invalidCode": "Ce QR code n'est pas un profil OpenStride"
+  },
+  "interactions": {
+    "comment": "Commenter",
+    "addComment": "Ajouter un commentaire...",
+    "mutualRequired": "Il doit vous ajouter en retour pour que vous puissiez aimer ou commenter",
+    "publishRequired": "Publiez votre profil pour aimer et commenter",
+    "none": "Aucune interaction pour le moment",
+    "sending": "Envoi...",
+    "publish": "Publier",
+    "shareProfile": "Partager mon profil",
+    "delete": "Supprimer",
+    "like": "J'aime",
+    "liked": "Aimé",
+    "whyBlocked": "Pourquoi je ne peux pas ?",
+    "publishAction": "Publier mon profil"
+  },
+  "friendsList": {
+    "empty": "Aucun ami ajouté",
+    "emptyHelp": "Scannez le QR code d'un ami pour commencer à suivre ses activités",
+    "sync": "Synchroniser",
+    "syncFull": "Synchroniser l'historique complet",
+    "syncedFull": "Historique complet synchronisé",
+    "remove": "Supprimer",
+    "removeTitle": "Supprimer {name} ?",
+    "removeHelp": "Ses activités seront également supprimées de votre appareil.",
+    "mutual": "Vous suit",
+    "notMutual": "Ne vous suit pas encore",
+    "addedOn": "Ajouté le {date}",
+    "lastSync": "Sync {time}",
+    "title": "Mes amis"
+  },
+  "activityDetailPage": {
+    "friendActivity": "Activité de",
+    "notFound": "Activité introuvable."
+  },
+  "app": {
+    "refresh": "Actualiser",
+    "close": "Fermer",
+    "logo": "Logo",
+    "forceUpdate": "Cliquer pour forcer la mise à jour",
+    "profileSections": "Sections du profil",
+    "providerLogo": "Logo du fournisseur"
+  },
+  "notifications": {
+    "title": "Notifications push",
+    "unsupported": "Votre navigateur ne supporte pas les notifications push",
+    "notConfigured": "Firebase n'est pas configuré. Consultez le README du plugin.",
+    "enable": "Activer les notifications",
+    "status": "Statut :",
+    "token": "Token FCM :"
+  },
+  "zipImport": {
+    "title": "Importer un export ZIP d'activités",
+    "importing": "Import en cours...",
+    "done": "Import terminé !"
+  },
+  "gdrive": {
+    "checking": "Vérification de la connexion à Google Drive...",
+    "verifying": "Vérification en cours..."
+  },
+  "legal": {
+    "privacyPolicy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation",
+    "translationNotice": "Traduction de courtoisie. En cas de divergence, la version anglaise fait foi.",
+    "onlyInEnglish": "Ce document n'est pas encore disponible dans votre langue ; la version anglaise est affichée."
+  },
+  "activityCard": {
+    "distance": "Distance",
+    "time": "Temps",
+    "pace": "Allure",
+    "speed": "Vitesse",
+    "elevation": "Dénivelé +",
+    "calories": "Calories"
+  },
+  "time": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {count} min",
+    "hoursAgo": "il y a {count}h",
+    "daysAgo": "il y a {count}j",
+    "today": "aujourd'hui"
+  },
+  "friendEvents": {
+    "invalidShareUrl": "Lien de partage invalide",
+    "profileUnreachable": "Ce profil n'a pas pu être chargé",
+    "idCollision": "Collision d'identifiant — cet ami n'a pas pu être ajouté",
+    "alreadyAdded": "Cet ami est déjà dans votre liste",
+    "friendAdded": "{name} ajouté",
+    "recentActivitiesSynced": "{count} activité récente synchronisée | {count} activités récentes synchronisées",
+    "addFailed": "Impossible d'ajouter cet ami",
+    "friendRemoved": "Ami supprimé",
+    "removeFailed": "Impossible de supprimer cet ami",
+    "nowFollowsYou": "{name} vous suit maintenant",
+    "publishYearsFailed": "Échec de publication pour : {years}",
+    "publishManifestFailed": "Votre profil n'a pas pu être publié",
+    "publishSucceeded": "Votre profil public a été publié",
+    "publishFailed": "Échec de la publication",
+    "refreshFriends": "{friends} ami(s) synchronisé(s)",
+    "refreshActivities": "{friends} ami(s) synchronisé(s), {activities} activité(s)",
+    "refreshInteractions": "{friends} ami(s) synchronisé(s), {interactions} interaction(s)",
+    "refreshFull": "{friends} ami(s) synchronisé(s), {activities} activité(s), {interactions} interaction(s)",
+    "profileMoved": "Le profil de {name} a changé d'adresse, lien mis à jour"
+  },
+  "myQr": {
+    "title": "Mon QR code",
+    "help": "Faites scanner ce code à un ami, ou envoyez-lui le lien, pour qu'il puisse vous suivre.",
+    "notPublished": "Vous n'avez pas encore publié votre profil, il n'y a donc rien à scanner. Publiez-le pour que vos amis puissent vous suivre.",
+    "publishAction": "Publier mon profil",
+    "share": "Partager",
+    "copy": "Copier le lien",
+    "copied": "Copié",
+    "shareTitle": "Suivez-moi sur OpenStride",
+    "shareText": "Ouvrez ce lien dans OpenStride pour suivre mes activités"
+  },
+  "units": {
+    "km": "km",
+    "mi": "mi",
+    "m": "m",
+    "yd": "yd",
+    "ft": "ft",
+    "kmh": "km/h",
+    "mph": "mph",
+    "perKm": "/km",
+    "perMi": "/mi",
+    "per100m": "/100 m",
+    "per100yd": "/100 yd",
+    "celsius": "°C",
+    "fahrenheit": "°F",
+    "spm": "spm",
+    "rpm": "rpm",
+    "watt": "W"
+  },
+  "swimSummary": {
+    "title": "Natation"
+  },
+  "measurements": {
+    "poolLength": "Bassin",
+    "lengths": "Longueurs",
+    "strokes": "Mouvements",
+    "strokeRate": "Fréquence",
+    "swolf": "SWOLF",
+    "cadence": "Cadence",
+    "normalizedPower": "Puissance norm."
+  },
+  "heartZones": {
+    "vo2max": "VO₂ Max",
+    "threshold": "Seuil",
+    "tempo": "Tempo",
+    "endurance": "Endurance",
+    "recovery": "Récup."
+  },
+  "install": {
+    "title": "Ajouter OpenStride à votre écran d'accueil",
+    "subtitle": "S'ouvre instantanément, fonctionne hors ligne, et garde sa place sur votre téléphone.",
+    "action": "Installer",
+    "later": "Plus tard",
+    "ios": {
+      "subtitle": "Installez avant de connecter une source : sur iPhone, une app installée garde ses propres données — ce qui serait importé dans Safari resterait derrière.",
+      "share": "Touchez Partager dans la barre Safari",
+      "addToHome": "Choisissez « Sur l'écran d'accueil »",
+      "confirm": "Confirmez avec « Ajouter »"
+    }
+  },
+  "sync": {
+    "started": "Synchronisation…",
+    "inProgress": "Une synchronisation est déjà en cours",
+    "noStorage": "Aucun stockage distant configuré",
+    "partial": "Synchronisation partielle — {count} erreur | Synchronisation partielle — {count} erreurs",
+    "upToDate": "Tout est à jour",
+    "synced": "{count} activité synchronisée | {count} activités synchronisées",
+    "failed": "Échec de la synchronisation",
+    "conflict": "« {title} » modifiée sur deux appareils. La version la plus récente a été conservée."
+  },
+  "backup": {
+    "completed": "Sauvegarde terminée",
+    "failed": "Échec de la sauvegarde"
+  },
+  "share": {
+    "publishFirst": "Publiez d’abord vos données depuis votre profil",
+    "linkCopied": "Lien de profil copié",
+    "copyFailed": "Impossible de copier le lien"
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "Local-first · Open source · Gratuit",
+      "title": "Vos données d'entraînement vous appartiennent.",
+      "lead": "OpenStride rassemble vos sorties Garmin et Strava au même endroit, et les garde sur votre appareil. Pas sur nos serveurs.",
+      "cta": "Importer mes activités",
+      "ctaCode": "Voir le code",
+      "note": "Sans compte à créer, sans abonnement, sans traceur."
+    },
+    "how": {
+      "title": "Comment ça marche",
+      "connect": {
+        "title": "1. Branchez votre montre",
+        "text": "Garmin en quelques clics, ou l'archive de votre compte Strava. Vos sorties arrivent complètes : trace GPS, fréquence cardiaque, cadence, dénivelé."
+      },
+      "analyze": {
+        "title": "2. Analysez sans boîte noire",
+        "text": "Records personnels, meilleurs temps, segments, progression sur l'année. Chaque calcul est ouvert : un chiffre vous surprend, vous pouvez aller lire d'où il sort."
+      },
+      "own": {
+        "title": "3. Gardez la main",
+        "text": "Vos activités vivent dans votre navigateur. Une sauvegarde cloud existe si vous la voulez — c'est vous qui l'allumez, et vous choisissez chez qui."
+      }
+    },
+    "why": {
+      "title": "Pourquoi OpenStride",
+      "privacy": {
+        "title": "Vie privée",
+        "text": "Aucun compte, aucun traceur. Vos données ne partent nulle part tant que vous ne l'avez pas demandé."
+      },
+      "openSource": {
+        "title": "Open source",
+        "text": "Le code est public, les algorithmes aussi. Y compris ceux qui calculent vos performances."
+      },
+      "free": {
+        "title": "Gratuit",
+        "text": "Pas d'abonnement, pas de version premium, rien derrière un paywall."
+      },
+      "extensible": {
+        "title": "Extensible",
+        "text": "OpenStride est fait de plugins. Il manque votre montre ou votre graphique préféré ? Il peut être ajouté."
+      }
+    },
+    "sources": {
+      "title": "Vos sources",
+      "lead": "Ce qui fonctionne aujourd'hui. La liste s'allonge au rythme des plugins.",
+      "garmin": {
+        "name": "Garmin Connect",
+        "how": "Connexion directe"
+      },
+      "strava": {
+        "name": "Strava",
+        "how": "Import de votre archive — FIT, GPX et TCX inclus"
+      }
+    },
+    "closing": {
+      "title": "Reprenez vos données.",
+      "text": "Quelques minutes pour importer des années d'entraînement. Et rien à désinstaller si ça ne vous plaît pas : tout est chez vous."
+    }
+  },
+  "feed": {
+    "scopes": {
+      "all": "Tout",
+      "own": "Moi",
+      "friends": "Amis"
+    }
+  },
+  "extensions": {
+    "activity-privacy": {
+      "label": "Confidentialité des activités",
+      "description": "Choisissez activité par activité ce que vos amis peuvent voir."
+    },
+    "aggregated-details": {
+      "label": "Records et classements",
+      "description": "Affiche vos meilleures performances et votre classement sur l'ensemble de vos sorties."
+    },
+    "goals": {
+      "label": "Objectifs d'entraînement",
+      "description": "Fixez des objectifs hebdomadaires ou mensuels et suivez leur progression en direct."
+    },
+    "mcp": {
+      "label": "Assistant IA (MCP)",
+      "description": "Connectez vos données d'entraînement à Claude, ChatGPT ou un autre assistant via le protocole MCP."
+    },
+    "metric-tracker": {
+      "label": "Suivi d'une métrique",
+      "description": "Suivez l'évolution d'une seule métrique dans le temps, par sortie ou par période."
+    },
+    "profile-sharing": {
+      "label": "Partage et confidentialité",
+      "description": "Gère vos réglages de partage et la publication de votre profil public."
+    },
+    "standard-details": {
+      "label": "Détail des activités",
+      "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."
+    },
+    "statistics": {
+      "label": "Statistiques",
+      "description": "Tendances, répartitions, records personnels et calendrier d'activité."
+    },
+    "firebase-notifications": {
+      "label": "Notifications push",
+      "description": "Recevez une notification quand de nouvelles activités sont importées."
     }
   }
 }

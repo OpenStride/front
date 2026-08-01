@@ -15,14 +15,17 @@ import { PublicFileService } from './PublicFileService'
 import { IndexedDBService } from './IndexedDBService'
 import { FriendService } from './FriendService'
 import { debounce } from '@/utils/debounce'
+import type { FriendServiceEvent } from '@/types/friend'
 
 export class PublicDataListener {
   private static instance: PublicDataListener
   private activityServiceListener: ((evt: Event) => void) | null = null
   private friendsChangedListener: ((evt: Event) => void) | null = null
   private refreshRequestedListener: ((evt: Event) => void) | null = null
+  private firstPublishListener: ((evt: Event) => void) | null = null
   private debouncedPublish: (() => void) | null = null
   private isPublishing = false
+  private listening = false
   public emitter = new EventTarget()
 
   private constructor() {
@@ -37,10 +40,47 @@ export class PublicDataListener {
   }
 
   /**
+   * Call this once during app bootstrap.
+   *
+   * Starts the listener when auto-publish is on, and — either way — watches for
+   * the user's first successful publish so it can turn itself on. Publishing is
+   * an explicit act; keeping it a one-shot afterwards was the reason friends
+   * stopped seeing new activities the day after they were added.
+   */
+  async initialize(): Promise<void> {
+    this.firstPublishListener = (evt: Event) => {
+      const detail = (evt as CustomEvent<FriendServiceEvent>).detail
+      if (detail?.type !== 'publish-completed') return
+      this.enableAutoPublishOnFirstPublish().catch(err =>
+        console.error('[PublicDataListener] Could not enable auto-publish:', err)
+      )
+    }
+    FriendService.getInstance().emitter.addEventListener('friend-event', this.firstPublishListener)
+
+    await this.startListening()
+  }
+
+  /**
+   * Turn auto-publish on the first time the user publishes — unless they have
+   * already answered the question themselves. An explicit `false` stays false.
+   */
+  private async enableAutoPublishOnFirstPublish(): Promise<void> {
+    const db = await IndexedDBService.getInstance()
+    const preference = await db.getData('autoPublishEnabled')
+
+    if (preference !== null && preference !== undefined) return
+
+    console.log('[PublicDataListener] First publish, enabling auto-publish')
+    await this.enableAutoPublish()
+  }
+
+  /**
    * Start listening to ActivityService events
    * Call this once during app bootstrap (after checking if auto-publish is enabled)
    */
   async startListening(): Promise<void> {
+    if (this.listening) return
+
     // Check if auto-publish is enabled
     const db = await IndexedDBService.getInstance()
     const autoPublishEnabled = await db.getData('autoPublishEnabled')
@@ -95,6 +135,7 @@ export class PublicDataListener {
     }
     window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
 
+    this.listening = true
     console.log(
       '[PublicDataListener] Started listening to ActivityService, friends-changed, and refresh-requested events'
     )
@@ -118,6 +159,7 @@ export class PublicDataListener {
       this.refreshRequestedListener = null
     }
     this.debouncedPublish = null
+    this.listening = false
     console.log('[PublicDataListener] Stopped listening')
   }
 

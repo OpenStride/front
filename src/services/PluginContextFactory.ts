@@ -1,15 +1,26 @@
-import type { PluginContext } from '@/types/plugin-context'
+import type { PluginContext, ProviderImportEvent } from '@/types/plugin-context'
 import { getActivityService } from './ActivityService'
 import { IndexedDBService } from './IndexedDBService'
 import { ToastService } from './ToastService'
 import { aggregationService } from './AggregationService'
 import { FriendService } from './FriendService'
+import { PublicFileService } from './PublicFileService'
+import { getPublicDataListener } from './PublicDataListener'
+import { PublicDataPublisher } from './PublicDataPublisher'
 import { ActivityAnalyzer } from './ActivityAnalyzer'
 import { DataProviderPluginManager } from './DataProviderPluginManager'
 import { StoragePluginManager } from './StoragePluginManager'
 import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
+import { DataProviderService } from './DataProviderService'
+import {
+  convertQuantity,
+  ensureUnitsLoaded,
+  formatQuantity,
+  toSI,
+  unitSystem
+} from '@/composables/useUnits'
 
 /**
  * Factory function to create a PluginContext for dependency injection
@@ -20,6 +31,8 @@ import { SyncService } from './SyncService'
 export async function createPluginContext(): Promise<PluginContext> {
   const activityService = await getActivityService()
   const storageService = await IndexedDBService.getInstance()
+  // Plugins may format before any component has mounted.
+  await ensureUnitsLoaded()
 
   return {
     activity: activityService,
@@ -84,6 +97,13 @@ export async function createPluginContext(): Promise<PluginContext> {
       publishPublicData: () => FriendService.getInstance().publishPublicData(),
       getMyManifestUrl: () => FriendService.getInstance().getMyManifestUrl(),
       getMyPublicUrl: () => FriendService.getInstance().getMyPublicUrl(),
+      canPublish: () => PublicFileService.getInstance().hasPublicFileSupport(),
+      getPublicSummary: () => PublicDataPublisher.getInstance().getPublicSummary(),
+      isAutoPublishEnabled: () => getPublicDataListener().isAutoPublishEnabled(),
+      setAutoPublish: enabled =>
+        enabled
+          ? getPublicDataListener().enableAutoPublish()
+          : getPublicDataListener().disableAutoPublish(),
       onEvent: (event, handler) =>
         FriendService.getInstance().emitter.addEventListener(event, handler as EventListener),
       offEvent: (event, handler) =>
@@ -99,6 +119,26 @@ export async function createPluginContext(): Promise<PluginContext> {
     sync: {
       syncNow: async (opts?: { force?: boolean }) => {
         await SyncService.getInstance().syncNow(opts)
+      }
+    },
+
+    units: {
+      // A getter, not a snapshot: the context is a cached singleton, so a plain
+      // value would freeze the preference as it stood when it was built.
+      get system() {
+        return unitSystem.value
+      },
+      format: formatQuantity,
+      convert: convertQuantity,
+      toSI
+    },
+
+    providers: {
+      onActivitiesImported: (handler: (event: ProviderImportEvent) => void) => {
+        const service = DataProviderService.getInstance()
+        const listener = (evt: Event) => handler((evt as CustomEvent<ProviderImportEvent>).detail)
+        service.emitter.addEventListener('provider-activities-imported', listener)
+        return () => service.emitter.removeEventListener('provider-activities-imported', listener)
       }
     }
   }

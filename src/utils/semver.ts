@@ -2,7 +2,7 @@
  * Semantic versioning utilities for version comparison
  */
 
-export interface Version {
+interface Version {
   major: number
   minor: number
   patch: number
@@ -12,7 +12,7 @@ export interface Version {
  * Parse a semantic version string (e.g., "1.2.3")
  * @throws {Error} If version format is invalid
  */
-export function parseVersion(version: string): Version {
+function parseVersion(version: string): Version {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)/)
   if (!match) {
     throw new Error(`Invalid version format: ${version}`)
@@ -35,11 +35,4 @@ export function compareVersions(a: string, b: string): number {
   if (vA.major !== vB.major) return vA.major - vB.major
   if (vA.minor !== vB.minor) return vA.minor - vB.minor
   return vA.patch - vB.patch
-}
-
-/**
- * Check if target version is newer than current version
- */
-export function isNewerVersion(current: string, target: string): boolean {
-  return compareVersions(target, current) > 0
 }

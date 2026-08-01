@@ -97,6 +97,7 @@ export interface FriendSyncResult {
 export interface FriendServiceEvent {
   type:
     | 'friend-added'
+    | 'friend-updated'
     | 'friend-removed'
     | 'sync-completed'
     | 'publish-completed'
@@ -108,6 +109,14 @@ export interface FriendServiceEvent {
   friend?: Friend
   syncResult?: FriendSyncResult
   publishUrl?: string
-  message?: string
+  /**
+   * i18n key under `friendEvents.*`. Services must not carry display strings —
+   * they cannot know the user's locale, and for a long time every one of these
+   * was hardcoded French shown to English users.
+   */
+  messageKey?: string
+  messageParams?: Record<string, unknown>
+  /** Plural count, when the message has singular and plural forms */
+  messageCount?: number
   messageType?: 'success' | 'error' | 'warning' | 'info'
 }

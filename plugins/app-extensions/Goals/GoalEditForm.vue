@@ -46,10 +46,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePluginContext } from '@/composables/usePluginContext'
 import type { GoalType, GoalPeriod, Goal } from './types'
 import { formatSportType } from './sportLabels'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
 
 defineProps<{
   availableSportTypes: string[]
@@ -65,10 +67,11 @@ const goalPeriod = ref<GoalPeriod>('week')
 const sportType = ref('')
 const targetValue = ref<number | null>(null)
 
+/** The unit the field is read in — the reader's own for a distance. */
 const unitLabel = computed(() => {
   switch (goalType.value) {
     case 'distance':
-      return t('goals.units.km')
+      return units.convert('distance', 0).unit
     case 'count':
       return t('goals.units.activities')
     case 'duration':
@@ -81,7 +84,9 @@ const unitLabel = computed(() => {
 const targetPlaceholder = computed(() => {
   switch (goalType.value) {
     case 'distance':
-      return t('goals.form.distanceKm')
+      // The placeholder names the unit the field expects, so it has to follow
+      // the preference rather than spell "km" out.
+      return t('goals.form.distance', { unit: unitLabel.value })
     case 'count':
       return t('goals.form.activityCount')
     case 'duration':
@@ -93,12 +98,32 @@ const targetPlaceholder = computed(() => {
 
 const isValid = computed(() => targetValue.value != null && targetValue.value > 0)
 
+const SECONDS_PER_HOUR = 3600
+
+/**
+ * What the user typed, in SI.
+ *
+ * The field is read in their units; the stored goal never is. Converting on the
+ * way in is the mirror of converting on the way out, and it is what keeps the
+ * replicated config independent of who wrote it.
+ */
+function targetInSI(value: number): number {
+  switch (goalType.value) {
+    case 'distance':
+      return units.toSI('distance', value)
+    case 'duration':
+      return value * SECONDS_PER_HOUR
+    default:
+      return value
+  }
+}
+
 function onSave() {
   if (!isValid.value) return
   emit('save', {
     type: goalType.value,
     period: goalPeriod.value,
-    targetValue: targetValue.value!,
+    targetValue: targetInSI(targetValue.value!),
     sportType: sportType.value || undefined,
     enabled: true
   })

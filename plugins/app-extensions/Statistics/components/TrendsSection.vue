@@ -32,14 +32,20 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import type { Activity } from '@/types/activity'
 import { toMs } from '../types'
 import type { PeriodGranularity, PeriodData } from '../types'
-import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
+import { periodKey } from '@/utils/dateKeys'
 
 const { t } = useI18n()
+const { units } = usePluginContext()
+
+// The axis carries the unit, so it has to follow the preference.
+const distanceLabel = () =>
+  `${t('statistics.trends.distanceLabel')} (${units.convert('distance', 0).unit})`
 
 const props = defineProps<{
   activities: Activity[]
@@ -53,14 +59,8 @@ const countCanvas = ref<HTMLCanvasElement | null>(null)
 let distanceChart: Chart | null = null
 let countChart: Chart | null = null
 
-function getYearKey(date: Date): string {
-  return `${date.getFullYear()}`
-}
-
 function getPeriodKey(date: Date, g: PeriodGranularity): string {
-  if (g === 'week') return getISOWeekKey(date)
-  if (g === 'month') return getMonthKey(date)
-  return getYearKey(date)
+  return periodKey(date, g)
 }
 
 function formatPeriodLabel(key: string, g: PeriodGranularity): string {
@@ -83,14 +83,14 @@ const periodData = computed<PeriodData[]>(() => {
     const key = getPeriodKey(date, granularity.value)
     const existing = map.get(key)
     if (existing) {
-      existing.distance += (a.distance || 0) / 1000
+      existing.distance += units.convert('distance', a.distance || 0).value
       existing.duration += (a.duration || 0) / 3600
       existing.count += 1
     } else {
       map.set(key, {
         key,
         label: formatPeriodLabel(key, granularity.value),
-        distance: (a.distance || 0) / 1000,
+        distance: units.convert('distance', a.distance || 0).value,
         duration: (a.duration || 0) / 3600,
         count: 1
       })
@@ -120,7 +120,7 @@ function createOrUpdateCharts() {
         labels,
         datasets: [
           {
-            label: t('statistics.trends.distance'),
+            label: distanceLabel(),
             data: distances,
             borderColor: green500,
             backgroundColor: `${green500}1a`,
@@ -180,7 +180,8 @@ function destroyCharts() {
   countChart = null
 }
 
-watch([periodData, granularity], async () => {
+// Chart.js draws to canvas, so switching units has to redraw, not re-render.
+watch([periodData, granularity, () => units.system], async () => {
   await nextTick()
   if (periodData.value.length > 0) {
     destroyCharts()
@@ -201,13 +202,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.section-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  padding: 1.2rem 1.4rem;
-}
-
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -235,6 +229,10 @@ onUnmounted(() => {
   background: var(--bg-color);
   color: var(--text-color);
   font-size: 0.8rem;
+  /* Global button styling shouts in uppercase; a granularity is a label, not a
+     call to action — and the totals above carry the same control */
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
   transition:
     background 0.2s,

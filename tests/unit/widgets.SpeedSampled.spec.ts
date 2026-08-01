@@ -1,9 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import en from '@/locales/en.json'
 import SpeedSampled from '@plugins/app-extensions/StandardDetails/SpeedSampled.vue'
+import { convertQuantity, formatQuantity, unitSystem } from '@/composables/useUnits'
 
 // Mock PluginContext with analyzer and storage
 const mockPluginContext = {
+  units: {
+    get system() {
+      return unitSystem.value
+    },
+    format: formatQuantity,
+    convert: convertQuantity
+  },
   storage: {
     getData: vi.fn().mockResolvedValue(null),
     saveData: vi.fn().mockResolvedValue(undefined),
@@ -12,10 +21,22 @@ const mockPluginContext = {
   },
   analyzer: {
     create: () => ({
-      sampleAverageByDistance: () => [{ distance: 1000, speed: 3, heartRate: 150 }],
+      sampleAverageByDistance: () => [
+        { distance: 500, segmentEnd: 1000, segmentDistance: 1000, speed: 3, heartRate: 150 }
+      ],
       sampleByLaps: () => [],
       sampleBySlopeChange: () => [],
-      bestSegments: () => ({})
+      bestSegments: () => ({}),
+      elevationChange: () => ({ ascent: 0, descent: 0 }),
+      // The widget asks the terrain whether grade is worth showing
+      elevationProfile: () => ({
+        gain: 0,
+        loss: 0,
+        distance: 5000,
+        gainPerKm: 0,
+        isFlat: true,
+        hasElevation: false
+      })
     })
   },
   notifications: { notify: vi.fn() },
@@ -34,9 +55,11 @@ describe('SpeedSampled widget', () => {
         provider: 'mock',
         startTime: 0,
         duration: 0,
-        type: 'RUNNING'
+        type: 'RUNNING',
+        version: 1,
+        lastModified: 0
       },
-      details: { id: 'a1', samples: [], laps: [] }
+      details: { id: 'a1', samples: [], laps: [], version: 1, lastModified: 0 }
     }
     const wrapper = mount(SpeedSampled, {
       props: { data },
@@ -44,7 +67,7 @@ describe('SpeedSampled widget', () => {
     })
     // attendre onMounted
     await Promise.resolve()
-    expect(wrapper.text()).toMatch(/Allure/i)
+    expect(wrapper.text()).toContain(en.graphs.colPace)
     // Vérifie colonnes header (Dist., Pace, FC, Pente)
     expect(wrapper.text()).toMatch(/Dist\./)
     expect(wrapper.text()).toMatch(/Pace/i)

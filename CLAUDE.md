@@ -50,6 +50,8 @@ Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts
 | `ctx.aggregation`   | `getAggregated(metric, period)`, `listMetrics()`                                      |
 | `ctx.friends`       | `publishPublicData()`, `getMyManifestUrl()`                                           |
 | `ctx.analyzer`      | `create(samples)` returns `{ bestSegments() }`                                        |
+| `ctx.sync`          | `syncNow({ force })`                                                                  |
+| `ctx.units`         | `format(dimension, si)`, `convert(dimension, si)`, `system` -- SI in, display out     |
 
 ### Creating a New Plugin
 
@@ -64,15 +66,15 @@ See `docs/PLUGIN_GUIDELINES.md` for complete guide with examples.
 
 ### Core Services
 
-| Service                | Purpose                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                               |
-| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                           |
-| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                      |
-| **IndexedDBService**   | Singleton IndexedDB access (v9). Stores: settings, activities, activity_details, aggregatedData, notifLogs, friends, friend_activities |
-| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                  |
-| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                  |
-| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                        |
+| Service                | Purpose                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                                                                |
+| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                                                            |
+| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                                                       |
+| **IndexedDBService**   | Singleton IndexedDB access (v11). Stores: settings, activities, activity_details, aggregatedData, activity_metrics, notifLogs, friends, friend_activities, interactions |
+| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                                                   |
+| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                                                   |
+| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                                                         |
 
 **Deprecated:** ActivityDBService (use ActivityService), StorageListener (use SyncService).
 
@@ -89,11 +91,37 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 ## Rules -- MUST FOLLOW
 
+### Contracts under guard (tests/unit/contracts.spec.ts)
+
+Three rules that were already written down and got broken anyway, so they are
+now checked by a test rather than by goodwill:
+
+- **A notification reads from the locale.** `ToastService.push('Texte')` and
+  `notifications.notify('Texte')` are refused; pass `t('key')`. Twelve toasts
+  shipped in French to English readers before this existed.
+- **A slot consumer trusts the registry.** `getPluginViewsForSlot` already
+  resolves a loader to a component, so `comp?.default || comp` in a view is dead
+  code. Six copies of that guess existed at once.
+- **A `.vue` file uses `usePluginContext()`**, never `getPluginContext()` — the
+  factory is the door for non-Vue code. Both reach the same singleton, so the
+  difference never surfaces as a bug, only as two ways of doing one thing.
+
 ### Design (see docs/DESIGN_GUIDELINES.md)
 
 - **ALWAYS** use CSS variables from `src/assets/styles/variables.css` -- NEVER hardcode colors
 - **ALWAYS** use Font Awesome 6 (Free) -- NEVER use emojis in production code
 - **ALWAYS** add `aria-hidden="true"` to icon elements
+
+### Sports & units (see docs/SPORT_AND_UNITS.md)
+
+- **ALWAYS** display figures through `format()` / `ctx.units.format()` -- NEVER write
+  `/ 1000`, `* 3.6` or a hardcoded `'km'`
+- **ALWAYS** store and compute in SI; convert only at the render boundary, never into
+  storage or a cache
+- **ALWAYS** lowercase a sport type before looking it up -- legacy activities carry raw
+  provider strings like `"RUNNING"`
+- A widget decides to show itself from the **data it needs**, not from the sport
+- A block with nothing to show renders nothing -- not a placeholder saying so
 
 ### Code Style
 
@@ -105,6 +133,11 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 - Unit: Vitest + Vue Test Utils + happy-dom. Coverage target: 60%+
 - E2E: Cypress. Use `data-test` attributes for selectors.
+- Typecheck: `npm run typecheck` (**`vue-tsc`, never plain `tsc`**). Plain `tsc`
+  cannot parse a single-file component, so it silently skips every `.vue` — a
+  property deleted from an interface stayed referenced in templates for two
+  releases with nothing to report it. `tsconfig` includes `plugins/**/*.vue` for
+  the same reason.
 
 ### Versioning & Releases (auto-bump)
 
@@ -115,20 +148,47 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 - Le workflow commit `chore(release): vX.Y.Z`, crée le tag, et déploie en prod
 - `deploy-production.yml` reste dispo en `workflow_dispatch` pour redeploy manuel sans bump
 - **Ne JAMAIS** modifier `version` dans `package.json`, créer de commits `chore: bump version`, ou créer de tags `v*` manuellement
+- **Laisser le déploiement finir avant de merger la PR suivante.** Le workflow
+  rebase et réessaie désormais, mais deux merges à quelques secondes d'écart ont
+  déjà cassé la chaîne : le run partait d'un `main` devenu obsolète, poussait le
+  tag et se faisait rejeter la branche. Résultat, un tag orphelin, un
+  `package.json` jamais bumpé, et **quatre merges livrés nulle part**. Vérifier
+  qu'un tag `vX.Y.Z` est apparu avant d'enchaîner.
 
 ### Common Pitfalls
 
 - Plugin exports must use `export default` (not named exports)
 - Plugin folder structure must match the type's path pattern
 - UI widgets should handle missing data gracefully (not all activities have HR, power, etc.)
-- When modifying IndexedDB schema, add migration logic in `src/migrations/`
+- When modifying IndexedDB schema, bump the version in `IndexedDBService` and add migration logic in `src/migrations/`
+
+### Device-local stores
+
+Most stores are replicated to the user's storage provider. A store listed in
+`LOCAL_ONLY_STORES` (`src/services/StorageService.ts`) never leaves the device:
+it holds values derived from data that is already synced, so uploading it would
+cost bandwidth for something we can recompute, and losing it only costs a
+rebuild. `activity_metrics` is the current example. Add derived caches there
+rather than to `settings`, which _is_ replicated.
+
+`activity_metrics` holds one row per activity, lifted from its details at scan
+time by `useActivityMetricsIndex`: the best times behind the records and the
+metric tracker, plus the `DERIVED` scalars (calories, ascent, descent, max
+speed, heart rates) a feed card needs but cannot reach — a card only ever
+receives an `Activity`. Adding a value means extending `computeValues()` **and**
+bumping `INDEX_VERSION`, which recomputes every row. Values stay SI: a cache
+that stored converted numbers would depend on a display preference. See
+`docs/SPORT_AND_UNITS.md` §10 bis.
 
 ## Related Documentation
 
 - Design rules: `docs/DESIGN_GUIDELINES.md`
+- Sports & units recipes: `docs/SPORT_AND_UNITS.md` (design record: `docs/SPORT_TEMPLATES.md`)
 - Plugin architecture: `docs/PLUGIN_GUIDELINES.md`
 - Technical roadmap: `docs/ROADMAP_TECHNIQUE.md`
 - Deployment: `docs/DEPLOYMENT.md`
+- Install funnel (PWA, per-platform timing): `docs/INSTALL_FUNNEL.md`
+- Native app (Capacitor, health plugins) — read before starting: `docs/NATIVE_APP.md`
 
 ---
 

@@ -328,4 +328,146 @@ describe('ActivityService - Filters', () => {
       expect(results).toHaveLength(5)
     })
   })
+
+  describe('date filter', () => {
+    // A local instant, the way `fromDayKey` builds one from the panel.
+    const day = (iso: string, bound: 'start' | 'end' = 'start') => {
+      const [y, m, d] = iso.split('-').map(Number)
+      return bound === 'start'
+        ? new Date(y, m - 1, d, 0, 0, 0, 0).getTime()
+        : new Date(y, m - 1, d, 23, 59, 59, 999).getTime()
+    }
+
+    it('keeps activities from a date onwards', async () => {
+      await seedActivities()
+      const results = await service.getActivities({
+        limit: 20,
+        filters: { dateFrom: day('2026-01-14') }
+      })
+      expect(results.map(a => a.id).sort()).toEqual(['1', '2'])
+    })
+
+    it('keeps activities up to a date', async () => {
+      await seedActivities()
+      const results = await service.getActivities({
+        limit: 20,
+        filters: { dateTo: day('2026-01-12', 'end') }
+      })
+      expect(results.map(a => a.id).sort()).toEqual(['4', '5'])
+    })
+
+    // The bound lands on the edge of the day, so a one-day range is not empty.
+    it('keeps a single day inclusive at both ends', async () => {
+      await seedActivities()
+      const results = await service.getActivities({
+        limit: 20,
+        filters: { dateFrom: day('2026-01-13'), dateTo: day('2026-01-13', 'end') }
+      })
+      expect(results.map(a => a.id)).toEqual(['3'])
+    })
+
+    // Providers disagree on the unit; an activity stored in seconds would sit
+    // in 1970 and fall out of every range.
+    it('reads a timestamp stored in seconds', async () => {
+      const seconds = Math.floor(new Date('2026-01-15T08:00:00Z').getTime() / 1000)
+      const activity = createActivity({ id: 'sec', startTime: seconds })
+      await service.saveActivitiesWithDetails([activity], [createActivityDetails('sec')])
+
+      const results = await service.getActivities({
+        limit: 20,
+        filters: { dateFrom: day('2026-01-01') }
+      })
+      expect(results.map(a => a.id)).toContain('sec')
+    })
+  })
+
+  describe('duration filter', () => {
+    async function seedDurations() {
+      const activities = [
+        createActivity({ id: 'short', duration: 600, type: 'swimming' }),
+        createActivity({ id: 'medium', duration: 3600, type: 'running' }),
+        createActivity({ id: 'long', duration: 14400, type: 'cycling' })
+      ]
+      await service.saveActivitiesWithDetails(
+        activities,
+        activities.map(a => createActivityDetails(a.id))
+      )
+    }
+
+    it('filters by minimum duration', async () => {
+      await seedDurations()
+      const results = await service.getActivities({ limit: 20, filters: { durationMin: 3600 } })
+      expect(results.map(a => a.id).sort()).toEqual(['long', 'medium'])
+    })
+
+    it('filters by maximum duration', async () => {
+      await seedDurations()
+      const results = await service.getActivities({ limit: 20, filters: { durationMax: 3600 } })
+      expect(results.map(a => a.id).sort()).toEqual(['medium', 'short'])
+    })
+
+    // The point of the range: a pool set carries no distance, so duration is
+    // the only volume it can be narrowed by.
+    it('narrows a sport that has no distance', async () => {
+      const swim = createActivity({ id: 'pool', type: 'swimming', distance: 0, duration: 2700 })
+      await service.saveActivitiesWithDetails([swim], [createActivityDetails('pool')])
+
+      const results = await service.getActivities({
+        limit: 20,
+        filters: { sportType: 'swimming', durationMin: 1800 }
+      })
+      expect(results.map(a => a.id)).toEqual(['pool'])
+    })
+
+    it('counts the same set it returns', async () => {
+      await seedDurations()
+      expect(await service.countActivities({ durationMin: 3600 })).toBe(2)
+    })
+  })
+
+  describe('getFilterFacets', () => {
+    it('lists each sport present once', async () => {
+      await seedActivities()
+      const { sports } = await service.getFilterFacets()
+      expect(sports.sort()).toEqual(['bike', 'hike', 'run', 'swim'])
+    })
+
+    // Legacy activities carry raw provider strings, so the chips would
+    // otherwise offer "RUNNING" and "running" as two separate sports.
+    it('folds provider casing into one entry', async () => {
+      const activities = [
+        createActivity({ id: 'a', type: 'RUNNING' }),
+        createActivity({ id: 'b', type: 'running' })
+      ]
+      await service.saveActivitiesWithDetails(
+        activities,
+        activities.map(a => createActivityDetails(a.id))
+      )
+      expect((await service.getFilterFacets()).sports).toEqual(['running'])
+    })
+
+    it('ignores deleted activities', async () => {
+      await seedActivities()
+      await service.deleteActivity('2') // the only bike ride
+      expect((await service.getFilterFacets()).sports.sort()).toEqual(['hike', 'run', 'swim'])
+    })
+
+    it('reports a distance to narrow when the library holds one', async () => {
+      await seedActivities()
+      expect((await service.getFilterFacets()).hasDistance).toBe(true)
+    })
+
+    // A pool-and-gym library has nothing for a distance range to ask about.
+    it('reports none when nothing was measured in distance', async () => {
+      const activities = [
+        createActivity({ id: 'pool', type: 'swimming', distance: 0 }),
+        createActivity({ id: 'gym', type: 'strength', distance: 0 })
+      ]
+      await service.saveActivitiesWithDetails(
+        activities,
+        activities.map(a => createActivityDetails(a.id))
+      )
+      expect((await service.getFilterFacets()).hasDistance).toBe(false)
+    })
+  })
 })

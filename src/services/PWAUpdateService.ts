@@ -30,6 +30,8 @@ export class PWAUpdateService {
   private wb: Workbox | null = null
   private updateAvailable = false
   private newWorker: ServiceWorker | null = null
+  /** Whether a service worker was already driving the page before this load */
+  private hadController = false
   public emitter = new EventTarget()
 
   private constructor() {
@@ -60,6 +62,12 @@ export class PWAUpdateService {
     }
 
     try {
+      // Captured before registering: on a first visit there is no controller
+      // yet, and the worker claims the page as soon as it activates. Reloading
+      // then would restart a page that is only just finishing its first load —
+      // which is what breaks the Lighthouse run right after each deploy.
+      this.hadController = !!navigator.serviceWorker.controller
+
       this.wb = new Workbox('/sw.js', {
         scope: '/'
       })
@@ -98,6 +106,13 @@ export class PWAUpdateService {
 
       // New service worker has taken control (after user accepted)
       this.wb.addEventListener('controlling', () => {
+        if (!this.hadController) {
+          // First visit: the worker just claimed a page that already runs the
+          // version it would reload into. Nothing to swap.
+          console.log('[PWAUpdateService] First control of this page, no reload needed')
+          return
+        }
+
         console.log('[PWAUpdateService] New service worker controlling, reloading...')
 
         this.emitter.dispatchEvent(

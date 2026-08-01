@@ -1,13 +1,11 @@
 <template>
-  <div class="language-selector">
-    <label for="language-select" class="text-sm font-medium text-gray-700">
-      {{ t('languages.label') }}
-    </label>
+  <!-- `field` and the input styling come from profile.css, where this renders. -->
+  <div class="language-selector field">
+    <label for="language-select">{{ t('languages.label') }}</label>
     <select
       id="language-select"
       v-model="currentLocale"
       @change="onLocaleChange"
-      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 text-sm"
       :aria-label="t('languages.label')"
     >
       <option value="en">{{ t('languages.en') }}</option>

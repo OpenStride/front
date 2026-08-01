@@ -1,8 +1,7 @@
 <template>
   <div
     v-if="
-      sharingPluginActive &&
-      (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
+      sharingPluginActive && (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
   >
@@ -22,22 +21,25 @@
     <div v-if="!isMyActivity" class="interaction-actions">
       <button
         @click="toggleLike"
-        :class="['action-btn', 'like-btn', { liked: summary.hasLiked }]"
-        :disabled="loading || !canInteract"
-        :title="summary.hasLiked ? 'Retirer le like' : 'J\'aime'"
+        :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
+        :disabled="loading"
+        :title="canInteract ? t('interactions.like') : t('interactions.whyBlocked')"
+        data-test="like-btn"
       >
         <i :class="summary.hasLiked ? 'fas fa-heart' : 'far fa-heart'" aria-hidden="true"></i>
-        <span class="btn-label">{{ summary.hasLiked ? 'Aimé' : "J'aime" }}</span>
+        <span class="btn-label">{{
+          summary.hasLiked ? t('interactions.liked') : t('interactions.like')
+        }}</span>
       </button>
 
       <button
-        @click="showCommentInput = !showCommentInput"
-        class="action-btn comment-btn"
-        :disabled="!canInteract"
-        title="Commenter"
+        @click="onComment"
+        :class="['action-btn', 'comment-btn', { blocked: !canInteract }]"
+        :title="canInteract ? t('interactions.comment') : t('interactions.whyBlocked')"
+        data-test="comment-btn"
       >
         <i class="far fa-comment" aria-hidden="true"></i>
-        <span class="btn-label">Commenter</span>
+        <span class="btn-label">{{ t('interactions.comment') }}</span>
       </button>
     </div>
 
@@ -52,7 +54,7 @@
       <textarea
         v-model="commentText"
         class="comment-textarea"
-        placeholder="Ajouter un commentaire..."
+        :placeholder="t('interactions.addComment')"
         maxlength="280"
         rows="2"
         @keydown.enter.ctrl="submitComment"
@@ -66,34 +68,49 @@
           class="submit-btn"
           :disabled="!commentText.trim() || submitting"
         >
-          {{ submitting ? 'Envoi...' : 'Publier' }}
+          {{ submitting ? t('interactions.sending') : t('interactions.publish') }}
         </button>
       </div>
     </div>
 
-    <!-- Mutual friendship required message -->
-    <div v-else-if="needsMutualFriendship && showWarning" class="mutual-required-message">
-      <i class="fas fa-user-friends" aria-hidden="true"></i>
-      <div class="message-content">
-        <span>Amitié mutuelle requise pour interagir</span>
-        <button @click="copyShareUrl" class="share-btn">
-          <i class="fas fa-share-alt" aria-hidden="true"></i>
-          Partager mon profil
+    <!-- Why the buttons do nothing, and the one thing that fixes it. A disabled
+         button and a sentence left the reader with no way forward. -->
+    <div
+      v-else-if="!canInteract && (showWarning || blockedShown)"
+      class="blocked"
+      data-test="interaction-blocked"
+    >
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      <div class="blocked-content">
+        <span>{{ blocked.text }}</span>
+        <router-link
+          v-if="blocked.route"
+          :to="blocked.route"
+          class="blocked-action"
+          data-test="blocked-action"
+        >
+          <i :class="blocked.icon" aria-hidden="true"></i>
+          {{ blocked.action }}
+        </router-link>
+        <button v-else @click="qrOpen = true" class="blocked-action" data-test="blocked-action">
+          <i :class="blocked.icon" aria-hidden="true"></i>
+          {{ blocked.action }}
         </button>
       </div>
     </div>
-    <!-- Not published warning (only for friend activities) -->
-    <div v-else-if="!canInteract && showWarning" class="warning-message">
-      <i class="fas fa-info-circle" aria-hidden="true"></i>
-      <span>Publiez vos données pour interagir</span>
-    </div>
+
+    <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
+import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import type { InteractionSummary, InteractionServiceEvent } from '@/types/interaction'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   activityId: string
@@ -118,43 +135,49 @@ const showCommentInput = ref(false)
 const commentText = ref('')
 const canInteract = ref(false)
 const myUserId = ref<string | null>(null)
+// Revealed by pressing a button that cannot act — the press is the question,
+// this is the answer
+const blockedShown = ref(false)
+const qrOpen = ref(false)
 
 // Detect if this is the user's own activity (read-only mode)
 const isMyActivity = computed(
   () => myUserId.value !== null && myUserId.value === props.activityOwnerId
 )
 
-// Detect if this is a friend activity that requires mutual friendship
-const needsMutualFriendship = computed(() => {
-  // Not own activity, user is published, but not mutual friend
-  return !isMyActivity.value && myUserId.value !== null && props.isMutualFriend === false
+/**
+ * What stands between the reader and a like, and the one action that removes it.
+ *
+ * Liking writes into your own public files, so an unpublished profile has
+ * nowhere to put it; and a friend who has not added you back never reads them.
+ * Both are fixable, so both get a button rather than a sentence.
+ */
+const blocked = computed(() => {
+  if (myUserId.value === null) {
+    return {
+      text: t('interactions.publishRequired'),
+      action: t('interactions.publishAction'),
+      icon: 'fas fa-upload',
+      route: '/profile?tab=friends'
+    }
+  }
+  return {
+    text: t('interactions.mutualRequired'),
+    action: t('myQr.title'),
+    icon: 'fas fa-qrcode',
+    route: ''
+  }
 })
 
-// Copy share URL to clipboard
-const copyShareUrl = async () => {
-  try {
-    const { IndexedDBService } = await import('@/services/IndexedDBService')
-    const { ShareUrlService } = await import('@/services/ShareUrlService')
-    const { ToastService } = await import('@/services/ToastService')
-    const db = await IndexedDBService.getInstance()
-    const rawUrl = (await db.getData('myPublicUrl')) as string | null
+/** A press on a button that cannot act asks why; answer instead of doing nothing */
+const revealBlocked = () => {
+  blockedShown.value = true
+  showCommentInput.value = false
+}
 
-    if (!rawUrl) {
-      ToastService.push('Publiez vos données d\u2019abord depuis votre profil', {
-        type: 'warning',
-        timeout: 4000
-      })
-      return
-    }
-
-    const shareUrl = ShareUrlService.wrapManifestUrl(rawUrl)
-    await navigator.clipboard.writeText(shareUrl)
-    ToastService.push('Lien de profil copié !', { type: 'success', timeout: 2000 })
-  } catch (error) {
-    console.error('[InteractionBar] Error copying share URL:', error)
-    const { ToastService } = await import('@/services/ToastService')
-    ToastService.push('Impossible de copier le lien', { type: 'error', timeout: 3000 })
-  }
+const onComment = () => {
+  if (!canInteract.value) return revealBlocked()
+  showCommentInput.value = !showCommentInput.value
 }
 
 // Load initial data
@@ -186,7 +209,8 @@ const checkCanInteract = async () => {
 
 // Actions
 const toggleLike = async () => {
-  if (loading.value || !canInteract.value) return
+  if (!canInteract.value) return revealBlocked()
+  if (loading.value) return
 
   loading.value = true
   try {
@@ -412,49 +436,32 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-/* Messages : discrets, pas de boîtes criardes */
-.warning-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--color-green-400);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.warning-message i {
-  color: var(--color-green-600);
-}
-
-.mutual-required-message {
+/* Message : discret, mais toujours avec une sortie */
+.blocked {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   font-size: 13px;
   color: var(--text-muted);
 }
 
-.mutual-required-message i {
+.blocked > i {
   color: var(--color-green-600);
   margin-top: 2px;
 }
 
-.mutual-required-message .message-content {
+.blocked-content {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
 }
 
-.mutual-required-message .share-btn {
+.blocked-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -462,18 +469,29 @@ onUnmounted(() => {
   background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   font-family: var(--font-condensed);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease;
   width: fit-content;
 }
 
-.mutual-required-message .share-btn:hover {
+.blocked-action:hover {
   background: var(--color-green-600);
+}
+
+/* Un bouton qui ne peut pas agir reste lisible, mais s'annonce comme tel */
+.action-btn.blocked {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  opacity: 0.55;
 }
 </style>

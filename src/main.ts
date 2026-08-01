@@ -4,6 +4,7 @@ import router from './router'
 import { IndexedDBService } from './services/IndexedDBService'
 import { aggregationService } from '@/services/AggregationService'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
+import { getInstallService } from '@/services/InstallService'
 import { getPublicDataListener } from '@/services/PublicDataListener'
 import { getMigrationService } from '@/services/MigrationService'
 import { getSyncService } from '@/services/SyncService'
@@ -65,9 +66,9 @@ async function bootstrap() {
   // Start event-driven aggregation (no O(n) scans!)
   await aggregationService.startListening()
 
-  // Start public data auto-publish listener (if enabled)
+  // Start public data auto-publish listener (and arm it for the first publish)
   const publicDataListener = getPublicDataListener()
-  await publicDataListener.startListening()
+  await publicDataListener.initialize()
 
   // Start reactive sync (auto-sync on activity changes, debounced 5s)
   const syncService = getSyncService()
@@ -83,6 +84,10 @@ async function bootstrap() {
   // 4. Initialize PWA update service
   const pwaUpdateService = getPWAUpdateService()
   await pwaUpdateService.initialize()
+
+  // 4 bis. Catch `beforeinstallprompt` before anything renders — Chromium fires
+  // it once during load, and without a listener already in place it is lost.
+  await getInstallService().initialize()
 
   // 5. Register plugin routes
   const { allAppPlugins } = await import('@/services/ExtensionPluginRegistry')

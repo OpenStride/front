@@ -20,6 +20,7 @@
     </div>
 
     <div v-else class="statistics-sections">
+      <SummarySection :selected-sport="selectedSport" />
       <CalendarHeatmap :activities="filteredActivities" />
       <TrendsSection :activities="filteredActivities" />
       <DistributionSection
@@ -28,14 +29,25 @@
         :selected-sport="selectedSport"
       />
       <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
+
+      <!-- Plugins that answer the same question as this page render here -->
+      <component
+        :is="section"
+        v-for="(section, i) in sectionComponents"
+        :key="`section-${i}`"
+        :sport="selectedSport"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useStatisticsData } from '../composables/useStatisticsData'
 import SportFilter from './SportFilter.vue'
+import SummarySection from './SummarySection.vue'
 import TrendsSection from './TrendsSection.vue'
 import DistributionSection from './DistributionSection.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
@@ -44,6 +56,9 @@ import CalendarHeatmap from './CalendarHeatmap.vue'
 const { t } = useI18n()
 const { allActivities, filteredActivities, selectedSport, sportOptions, loading } =
   useStatisticsData()
+
+const { components: rawSections } = useSlotExtensions('statistics.sections')
+const sectionComponents = computed(() => rawSections.value)
 </script>
 
 <style scoped>
@@ -106,6 +121,20 @@ const { allActivities, filteredActivities, selectedSport, sportOptions, loading 
 .statistics-sections {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+/* Mobile : les sections vont d'un bord à l'autre, comme les cartes de « Mes
+   activités ». La marge latérale de la page disparaît donc, et l'en-tête la
+   reprend pour lui seul. */
+@media (max-width: 640px) {
+  .statistics-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .statistics-header {
+    padding: 0 1rem;
+  }
 }
 </style>

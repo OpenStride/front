@@ -1,10 +1,33 @@
-@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
-@import "@fortawesome/fontawesome-free/css/all.min.css";
-@import "./variables.css";
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import './variables.css';
+@import './profile.css';
+@import 'tailwindcss';
 
 html {
   overscroll-behavior: none;
+}
+
+/* Carte de contenu — mêmes surface, bordure et ombre que les cartes
+   d'activité (`.acard`), pour que les listes de l'app se ressemblent d'une
+   page à l'autre. Utilisée par les sections des statistiques et par les
+   extensions qui s'y greffent : elle est globale pour qu'un plugin n'ait pas
+   à redéclarer le style de la carte qui l'entoure. */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  /* Square, like every card of the app */
+  border-radius: 0;
+  box-shadow: var(--shadow-card);
+  padding: 1.2rem 1.4rem;
+}
+
+/* Sur mobile les cartes vont d'un bord à l'autre : la page ne garde plus de
+   marge latérale, donc la carte reprend le padding à son compte. */
+@media (max-width: 640px) {
+  .section-card {
+    padding: 1.1rem 1rem;
+  }
 }
 
 .icon-container {
@@ -34,7 +57,9 @@ button {
   border-radius: 6px;
   /* ✅ Border-radius léger */
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out, transform 0.1s;
+  transition:
+    background-color 0.2s ease-in-out,
+    transform 0.1s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -63,5 +88,4 @@ input {
   position: fixed;
   bottom: 20px;
   left: 0;
-
 }

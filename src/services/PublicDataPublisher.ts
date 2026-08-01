@@ -68,7 +68,8 @@ export class PublicDataPublisher {
         )
         this.emitEvent({
           type: 'publish-error',
-          message: `Échec de publication pour les années: ${uploadErrors.join(', ')}`,
+          messageKey: 'friendEvents.publishYearsFailed',
+          messageParams: { years: uploadErrors.join(', ') },
           messageType: 'error'
         })
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds)
@@ -101,7 +102,7 @@ export class PublicDataPublisher {
         console.error('[PublicDataPublisher] Failed to upload manifest')
         this.emitEvent({
           type: 'publish-error',
-          message: 'Échec de publication du manifest',
+          messageKey: 'friendEvents.publishManifestFailed',
           messageType: 'error'
         })
         await this.rollbackUploadedFiles(publicFileService, uploadedFileIds)
@@ -109,12 +110,15 @@ export class PublicDataPublisher {
       }
 
       await db.saveData('myPublicUrl', manifestUrl)
+      // With auto-publish off, this is the only way to tell a fresh profile
+      // from one frozen three months ago.
+      await db.saveData('myPublicPublishedAt', Date.now())
       const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl)
 
       this.emitEvent({
         type: 'publish-completed',
         publishUrl: shareUrl,
-        message: 'Données publiques publiées avec succès!',
+        messageKey: 'friendEvents.publishSucceeded',
         messageType: 'success'
       })
 
@@ -123,7 +127,7 @@ export class PublicDataPublisher {
       console.error('[PublicDataPublisher] Error publishing public data:', error)
       this.emitEvent({
         type: 'publish-error',
-        message: 'Erreur lors de la publication',
+        messageKey: 'friendEvents.publishFailed',
         messageType: 'error'
       })
       await this.rollbackUploadedFiles(PublicFileService.getInstance(), uploadedFileIds)
@@ -192,5 +196,23 @@ export class PublicDataPublisher {
   public async hasPublishedData(): Promise<boolean> {
     const url = await this.getMyPublicUrl()
     return url !== null && url !== undefined
+  }
+
+  /**
+   * What the profile screen needs to state rather than imply: how many
+   * activities a friend receives, and how stale the published copy is.
+   *
+   * `publishedAt` is null for a profile published before the timestamp
+   * existed — unknown, which is not the same as never.
+   */
+  public async getPublicSummary(): Promise<{
+    activityCount: number
+    publishedAt: number | null
+  }> {
+    const db = await IndexedDBService.getInstance()
+    return {
+      activityCount: await PublicDataService.getInstance().countPublicActivities(),
+      publishedAt: (await db.getData<number>('myPublicPublishedAt')) ?? null
+    }
   }
 }

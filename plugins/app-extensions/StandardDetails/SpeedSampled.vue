@@ -1,14 +1,14 @@
 <template>
-  <GraphCard title="Allure" icon="fa-gauge-high" accent="var(--color-green-500)">
+  <GraphCard :title="graphTitle" icon="fa-gauge-high" accent="var(--color-green-500)">
     <template #actions>
       <!-- Masque la case si on est en mode “laps” -->
-      <label v-if="slopeGranularity !== 'laps'" class="graph-check">
+      <label v-if="slopeGranularity !== 'laps' && showSlope" class="graph-check">
         <input
           type="checkbox"
           v-model="useSlope"
           @change="onUseSlopeChange"
           class="accent-green"
-        />Variation de pente
+        />{{ t('graphs.slopeVariation') }}
       </label>
       <select v-model="slopeGranularity" @change="onGranularityChange" class="graph-select">
         <option v-for="option in granularities" :key="option.value" :value="option.value">
@@ -22,9 +22,13 @@
       :style="tooltip.style"
       class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
     >
-      <div><strong>Distance :</strong> {{ tooltip.distance.toFixed(2) }} m</div>
-      <div><strong>Vitesse :</strong> {{ tooltip.pace }} min/km</div>
       <div>
+        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
+      </div>
+      <div>
+        <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
+      </div>
+      <div v-if="showSlope && tooltip.slope !== null">
         <strong>{{ tooltip.slopeLabel }}</strong
         >({{ tooltip.slope.toFixed(1) }}%)
       </div>
@@ -33,16 +37,16 @@
     <!-- ===== Tableau récapitulatif ===== -->
     <div class="mt-6">
       <div class="flex text-xs sm:text-sm font-semibold border-b pb-1 mb-1">
-        <span class="w-16">Dist.</span>
-        <span class="flex-1">Allure</span>
-        <span class="w-10 text-right">Pace</span>
-        <span class="w-12 text-right">FC</span>
-        <span class="w-20 text-right">Pente</span>
+        <span class="w-16">{{ t('graphs.colDistance') }}</span>
+        <span class="flex-1">{{ graphTitle }}</span>
+        <span class="w-10 text-right">{{ paceUnit }}</span>
+        <span class="w-12 text-right">{{ t('graphs.colHeartRate') }}</span>
+        <span v-if="showSlope" class="w-20 text-right">{{ t('graphs.colSlope') }}</span>
       </div>
 
       <div v-for="(s, i) in samples" :key="i" class="flex items-center py-1 text-xs sm:text-sm">
-        <!-- Distance cumulée -->
-        <span class="w-16">{{ segmentDistance(s, i).toFixed(0) }} m</span>
+        <!-- Repère cumulé : « 1 km, 2 km, 3 km » se lit, « 1 km » répété non -->
+        <span class="w-16">{{ formatDistance(segmentMark(s, i)) }}</span>
 
         <!-- Barre horizontale représ. la pace -->
         <div class="flex-1 h-3 bg-gray-100 rounded mx-1 overflow-hidden">
@@ -58,9 +62,12 @@
         </span>
 
         <!-- Icône pente + % -->
-        <span class="w-20 text-right">
-          <span class="inline-block w-4 text-center">{{ slopeIcon(s) }}</span>
-          <span class="ml-1">{{ slopePct(s).toFixed(1) }} %</span>
+        <span v-if="showSlope" class="w-20 text-right">
+          <template v-if="s.slope != null">
+            <span class="inline-block w-4 text-center">{{ slopeIcon(s) }}</span>
+            <span class="ml-1">{{ s.slope.toFixed(1) }} %</span>
+          </template>
+          <span v-else class="text-gray-400">—</span>
         </span>
       </div>
     </div>
@@ -68,20 +75,61 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { getSportProfile } from '@/types/sport'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
+import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
+
+const { t } = useI18n()
 
 const cssVar = (name: string, fallback: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
-const { storage, analyzer: analyzerFactory } = usePluginContext()
+const { storage, analyzer: analyzerFactory, units } = usePluginContext()
+
+/**
+ * Cyclists read km/h, runners read min/km. The sport's profile decides which,
+ * exactly as it does for the card and the summary block — a ride was showing a
+ * pace graph titled "Pace" while its own card headlined a speed.
+ */
+const showsSpeed = computed(
+  () => getSportProfile(props.data.activity?.type ?? '').primaryMetric === 'speed'
+)
+
+/** Unit shown on the axis and in the tooltip: "km/h", "/km", "/mi"… */
+const paceUnit = computed(() =>
+  showsSpeed.value ? units.convert('speed', 1).unit : units.convert('pace', 1).unit
+)
+
+const graphTitle = computed(() =>
+  showsSpeed.value ? t('graphs.speed') : t('graphs.pace')
+)
+
+/** m/s → the number plotted on the Y axis, in the user's units. */
+const toAxis = (metersPerSecond: number) =>
+  showsSpeed.value
+    ? units.convert('speed', metersPerSecond).value
+    : units.convert('pace', metersPerSecond > 0 ? 1 / metersPerSecond : 0).value
+
+/** Axis labels: "24.8" for a speed, "4:32" for a pace. */
+const axisLabel = (value: number) => {
+  if (showsSpeed.value) return value.toFixed(value < 20 ? 1 : 0)
+  const total = Math.round(value)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-const samples = ref<Sample[]>([])
+const samples = ref<SegmentSample[]>([])
+// A road run on flat ground has nothing to say about grade, and a column of
+// "0.1 %" is noise. Decided from the terrain, never from the sport label: a
+// watch that files a trail as a run must not hide the climbing.
+const showSlope = ref(true)
 // Left plot margin, computed each draw from the widest axis label; shared with
 // the tooltip hit-testing so a click still maps to the right distance.
 const leftMargin = ref(50)
@@ -89,15 +137,48 @@ const leftMargin = ref(50)
 const useSlope = ref(false)
 const slopeGranularity = ref('1000')
 
-const granularities = [
-  { label: '100m', value: '100' },
-  { label: '200m', value: '200' },
-  { label: '500m', value: '500' },
-  { label: '1km', value: '1000' },
-  { label: '2km', value: '2000' },
-  { label: '5km', value: '5000' },
-  { label: 'Laps', value: 'laps' }
-]
+/**
+ * Smoothing steps that are round in the unit being read.
+ *
+ * Values stay in metres so the analyser and stored preference are unchanged;
+ * only the ladder offered differs, because "0.62 mi" is not a step anyone picks.
+ */
+const granularities = computed(() =>
+  units.system === 'imperial'
+    ? [
+        { label: '100 yd', value: '91' },
+        { label: '200 yd', value: '183' },
+        { label: '¼ mi', value: '402' },
+        { label: '½ mi', value: '805' },
+        { label: '1 mi', value: '1609' },
+        { label: '3 mi', value: '4828' },
+        { label: 'Laps', value: 'laps' }
+      ]
+    : [
+        { label: '100 m', value: '100' },
+        { label: '200 m', value: '200' },
+        { label: '500 m', value: '500' },
+        { label: '1 km', value: '1000' },
+        { label: '2 km', value: '2000' },
+        { label: '5 km', value: '5000' },
+        { label: 'Laps', value: 'laps' }
+      ]
+)
+
+/** A stored step from the other ladder would leave the select blank. */
+function snapToOffered(stored: string): string {
+  const offered = granularities.value.map(g => g.value)
+  if (offered.includes(stored)) return stored
+  if (stored === 'laps') return 'laps'
+  const meters = Number(stored)
+  if (!Number.isFinite(meters)) return offered[3]
+  return offered
+    .filter(v => v !== 'laps')
+    .reduce((best, v) =>
+      Math.abs(Number(v) - meters) < Math.abs(Number(best) - meters) ? v : best
+    )
+}
+
 
 async function savePreferences() {
   await storage.saveData('granularity_for_speed', slopeGranularity.value)
@@ -107,7 +188,8 @@ async function savePreferences() {
 async function loadPreferences() {
   const storedGranularity = await storage.getData('granularity_for_speed')
   const storedUseSlope = await storage.getData('use_slope_for_speed')
-  if (typeof storedGranularity === 'string') slopeGranularity.value = storedGranularity
+  if (typeof storedGranularity === 'string')
+    slopeGranularity.value = snapToOffered(storedGranularity)
   if (typeof storedUseSlope === 'boolean') useSlope.value = storedUseSlope
 }
 
@@ -123,9 +205,17 @@ function onUseSlopeChange() {
 
 async function resample() {
   const analyzer = analyzerFactory.create(props.data.details.samples ?? [])
+  showSlope.value = !analyzer.elevationProfile().isFlat
+
+  // The preference is remembered across activities, so a flat run inherited the
+  // slope segmentation from the last hilly one — irregular splits, and no
+  // checkbox left to turn it off. Hiding the control has to neutralise it too;
+  // the stored preference is kept, it applies again on a course with relief.
+  const segmentBySlope = useSlope.value && showSlope.value
+
   if (slopeGranularity.value === 'laps') {
     samples.value = analyzer.sampleByLaps(props.data.details.laps ?? [])
-  } else if (useSlope.value) {
+  } else if (segmentBySlope) {
     samples.value = analyzer.sampleBySlopeChange(parseInt(slopeGranularity.value))
   } else {
     samples.value = analyzer.sampleAverageByDistance(parseInt(slopeGranularity.value))
@@ -162,7 +252,10 @@ function drawCanvas() {
 
   // Left margin sized to fit the widest "mm:ss" pace label so the bars never
   // cover the units. Shared with the tooltip via leftMargin.
-  const pxMargin = Math.max(44, Math.ceil(ctx.measureText('88:88').width) + 16)
+  const pxMargin = Math.max(
+    44,
+    Math.ceil(ctx.measureText(showsSpeed.value ? '88.8' : '88:88').width) + 16
+  )
   leftMargin.value = pxMargin
   ctx.clearRect(0, 0, width, height)
 
@@ -186,52 +279,58 @@ function drawCanvas() {
   ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
-  let minPace = 1000 / maxSpeed || 0
-  let maxPace = 1000 / minSpeed || 0
-  const margin = 0.0 * (maxPace - minPace || 1) // marge visuelle 10 %
-  minPace = Math.max(minPace - margin, 0)
-  maxPace += margin
+  // Axis values, in whatever this chart plots. `axisLow` is the value drawn at
+  // the top: the fastest pace, or the highest speed.
+  const axisLow = toAxis(maxSpeed)
+  const axisHigh = toAxis(minSpeed)
 
-  /* ---------- 2. Graduations toutes les 30 s ---------- */
-  const STEP_SEC = 30 // 30 s
-  const firstTick = Math.floor(minPace / STEP_SEC) * STEP_SEC - STEP_SEC // tick plus rapide
-  const lastTick = Math.ceil(maxPace / STEP_SEC) * STEP_SEC + STEP_SEC // tick plus lent
+  // Aim for ~6 gridlines whatever the spread. A fixed 30 s pace step drew
+  // twenty overlapping labels on a hike, whose pace ranges over nine minutes.
+  const spread = Math.abs(axisHigh - axisLow) || 1
+  const STEP = showsSpeed.value
+    ? Math.max(1, Math.round(spread / 6))
+    : ([15, 30, 60, 120, 300, 600].find(step => spread / step <= 7) ?? 900)
+  const lo = Math.min(axisLow, axisHigh)
+  const hi = Math.max(axisLow, axisHigh)
+  const firstTick = Math.floor(lo / STEP) * STEP - STEP
+  const lastTick = Math.ceil(hi / STEP) * STEP + STEP
 
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
   ctx.font = axisFont
   ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
 
-  for (let pSec = firstTick; pSec <= lastTick; pSec += STEP_SEC) {
-    const y = plotTop + ((pSec - minPace) / (maxPace - minPace || 1)) * plotHeight
+  for (let tick = firstTick; tick <= lastTick; tick += STEP) {
+    const y = plotTop + ((tick - axisLow) / (axisHigh - axisLow || 1)) * plotHeight
+    if (y < plotTop - 1 || y > baseline + 1) continue
     ctx.beginPath()
     ctx.moveTo(pxMargin, y)
     ctx.lineTo(width, y)
     ctx.stroke()
-
-    const mm = Math.floor(pSec / 60)
-    const ss = String(pSec % 60).padStart(2, '0')
-    ctx.fillText(`${mm}:${ss}`, 5, y + 4) // “mm:ss”
+    ctx.fillText(axisLabel(tick), 5, y + 4)
   }
 
   // === Repères verticaux distance (max 10) ===
-  const totalKm = totalDistance / 1000
+  // Ticks are spaced in the unit being read, so an imperial user gets round
+  // miles rather than round kilometres relabelled.
+  const totalDisplay = units.convert('distance', totalDistance).value
   const maxTicks = 10
 
   /* 1) pas brut */
-  const rawStep = totalKm / maxTicks // ex. 2.7 km
+  const rawStep = totalDisplay / maxTicks // ex. 2.7 km
 
   /* 2) arrondi à 1 ·10ⁿ, 2 ·10ⁿ ou 5 ·10ⁿ  -------------------- */
   const mag = Math.pow(10, Math.floor(Math.log10(rawStep))) // 10ⁿ
   const niceBase = [1, 2, 5].find(b => b * mag >= rawStep) || 10
-  const stepKm = niceBase * mag // ex. 5 km
+  const stepDisplay = niceBase * mag // ex. 5 km
 
   /* 3) tracé des traits --------------------------------------- */
   ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
   ctx.lineWidth = 1
 
-  for (let km = stepKm; km < totalKm; km += stepKm) {
-    const x = pxMargin + ((km * 1000) / totalDistance) * (width - pxMargin)
+  const metersPerDisplayUnit = 1 / units.convert('distance', 1).value
+  for (let d = stepDisplay; d < totalDisplay; d += stepDisplay) {
+    const x = pxMargin + ((d * metersPerDisplayUnit) / totalDistance) * (width - pxMargin)
     ctx.beginPath()
     ctx.moveTo(x, plotTop)
     ctx.lineTo(x, baseline)
@@ -290,15 +389,21 @@ function drawCanvas() {
   ctx.fill()
 
   // === Barres vitesse ===
+  // On the segment boundaries, not between two segment midpoints: `distance` is
+  // an average for distance-based splits, so using it drew every bar half a
+  // segment to the left of the ground it describes.
   for (let i = 0; i < samples.value.length; i++) {
     const s = samples.value[i]
-    const d0 = i === 0 ? 0 : (samples.value[i - 1]?.distance ?? 0)
-    const d1 = s.distance ?? 0
+    const end = s.segmentEnd ?? s.distance ?? 0
+    const span = s.segmentDistance
+    const d0 =
+      span != null ? end - span : i === 0 ? 0 : (samples.value[i - 1]?.segmentEnd ?? 0)
+    const d1 = end
     const xStart = pxMargin + (d0 / totalDistance) * (width - pxMargin)
     const widthPx = ((d1 - d0) / totalDistance) * (width - pxMargin)
     const speed = s.speed ?? 0
-    const paceSec = speed > 0 ? 1000 / (speed as number) : maxPace
-    const heightPx = ((maxPace - paceSec) / (maxPace - minPace || 1)) * plotHeight
+    const value = speed > 0 ? toAxis(speed) : axisHigh
+    const heightPx = ((axisHigh - value) / (axisHigh - axisLow || 1)) * plotHeight
     //const heightPx = ((speed - minSpeed) / (maxSpeed - minSpeed || 1)) * plotHeight
     ctx.fillStyle = getColorFromSpeed(speed, minSpeed, maxSpeed)
     ctx.fillRect(xStart, baseline - heightPx, widthPx - 1, heightPx)
@@ -311,7 +416,9 @@ const tooltip = ref({
   speed: 0,
   pace: '',
   distance: 0,
-  slope: 0,
+  // null when the track has no elevation for this segment — a missing grade is
+  // not a flat one
+  slope: null as number | null,
   slopeLabel: ''
 })
 
@@ -338,33 +445,23 @@ function showTooltip(event: MouseEvent | TouchEvent) {
   const clickedDistance = relativeX * totalDistance
 
   // Trouver le sample le plus proche
-  let index = samples.value.findIndex((s, i) => {
-    const prev = samples.value[i - 1]
-    return (prev?.distance ?? 0) <= clickedDistance && (s.distance ?? 0) >= clickedDistance
+  let index = samples.value.findIndex(s => {
+    const end = s.segmentEnd ?? s.distance ?? 0
+    const start = s.segmentDistance != null ? end - s.segmentDistance : 0
+    return start <= clickedDistance && end >= clickedDistance
   })
 
   if (index === -1) index = samples.value.length - 1
 
   const s = samples.value[index]
-  const prev = samples.value[index - 1] ?? s
   if (!s) return
 
-  //fix speed m/s to min/km
+  // Whatever the chart plots, shown in the user's units.
   const speedMps = s.speed ?? 0
-  const secPerKm = 1000 / speedMps
-
-  // minutes + secondes (format mm:ss)
-  const min = Math.floor(secPerKm / 60)
-  const sec = Math.round(secPerKm % 60)
-  const paceStr = `${min}:${sec.toString().padStart(2, '0')}`
+  const paceStr = axisLabel(toAxis(speedMps))
 
   const speed = speedMps ?? 0
-  const slope =
-    s.elevation !== undefined && index > 0
-      ? ((s.elevation - (samples.value[index - 1].elevation ?? s.elevation)) /
-          ((s.distance ?? 1) - (samples.value[index - 1].distance ?? 0))) *
-        100
-      : 0
+  const slope = s.slope ?? null
 
   tooltip.value = {
     visible: true,
@@ -372,11 +469,11 @@ function showTooltip(event: MouseEvent | TouchEvent) {
       left: `${clientX + 10}px`,
       top: `${clientY + 10}px`
     },
-    distance: (s.distance ?? 0) - (prev?.distance ?? 0),
+    distance: segmentMark(s, index),
     speed,
     pace: paceStr,
     slope,
-    slopeLabel: classifySlopeValue(slope)
+    slopeLabel: slope === null ? '' : classifySlopeValue(slope)
   }
 
   if (tooltipTimeout) clearTimeout(tooltipTimeout)
@@ -389,12 +486,16 @@ function showTooltip(event: MouseEvent | TouchEvent) {
 function paceSec(sample: Sample) {
   return (sample.speed ?? 0) > 0 ? 1000 / (sample.speed as number) : Infinity
 }
+/**
+ * The row's headline figure, in whatever this chart plots.
+ *
+ * It has to agree with the column header, which carries `paceUnit`: a ski
+ * listing "1:38" under a "km/h" heading is worse than either alone.
+ */
 function paceStr(sample: Sample) {
-  const p = paceSec(sample)
-  if (!isFinite(p)) return '—'
-  const m = Math.floor(p / 60)
-  const s = String(Math.round(p % 60)).padStart(2, '0')
-  return `${m}:${s}`
+  const speed = sample.speed ?? 0
+  if (!isFinite(speed) || speed <= 0) return '—'
+  return axisLabel(toAxis(speed))
 }
 /* largeur relative : plus la pace est rapide, plus la barre est longue  */
 function paceBarWidth(sample: Sample) {
@@ -412,16 +513,9 @@ function paceBarWidth(sample: Sample) {
   const ratio = (baselineMax - pace) / (baselineMax - baselineMin || 1)
   return Math.max(5, ratio * 100)
 }
-/* pente (%) entre ce sample et le précédent (ou 0) */
-function slopePct(sample: Sample, i = samples.value.indexOf(sample)) {
-  if (i <= 0) return 0
-  const prev = samples.value[i - 1]
-  const delev = (sample.elevation ?? 0) - (prev.elevation ?? 0)
-  const ddist = (sample.distance ?? 1) - (prev.distance ?? 0)
-  return ddist ? (delev / ddist) * 100 : 0
-}
-function slopeIcon(sample: Sample) {
-  const s = slopePct(sample)
+function slopeIcon(sample: SegmentSample) {
+  const s = sample.slope
+  if (s == null) return '—'
   if (s > 0.5) return '↗︎'
   if (s < -0.5) return '↘︎'
   return '→'
@@ -432,8 +526,20 @@ function hrAvg(sample: Sample) {
 }
 
 /* distance du segment (m) */
-function segmentDistance(sample: Sample, i = samples.value.indexOf(sample)) {
-  if (i === 0) return sample.distance ?? 0
+const formatDistance = (meters: number) => distanceLabel(units, meters)
+
+/** Cumulative distance at the end of the segment — where this row sits on the run */
+function segmentMark(sample: SegmentSample, i = samples.value.indexOf(sample)) {
+  if (sample.segmentEnd != null) return sample.segmentEnd
+  if (sample.distance != null) return sample.distance
+  return segmentDistance(sample, i)
+}
+
+function segmentDistance(sample: SegmentSample, i = samples.value.indexOf(sample)) {
+  // The analyzer measures the span from raw samples; differencing the averaged
+  // `distance` of two segments misses half of each of them
+  if (sample.segmentDistance != null) return sample.segmentDistance
+  if (i <= 0) return sample.distance ?? 0
   return (sample.distance ?? 0) - (samples.value[i - 1].distance ?? 0)
 }
 
@@ -457,6 +563,12 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
 })
+
+// Canvas content sits outside Vue's reactivity: switching units has to redraw.
+watch(
+  () => units.system,
+  () => drawCanvas()
+)
 </script>
 
 <style scoped>

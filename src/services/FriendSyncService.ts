@@ -99,7 +99,8 @@ export class FriendSyncService {
         this.emitEvent({
           type: 'mutual-friendship-discovered',
           friend,
-          message: `${friend.username} vous suit maintenant !`,
+          messageKey: 'friendEvents.nowFollowsYou',
+          messageParams: { name: friend.username },
           messageType: 'success'
         })
       }
@@ -431,17 +432,25 @@ export class FriendSyncService {
     const totalActivities = results.reduce((sum, r) => sum + r.activitiesAdded, 0)
 
     if (successCount > 0 || totalInteractions > 0) {
-      let message = `${successCount} ami(s) synchronisé(s)`
-      if (totalActivities > 0) {
-        message += `, ${totalActivities} activité(s)`
-      }
-      if (totalInteractions > 0) {
-        message += `, ${totalInteractions} interaction(s)`
-      }
+      // One key per shape rather than a sentence built by concatenation: a
+      // translator needs the whole sentence to word it correctly
+      const messageKey =
+        totalActivities > 0 && totalInteractions > 0
+          ? 'friendEvents.refreshFull'
+          : totalActivities > 0
+            ? 'friendEvents.refreshActivities'
+            : totalInteractions > 0
+              ? 'friendEvents.refreshInteractions'
+              : 'friendEvents.refreshFriends'
 
       this.emitEvent({
         type: 'refresh-completed',
-        message,
+        messageKey,
+        messageParams: {
+          friends: successCount,
+          activities: totalActivities,
+          interactions: totalInteractions
+        },
         messageType: 'success'
       })
     }

@@ -1,4 +1,4 @@
-import { Activity, ActivityDetails } from '@/types/activity'
+import { Activity, ActivityDetails, Measurement } from '@/types/activity'
 import { mapGarminSport } from './sportTypes'
 
 type RawRecord = Record<string, unknown>
@@ -64,21 +64,45 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
     distance: (lap.totalDistanceInMeters as number) || 0
   }))
 
+  const summary = garmin.summary ?? {}
+  const num = (v: unknown): number | undefined =>
+    typeof v === 'number' && Number.isFinite(v) ? v : undefined
+
+  const measurements: Record<string, Measurement> = {}
+  const record = (key: string, value: number | undefined, unit: string) => {
+    if (value !== undefined) measurements[key] = { value, unit }
+  }
+
+  // Kept apart on purpose: these are three different physical quantities that
+  // `stats.averageCadence` below has to flatten into one nameless number.
+  record('run.cadence', num(summary.averageRunCadenceInStepsPerMinute), 'spm')
+  record('bike.cadence', num(summary.averageBikingCadenceInRevPerMinute), 'rpm')
+  record('swim.strokeRate', num(summary.averageSwimCadenceInStrokesPerMinute), 'spm')
+
+  record('swim.poolLength', num(summary.poolLength), 'm')
+  record('swim.lengths', num(summary.numberOfActiveLengths), 'count')
+  record('swim.strokes', num(summary.totalNumberOfStrokes), 'count')
+  record('swim.swolf', num(summary.averageSwolf), 'swolf')
+
   return {
     id: `garmin_${garmin.activityId}`,
     samples,
     laps,
+    measurements: Object.keys(measurements).length > 0 ? measurements : undefined,
     stats: {
-      averageHeartRate: garmin.summary?.averageHeartRateInBeatsPerMinute as number | undefined,
-      maxHeartRate: garmin.summary?.maxHeartRateInBeatsPerMinute as number | undefined,
-      averageSpeed: garmin.summary?.averageSpeedInMetersPerSecond as number | undefined,
-      maxSpeed: garmin.summary?.maxSpeedInMetersPerSecond as number | undefined,
-      // Unify cadence across run (steps/min), bike (rev/min) and swim (strokes/min)
-      averageCadence: (garmin.summary?.averageRunCadenceInStepsPerMinute ??
-        garmin.summary?.averageBikingCadenceInRevPerMinute ??
-        garmin.summary?.averageSwimCadenceInStrokesPerMinute) as number | undefined,
-      totalAscent: garmin.summary?.totalElevationGainInMeters as number | undefined,
-      calories: garmin.summary?.activeKilocalories as number | undefined
+      averageHeartRate: summary.averageHeartRateInBeatsPerMinute as number | undefined,
+      maxHeartRate: summary.maxHeartRateInBeatsPerMinute as number | undefined,
+      averageSpeed: summary.averageSpeedInMetersPerSecond as number | undefined,
+      maxSpeed: summary.maxSpeedInMetersPerSecond as number | undefined,
+      // Lossy by nature — the unit is gone once the three collapse into one
+      // field. Retained for the widgets that already read it; new code should
+      // use the `*.cadence` / `swim.strokeRate` measurements instead.
+      averageCadence: (summary.averageRunCadenceInStepsPerMinute ??
+        summary.averageBikingCadenceInRevPerMinute ??
+        summary.averageSwimCadenceInStrokesPerMinute) as number | undefined,
+      totalAscent: summary.totalElevationGainInMeters as number | undefined,
+      totalDescent: summary.totalElevationLossInMeters as number | undefined,
+      calories: summary.activeKilocalories as number | undefined
     },
     version: 1,
     lastModified: Date.now()

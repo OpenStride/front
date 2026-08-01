@@ -1,19 +1,20 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="zip-import-provider">
-    <h3>Importer un export ZIP d'activités</h3>
+    <h3>{{ t('zipImport.title') }}</h3>
     <input type="file" accept=".zip" @change="onFileChange" />
     <div v-if="importing">
-      <span>Import en cours...</span>
+      <span>{{ t('zipImport.importing') }}</span>
       <span v-if="totalToImport > 0"> ({{ importedCount }}/{{ totalToImport }})</span>
     </div>
     <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="success" class="success">Import terminé !</div>
+    <div v-if="success" class="success">{{ t('zipImport.done') }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { getPluginContext } from '@/services/PluginContextFactory'
+import { useI18n } from 'vue-i18n'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { ref } from 'vue'
 import JSZip from 'jszip'
 import Papa from 'papaparse'
@@ -21,6 +22,12 @@ import FitFileParser from 'fit-file-parser'
 import pako from 'pako'
 import { adaptZipSummary, adaptZipDetails } from './adapter'
 import type { Activity, ActivityDetails } from '@/types/activity'
+
+// A Vue component reads the context through the composable; the factory is for
+// non-Vue code. Both resolve the same singleton, but only one is reactive-safe.
+const ctx = usePluginContext()
+
+const { t } = useI18n()
 
 interface CsvRow extends Record<string, unknown> {
   id?: string
@@ -107,12 +114,18 @@ function onFileChange(e: Event) {
                 elapsedRecordField: true
               })
               await new Promise<void>((resolve, reject) => {
-                fitParser.parse(fitData.buffer, (err, result) => {
+                // The parser hands back a plain string on failure, not an Error,
+                // so reading `.message` produced "undefined" in the banner. And
+                // its buffer type is narrower than what JSZip returns.
+                fitParser.parse(fitData.buffer as ArrayBuffer, (err, result) => {
                   if (err) {
-                    error.value = 'Erreur de parsing FIT: ' + err.message
-                    reject(err)
+                    error.value = `Erreur de parsing FIT: ${String(err)}`
+                    reject(new Error(String(err)))
                   } else {
-                    fitResult = result
+                    // The parser's own `ParsedFit` and this file's structural
+                    // `FitParseResult` describe the same payload without sharing
+                    // a declaration, so the widening step is explicit.
+                    fitResult = (result ?? {}) as unknown as FitParseResult
                     resolve()
                   }
                 })
@@ -160,7 +173,6 @@ function onFileChange(e: Event) {
           )
         )
         // Insertion via PluginContext (atomic, versioned, event-emitting)
-        const ctx = await getPluginContext()
         // Récupérer toutes les activités existantes pour comparer les startTime
         const existingActivities = await ctx.activity.getAllActivities()
         const existingStartTimes = new Set(existingActivities.map((a: Activity) => a.startTime))

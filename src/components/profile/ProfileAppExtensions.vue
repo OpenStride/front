@@ -1,62 +1,37 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-2xl font-bold">{{ t('appExtensions.title', 'App Extensions') }}</h2>
-    <p class="text-gray-600">
-      {{
-        t('appExtensions.description', 'Manage widgets and features displayed throughout the app')
-      }}
-    </p>
-
-    <!-- Extensions List -->
+  <div class="profile-panel">
     <section>
-      <ul v-if="!loading" class="space-y-3">
-        <li
-          v-for="plugin in allPlugins"
-          :key="plugin.id"
-          class="flex items-center justify-between bg-white p-4 rounded-lg shadow hover:shadow-md transition"
-        >
-          <div class="flex items-center space-x-4 flex-1">
-            <!-- Icon -->
-            <i
-              v-if="plugin.icon"
-              :class="plugin.icon"
-              class="text-2xl text-gray-700"
-              aria-hidden="true"
-            ></i>
-            <i v-else class="fas fa-puzzle-piece text-2xl text-gray-400" aria-hidden="true"></i>
+      <h3>{{ t('appExtensions.title') }}</h3>
+      <p class="panel-lead">{{ t('appExtensions.description') }}</p>
 
-            <!-- Label & Description -->
-            <div class="flex-1">
-              <div class="font-semibold text-gray-900">{{ plugin.label }}</div>
-              <div v-if="plugin.description" class="text-sm text-gray-600 mt-1">
-                {{ plugin.description }}
-              </div>
-            </div>
+      <ul v-if="!loading" class="stack">
+        <li v-for="plugin in allPlugins" :key="plugin.id" class="ext">
+          <i :class="plugin.icon || 'fas fa-puzzle-piece'" class="ext__icon" aria-hidden="true"></i>
+
+          <div class="ext__text">
+            <span class="ext__label">{{ labelOf(plugin) }}</span>
+            <span v-if="descriptionOf(plugin)" class="ext__desc">{{ descriptionOf(plugin) }}</span>
           </div>
 
-          <!-- Toggle Switch -->
-          <label class="relative inline-flex items-center cursor-pointer">
+          <label class="switch">
             <input
               type="checkbox"
               :checked="enabledPluginIds.includes(plugin.id)"
               @change="handleToggle(plugin.id)"
               :disabled="isToggling"
-              class="sr-only peer"
               role="switch"
               :aria-checked="enabledPluginIds.includes(plugin.id)"
-              :aria-label="`Toggle ${plugin.label}`"
+              :aria-label="t('appExtensions.toggle', { name: labelOf(plugin) })"
             />
-            <div
-              class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
-            ></div>
+            <span class="switch__track" aria-hidden="true"></span>
           </label>
         </li>
       </ul>
 
-      <div v-else class="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
-        <i class="fas fa-spinner fa-spin text-2xl mb-2" aria-hidden="true"></i>
-        <p>{{ t('common.loading') }}</p>
-      </div>
+      <p v-else class="panel-empty">
+        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+        {{ t('common.loading') }}
+      </p>
     </section>
   </div>
 </template>
@@ -68,7 +43,23 @@ import { allAppPlugins } from '@/services/ExtensionPluginRegistry'
 import type { ExtensionPlugin } from '@/types/extension'
 import { AppExtensionPluginManager } from '@/services/AppExtensionPluginManager'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
+
+/**
+ * An extension's user-facing name comes from the locale, keyed by its id.
+ *
+ * Nine plugins declared an English `label` and `description` in their
+ * `index.ts`, and the tab showed all nine in English to a French reader —
+ * the mirror of the hardcoded French toasts the contracts test now guards.
+ * Indexing on the id keeps the translations in the locale files, where a
+ * translator can reach them, and leaves the declared string as the fallback
+ * for a plugin nobody has translated yet.
+ */
+const labelOf = (p: ExtensionPlugin) =>
+  te(`extensions.${p.id}.label`) ? t(`extensions.${p.id}.label`) : p.label
+
+const descriptionOf = (p: ExtensionPlugin) =>
+  te(`extensions.${p.id}.description`) ? t(`extensions.${p.id}.description`) : p.description
 
 const manager = AppExtensionPluginManager.getInstance()
 const allPlugins = ref<ExtensionPlugin[]>(allAppPlugins)
@@ -104,3 +95,103 @@ async function handleToggle(pluginId: string) {
   }
 }
 </script>
+
+<style scoped>
+.ext {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.ext__icon {
+  width: 1.5rem;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 1.125rem;
+  color: var(--color-green-600);
+}
+
+/* The description used to run under the toggle, which floated on top of it. */
+.ext__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ext__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.ext__desc {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* ===== Switch ===== */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-300);
+  transition: background 0.2s;
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: 0 1px 2px rgba(30, 30, 46, 0.25);
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .switch__track {
+  background: var(--color-green-600);
+}
+
+.switch input:checked + .switch__track::after {
+  transform: translateX(1.25rem);
+}
+
+.switch input:focus-visible + .switch__track {
+  outline: 2px solid var(--color-green-400);
+  outline-offset: 2px;
+}
+
+.switch input:disabled + .switch__track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

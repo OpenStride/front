@@ -80,13 +80,13 @@ export class IndexedDBService implements IStorageService {
 
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('OpenStrideDB', 10)
+      const request = indexedDB.open('OpenStrideDB', 11)
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v10`)
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v11`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -127,6 +127,9 @@ export class IndexedDBService implements IStorageService {
           },
           { name: 'notifLogs', options: { autoIncrement: true } },
           { name: 'aggregatedData', options: { keyPath: 'id' } },
+          // Derived per-activity metrics. Fully recomputable, never backed up
+          // to a storage provider (see LOCAL_ONLY_STORES in StorageService).
+          { name: 'activity_metrics', options: { keyPath: 'id' } },
           { name: 'friends', options: { keyPath: 'id' } },
           { name: 'friend_activities', options: { keyPath: 'id' } },
           {

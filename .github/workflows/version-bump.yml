@@ -47,23 +47,59 @@ jobs:
             }
             core.setOutput('bump_type', bumpType);
 
-      - name: Bump version
+      # Bump, commit, push the branch, and only then the tag.
+      #
+      # `git push origin main --tags` used to do all of it at once, from a
+      # checkout taken when the run started. Two merges 18 s apart was enough:
+      # the second landed while the first run was still working, the tag pushed
+      # fine and the branch was rejected as non-fast-forward. That left v0.5.34
+      # tagged but not on main, package.json still on 0.5.33, and every later run
+      # dying on "tag already exists" — four merges shipped nothing.
+      #
+      # `concurrency` above serialises runs; it cannot make a running job's
+      # checkout current. Hence the rebase-and-retry here.
+      - name: Bump, commit and tag
         id: bump
-        run: |
-          OLD=$(node -p "require('./package.json').version")
-          npm version ${{ steps.bump-type.outputs.bump_type }} --no-git-tag-version
-          NEW=$(node -p "require('./package.json').version")
-          echo "new_version=${NEW}" >> $GITHUB_OUTPUT
-          echo "Bumped: ${OLD} -> ${NEW}"
-
-      - name: Commit and tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git commit -m "chore(release): v${{ steps.bump.outputs.new_version }}"
-          git tag "v${{ steps.bump.outputs.new_version }}"
-          git push origin main --tags
+
+          for attempt in 1 2 3 4 5; do
+            # Whatever landed while this run was working comes first.
+            git fetch --quiet origin main --tags
+            git reset --quiet --hard origin/main
+
+            OLD=$(node -p "require('./package.json').version")
+            npm version "${{ steps.bump-type.outputs.bump_type }}" --no-git-tag-version >/dev/null
+            NEW=$(node -p "require('./package.json').version")
+
+            # A tag can already exist from an earlier run that got this far and
+            # then failed to push the branch. Take the next free number rather
+            # than stopping the release train on it.
+            while git rev-parse -q --verify "refs/tags/v${NEW}" >/dev/null; do
+              echo "v${NEW} is already tagged, taking the next one"
+              npm version patch --no-git-tag-version >/dev/null
+              NEW=$(node -p "require('./package.json').version")
+            done
+
+            git add package.json package-lock.json
+            git commit --quiet -m "chore(release): v${NEW}"
+
+            # The branch first: a tag naming a commit that is not on main is
+            # worse than no tag, and is exactly what happened before.
+            if git push --quiet origin main; then
+              git tag "v${NEW}"
+              git push --quiet origin "refs/tags/v${NEW}"
+              echo "new_version=${NEW}" >> $GITHUB_OUTPUT
+              echo "Released: ${OLD} -> ${NEW}"
+              exit 0
+            fi
+
+            echo "main moved while this run was working, retrying (${attempt}/5)"
+          done
+
+          echo "::error::could not push the release commit after 5 attempts"
+          exit 1
 
   deploy:
     name: Deploy to Firebase Hosting & Functions

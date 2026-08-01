@@ -3,7 +3,7 @@
     "collect": {
       "url": [
         "https://openstride.org",
-        "https://openstride.org/activities"
+        "https://openstride.org/my-activities"
       ],
       "numberOfRuns": 3,
       "settings": {

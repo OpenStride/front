@@ -1,4 +1,6 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
+import type { Converted, Dimension, Formatted, UnitSystem } from './units'
+import type { SegmentSample, ElevationProfile } from '@/services/ActivityAnalyzer'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -185,6 +187,16 @@ export interface IFriendService {
   publishPublicData(): Promise<string | null>
   getMyManifestUrl(): Promise<string | null>
   getMyPublicUrl(): Promise<string | null>
+  /** False when no enabled storage provider can host public files — publishing would fail */
+  canPublish(): Promise<boolean>
+  isAutoPublishEnabled(): Promise<boolean>
+  setAutoPublish(enabled: boolean): Promise<void>
+  /**
+   * What a friend actually receives, so a screen can state it instead of
+   * implying it. `publishedAt` is null when the profile predates the
+   * timestamp — unknown, not never.
+   */
+  getPublicSummary(): Promise<{ activityCount: number; publishedAt: number | null }>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
 }
@@ -202,9 +214,13 @@ export interface IAnalyzerFactory {
       number,
       { sample: Sample; duration: number; startIdx: number; endIdx: number } | null | undefined
     >
-    sampleAverageByDistance(stepMeters: number): Sample[]
-    sampleBySlopeChange(minDistanceMeters: number): Sample[]
-    sampleByLaps(laps: { time: number }[]): Sample[]
+    sampleAverageByDistance(stepMeters: number): SegmentSample[]
+    sampleBySlopeChange(minDistanceMeters: number): SegmentSample[]
+    sampleByLaps(laps: { time: number }[]): SegmentSample[]
+    /** Metres climbed and descended, noise-filtered. */
+    elevationChange(): { ascent: number; descent: number }
+    /** Shape of the course, so widgets can decide whether grade is worth showing */
+    elevationProfile(): ElevationProfile
   }
 }
 
@@ -219,6 +235,52 @@ export interface ISyncService {
    * optimization and force a full remote read + reconcile (deep menu action).
    */
   syncNow(opts?: { force?: boolean }): Promise<void>
+}
+
+/** What a provider reports once it has finished pulling. */
+export interface ProviderImportEvent {
+  providerId: string
+  providerLabel: string
+  timestamp: number
+}
+
+/**
+ * Data-provider events for plugins
+ *
+ * A plugin that reacts to imports — notifications, badges, a sync indicator —
+ * needs to know when one happened, and that was the one thing the context did
+ * not offer. The plugin that needed it reached for `DataProviderService`
+ * directly and typed the payload from memory, inventing a `count` and an
+ * `activities` array the event never carried.
+ */
+export interface IDataProviderEvents {
+  /** Subscribe to completed imports; call the returned function to stop. */
+  onActivitiesImported(handler: (event: ProviderImportEvent) => void): () => void
+}
+
+/**
+ * Unit formatting interface for plugins
+ *
+ * Values are stored in SI everywhere; this converts them to the user's unit
+ * system at display time. Plugins must not convert by hand — most of the app's
+ * charts and stats live in plugins, so hardcoding metric there would leave half
+ * the UI ignoring the preference.
+ */
+export interface IUnitsService {
+  /** Current preference — read it to redraw canvas charts when it changes. */
+  system: UnitSystem
+  /** `pace` and `pace100` take seconds per metre (`duration / distance`). */
+  format(dimension: Dimension, si: number): Formatted
+  /** Same conversion as `format`, as a number — for chart axes and series. */
+  convert(dimension: Dimension, si: number): Converted
+  /**
+   * The inverse: a number the user typed, in their units, back to SI.
+   *
+   * Required wherever a quantity *enters* the app. "50" in a goal field means
+   * 50 km to one reader and 50 mi to another; storing it unconverted makes the
+   * stored value depend on a display preference.
+   */
+  toSI(dimension: Dimension, value: number): number
 }
 
 /**
@@ -236,6 +298,8 @@ export interface PluginContext {
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService
+  units: IUnitsService
+  providers: IDataProviderEvents
 }
 
 /**
