@@ -622,13 +622,17 @@
   "interactions": {
     "comment": "Comment",
     "addComment": "Add a comment...",
-    "mutualRequired": "Mutual friendship required to interact",
-    "publishRequired": "Publish your data to interact",
+    "mutualRequired": "They have to add you back before you can like or comment",
+    "publishRequired": "Publish your profile to like and comment",
     "none": "No interactions yet",
     "sending": "Sending...",
     "publish": "Post",
     "shareProfile": "Share my profile",
-    "delete": "Delete"
+    "delete": "Delete",
+    "like": "Like",
+    "liked": "Liked",
+    "whyBlocked": "Why can I not do this?",
+    "publishAction": "Publish my profile"
   },
   "friendsList": {
     "empty": "No friend added",

@@ -622,13 +622,17 @@
   "interactions": {
     "comment": "Commenter",
     "addComment": "Ajouter un commentaire...",
-    "mutualRequired": "Amitié mutuelle requise pour interagir",
-    "publishRequired": "Publiez vos données pour interagir",
+    "mutualRequired": "Il doit vous ajouter en retour pour que vous puissiez aimer ou commenter",
+    "publishRequired": "Publiez votre profil pour aimer et commenter",
     "none": "Aucune interaction pour le moment",
     "sending": "Envoi...",
     "publish": "Publier",
     "shareProfile": "Partager mon profil",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "like": "J'aime",
+    "liked": "Aimé",
+    "whyBlocked": "Pourquoi je ne peux pas ?",
+    "publishAction": "Publier mon profil"
   },
   "friendsList": {
     "empty": "Aucun ami ajouté",
