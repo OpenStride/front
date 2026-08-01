@@ -36,7 +36,7 @@ jobs:
 
       - name: Install Capacitor
         run: |
-          npm install @capacitor/cli @capacitor/ios
+          npm install @capacitor/cli @capacitor/ios @capacitor-community/background-geolocation
           cp ci/capacitor.config.json .
           npx cap add ios
           npx cap sync ios
@@ -64,6 +64,21 @@ jobs:
             ios/App/App/Info.plist
 
           echo "iOS project patched for HealthKit"
+
+      # iOS terminates an app that asks for location without a usage string, and
+      # drops the watcher the moment the screen locks without the background mode.
+      # Both are the recorder's whole reason to exist, so both are declared here.
+      - name: Patch iOS project for background location
+        run: |
+          plutil -replace NSLocationWhenInUseUsageDescription \
+            -string "OpenStride uses your location to record the track of your activity." \
+            ios/App/App/Info.plist
+          plutil -replace NSLocationAlwaysAndWhenInUseUsageDescription \
+            -string "OpenStride keeps recording your track while the app is in the background or the screen is off." \
+            ios/App/App/Info.plist
+          plutil -replace UIBackgroundModes -json '["location"]' ios/App/App/Info.plist
+
+          echo "iOS project patched for background location"
 
       - name: Install Apple certificate and provisioning profile
         env:

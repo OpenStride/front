@@ -324,10 +324,16 @@
       "resume": "Reprendre",
       "stop": "Terminer",
       "gpsWaiting": "Recherche du GPS…",
+      "gpsAccuracy": "Recherche d'un point GPS exploitable (précision {meters} m pour l'instant)…",
       "statDuration": "Temps",
       "statDistance": "Distance",
       "statPace": "Allure",
       "saved": "Activité enregistrée.",
+      "nothingRecorded": "Aucun point GPS enregistré — rien à sauvegarder.",
+      "permissionDenied": "Sans accès à ta position, OpenStride ne peut rien enregistrer.",
+      "openSettings": "Ouvrir les réglages",
+      "notificationTitle": "OpenStride",
+      "notificationMessage": "Enregistrement de ton activité",
       "error": "Erreur : {message}"
     },
     "health": {

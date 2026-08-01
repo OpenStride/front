@@ -23,16 +23,10 @@
 
     <!-- Live recording -->
     <div v-else class="live">
-      <MapPreview
-        v-if="polyline.length"
-        :polyline="polyline"
-        :canzoom="true"
-        theme="osm"
-        class="map"
-      />
+      <MapPreview v-if="track.length" :polyline="track" :canzoom="true" theme="osm" class="map" />
       <div v-else class="map map--waiting">
         <i class="fas fa-satellite-dish fa-beat" aria-hidden="true"></i>
-        <span>{{ t('providers.recorder.gpsWaiting') }}</span>
+        <span>{{ waitingLabel }}</span>
       </div>
 
       <div class="hud">
@@ -66,42 +60,74 @@
     <p v-if="doneMessage" class="ok">
       <i class="fas fa-check-circle" aria-hidden="true"></i> {{ doneMessage }}
     </p>
-    <p v-if="error" class="err">
-      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {{ error }}
-    </p>
+    <div v-if="errorMessage" class="err">
+      <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {{ errorMessage }}</p>
+      <!-- A refused permission cannot be asked for twice: the way back is the OS. -->
+      <button v-if="permissionDenied" class="btn btn--settings" @click="openSettings">
+        <i class="fas fa-gear" aria-hidden="true"></i> {{ t('providers.recorder.openSettings') }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { formatSportType, getSportIcon, COMMON_SPORT_TYPES } from '@/utils/sportLabels'
 import type { SportType } from '@/types/sport'
-import { startWatch, stopWatch, type GeoPoint } from './geo'
-import { liveStats, buildActivity, type RecordSession } from './recorder'
+import { NOT_AUTHORIZED, openLocationSettings } from './geo'
+import { liveStats, MAX_ACCURACY } from './recorder'
+import * as recorder from './session'
 
-const STORAGE_KEY = 'recorder:session'
-const ACCURACY_LIMIT = 30 // discard fixes worse than 30m
+/** How often the live track handed to the map is refreshed (ms). */
+const MAP_REFRESH_MS = 5000
 
 const { t } = useI18n()
 const ctx = usePluginContext()
 
 const sports = COMMON_SPORT_TYPES as SportType[]
 const sport = ref<SportType>('running')
-const phase = ref<'idle' | 'recording' | 'paused'>('idle')
 const doneMessage = ref('')
-const error = ref('')
+const localError = ref('')
 
-const session = reactive<RecordSession>({ sport: 'running', startTime: 0, pausedMs: 0, points: [] })
-let watcherId: string | null = null
-let pausedAt: number | null = null
+// The recording itself lives in ./session, not here: it has to outlive this
+// screen (see the comment at the top of that module).
+const state = recorder.state
+const phase = computed(() => state.phase)
+
 let ticker: ReturnType<typeof setInterval> | null = null
 const nowMs = ref(Date.now())
+const track = ref<[number, number][]>([])
 
-const stats = computed(() => liveStats(session, nowMs.value))
-const polyline = computed<[number, number][]>(() => session.points.map(p => [p.lat, p.lng]))
+const stats = computed(() => liveStats(state.session, nowMs.value))
+
+const permissionDenied = computed(() => state.error?.code === NOT_AUTHORIZED)
+const errorMessage = computed(() => {
+  if (localError.value) return localError.value
+  if (!state.error) return ''
+  return permissionDenied.value
+    ? t('providers.recorder.permissionDenied')
+    : t('providers.recorder.error', { message: state.error.message })
+})
+
+/**
+ * Why the map is still empty. A mute "Waiting for GPS…" over a frozen distance
+ * is the moment the user decides the recorder is broken; the first fixes after
+ * a cold start are routinely worse than `MAX_ACCURACY`, and saying so costs
+ * nothing.
+ */
+const waitingLabel = computed(() =>
+  state.accuracy !== null && state.accuracy > MAX_ACCURACY
+    ? t('providers.recorder.gpsAccuracy', { meters: Math.round(state.accuracy) })
+    : t('providers.recorder.gpsWaiting')
+)
+
+const notification = computed(() => ({
+  title: t('providers.recorder.notificationTitle'),
+  message: t('providers.recorder.notificationMessage')
+}))
 
 function fmtDuration(sec: number): string {
   const h = Math.floor(sec / 3600)
@@ -115,25 +141,21 @@ function fmtPace(secPerKm: number): string {
   return `${Math.floor(secPerKm / 60)}'${String(secPerKm % 60).padStart(2, '0')}`
 }
 
-async function persist() {
-  await ctx.storage.saveData(STORAGE_KEY, JSON.parse(JSON.stringify(session)))
-}
-
-function onPoint(p: GeoPoint) {
-  if (phase.value !== 'recording') return
-  if (typeof p.accuracy === 'number' && p.accuracy > ACCURACY_LIMIT) return
-  session.points.push(p)
-  void persist()
-}
-
-async function beginWatch() {
-  watcherId = await startWatch(onPoint, msg => {
-    error.value = t('providers.recorder.error', { message: msg })
-  })
+function refreshTrack(): void {
+  track.value = state.session.points.map(p => [p.lat, p.lng] as [number, number])
 }
 
 function startTicker() {
-  if (!ticker) ticker = setInterval(() => (nowMs.value = Date.now()), 1000)
+  if (ticker) return
+  let sinceMapRefresh = 0
+  ticker = setInterval(() => {
+    nowMs.value = Date.now()
+    sinceMapRefresh += 1000
+    if (sinceMapRefresh >= MAP_REFRESH_MS) {
+      sinceMapRefresh = 0
+      refreshTrack()
+    }
+  }, 1000)
 }
 function stopTicker() {
   if (ticker) {
@@ -142,90 +164,81 @@ function stopTicker() {
   }
 }
 
+function reportError(err: unknown) {
+  localError.value = t('providers.recorder.error', {
+    message: err instanceof Error ? err.message : String(err)
+  })
+}
+
 async function start() {
-  error.value = ''
+  localError.value = ''
   doneMessage.value = ''
-  session.sport = sport.value
-  session.startTime = Date.now()
-  session.pausedMs = 0
-  session.points = []
-  phase.value = 'recording'
   startTicker()
   try {
-    await beginWatch()
-    await persist()
+    await recorder.start(sport.value, notification.value)
   } catch (err) {
-    error.value = t('providers.recorder.error', {
-      message: err instanceof Error ? err.message : String(err)
-    })
-    phase.value = 'idle'
+    reportError(err)
     stopTicker()
   }
 }
 
 async function pause() {
-  phase.value = 'paused'
-  pausedAt = Date.now()
-  if (watcherId) {
-    await stopWatch(watcherId)
-    watcherId = null
+  try {
+    await recorder.pause()
+  } catch (err) {
+    reportError(err)
   }
-  await persist()
 }
 
 async function resume() {
-  if (pausedAt) {
-    session.pausedMs += Date.now() - pausedAt
-    pausedAt = null
-  }
-  phase.value = 'recording'
+  localError.value = ''
   startTicker()
-  await beginWatch()
-  await persist()
+  try {
+    await recorder.resume(notification.value)
+  } catch (err) {
+    reportError(err)
+  }
 }
 
 async function stop() {
-  if (watcherId) {
-    await stopWatch(watcherId)
-    watcherId = null
-  }
   stopTicker()
-
   try {
-    if (session.points.length > 0) {
-      const { activity, details } = buildActivity(session)
-      await ctx.activity.saveActivityWithDetails(activity, details)
-      doneMessage.value = t('providers.recorder.saved')
-      ctx.notifications.notify(doneMessage.value, { type: 'success' })
-    }
+    const activity = await recorder.finish()
+    doneMessage.value = activity
+      ? t('providers.recorder.saved')
+      : t('providers.recorder.nothingRecorded')
+    ctx.notifications.notify(doneMessage.value, { type: activity ? 'success' : 'warning' })
   } catch (err) {
-    error.value = t('providers.recorder.error', {
-      message: err instanceof Error ? err.message : String(err)
-    })
+    reportError(err)
   } finally {
-    await ctx.storage.deleteData(STORAGE_KEY)
-    phase.value = 'idle'
-    session.points = []
+    refreshTrack()
+  }
+}
+
+async function openSettings() {
+  try {
+    await openLocationSettings()
+  } catch (err) {
+    reportError(err)
   }
 }
 
 onMounted(async () => {
-  // Recover an interrupted recording (app was killed mid-run).
-  const saved = await ctx.storage.getData<RecordSession>(STORAGE_KEY)
-  if (saved && saved.points?.length) {
-    Object.assign(session, saved)
-    sport.value = saved.sport
-    phase.value = 'paused'
-    pausedAt = Date.now()
-    nowMs.value = Date.now()
-  }
+  // Pick up a recording already running in this JS context, or recover one an
+  // app kill interrupted. Both cases are the session module's business.
+  await recorder.restore()
+  sport.value = state.session.sport
+  nowMs.value = Date.now()
+  refreshTrack()
+  if (state.phase !== 'idle') startTicker()
 })
 
 onUnmounted(async () => {
   stopTicker()
-  // Leave the watcher running so tracking continues if the user just navigates
-  // away; only persist the latest state.
-  if (phase.value !== 'idle') await persist()
+  // The watcher stays up on purpose: leaving this screen mid-run is not
+  // stopping the run. It is the session module that holds it now, so it can
+  // still be stopped when the user comes back.
+  await recorder.flush()
 })
 </script>
 
@@ -292,6 +305,10 @@ onUnmounted(async () => {
 .btn--stop {
   background: var(--color-red-600, #dc2626);
   flex: 1;
+}
+.btn--settings {
+  background: var(--color-gray-700, #374151);
+  margin-top: 0.6rem;
 }
 .map {
   height: 240px;

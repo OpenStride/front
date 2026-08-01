@@ -324,10 +324,16 @@
       "resume": "Resume",
       "stop": "Finish",
       "gpsWaiting": "Waiting for GPS…",
+      "gpsAccuracy": "Waiting for a usable GPS fix (accurate to {meters} m so far)…",
       "statDuration": "Time",
       "statDistance": "Distance",
       "statPace": "Pace",
       "saved": "Activity saved.",
+      "nothingRecorded": "No GPS fix was recorded — nothing to save.",
+      "permissionDenied": "OpenStride cannot record without access to your location.",
+      "openSettings": "Open settings",
+      "notificationTitle": "OpenStride",
+      "notificationMessage": "Recording your activity",
       "error": "Error: {message}"
     },
     "health": {
