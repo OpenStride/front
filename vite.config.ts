@@ -21,8 +21,14 @@ export default defineConfig({
         name: 'OpenStride',
         short_name: 'OpenStride',
         description: 'Your activity companion that respects your privacy',
-        theme_color: '#88aa00',
-        background_color: '#1e1e2e',
+        // theme_color : barre de statut de la PWA installée. Même valeur que le
+        // <meta name="theme-color"> de index.html — les deux divergeaient, et
+        // seul le manifeste portait encore un vert (#88aa00) hors palette.
+        theme_color: '#1e1e2e',
+        // background_color : c'est LE fond du splash screen au lancement.
+        // Doit rester égal à --surface-app (variables.css), qui est le fond du
+        // <body> : toute autre valeur provoque un flash à la première frame.
+        background_color: '#ececea',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
