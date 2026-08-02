@@ -706,7 +706,9 @@
   },
   "gdrive": {
     "checking": "Checking the Google Drive connection...",
-    "verifying": "Checking..."
+    "verifying": "Checking...",
+    "signInFailed": "Google sign-in failed: {message}",
+    "signInUnavailable": "This build cannot sign in to Google. It ships without the OAuth client the native app needs."
   },
   "legal": {
     "privacyPolicy": "Privacy Policy",

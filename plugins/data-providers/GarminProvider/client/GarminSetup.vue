@@ -148,6 +148,14 @@ let oauthChannel: BroadcastChannel | null = null
 // ============================================================================
 
 async function connectToGarmin() {
+  // A popup cannot come back inside the native shell: Capacitor hands
+  // `window.open` to the system browser, which has no `opener` to postMessage
+  // through and shares no BroadcastChannel with the WebView. The redirect flow
+  // does work there — the app is served from `https://localhost`, so
+  // `/oauth/garmin/callback` lands back on our own callback route — provided
+  // that redirect URI is registered in the Garmin console.
+  if (ctx.shell.isNative) return connectWithRedirect()
+
   // Generate PKCE verifier + challenge
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)

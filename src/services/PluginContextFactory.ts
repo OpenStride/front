@@ -1,6 +1,7 @@
 import type { PluginContext, ProviderImportEvent } from '@/types/plugin-context'
 import { getActivityService } from './ActivityService'
 import { IndexedDBService } from './IndexedDBService'
+import { nativeShell } from './NativeShellService'
 import { ToastService } from './ToastService'
 import { aggregationService } from './AggregationService'
 import { FriendService } from './FriendService'
@@ -140,7 +141,9 @@ export async function createPluginContext(): Promise<PluginContext> {
         service.emitter.addEventListener('provider-activities-imported', listener)
         return () => service.emitter.removeEventListener('provider-activities-imported', listener)
       }
-    }
+    },
+
+    shell: nativeShell
   }
 }
 
