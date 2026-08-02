@@ -72,6 +72,33 @@ hundred metres of climb. When a fix is refused for accuracy the screen says so �
 a mute "waiting for GPS" over a frozen distance is the moment the user decides
 the recorder is broken.
 
+## 6. `location.speed` is not the speed of the activity
+
+The first real recording came back with a correct average pace next to a pace
+graph that was nonsense — and the same graph is right for a Garmin activity, on
+the same screen. Nothing was wrong with the graph.
+
+The two numbers simply came from unrelated quantities. The summary divides
+distance by duration. `SpeedSampled` plots `SegmentSample.speed`, which
+`computeAverageSample` builds as the arithmetic mean of `sample.speed`. Garmin's
+adapter fills that field with `speedMetersPerSecond`, the watch's own smoothed
+1 Hz figure. The recorder filled it with the Capacitor plugin's raw
+per-fix Doppler estimate: one instant, sometimes absent entirely, and tied to
+nothing the activity is summarised from.
+
+`speedSeries()` measures it on the track instead, over a 30 m window, in moving
+**milliseconds**. Both halves matter:
+
+- fixes arrive roughly every 5 m — under two seconds of running — and
+  `sample.time` is stored in whole seconds, so a speed taken between neighbours
+  divides a small distance by a heavily quantised time;
+- a pause between two fixes would otherwise read as a dead stop.
+
+The graph and the summary now come from the same distances and the same clock,
+so they agree by construction. `maxSpeed` comes from the measured series too: a
+single Doppler spike used to be enough to file a run with an impossible top
+speed.
+
 ## Still open
 
 - The HUD formats km and pace by hand. When this branch meets `ctx.units`

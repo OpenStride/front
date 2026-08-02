@@ -155,6 +155,89 @@ describe('buildActivity', () => {
   })
 })
 
+/**
+ * The complaint that produced these: on a real recording the average pace read
+ * correctly while the pace graph was nonsense. They came from two unrelated
+ * quantities — the summary divides distance by duration, the graph averages
+ * `sample.speed`, which used to be the GPS's own instantaneous estimate.
+ */
+describe('the pace a sample reports agrees with the pace of the activity', () => {
+  /** A run at a steady `mps`, fixes every `everyM` metres, as the watcher sees it. */
+  function steadyRun(mps: number, everyM: number, metres: number): RecordSession {
+    const points: GeoPoint[] = []
+    for (let d = 0; d <= metres; d += everyM) {
+      // Whatever the device says about speed is deliberately absurd here: the
+      // recording must not depend on it.
+      points.push(point(d / mps, d, { speed: 99 }))
+    }
+    return { ...emptySession('running'), startTime: T0, points }
+  }
+
+  it('reports the true speed on every sample of a steady run', () => {
+    const { activity, details } = buildActivity(steadyRun(3, 5, 1000))
+    const samples = details.samples ?? []
+
+    expect(activity.distance / activity.duration).toBeCloseTo(3, 1)
+    for (const s of samples) {
+      expect(s.speed, `sample at ${s.distance} m`).toBeCloseTo(3, 1)
+    }
+  })
+
+  it('never repeats what the GPS claimed about speed', () => {
+    const { details } = buildActivity(steadyRun(3, 5, 200))
+    expect((details.samples ?? []).some(s => s.speed === 99)).toBe(false)
+    expect(details.stats?.maxSpeed).toBeLessThan(10)
+  })
+
+  it('survives fixes closer together than the stored one-second resolution', () => {
+    // 5 m at 3 m/s is 1.67 s — rounded to whole seconds that is a ±30 % error,
+    // which is precisely what made neighbouring samples disagree wildly.
+    const { details } = buildActivity(steadyRun(3, 5, 300))
+    const speeds = (details.samples ?? []).map(s => s.speed ?? 0)
+    const spread = Math.max(...speeds) - Math.min(...speeds)
+    expect(spread).toBeLessThan(0.5)
+  })
+
+  it('does not read a pause as a collapse in speed', () => {
+    // Two 200 m halves at 3 m/s with a ten-minute pause in between.
+    const points: GeoPoint[] = []
+    for (let d = 0; d <= 200; d += 5) points.push(point(d / 3, d))
+    for (let d = 205; d <= 400; d += 5) points.push(point(600 + d / 3, d))
+    const session: RecordSession = {
+      ...emptySession('running'),
+      startTime: T0,
+      pauses: [{ start: T0 + (200 / 3) * 1000, end: T0 + 600_000 + (200 / 3) * 1000 }],
+      points
+    }
+
+    const { details } = buildActivity(session)
+    for (const s of details.samples ?? []) {
+      if (s.speed !== undefined) expect(s.speed, `at ${s.distance} m`).toBeCloseTo(3, 1)
+    }
+  })
+
+  it('follows a change of pace instead of smoothing it away', () => {
+    // 300 m at 4 m/s, then 300 m at 2 m/s.
+    const points: GeoPoint[] = []
+    for (let d = 0; d <= 300; d += 5) points.push(point(d / 4, d))
+    for (let d = 305; d <= 600; d += 5) points.push(point(75 + (d - 300) / 2, d))
+    const session: RecordSession = { ...emptySession('running'), startTime: T0, points }
+
+    const samples = buildActivity(session).details.samples ?? []
+    // Nearest, not exact: haversine over the synthetic track lands a metre or
+    // two off the round numbers the points were laid out on.
+    const at = (metres: number) =>
+      samples.reduce((best, s) =>
+        Math.abs((s.distance ?? 0) - metres) < Math.abs((best.distance ?? 0) - metres) ? s : best
+      )
+    const fast = at(200)
+    const slow = at(500)
+
+    expect(fast?.speed).toBeCloseTo(4, 1)
+    expect(slow?.speed).toBeCloseTo(2, 1)
+  })
+})
+
 describe('movingSecondsAt', () => {
   it('never goes negative for a point before the start', () => {
     const session: RecordSession = { ...emptySession(), startTime: T0, points: [] }

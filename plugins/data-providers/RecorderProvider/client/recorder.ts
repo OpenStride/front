@@ -104,13 +104,57 @@ export function pausedMsAt(session: RecordSession, nowMs: number): number {
   return Math.max(0, paused)
 }
 
+/** Milliseconds of moving time elapsed at wall-clock `atMs`, unrounded. */
+export function movingMsAt(session: RecordSession, atMs: number): number {
+  return Math.max(0, atMs - session.startTime - pausedMsAt(session, atMs))
+}
+
 /**
  * Seconds of moving time elapsed at wall-clock `atMs`. The one time axis of the
  * recording: `activity.duration` and every `sample.time` are read off it, so a
  * pause can no longer leave the last sample sitting past the end of the activity.
  */
 export function movingSecondsAt(session: RecordSession, atMs: number): number {
-  return Math.max(0, Math.round((atMs - session.startTime - pausedMsAt(session, atMs)) / 1000))
+  return Math.round(movingMsAt(session, atMs) / 1000)
+}
+
+/**
+ * Metres a sample's speed is averaged over.
+ *
+ * Two fixes 5 m apart span under two seconds of running, and `sample.time` is
+ * stored in whole seconds, so a speed taken between neighbours is a small
+ * distance divided by a heavily quantised time — noise. Thirty metres is long
+ * enough to be stable and short enough to still show a hill.
+ */
+export const SPEED_WINDOW_M = 30
+
+/**
+ * Speed at each point, in m/s, measured on the track itself.
+ *
+ * Not `location.speed`: that is the GPS's instantaneous Doppler estimate at one
+ * moment, it is missing entirely on fixes where the OS cannot compute it, and
+ * nothing ties it to the distance and duration the activity is summarised from.
+ * The consequence was visible — an average pace that read correctly next to a
+ * pace graph that did not, because the graph averages `sample.speed` while the
+ * summary divides distance by time.
+ *
+ * Measuring it here from the same distances and the same clock makes the two
+ * agree by construction. Time is moving time in **milliseconds**: rounding to
+ * the stored second would put a ±30 % error on a two-second interval, and a
+ * pause between two fixes would otherwise read as a stop.
+ */
+export function speedSeries(session: RecordSession, cumulative: number[]): (number | undefined)[] {
+  const pts = session.points
+  return pts.map((p, i) => {
+    if (i === 0) return pts.length > 1 ? undefined : p.speed
+    // Walk back to the start of the window, or to the first point.
+    let j = i - 1
+    while (j > 0 && cumulative[i] - cumulative[j] < SPEED_WINDOW_M) j--
+    const metres = cumulative[i] - cumulative[j]
+    const seconds = (movingMsAt(session, p.time) - movingMsAt(session, pts[j].time)) / 1000
+    if (seconds <= 0) return undefined
+    return metres / seconds
+  })
 }
 
 export interface LiveStats {
@@ -143,6 +187,19 @@ export function buildActivity(session: RecordSession): {
   const pts = session.points
   const id = `recorder_${session.startTime}`
 
+  // Cumulative distance first: the speed series is measured over it.
+  const cumulative: number[] = []
+  let running = 0
+  pts.forEach((p, i) => {
+    if (i > 0) running += haversine(pts[i - 1], p)
+    cumulative.push(running)
+  })
+
+  const speeds = speedSeries(session, cumulative)
+  // The first fix has no window behind it; it borrows the one in front rather
+  // than leaving a hole at the start of every graph.
+  if (speeds.length > 1 && speeds[0] === undefined) speeds[0] = speeds[1]
+
   let dist = 0
   const samples: Sample[] = pts.map((p, i) => {
     if (i > 0) dist += haversine(pts[i - 1], p)
@@ -152,14 +209,16 @@ export function buildActivity(session: RecordSession): {
       lat: p.lat,
       lng: p.lng,
       elevation: typeof p.alt === 'number' ? p.alt : undefined,
-      speed: typeof p.speed === 'number' ? p.speed : undefined
+      speed: speeds[i]
     }
   })
 
   const distance = Math.round(dist)
   const lastPoint = pts[pts.length - 1]
   const duration = lastPoint ? movingSecondsAt(session, lastPoint.time) : 0
-  const speeds = pts.map(p => p.speed).filter((s): s is number => typeof s === 'number')
+  // From the measured series, not from raw GPS: a single Doppler spike used to
+  // be enough to file a run with an impossible top speed.
+  const measured = speeds.filter((s): s is number => typeof s === 'number')
 
   // Roughly 50 points, and always the last one: a track that stops short of
   // where the user pressed Finish reads as a lost end of run.
@@ -190,7 +249,7 @@ export function buildActivity(session: RecordSession): {
     samples,
     stats: {
       averageSpeed: duration > 0 ? distance / duration : undefined,
-      maxSpeed: speeds.length ? Math.max(...speeds) : undefined,
+      maxSpeed: measured.length ? Math.max(...measured) : undefined,
       totalAscent: totalAscent(pts) || undefined
     },
     version: 1,
