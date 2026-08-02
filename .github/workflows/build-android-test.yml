@@ -116,11 +116,19 @@ jobs:
       # Persist the debug signing key across builds so updates install over each
       # other (a fresh runner would otherwise sign every build with a different
       # random debug key → "App not installed" on reinstall).
+      # `~/.config/.android` is where AGP actually puts it on this runner — it
+      # follows XDG_CONFIG_HOME, and neither ANDROID_USER_HOME nor
+      # ANDROID_PREFS_ROOT is set. The old `~/.android` path never existed, so
+      # every build signed with a fresh random key and the cache saved nothing:
+      # exactly the "App not installed" this step was added to prevent. Both
+      # paths are listed because only the runner decides which one is real.
       - name: Cache the debug signing key
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: android-debug-keystore-v1
+          path: |
+            ~/.config/.android/debug.keystore
+            ~/.android/debug.keystore
+          key: android-debug-keystore-v2
 
       - name: Build debug APK
         run: |
