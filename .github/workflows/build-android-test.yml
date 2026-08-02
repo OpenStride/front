@@ -13,7 +13,7 @@ on:
   # Runs automatically on every push to this branch (so it works without the
   # workflow being on the default branch), plus a manual trigger.
   push:
-    branches: [feat/health-native]
+    branches: [feat/health-native, claude/capacitor-geolocation-issues-3fge7v]
   workflow_dispatch:
 
 jobs:
@@ -127,6 +127,19 @@ jobs:
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # Google identifies an Android OAuth client by package name + signing
+      # fingerprint, and this keystore lives in the Actions cache — nowhere a
+      # human can read it. Printing it is the only way to fill in the console
+      # form. It is the *debug* fingerprint: a Play Store build is signed with a
+      # different key and needs its own client.
+      - name: Print the debug signing fingerprint (for the OAuth client)
+        run: |
+          echo "Register this SHA-1 against package app.openstride in the Google Cloud Console:"
+          keytool -list -v \
+            -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey -storepass android -keypass android \
+            | grep -E 'SHA1|SHA256'
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
