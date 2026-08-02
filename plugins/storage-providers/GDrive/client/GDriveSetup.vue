@@ -100,6 +100,10 @@
         Connexion
       </button>
     </div>
+
+    <p v-if="signInError" class="text-sm text-center text-red-600">
+      <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {{ signInError }}
+    </p>
   </div>
 </template>
 
@@ -124,13 +128,30 @@ let googleDriveFileService: GoogleDriveFileService | null = null
 const isConnected = ref(0) // 0 = pending, 1 = connected, -1 = disconnected
 const backupFilePresent = ref(0) // 0 = pending, 1 = present, -1 = not present
 
+const signInError = ref('')
+
 const oauthSignIn = async () => {
   if (!googleDriveAuthService) return
-  const uri = await googleDriveAuthService.getOauthSignInUri()
-  if (uri) {
-    window.location.href = uri
-  } else {
-    console.error('Failed to get OAuth sign-in URI')
+  signInError.value = ''
+  try {
+    // On native this returns having already exchanged the code: the sign-in
+    // happens in a system browser and comes back through a deep link, because
+    // Google refuses its sign-in page inside an embedded WebView. On the web
+    // nothing changes — the page navigates away and comes back with a ?code=.
+    const { handled, url } = await googleDriveAuthService.signIn()
+    if (handled) {
+      await refreshConnectionState()
+      return
+    }
+    if (url) window.location.href = url
+    else signInError.value = t('gdrive.signInUnavailable')
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    if (reason === 'cancelled') return
+    signInError.value =
+      reason === 'VITE_GOOGLE_NATIVE_CLIENT_ID is not set'
+        ? t('gdrive.signInUnavailable')
+        : t('gdrive.signInFailed', { message: reason })
   }
 }
 
@@ -176,6 +197,16 @@ const disconnectGoogleDrive = async () => {
   isConnected.value = -1
 }
 
+/** Read the connection state from a token, and pick up the backup file with it. */
+async function refreshConnectionState(accessToken?: string | null) {
+  const token = accessToken ?? (await googleDriveAuthService?.getAccessToken())
+  isConnected.value = token ? 1 : -1
+  if (isConnected.value !== 1) return
+
+  googleDriveFileService = await GoogleDriveFileService.getInstance()
+  backupFilePresent.value = (await googleDriveFileService.ensureBackupFile('backup.json')) ? 1 : -1
+}
+
 onMounted(async () => {
   googleDriveAuthService = await GoogleDriveAuthService.getInstance()
 
@@ -187,20 +218,6 @@ onMounted(async () => {
     accessToken = await googleDriveAuthService.getAccessTokenFromCode(code)
   }
 
-  if (accessToken) {
-    isConnected.value = 1
-  } else {
-    isConnected.value = -1
-  }
-
-  if (isConnected.value == 1) {
-    googleDriveFileService = await GoogleDriveFileService.getInstance()
-    const file = await googleDriveFileService.ensureBackupFile('backup.json')
-    if (file) {
-      backupFilePresent.value = 1
-    } else {
-      backupFilePresent.value = -1
-    }
-  }
+  await refreshConnectionState(accessToken)
 })
 </script>

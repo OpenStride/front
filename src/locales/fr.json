@@ -706,7 +706,9 @@
   },
   "gdrive": {
     "checking": "Vérification de la connexion à Google Drive...",
-    "verifying": "Vérification en cours..."
+    "verifying": "Vérification en cours...",
+    "signInFailed": "La connexion à Google a échoué : {message}",
+    "signInUnavailable": "Cette version ne peut pas se connecter à Google : elle est livrée sans le client OAuth dont l'application native a besoin."
   },
   "legal": {
     "privacyPolicy": "Politique de confidentialité",

@@ -1,6 +1,7 @@
 // plugins/storage-providers/GDrive/client/GoogleDriveAuthService.ts
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { IPluginStorageService } from '@/types/plugin-context'
+import type { INativeShell } from '@/services/NativeShellService'
 import { generateCodeChallenge, generateRandomString } from './pkceUtils'
 
 // OAuth Client type: Web application (exige client_secret même avec PKCE)
@@ -12,13 +13,30 @@ const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET
 // Pour sécurité maximale sans secret, il faudrait un backend proxy
 // Actuellement : secret dans .env (pas hardcodé, pas committé, rotatable)
 
+/**
+ * The native app talks to Google as a *different* OAuth client.
+ *
+ * It has to. A Web client only accepts http(s) redirect URIs, and the native
+ * shell has no origin worth redirecting to — it is served from
+ * `https://localhost`, which no console will ever list. A native client
+ * redirects to a custom scheme instead, and carries no secret: there is nowhere
+ * to hide one in an APK, which is why Google does not issue one for this
+ * client type. PKCE is what stands in for it, and this service already does
+ * PKCE for the web.
+ */
+const NATIVE_CLIENT_ID = import.meta.env.VITE_GOOGLE_NATIVE_CLIENT_ID
+
 const AUTHORIZATION_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
 const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 
+/** Raised when the native build was shipped without its own OAuth client. */
+export class MissingNativeClientError extends Error {}
+
 export class GoogleDriveAuthService {
   private static instance: GoogleDriveAuthService
   private dbService: IPluginStorageService | null = null
+  private shell: INativeShell | null = null
   // Dedup concurrent silent refreshes so a burst of Drive calls with an expired
   // token results in ONE token POST, not one per call.
   private refreshInFlight: Promise<string | null> | null = null
@@ -41,6 +59,43 @@ export class GoogleDriveAuthService {
   private async initialize() {
     const ctx = await getPluginContext()
     this.dbService = ctx.storage
+    this.shell = ctx.shell
+  }
+
+  /** True once the app runs in the native shell, where the web flow cannot work. */
+  private get isNative(): boolean {
+    return this.shell?.isNative ?? false
+  }
+
+  /** The client this platform authenticates as. */
+  private get clientId(): string {
+    if (!this.isNative) return CLIENT_ID
+    if (!NATIVE_CLIENT_ID) {
+      throw new MissingNativeClientError('VITE_GOOGLE_NATIVE_CLIENT_ID is not set')
+    }
+    return NATIVE_CLIENT_ID
+  }
+
+  /**
+   * Where Google sends the user back.
+   *
+   * On the web, the page that started the flow. On native, a custom scheme the
+   * OS routes back into the app — the WebView's own `location.origin` is
+   * `https://localhost`, which is not a redirect target anyone has registered.
+   */
+  private get redirectUri(): string {
+    const native = this.shell?.oauthRedirectUri(this.clientId)
+    return native ?? `${window.location.origin}${window.location.pathname}`
+  }
+
+  /**
+   * A native client has no secret — Google does not issue one, because an APK
+   * cannot keep it. PKCE carries the proof instead.
+   */
+  private credentials(): Record<string, string> {
+    return this.isNative
+      ? { client_id: this.clientId }
+      : { client_id: CLIENT_ID, client_secret: CLIENT_SECRET }
   }
 
   async getAccessToken(): Promise<string | null> {
@@ -83,8 +138,7 @@ export class GoogleDriveAuthService {
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: new URLSearchParams({
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
+            ...this.credentials(),
             refresh_token: refreshToken,
             grant_type: 'refresh_token'
           })
@@ -140,10 +194,9 @@ export class GoogleDriveAuthService {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
+        ...this.credentials(),
         code: code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        redirect_uri: `${window.location.origin}${window.location.pathname}`,
+        redirect_uri: this.redirectUri,
         grant_type: 'authorization_code',
         code_verifier: code_verifier
       })
@@ -184,12 +237,11 @@ export class GoogleDriveAuthService {
 
     // Hash and base64-urlencode the secret to use as the challenge
     const code_challenge = await generateCodeChallenge(code_verifier)
-    console.log('redirect_uri', `${window.location.origin}${window.location.pathname}`)
     const url =
       AUTHORIZATION_ENDPOINT +
       '?response_type=code' +
       '&client_id=' +
-      encodeURIComponent(CLIENT_ID) +
+      encodeURIComponent(this.clientId) +
       '&state=' +
       encodeURIComponent(state) +
       '&access_type=offline' +
@@ -197,12 +249,46 @@ export class GoogleDriveAuthService {
       '&scope=' +
       encodeURIComponent(SCOPE) +
       '&redirect_uri=' +
-      encodeURIComponent(`${window.location.origin}${window.location.pathname}`) +
+      encodeURIComponent(this.redirectUri) +
       '&code_challenge=' +
       encodeURIComponent(code_challenge) +
       '&code_challenge_method=S256'
     // Redirect to the authorization server
     return url
+  }
+
+  /**
+   * Sign in the way this platform can.
+   *
+   * On the web the page navigates away and the answer arrives as a `?code=` on
+   * the way back, so this resolves to null and the caller redirects. On native
+   * there is no navigating away — the authorization happens in a system browser
+   * and the code comes back through a deep link, so the whole exchange finishes
+   * here and this resolves to an access token.
+   */
+  async signIn(): Promise<{ handled: boolean; url?: string }> {
+    const url = await this.getOauthSignInUri()
+    if (!url) return { handled: false }
+    if (!this.isNative || !this.shell) return { handled: false, url }
+
+    const scheme = this.shell.oauthRedirectUri(this.clientId)
+    if (!scheme) return { handled: false, url }
+
+    const callback = await this.shell.authorize(url, scheme)
+    const params = new URL(callback).searchParams
+
+    // Any app on the device can fire our custom scheme, so the deep link is the
+    // one step of this flow that an outsider can reach. `state` is what says the
+    // answer belongs to the request we made.
+    if (params.get('state') !== localStorage.getItem('pkce_state')) {
+      throw new Error('state_mismatch')
+    }
+
+    const code = params.get('code')
+    if (!code) throw new Error(params.get('error') ?? 'no_code')
+
+    await this.getAccessTokenFromCode(code)
+    return { handled: true }
   }
 
   async disconnect() {

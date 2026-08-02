@@ -47,10 +47,19 @@ jobs:
 
       - name: Build web app
         run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          VITE_GOOGLE_DRIVE_API_KEY: ${{ secrets.VITE_GOOGLE_DRIVE_API_KEY }}
+          # The native app signs in as its own OAuth client: a Web client only
+          # accepts http(s) redirect URIs, and this app has no origin worth
+          # redirecting to. Unset → the Drive screen says so instead of sending
+          # the user to a redirect_uri_mismatch.
+          VITE_GOOGLE_NATIVE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_NATIVE_CLIENT_ID }}
 
       - name: Add Capacitor Android + health plugin
         run: |
-          npm install @capacitor/cli@^8 @capacitor/android@^8 capacitor-health @capacitor-community/background-geolocation
+          npm install @capacitor/cli@^8 @capacitor/android@^8 capacitor-health @capacitor-community/background-geolocation @capacitor/browser @capacitor/app
           # ci/capacitor.config.json carries android.useLegacyBridge — without it
           # background-geolocation stops delivering fixes ~5 min after the app is
           # backgrounded, which reads exactly like "the GPS module gave up".
@@ -71,6 +80,38 @@ jobs:
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i 's|</manifest>|    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>|' "$MANIFEST"
           echo "--- patched manifest ---"; cat "$MANIFEST"
+
+      # The OAuth callback comes back as a deep link on the reverse of the client
+      # id (`123-abc.apps.googleusercontent.com` →
+      # `com.googleusercontent.apps.123-abc`), which is the only redirect shape
+      # Google accepts for a native client. Without this filter the system
+      # browser finishes the sign-in and has nowhere to hand the code back to.
+      - name: Register the OAuth deep-link scheme
+        env:
+          NATIVE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_NATIVE_CLIENT_ID }}
+        run: |
+          if [ -z "$NATIVE_CLIENT_ID" ]; then
+            echo "VITE_GOOGLE_NATIVE_CLIENT_ID is not set — skipping (Drive sign-in will be unavailable in this build)."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import os
+          scheme = '.'.join(reversed(os.environ['NATIVE_CLIENT_ID'].split('.')))
+          path = 'android/app/src/main/AndroidManifest.xml'
+          xml = open(path).read()
+          filt = f'''
+                  <intent-filter>
+                      <action android:name="android.intent.action.VIEW" />
+                      <category android:name="android.intent.category.DEFAULT" />
+                      <category android:name="android.intent.category.BROWSABLE" />
+                      <data android:scheme="{scheme}" />
+                  </intent-filter>
+              </activity>'''
+          assert '</activity>' in xml, 'no activity to attach the scheme to'
+          open(path, 'w').write(xml.replace('</activity>', filt.strip('\n'), 1))
+          print('registered scheme', scheme)
+          PY
+          echo "--- patched manifest ---"; cat android/app/src/main/AndroidManifest.xml
 
       # Persist the debug signing key across builds so updates install over each
       # other (a fresh runner would otherwise sign every build with a different

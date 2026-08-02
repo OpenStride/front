@@ -1,6 +1,7 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
 import type { Converted, Dimension, Formatted, UnitSystem } from './units'
 import type { SegmentSample, ElevationProfile } from '@/services/ActivityAnalyzer'
+import type { INativeShell } from '@/services/NativeShellService'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -300,6 +301,7 @@ export interface PluginContext {
   sync: ISyncService
   units: IUnitsService
   providers: IDataProviderEvents
+  shell: INativeShell
 }
 
 /**
