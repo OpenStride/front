@@ -33,6 +33,11 @@ const { t } = useI18n()
 const status = ref<'processing' | 'success' | 'error' | 'no-opener' | 'broadcast'>('processing')
 const errorMessage = ref('Authentication error')
 
+// Long enough for an app window that is merely busy to answer, short enough
+// that a user with no app window open is not left waiting on a dead screen.
+const ACK_TIMEOUT_MS = 2500
+let acknowledged = false
+
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
@@ -65,7 +70,7 @@ onMounted(() => {
   if (window.opener) {
     window.opener.postMessage(payload, window.location.origin)
     status.value = error ? 'error' : 'success'
-    setTimeout(() => window.close(), 1500)
+    setTimeout(closeOrReturnToSetup, 1500)
     return
   }
 
@@ -73,32 +78,53 @@ onMounted(() => {
   // Handles the case where cross-origin navigation (Garmin OAuth) nullifies window.opener
   try {
     const channel = new BroadcastChannel('garmin-oauth')
-    channel.postMessage(payload)
-    channel.close()
 
-    if (error) {
-      status.value = 'error'
-      // Redirect to setup page with error so user sees feedback
-      setTimeout(() => {
-        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+    // The app answers if it is listening. Redirecting *and* broadcasting hands
+    // the same single-use code over twice: the app spends it, then the redirect
+    // replays it against a handshake that no longer exists — which is what
+    // reported itself as "connected", then "state mismatch".
+    channel.onmessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'garmin-oauth-ack' || acknowledged) return
+      acknowledged = true
+      channel.close()
+      status.value = error ? 'error' : 'success'
+      setTimeout(closeOrReturnToSetup, 1200)
+    }
+
+    channel.postMessage(payload)
+
+    // Nobody answered — no app window open on this origin. Carry the callback
+    // over by URL, which is now the only delivery in flight.
+    setTimeout(() => {
+      if (acknowledged) return
+      channel.close()
+      status.value = error ? 'error' : 'broadcast'
+
+      const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+      if (error) {
         setupUrl.searchParams.set('oauth_error', error)
-        window.location.href = setupUrl.toString()
-      }, 2000)
-    } else {
-      status.value = 'broadcast'
-      // Redirect to Garmin setup page with code+state so it can exchange for tokens
-      setTimeout(() => {
-        const setupUrl = new URL('/data-provider/garmin', window.location.origin)
+      } else {
         if (code) setupUrl.searchParams.set('code', code)
         if (state) setupUrl.searchParams.set('state', state)
-        window.location.href = setupUrl.toString()
-      }, 1500)
-    }
+      }
+      window.location.href = setupUrl.toString()
+    }, ACK_TIMEOUT_MS)
   } catch {
     // BroadcastChannel not supported — true no-opener fallback
     status.value = 'no-opener'
   }
 })
+
+function closeOrReturnToSetup() {
+  window.close()
+
+  // A tab the browser did not open through script ignores close(). Rather than
+  // strand the user on a dead callback screen, send them back to the setup
+  // page — without the OAuth params, which have already been handled.
+  setTimeout(() => {
+    window.location.href = new URL('/data-provider/garmin', window.location.origin).toString()
+  }, 600)
+}
 </script>
 
 <style scoped>
