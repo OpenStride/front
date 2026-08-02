@@ -128,19 +128,6 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      # Google identifies an Android OAuth client by package name + signing
-      # fingerprint, and this keystore lives in the Actions cache — nowhere a
-      # human can read it. Printing it is the only way to fill in the console
-      # form. It is the *debug* fingerprint: a Play Store build is signed with a
-      # different key and needs its own client.
-      - name: Print the debug signing fingerprint (for the OAuth client)
-        run: |
-          echo "Register this SHA-1 against package app.openstride in the Google Cloud Console:"
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey -storepass android -keypass android \
-            | grep -E 'SHA1|SHA256'
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -162,3 +149,25 @@ jobs:
             --notes "Latest debug APK from \`${GITHUB_REF_NAME}\` (commit \`${GITHUB_SHA:0:7}\`). Install: allow install from unknown sources, then open the APK." \
             --prerelease \
             --target "${GITHUB_SHA}"
+
+      # Google identifies an Android OAuth client by package name + signing
+      # fingerprint, and this keystore lives in the Actions cache — nowhere a
+      # human can read it. Printing it is the only way to fill in the console
+      # form. It is the *debug* fingerprint: a Play Store build is signed with a
+      # different key and needs its own client.
+      #
+      # Last, and `continue-on-error`, on purpose: this is a diagnostic, and a
+      # diagnostic that can withhold the APK is worse than no diagnostic. The
+      # first version of this step sat before the upload and did exactly that.
+      - name: Print the debug signing fingerprint (for the OAuth client)
+        continue-on-error: true
+        run: |
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [ ! -f "$KEYSTORE" ]; then
+            echo "No debug keystore at $KEYSTORE — nothing to fingerprint."
+            exit 0
+          fi
+          echo "Register this SHA-1 against package app.openstride in the Google Cloud Console:"
+          keytool -list -v -keystore "$KEYSTORE" -alias androiddebugkey -storepass android 2>&1 \
+            | grep -E 'SHA1|SHA256' \
+            || echo "keytool printed no fingerprint (see the raw output above)."
