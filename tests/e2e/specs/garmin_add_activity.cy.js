@@ -64,10 +64,18 @@ describe('Garmin provider refresh (mock UI flow)', () => {
     // Wait for navigation to complete
     cy.url({ timeout: 10000 }).should('match', /data-provider\/garmin/)
 
-    // Pre-seed sessionStorage with OAuth state for CSRF validation
+    // Pre-seed the OAuth handshake for CSRF validation. It lives in
+    // localStorage: a PWA callback can land in a context that never saw the
+    // request start, so sessionStorage cannot carry it.
     cy.window().then(win => {
-      win.sessionStorage.setItem('garmin_oauth_state', MOCK_STATE)
-      win.sessionStorage.setItem('garmin_pkce_verifier', 'test-verifier-abcdef')
+      win.localStorage.setItem(
+        'garmin_oauth_handshake',
+        JSON.stringify({
+          state: MOCK_STATE,
+          verifier: 'test-verifier-abcdef',
+          createdAt: Date.now()
+        })
+      )
     })
 
     // Simulate OAuth2 redirect callback with code + state

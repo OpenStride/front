@@ -116,7 +116,19 @@ import {
   type SyncProgressEvent
 } from './GarminSyncManager'
 import { generateCodeVerifier, generateCodeChallenge, exchangeCodeForTokens } from './garminAuth'
+import {
+  saveHandshake,
+  readHandshake,
+  clearHandshake,
+  markCodeConsumed,
+  isCodeConsumed
+} from './oauthHandshake'
 import pluginEnv from './env'
+
+// Must match the authorization request byte for byte at exchange time, so it is
+// derived once and never from the page the user happens to be standing on.
+const REDIRECT_URI = `${window.location.origin}/oauth/garmin/callback`
+const OAUTH_SCOPE = 'HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT'
 
 const isConnected = ref(false)
 const isRefreshing = ref(false)
@@ -142,30 +154,34 @@ const { notifications, plugins } = ctx
 const { t } = useI18n()
 
 let oauthChannel: BroadcastChannel | null = null
+// Guards against the same authorization being completed twice within this
+// instance; `isCodeConsumed` guards it across browsing contexts.
+let oauthCompleted = false
 
 // ============================================================================
 // OAuth 2.0 PKCE Flow (Popup-based)
 // ============================================================================
 
-async function connectToGarmin() {
-  // Generate PKCE verifier + challenge
+// Starts a handshake and returns the authorization URL to send the user to.
+async function startHandshake(): Promise<string> {
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
-  sessionStorage.setItem('garmin_pkce_verifier', codeVerifier)
-
-  // Generate CSRF state token
   const state = crypto.randomUUID()
-  sessionStorage.setItem('garmin_oauth_state', state)
+  saveHandshake(state, codeVerifier)
 
-  const redirectUri = `${window.location.origin}/oauth/garmin/callback`
-  const authUrl =
+  return (
     `${pluginEnv.garminAuthUrl}?client_id=${pluginEnv.clientId}` +
     `&response_type=code` +
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&scope=${encodeURIComponent(OAUTH_SCOPE)}` +
     `&state=${state}`
+  )
+}
+
+async function connectToGarmin() {
+  const authUrl = await startHandshake()
 
   // Open centered popup
   const width = 600
@@ -214,58 +230,87 @@ async function handleOAuthMessage(event: MessageEvent) {
   if (event.origin !== window.location.origin) return
   if (event.data?.type !== 'garmin-oauth-callback') return
 
-  // Cleanup
+  // Tell the callback window we took the handoff, before anything can throw, so
+  // it stops short of its own fallback: redirecting itself onto this page with
+  // the same code. That second pass is what used to surface as a state
+  // mismatch, right after the first pass had announced "connected".
+  ackOAuthCallback()
+
   window.removeEventListener('message', handleOAuthMessage)
   cleanupOAuthChannel()
   isWaitingForOAuth.value = false
   oauthPopup?.close()
 
-  // Validate state (CSRF protection)
-  const expectedState = sessionStorage.getItem('garmin_oauth_state')
-  if (event.data.state !== expectedState) {
+  await completeOAuth(event.data)
+}
+
+// Sends the acknowledgement on a channel of its own: a BroadcastChannel never
+// receives what it posted, so replying on `oauthChannel` would reach nobody.
+function ackOAuthCallback() {
+  try {
+    const channel = new BroadcastChannel('garmin-oauth')
+    channel.postMessage({ type: 'garmin-oauth-ack' })
+    channel.close()
+  } catch {
+    // No BroadcastChannel — the callback window falls back to redirecting, and
+    // the consumed-code guard below keeps that replay silent.
+  }
+}
+
+// Single entry point for a callback, whichever way it reached us: postMessage
+// from a popup, BroadcastChannel from a Custom Tab, or query params after a
+// redirect. All three can fire for one authorization, so this has to be safe to
+// run twice.
+async function completeOAuth(payload: {
+  code?: string | null
+  state?: string | null
+  error?: string | null
+}) {
+  const { code, state, error } = payload
+
+  if (oauthCompleted || (code && isCodeConsumed(code))) return
+
+  // CSRF protection
+  const handshake = readHandshake()
+  if (!handshake || state !== handshake.state) {
+    clearHandshake()
     notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
     return
   }
-  sessionStorage.removeItem('garmin_oauth_state')
 
-  // Handle error from OAuth provider
-  if (event.data.error) {
-    notifications.notify(
-      t('providers.notify.generic', { provider: 'Garmin', message: event.data.error }),
-      { type: 'error' }
-    )
+  if (error) {
+    clearHandshake()
+    notifications.notify(t('providers.notify.generic', { provider: 'Garmin', message: error }), {
+      type: 'error'
+    })
     return
   }
 
-  // Exchange authorization code for tokens via Firebase proxy
-  const { code } = event.data
-  if (code) {
-    try {
-      const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
-      if (!codeVerifier) {
-        notifications.notify(t('providers.notify.pkceMissing'), { type: 'error' })
-        return
-      }
-      sessionStorage.removeItem('garmin_pkce_verifier')
+  if (!code) return
 
-      const redirectUri = `${window.location.origin}/oauth/garmin/callback`
-      await exchangeCodeForTokens(code, codeVerifier, redirectUri)
-      isConnected.value = true
+  oauthCompleted = true
+  markCodeConsumed(code)
+  clearHandshake()
 
-      await plugins.enablePlugin('garmin')
+  try {
+    await exchangeCodeForTokens(code, handshake.verifier, REDIRECT_URI)
+    isConnected.value = true
 
-      const syncManager = getGarminSyncManager()
-      await syncManager.startInitialImportAsync()
+    await plugins.enablePlugin('garmin')
 
-      notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), {
-        type: 'info'
-      })
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Token exchange error'
-      notifications.notify(t('providers.notify.generic', { provider: 'Garmin', message }), {
-        type: 'error'
-      })
-    }
+    const syncManager = getGarminSyncManager()
+    await syncManager.startInitialImportAsync()
+
+    notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), {
+      type: 'info'
+    })
+  } catch (err: unknown) {
+    // The code is burnt either way, but the user must be able to start over.
+    oauthCompleted = false
+    const message = err instanceof Error ? err.message : 'Token exchange error'
+    notifications.notify(t('providers.notify.generic', { provider: 'Garmin', message }), {
+      type: 'error'
+    })
   }
 }
 
@@ -281,8 +326,11 @@ function handleOAuthCancelled() {
   window.removeEventListener('message', handleOAuthMessage)
   cleanupOAuthChannel()
   isWaitingForOAuth.value = false
-  sessionStorage.removeItem('garmin_oauth_state')
-  sessionStorage.removeItem('garmin_pkce_verifier')
+  // The handshake is deliberately left in place: "the window closed" is not
+  // "the user gave up". A PWA hands the authorization page to a Custom Tab
+  // whose `closed` can flip while the user is still signing in, and the answer
+  // then arrives by broadcast or redirect. Dropping the handshake here would
+  // turn that answer into a state mismatch. It expires on its own.
 }
 
 function cleanupOAuthChannel() {
@@ -293,22 +341,7 @@ function cleanupOAuthChannel() {
 }
 
 async function connectWithRedirect() {
-  const codeVerifier = generateCodeVerifier()
-  const codeChallenge = await generateCodeChallenge(codeVerifier)
-  sessionStorage.setItem('garmin_pkce_verifier', codeVerifier)
-
-  const state = crypto.randomUUID()
-  sessionStorage.setItem('garmin_oauth_state', state)
-
-  const redirectUri = `${window.location.origin}/oauth/garmin/callback`
-  window.location.href =
-    `${pluginEnv.garminAuthUrl}?client_id=${pluginEnv.clientId}` +
-    `&response_type=code` +
-    `&code_challenge=${codeChallenge}` +
-    `&code_challenge_method=S256` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&scope=${encodeURIComponent('HISTORICAL_DATA_EXPORT ACTIVITY_EXPORT')}` +
-    `&state=${state}`
+  window.location.href = await startHandshake()
 }
 
 async function disconnectGarmin() {
@@ -491,47 +524,16 @@ onMounted(async () => {
     notifications.notify(message, { type: 'error' })
     window.history.replaceState({}, '', window.location.pathname)
   } else if (code && state) {
-    const expectedState = sessionStorage.getItem('garmin_oauth_state')
-    if (state !== expectedState) {
-      notifications.notify(t('providers.notify.stateMismatch'), { type: 'error' })
-      sessionStorage.removeItem('garmin_oauth_state')
-      sessionStorage.removeItem('garmin_pkce_verifier')
-    } else {
-      sessionStorage.removeItem('garmin_oauth_state')
-
-      try {
-        const codeVerifier = sessionStorage.getItem('garmin_pkce_verifier')
-        if (!codeVerifier) throw new Error('PKCE verifier missing')
-        sessionStorage.removeItem('garmin_pkce_verifier')
-
-        const redirectUri = window.location.href.split('?')[0]
-        await exchangeCodeForTokens(code, codeVerifier, redirectUri)
-        isConnected.value = true
-
-        await plugins.enablePlugin('garmin')
-
-        const syncManager = getGarminSyncManager()
-        await syncManager.startInitialImportAsync()
-
-        notifications.notify(t('providers.notify.connected', { provider: 'Garmin' }), {
-          type: 'info'
-        })
-      } catch (err: unknown) {
-        notifications.notify(
-          t('providers.notify.generic', {
-            provider: 'Garmin',
-            message: err instanceof Error ? err.message : 'Error'
-          }),
-          {
-            type: 'error'
-          }
-        )
-      }
-    }
-
+    // Strip the params before doing the work: a reload mid-exchange must not
+    // replay a code that is already spent.
     window.history.replaceState({}, '', window.location.pathname)
-  } else {
-    // Check existing tokens
+    await completeOAuth({ code, state })
+  }
+
+  // Always reconcile against the stored tokens, including after a callback we
+  // ignored as a replay: another context may have completed the exchange, and
+  // the page must still show itself as connected.
+  if (!isConnected.value) {
     const tokens = await getTokens()
     if (tokens) {
       isConnected.value = true
