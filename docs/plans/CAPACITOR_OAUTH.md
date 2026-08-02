@@ -53,6 +53,23 @@ and has nowhere to hand the code back to:
 A build without the secret still installs and runs — the Drive screen says it
 cannot sign in, instead of sending the user to a redirect_uri_mismatch.
 
+### The signing key has to be stable first
+
+Google ties an Android OAuth client to a signing fingerprint, so registering one
+is only meaningful if the debug key survives between builds. It did not: the
+cache pointed at `~/.android/debug.keystore`, and AGP follows `XDG_CONFIG_HOME`
+and writes `~/.config/.android/debug.keystore`. Nothing was ever cached, every
+build signed with a fresh random key — which is also why installing an update
+over a previous APK failed with "App not installed".
+
+Two consecutive builds produced two different fingerprints, which is how this
+surfaced. The cache path is fixed and the key is saved under
+`android-debug-keystore-v2`.
+
+It is still a _cache_: GitHub evicts entries untouched for 7 days. If the
+fingerprint ever changes again, that is why, and the durable answer is to keep
+the keystore as a base64 repo secret rather than let CI generate it.
+
 ## 4. A popup is not a channel
 
 Garmin does not use a redirect; it opens a popup and waits for a `postMessage`,
