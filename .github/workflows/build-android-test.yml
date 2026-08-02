@@ -162,12 +162,20 @@ jobs:
       - name: Print the debug signing fingerprint (for the OAuth client)
         continue-on-error: true
         run: |
-          KEYSTORE="$HOME/.android/debug.keystore"
-          if [ ! -f "$KEYSTORE" ]; then
-            echo "No debug keystore at $KEYSTORE — nothing to fingerprint."
+          # Not hardcoded to ~/.android: the cache step reports that path does
+          # not exist, so AGP is putting the keystore somewhere else on this
+          # runner (ANDROID_USER_HOME / ANDROID_PREFS_ROOT move it). Find it,
+          # and print where it was — the cache key needs the same answer.
+          echo "ANDROID_USER_HOME=${ANDROID_USER_HOME:-unset} ANDROID_PREFS_ROOT=${ANDROID_PREFS_ROOT:-unset} ANDROID_SDK_HOME=${ANDROID_SDK_HOME:-unset}"
+          KEYSTORE=$(find "$HOME" "$RUNNER_TEMP" "${ANDROID_USER_HOME:-/nonexistent}" \
+                          "${ANDROID_PREFS_ROOT:-/nonexistent}" \
+                          -name debug.keystore -type f 2>/dev/null | head -1)
+          if [ -z "$KEYSTORE" ]; then
+            echo "No debug.keystore found — the APK is signed, but not from a keystore on disk."
             exit 0
           fi
+          echo "Found the debug keystore at: $KEYSTORE"
           echo "Register this SHA-1 against package app.openstride in the Google Cloud Console:"
           keytool -list -v -keystore "$KEYSTORE" -alias androiddebugkey -storepass android 2>&1 \
             | grep -E 'SHA1|SHA256' \
-            || echo "keytool printed no fingerprint (see the raw output above)."
+            || echo "keytool printed no fingerprint (raw output above)."
