@@ -121,10 +121,23 @@ export function movingSecondsAt(session: RecordSession, atMs: number): number {
 /**
  * Metres a sample's speed is averaged over.
  *
- * Two fixes 5 m apart span under two seconds of running, and `sample.time` is
- * stored in whole seconds, so a speed taken between neighbours is a small
- * distance divided by a heavily quantised time — noise. Thirty metres is long
- * enough to be stable and short enough to still show a hill.
+ * Worth being honest about how little this buys, so nobody widens it expecting
+ * miracles. Measured against a simulated 3 m/s run with 3 m of position error
+ * per fix, once the pace graph has averaged its 100 m segment — the finest
+ * granularity the UI offers — a window of 30 m and a plain Δd/Δt between
+ * neighbours are indistinguishable (sd 0.48 against 0.43). The displayed curve
+ * does not need it.
+ *
+ * What does need it is `maxSpeed`, which is a raw per-sample maximum with no
+ * segment averaging in front of it: on that same run, neighbours peaked at
+ * 10.2 m/s and the window at 7.4 m/s, against a truth of 3. A single pair of
+ * fixes that both happen to err outward is enough to file a run with an
+ * impossible top speed.
+ *
+ * Note that the time axis is *not* the reason. With exact positions both
+ * methods return the true speed to the last decimal, because the measurement
+ * uses raw millisecond timestamps rather than the whole seconds `sample.time`
+ * is stored in.
  */
 export const SPEED_WINDOW_M = 30
 

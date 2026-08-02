@@ -86,18 +86,32 @@ adapter fills that field with `speedMetersPerSecond`, the watch's own smoothed
 per-fix Doppler estimate: one instant, sometimes absent entirely, and tied to
 nothing the activity is summarised from.
 
-`speedSeries()` measures it on the track instead, over a 30 m window, in moving
-**milliseconds**. Both halves matter:
+`speedSeries()` measures it on the track instead — Δdistance / Δtime, which is
+as simple as it sounds. Two details are not obvious:
 
-- fixes arrive roughly every 5 m — under two seconds of running — and
-  `sample.time` is stored in whole seconds, so a speed taken between neighbours
-  divides a small distance by a heavily quantised time;
-- a pause between two fixes would otherwise read as a dead stop.
+- **Moving milliseconds, not `sample.time`.** The stored field is whole seconds,
+  and fixes arrive every ~5 m, under two seconds apart. Using moving time also
+  keeps a pause between two fixes from reading as a dead stop.
+- **A 30 m window rather than the previous fix.** This one buys less than it
+  looks. Simulated against a 3 m/s run with 3 m of position error per fix, once
+  the graph has averaged its 100 m segment — the finest granularity offered —
+  the window and plain neighbour-to-neighbour are indistinguishable (sd 0.48 vs
+  0.43). It earns its place on `maxSpeed`, a raw per-sample maximum with no
+  averaging in front of it: neighbours peaked at 10.2 m/s on that run, the
+  window at 7.4, against a truth of 3.
 
 The graph and the summary now come from the same distances and the same clock,
-so they agree by construction. `maxSpeed` comes from the measured series too: a
-single Doppler spike used to be enough to file a run with an impossible top
-speed.
+so they agree by construction.
+
+### What this does not fix
+
+GPS position error inflates measured path length — every wobble adds distance a
+straight line did not travel — and that inflation lands in `activity.distance`,
+so it reaches the average and the graph alike. The simulation above puts it at
++39 %, but with _independent_ error per fix, which real GPS is not: consecutive
+fixes share most of their error, and the observed average pace on a real
+recording was sound. Treat that figure as an upper bound on a pathological day,
+not as a measurement of this recorder.
 
 ## Still open
 
