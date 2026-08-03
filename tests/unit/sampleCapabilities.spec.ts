@@ -33,8 +33,17 @@ describe('summarizeSamples', () => {
     ])
 
     // `distance` rides along: the helper writes one, and presence is tracked
-    // for every channel even where no histogram is kept.
-    expect(Object.keys(summary).sort()).toEqual(['distance', 'elevation', 'heartRate'])
+    // for every channel even where no histogram is kept. `speed` too — it is
+    // recovered from the trace when the samples carry no speed channel.
+    expect(Object.keys(summary).sort()).toEqual(['distance', 'elevation', 'heartRate', 'speed'])
+  })
+
+  it('keeps the recorded speed rather than recomputing one', () => {
+    const summary = summarizeSamples([sample(0, { speed: 4 }), sample(1, { speed: 5 })])
+
+    // The helper's distance trace would derive 3 m/s; the channel wins.
+    expect(summary.speed.min).toBe(4)
+    expect(summary.speed.max).toBe(5)
   })
 
   it('tracks presence without buckets for a channel that has no scale', () => {

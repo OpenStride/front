@@ -174,8 +174,15 @@ export function definitionHash(def: CustomAggregate): string {
  * reason the metric tracker's pace is a `ratio` over two sources rather than an
  * `avg` over one.
  */
+export const AGGREGATE_KEY_PREFIX = 'custom_'
+
 export function aggregateSumKey(id: string): string {
-  return `custom_${id}`
+  return `${AGGREGATE_KEY_PREFIX}${id}`
+}
+
+/** True for a value produced by a custom aggregate rather than by the index itself. */
+export function isAggregateKey(key: string): boolean {
+  return key.startsWith(AGGREGATE_KEY_PREFIX)
 }
 
 export function aggregateWeightKey(id: string): string {

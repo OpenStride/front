@@ -11,8 +11,8 @@ import {
   quantile,
   type ChannelSummary,
   type FieldAvailability,
-  type SampleChannel,
-  type SampleField
+  type SampleField,
+  type SummaryKey
 } from '@/types/sampleFields'
 
 const STORE = 'activity_metrics'
@@ -56,13 +56,13 @@ export interface CapabilityReport {
 
 function summaryOf(
   rows: ActivityMetricsRow[],
-  channel: SampleChannel
+  key: SummaryKey
 ): { summary: ChannelSummary; activityCount: number } {
-  const summary = emptySummary(channel)
+  const summary = emptySummary(key)
   let activityCount = 0
 
   for (const row of rows) {
-    const own = row.channels?.[channel]
+    const own = row.channels?.[key]
     if (!own || own.n === 0) continue
     mergeSummary(summary, own)
     activityCount++
@@ -108,9 +108,11 @@ export function buildCapabilityReport(
 
     // A computable field has no histogram of its own — nothing scanned it. It
     // is still offered, without a suggested band, rather than silently dropped.
-    if (availability !== 'measured' || !spec.channel) return base
+    if (availability !== 'measured') return base
 
-    const { summary, activityCount } = summaryOf(scope, spec.channel)
+    // Keyed on the field, not on a channel: `slope` is summarized under its own
+    // name even though no sample ever carried it.
+    const { summary, activityCount } = summaryOf(scope, field)
     if (summary.n === 0) return base
 
     return {
@@ -121,9 +123,9 @@ export function buildCapabilityReport(
       min: summary.min,
       max: summary.max,
       mean: summary.sum / summary.n,
-      p05: quantile(summary, spec.channel, 0.05),
-      p50: quantile(summary, spec.channel, 0.5),
-      p95: quantile(summary, spec.channel, 0.95)
+      p05: quantile(summary, field, 0.05),
+      p50: quantile(summary, field, 0.5),
+      p95: quantile(summary, field, 0.95)
     }
   })
 

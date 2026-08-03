@@ -3,6 +3,9 @@ import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PluginContext } from '@/types/plugin-context'
 import { summarizeSamples, type ChannelSummary } from '@/types/sampleFields'
+import { definitionHash, isAggregateKey, type CustomAggregate } from '@/types/customAggregate'
+import { getCustomAggregateService } from '@/services/CustomAggregateService'
+import { appliesToSport, evaluateAggregates, toMetricValues } from '@/services/AggregateEvaluator'
 import { toMs } from '@/utils/timeRange'
 
 const STORE = 'activity_metrics'
@@ -76,10 +79,21 @@ export interface ActivityMetricsRow {
    * why the buckets are fixed rather than fitted.
    */
   channels?: Record<string, ChannelSummary>
+  /**
+   * Which custom aggregate produced this row's `custom_*` values, and from
+   * which definition.
+   *
+   * Keyed by aggregate id, holding the `definitionHash` in force when the value
+   * was computed. This is the per-definition versioning `indexVersion` cannot
+   * express: renaming an aggregate leaves the hash alone and rescans nothing,
+   * widening its slope band changes the hash and rescans only that aggregate,
+   * and adding a tenth aggregate leaves the nine already computed in place.
+   */
+  aggregates?: Record<string, string>
 }
 
 /** Bump to recompute every row after an algorithm change, or a new derived value */
-export const INDEX_VERSION = 3
+export const INDEX_VERSION = 4
 
 // Max plausible speed in m/s — 50 km/h filters GPS glitches while keeping any real effort
 const MAX_SPEED_MS = 50 / 3.6
@@ -190,6 +204,18 @@ function computeValues(ctx: PluginContext, details: ActivityDetails): Record<str
   return values
 }
 
+/**
+ * Drop the values custom aggregates left behind.
+ *
+ * Reused values are otherwise carried forward wholesale, and a definition that
+ * was deleted — or narrowed until it qualifies nothing — would leave its last
+ * computed figure in the row forever, still plotted, with nothing left to
+ * explain where it came from.
+ */
+function stripAggregates(values: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(Object.entries(values).filter(([key]) => !isAggregateKey(key)))
+}
+
 function toDerivedMap(rows: ActivityMetricsRow[]): DerivedMap {
   const map: DerivedMap = new Map()
   for (const row of rows) {
@@ -198,13 +224,43 @@ function toDerivedMap(rows: ActivityMetricsRow[]): DerivedMap {
   return map
 }
 
+/** The aggregate definitions in force, paired with the hash of their computation. */
+async function activeDefinitions(): Promise<Array<{ def: CustomAggregate; hash: string }>> {
+  try {
+    const saved = await getCustomAggregateService().list()
+    return saved.filter(d => d.enabled).map(def => ({ def, hash: definitionHash(def) }))
+  } catch {
+    // A store that cannot be read yields no aggregates; the rest of the index
+    // is unaffected and still worth building.
+    return []
+  }
+}
+
+/**
+ * Aggregates whose stored value no longer matches the definition in force.
+ *
+ * An aggregate that does not apply to this sport is not stale — it has nothing
+ * to compute here, and treating its absence as staleness would make every row
+ * rescan on every pass forever.
+ */
+function staleAggregates(
+  row: ActivityMetricsRow | undefined,
+  definitions: Array<{ def: CustomAggregate; hash: string }>,
+  sport: string
+): boolean {
+  return definitions.some(
+    ({ def, hash }) => appliesToSport(def, sport) && row?.aggregates?.[def.id] !== hash
+  )
+}
+
 /**
  * Bring the index up to date and expose it.
  *
  * Only activities missing a row — or holding one built by an older index
- * version — are computed, so a fresh import costs one activity, while a wiped
- * IndexedDB costs a full rebuild. The store is device-local: losing it is a
- * recompute, never a data loss.
+ * version, or one whose aggregate definitions have moved since — are computed,
+ * so a fresh import costs one activity, while a wiped IndexedDB costs a full
+ * rebuild. The store is device-local: losing it is a recompute, never a data
+ * loss.
  */
 async function buildIndex(activities: Activity[]): Promise<void> {
   const ctx = await getPluginContext()
@@ -213,7 +269,13 @@ async function buildIndex(activities: Activity[]): Promise<void> {
   const byId = new Map(existing.map(row => [row.id, row]))
   derived.value = toDerivedMap(existing)
 
-  const stale = activities.filter(a => byId.get(a.id)?.indexVersion !== INDEX_VERSION)
+  const definitions = await activeDefinitions()
+
+  const stale = activities.filter(a => {
+    const row = byId.get(a.id)
+    if (row?.indexVersion !== INDEX_VERSION) return true
+    return staleAggregates(row, definitions, row.sport)
+  })
   if (stale.length === 0) return
 
   indexing.value = true
@@ -229,18 +291,44 @@ async function buildIndex(activities: Activity[]): Promise<void> {
       for (const activity of chunk) {
         const details = detailsMap.get(activity.id)
         const samples = details?.samples
+        const sport = (activity.type || '').toLowerCase()
+        const previous = byId.get(activity.id)
+
+        // A row that is only stale because a definition moved keeps the values
+        // it already holds. Recomputing them would mean rerunning the best-effort
+        // segmentation, by far the most expensive part of the pass, to arrive at
+        // the same numbers.
+        const reusable = previous?.indexVersion === INDEX_VERSION
+        const base = reusable ? previous.values : details ? computeValues(ctx, details) : {}
+
+        const applicable = definitions.filter(({ def }) => appliesToSport(def, sport))
+        const accumulators = samples?.length
+          ? evaluateAggregates(
+              samples,
+              applicable.map(({ def }) => def)
+            )
+          : {}
+
         rows.push({
           id: activity.id,
           startTime: toMs(activity.startTime),
-          sport: (activity.type || '').toLowerCase(),
+          sport,
           indexVersion: INDEX_VERSION,
           // An activity with no usable samples still gets a row, so it is not
           // rescanned on every visit
-          values: details ? computeValues(ctx, details) : {},
+          values: { ...stripAggregates(base), ...toMetricValues(accumulators) },
           // Ridden on the same pass as the values: the samples are already in
           // memory here, and this is the only moment in the app where every
           // activity's full trace is available at once.
-          ...(samples?.length ? { channels: summarizeSamples(samples) } : {})
+          ...(reusable && previous.channels
+            ? { channels: previous.channels }
+            : samples?.length
+              ? { channels: summarizeSamples(samples) }
+              : {}),
+          // Every applicable definition is recorded, including the ones that
+          // qualified no sample: "computed, found nothing" and "never computed"
+          // must not look the same, or the empty ones rescan on every pass.
+          aggregates: Object.fromEntries(applicable.map(({ def, hash }) => [def.id, hash]))
         })
       }
 

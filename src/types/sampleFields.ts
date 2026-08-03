@@ -1,5 +1,6 @@
 import type { Sample } from './activity'
 import type { Dimension } from './units'
+import { deriveSeries } from '@/utils/derivedSamples'
 
 /**
  * The raw channels a `Sample` may carry.
@@ -111,7 +112,10 @@ export const SAMPLE_FIELD_SPECS: Record<SampleField, SampleFieldSpec> = {
  * whether slope and speed can be recovered — presence and distribution are two
  * different questions, and only the second one needs buckets.
  */
-export const CHANNEL_EDGES: Partial<Record<SampleChannel, number[]>> = {
+export const CHANNEL_EDGES: Partial<Record<SummaryKey, number[]>> = {
+  // Rise over run, as a ratio: -20% to +20% covers everything a human climbs,
+  // and the open ends absorb the cliffs a bad altimeter invents.
+  slope: [-0.2, -0.15, -0.1, -0.06, -0.03, -0.01, 0.01, 0.03, 0.06, 0.1, 0.15, 0.2],
   // m/s, up to ~72 km/h
   speed: [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 10, 12, 15, 20],
   // bpm
@@ -126,8 +130,22 @@ export const CHANNEL_EDGES: Partial<Record<SampleChannel, number[]>> = {
   temperature: [-10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40]
 }
 
-/** Channels a histogram can be read from. The others are tracked for presence only. */
-export const CHANNELS_WITH_EDGES = SAMPLE_CHANNELS.filter(c => CHANNEL_EDGES[c] != null)
+/**
+ * What a stored summary may be keyed by: every field of the aggregate
+ * vocabulary, plus the raw channels that are tracked for presence only.
+ *
+ * The two lists overlap on every field that is read straight off a sample, and
+ * they are the same string there — a field named `heartRate` summarizes the
+ * `heartRate` channel. The union exists for the two that do not line up:
+ * `distance`, a channel that is no field, and `slope`, a field that is no
+ * channel.
+ */
+export type SummaryKey = SampleField | SampleChannel
+
+/** Keys a histogram can be read from. The others are tracked for presence only. */
+export const KEYS_WITH_EDGES = [...new Set([...SAMPLE_FIELDS, ...SAMPLE_CHANNELS])].filter(
+  key => CHANNEL_EDGES[key] != null
+)
 
 export function readChannel(sample: Sample, channel: SampleChannel): number | undefined {
   const value = sample[channel]
@@ -153,8 +171,8 @@ export interface ChannelSummary {
   buckets: number[]
 }
 
-export function emptySummary(channel: SampleChannel): ChannelSummary {
-  const edges = CHANNEL_EDGES[channel]
+export function emptySummary(key: SummaryKey): ChannelSummary {
+  const edges = CHANNEL_EDGES[key]
   return {
     n: 0,
     min: Infinity,
@@ -186,16 +204,17 @@ function bucketIndex(edges: number[], value: number): number {
  */
 export function summarizeSamples(samples: Sample[]): Record<string, ChannelSummary> {
   const out: Record<string, ChannelSummary> = {}
+  const derived = deriveSeries(samples)
 
-  for (const channel of SAMPLE_CHANNELS) {
-    const edges = CHANNEL_EDGES[channel]
+  const summarize = (key: SummaryKey, valueAt: (index: number) => number | undefined) => {
+    const edges = CHANNEL_EDGES[key]
     let summary: ChannelSummary | null = null
 
-    for (const sample of samples) {
-      const value = readChannel(sample, channel)
-      if (value === undefined) continue
+    for (let i = 0; i < samples.length; i++) {
+      const value = valueAt(i)
+      if (value === undefined || !Number.isFinite(value)) continue
 
-      if (!summary) summary = emptySummary(channel)
+      if (!summary) summary = emptySummary(key)
       summary.n++
       summary.sum += value
       if (value < summary.min) summary.min = value
@@ -203,8 +222,19 @@ export function summarizeSamples(samples: Sample[]): Record<string, ChannelSumma
       if (edges) summary.buckets[bucketIndex(edges, value)]++
     }
 
-    if (summary) out[channel] = summary
+    if (summary) out[key] = summary
   }
+
+  for (const channel of SAMPLE_CHANNELS) {
+    summarize(channel, i => readChannel(samples[i], channel))
+  }
+
+  // Slope is never stored, and speed often is not — a trace with a distance
+  // channel and no speed one is the common case. Summarizing what was derived
+  // is what lets those fields report a distribution instead of only reporting
+  // that they could be computed.
+  summarize('slope', i => derived.slope[i])
+  if (!out.speed) summarize('speed', i => derived.speed[i])
 
   return out
 }
@@ -230,12 +260,8 @@ export function mergeSummary(a: ChannelSummary, b: ChannelSummary): ChannelSumma
  * and 8%" — where bucket-width precision is the honest precision anyway. The
  * open end buckets return the observed min/max rather than a made-up bound.
  */
-export function quantile(
-  summary: ChannelSummary,
-  channel: SampleChannel,
-  p: number
-): number | undefined {
-  const edges = CHANNEL_EDGES[channel]
+export function quantile(summary: ChannelSummary, key: SummaryKey, p: number): number | undefined {
+  const edges = CHANNEL_EDGES[key]
   if (!edges || summary.n === 0) return undefined
 
   const target = Math.min(Math.max(p, 0), 1) * summary.n
@@ -268,6 +294,12 @@ export type FieldAvailability = 'measured' | 'computable' | 'absent'
  * band from, a computable one is offered but has no numbers behind it yet, and
  * an absent one must not be offered at all — a filter on a channel nobody
  * recorded matches nothing and looks like a bug.
+ *
+ * `computable` is the narrow case of a field the scan *could* have produced but
+ * did not: an outing shorter than the slope window has elevation and distance
+ * and still yields no slope, because there is no hundred metres to measure one
+ * over. Offering it there is right — a longer outing will fill it in — and
+ * offering a band for it is not.
  */
 export function availabilityOf(
   field: SampleField,
@@ -275,7 +307,9 @@ export function availabilityOf(
 ): FieldAvailability {
   const spec = SAMPLE_FIELD_SPECS[field]
 
-  if (spec.channel && presentChannels.has(spec.channel)) return 'measured'
+  // Keyed on the field itself: a summary exists under the field's own name
+  // whether it was read off the sample or derived from the trace.
+  if (presentChannels.has(field)) return 'measured'
 
   for (const requirement of spec.computableFrom ?? []) {
     if (requirement.every(channel => presentChannels.has(channel))) return 'computable'
