@@ -17,8 +17,15 @@ export interface StorageServiceEvent {
  * Stores whose sync is owned by SyncService (version-based, conflict-aware).
  * StorageService must not touch them, to avoid two engines writing the same
  * remote files with divergent merge strategies.
+ *
+ * The merge below is local-wins and additive: it only pulls keys it does not
+ * already hold, and it knows nothing about tombstones. For a cache that is the
+ * right trade — nothing local is ever lost, and what is missing gets rebuilt.
+ * For records a user writes by hand it silently drops every edit made on
+ * another device and pushes deleted rows back into existence, which is why
+ * `custom_aggregates` is listed here rather than left to this path.
  */
-const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details']
+const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_aggregates']
 
 /**
  * Stores that never leave the device. They hold values derived from data that

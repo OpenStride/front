@@ -80,13 +80,13 @@ export class IndexedDBService implements IStorageService {
 
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('OpenStrideDB', 11)
+      const request = indexedDB.open('OpenStrideDB', 12)
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v11`)
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v12`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -130,6 +130,11 @@ export class IndexedDBService implements IStorageService {
           // Derived per-activity metrics. Fully recomputable, never backed up
           // to a storage provider (see LOCAL_ONLY_STORES in StorageService).
           { name: 'activity_metrics', options: { keyPath: 'id' } },
+          // User-authored aggregate definitions. The one store in the metrics
+          // chain that is NOT recomputable, so unlike activity_metrics it syncs
+          // — and via SyncService, not the generic backup (see
+          // SYNC_SERVICE_OWNED_STORES in StorageService).
+          { name: 'custom_aggregates', options: { keyPath: 'id' } },
           { name: 'friends', options: { keyPath: 'id' } },
           { name: 'friend_activities', options: { keyPath: 'id' } },
           {

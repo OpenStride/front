@@ -3,6 +3,12 @@ import type { StoragePlugin } from '@/types/storage'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { getActivityService } from '@/services/ActivityService'
 import type { Activity, ActivityDetails } from '@/types/activity'
+import type { CustomAggregate } from '@/types/customAggregate'
+import {
+  CUSTOM_AGGREGATES_STORE,
+  getCustomAggregateService
+} from '@/services/CustomAggregateService'
+import { applyConflictResolution, mergedRemote, reconcile } from '@/services/TimestampedSync'
 import { debounce } from '@/utils/debounce'
 
 /**
@@ -116,6 +122,17 @@ export class SyncService {
           }
         } catch (error) {
           const msg = `Error syncing with ${plugin.label}: ${error}`
+          console.error('[SyncService]', msg)
+          errors.push(msg)
+        }
+
+        // Definitions ride the same round but are counted separately: the
+        // number reported to the user is a count of activities, and folding
+        // two aggregate edits into it would make it mean nothing.
+        try {
+          errors.push(...(await this.syncDefinitions(plugin)).errors)
+        } catch (error) {
+          const msg = `Error syncing definitions with ${plugin.label}: ${error}`
           console.error('[SyncService]', msg)
           errors.push(msg)
         }
@@ -359,6 +376,96 @@ export class SyncService {
       errors.push(msg)
       return { activitiesSynced: 0, errors }
     }
+  }
+
+  /**
+   * Sync the saved aggregate definitions with one plugin.
+   *
+   * Deliberately not routed through `syncActivities`: that one pairs each
+   * activity with its details, replays pulls through ActivityService so
+   * aggregation and events fire, and pushes two remote files in step. None of
+   * that applies to a store of a few dozen hand-written rows. What the two do
+   * share — the version/lastModified ranking and the last-write-wins rule —
+   * lives in `TimestampedSync`, so this is not a second copy of it.
+   *
+   * The definitions are what `StorageService`'s additive merge would mangle:
+   * see the note on SYNC_SERVICE_OWNED_STORES.
+   */
+  private async syncDefinitions(plugin: StoragePlugin): Promise<{ errors: string[] }> {
+    const store = CUSTOM_AGGREGATES_STORE
+    const service = getCustomAggregateService()
+
+    try {
+      const local = await service.listAll()
+      const unsynced = local.filter(a => !a.synced)
+
+      // Same short-circuit as the activities round, scoped to this one file:
+      // an auto-sync fires five seconds after every activity change, and a
+      // remote read per round for a store that rarely moves is pure latency.
+      const token = await this.readRemoteToken(plugin, store)
+      if (unsynced.length === 0 && token != null && token === this.seenToken(plugin.id, store)) {
+        return { errors: [] }
+      }
+
+      const remote = ((await plugin.readRemote(store)) as CustomAggregate[]) ?? []
+
+      const { toPush, toPull } = applyConflictResolution(
+        reconcile(local, remote),
+        (localRecord, remoteRecord, winner) => {
+          // Logged, not surfaced: `sync-conflict` carries an activity title and
+          // its listener renders an activity toast. Reusing it here would tell
+          // the user one of their outings clashed, which is not what happened.
+          console.warn(
+            `[SyncService] ⚠️ Conflict on aggregate "${localRecord.label}"`,
+            `\nLocal: v${localRecord.version} (${new Date(localRecord.lastModified).toISOString()})`,
+            `\nRemote: v${remoteRecord.version} (${new Date(remoteRecord.lastModified).toISOString()})`,
+            `\nWinner: ${winner === localRecord ? 'Local' : 'Remote'}`
+          )
+        }
+      )
+
+      if (toPull.length > 0) {
+        await service.applyRemote(toPull)
+        console.log(`[SyncService] Pulled ${toPull.length} aggregates from ${plugin.label}`)
+      }
+
+      if (toPush.length > 0) {
+        await plugin.writeRemote(store, mergedRemote(remote, toPush))
+        await service.markAsSynced(toPush.map(r => r.id))
+        console.log(`[SyncService] Pushed ${toPush.length} aggregates to ${plugin.label}`)
+      }
+
+      // Re-read after any push so the baseline reflects our own write.
+      await this.rememberToken(plugin, store)
+
+      return { errors: [] }
+    } catch (error) {
+      const msg = `Failed to sync aggregates with ${plugin.label}: ${error}`
+      console.error('[SyncService]', msg)
+      return { errors: [msg] }
+    }
+  }
+
+  /** Current remote token for one store, or null when unavailable. */
+  private async readRemoteToken(plugin: StoragePlugin, store: string): Promise<string | null> {
+    if (!plugin.getRemoteChangeToken) return null
+    try {
+      return await plugin.getRemoteChangeToken(store)
+    } catch {
+      return null
+    }
+  }
+
+  private seenToken(pluginId: string, store: string): string | undefined {
+    return this.readTokenMap()[pluginId]?.[store]
+  }
+
+  private async rememberToken(plugin: StoragePlugin, store: string): Promise<void> {
+    const fresh = await this.readRemoteToken(plugin, store)
+    if (fresh == null) return
+    const map = this.readTokenMap()
+    map[plugin.id] = { ...(map[plugin.id] || {}), [store]: fresh }
+    this.writeTokenMap(map)
   }
 
   /**
