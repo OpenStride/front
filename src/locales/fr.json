@@ -967,6 +967,14 @@
       "coverage": "{percent}% des sorties",
       "rangeHint": "Votre {field} se situe surtout entre {low} et {high} {unit}.",
       "nothingMeasured": "Vos activités ne portent encore aucune mesure. Ouvrez quelques sorties pour qu'elles soient indexées, puis revenez."
+    },
+    "indexing": "Lecture de vos activités…",
+    "indexingHint": "Une seule fois. Vos sorties sont parcourues pour savoir quelles mesures elles contiennent.",
+    "noValue": "Pas de donnée",
+    "periods": {
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
     }
   }
 }

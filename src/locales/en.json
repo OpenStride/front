@@ -967,6 +967,14 @@
       "coverage": "{percent}% of outings",
       "rangeHint": "Your {field} mostly sits between {low} and {high} {unit}.",
       "nothingMeasured": "Your activities carry no measurement yet. Open a few outings so they get indexed, then come back."
+    },
+    "indexing": "Reading your activities…",
+    "indexingHint": "Done once. Your outings are scanned to find out which measurements they carry.",
+    "noValue": "No data",
+    "periods": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
     }
   }
 }

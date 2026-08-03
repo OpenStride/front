@@ -20,6 +20,9 @@
     </div>
 
     <div v-else class="statistics-sections">
+      <!-- First: what the reader chose to follow. The built-in sections answer
+           the questions everyone has, this one answers theirs. -->
+      <CustomAggregatesSection :selected-sport="selectedSport" :activities="filteredActivities" />
       <SummarySection :selected-sport="selectedSport" />
       <CalendarHeatmap :activities="filteredActivities" />
       <TrendsSection :activities="filteredActivities" />
@@ -29,7 +32,6 @@
         :selected-sport="selectedSport"
       />
       <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
-      <CustomAggregatesSection :selected-sport="selectedSport" />
 
       <!-- Plugins that answer the same question as this page render here -->
       <component

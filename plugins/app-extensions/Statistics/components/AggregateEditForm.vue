@@ -127,6 +127,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 import type { CapabilityReport, FieldCapability } from '@/composables/useSampleCapabilities'
 import type { CustomAggregate, MeasureOp, WeightBy } from '@/types/customAggregate'
 import { SAMPLE_FIELD_SPECS, type SampleField } from '@/types/sampleFields'
+import { round, toDisplay, toStored, unitOf as unitSymbol } from '../aggregateFormat'
 
 const MEASURE_OPS: MeasureOp[] = ['avg', 'sum', 'min', 'max']
 const WEIGHTS: WeightBy[] = ['time', 'distance', 'none']
@@ -186,22 +187,12 @@ function capabilityOf(field: SampleField | null): FieldCapability | undefined {
 
 /**
  * A field with a dimension is read in the reader's own units; one without —
- * a slope, a heart rate — carries its own symbol and scale.
+ * a slope, a heart rate — carries its own symbol and scale. The conversions
+ * live beside the list that reads these values back, so the two cannot end up
+ * disagreeing about what a stored `0.02` means.
  */
-function unitOf(field: SampleField): string {
-  const spec = SAMPLE_FIELD_SPECS[field]
-  return spec.dimension ? units.convert(spec.dimension, 0).unit : (spec.unit ?? '')
-}
-
-function toDisplay(field: SampleField, si: number): number {
-  const spec = SAMPLE_FIELD_SPECS[field]
-  return spec.dimension ? units.convert(spec.dimension, si).value : si * (spec.scale ?? 1)
-}
-
-function toStored(field: SampleField, display: number): number {
-  const spec = SAMPLE_FIELD_SPECS[field]
-  return spec.dimension ? units.toSI(spec.dimension, display) : display / (spec.scale ?? 1)
-}
+const unitOf = (field: SampleField) => unitSymbol(units, field)
+const display = (field: SampleField, si: number) => toDisplay(units, field, si)
 
 /**
  * A bound the reader actually set, in SI — or nothing.
@@ -212,11 +203,9 @@ function toStored(field: SampleField, display: number): number {
  * filter that silently matches nothing at all.
  */
 function bound(field: SampleField, value: number | undefined): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? toStored(field, value) : undefined
-}
-
-function round(value: number): number {
-  return Math.abs(value) >= 10 ? Math.round(value) : Math.round(value * 10) / 10
+  return typeof value === 'number' && Number.isFinite(value)
+    ? toStored(units, field, value)
+    : undefined
 }
 
 /** The whole point of measuring the library: a band nobody has to guess. */
@@ -226,8 +215,8 @@ function hintFor(field: SampleField | null): string | null {
 
   return t('customAggregates.form.rangeHint', {
     field: t(capability.labelKey),
-    low: round(toDisplay(capability.field, capability.p05)),
-    high: round(toDisplay(capability.field, capability.p95)),
+    low: round(display(capability.field, capability.p05)),
+    high: round(display(capability.field, capability.p95)),
     unit: unitOf(capability.field)
   })
 }
@@ -248,8 +237,8 @@ function addFilter() {
   const capability = capabilityOf(field)
   filters.value.push({
     field,
-    min: capability?.p05 !== undefined ? round(toDisplay(field, capability.p05)) : undefined,
-    max: capability?.p95 !== undefined ? round(toDisplay(field, capability.p95)) : undefined
+    min: capability?.p05 !== undefined ? round(display(field, capability.p05)) : undefined,
+    max: capability?.p95 !== undefined ? round(display(field, capability.p95)) : undefined
   })
 }
 
@@ -269,8 +258,8 @@ watch(
     pinned.value = source?.pinned ?? false
     filters.value = (source?.where ?? []).map(f => ({
       field: f.field,
-      min: f.min !== undefined ? round(toDisplay(f.field, f.min)) : undefined,
-      max: f.max !== undefined ? round(toDisplay(f.field, f.max)) : undefined
+      min: f.min !== undefined ? round(display(f.field, f.min)) : undefined,
+      max: f.max !== undefined ? round(display(f.field, f.max)) : undefined
     }))
   },
   { immediate: true }
