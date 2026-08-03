@@ -31,6 +31,16 @@ export interface AggregatedRecord {
   periodKey: string // e.g. 2025-W42 / 2025-10 / 2025
   value: number
   sum: number
+  /** Activities behind the figure. Always a count, never a denominator. */
   count: number
+  /**
+   * Denominator of a weighted aggregate — seconds or metres, not a tally.
+   *
+   * Absent on the built-in metrics, which average per activity and divide by
+   * `count`. A custom aggregate weights each sample by the time or distance it
+   * stands for, so its denominator is a measurement and needed its own field:
+   * reusing `count` for it would have made a field named "count" hold 4271.3.
+   */
+  weight?: number
   lastUpdated: number
 }

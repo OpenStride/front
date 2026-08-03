@@ -5,6 +5,8 @@ import type { PluginContext } from '@/types/plugin-context'
 import { summarizeSamples, type ChannelSummary } from '@/types/sampleFields'
 import { definitionHash, isAggregateKey, type CustomAggregate } from '@/types/customAggregate'
 import { getCustomAggregateService } from '@/services/CustomAggregateService'
+import { AggregationService } from '@/services/AggregationService'
+import { buildAggregateRecords } from '@/services/AggregatePeriodBuilder'
 import { appliesToSport, evaluateAggregates, toMetricValues } from '@/services/AggregateEvaluator'
 import { toMs } from '@/utils/timeRange'
 
@@ -345,10 +347,50 @@ async function buildIndex(activities: Activity[]): Promise<void> {
     for (const row of rows) {
       byId.set(row.id, row)
     }
-    derived.value = toDerivedMap(Array.from(byId.values()))
+    const allRows = Array.from(byId.values())
+    derived.value = toDerivedMap(allRows)
+
+    // Fold into period records now that the rows are final. Every row, not only
+    // the ones just written: a week holds outings from several passes, and a
+    // fold of the newcomers alone would report the week as if it held only
+    // them.
+    await rollUpAggregates(allRows, definitions)
+
     progress.value = 100
   } finally {
     indexing.value = false
+  }
+}
+
+/**
+ * Publish the custom aggregates as period records, where the rest of the app
+ * already reads its figures from.
+ *
+ * Reusing `aggregatedData` rather than opening a store beside it: a consumer
+ * asking for "this month" should not have to know whether the metric behind it
+ * is a built-in sum or something the user defined. `ctx.aggregation.getAggregated`
+ * answers for both, and a dashboard tile stays one read rather than a fold over
+ * the whole index.
+ */
+async function rollUpAggregates(
+  rows: ActivityMetricsRow[],
+  definitions: Array<{ def: CustomAggregate; hash: string }>
+): Promise<void> {
+  try {
+    const defs = definitions.map(({ def }) => def)
+    // Ids of *all* saved aggregates, so records left by one that was disabled
+    // or deleted are purged rather than left on the dashboard.
+    const service = getCustomAggregateService()
+    const known = (await service.listAll()).map(d => d.id)
+
+    await AggregationService.getInstance().replaceCustomAggregates(
+      known,
+      buildAggregateRecords(rows, defs)
+    )
+  } catch (error) {
+    // The index itself is sound; only the rollup failed. Losing it costs the
+    // next pass a rebuild, which is the whole reason it is derived.
+    console.warn('[MetricsIndex] Failed to roll up custom aggregates', error)
   }
 }
 
