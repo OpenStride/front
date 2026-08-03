@@ -72,6 +72,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { formatClock } from '@/utils/duration'
 import { getSportProfile } from '@/types/sport'
 
 const { t } = useI18n()
@@ -96,8 +97,10 @@ const analyzer = analyzerFactory.create(props.data.details?.samples ?? [])
 const targets = [1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 21_097, 30_000, 42_195, 50_000]
 
 /* ===== Helpers de format ===================================== */
-const fmtDuration = (sec: number) =>
-  isFinite(sec) ? new Date(sec * 1000).toISOString().substring(sec >= 3600 ? 11 : 14, 19) : '—'
+// Zero-padded so the column of best times aligns on the colon. Built on the
+// shared helper: the `toISOString()` version this replaces wrapped back to
+// 00:00:00 past 24 h.
+const fmtDuration = (sec: number) => formatClock(sec, { padLeading: true })
 
 /** Takes seconds per metre, like the rest of the app. */
 const fmtPace = (secPerMeter: number) =>

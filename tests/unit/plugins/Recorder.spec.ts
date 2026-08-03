@@ -100,7 +100,9 @@ describe('liveStats', () => {
     const stats = liveStats(session, T0 + 900_000)
     expect(stats.duration).toBe(300)
     expect(stats.distance).toBeCloseTo(1000, -1)
-    expect(stats.pace).toBe(300) // 5'00/km, not 15'00/km
+    // Seconds per metre, like every pace in the app: 0.3 s/m is 5'00/km — and
+    // not the 15'00/km the wall clock would have given.
+    expect(stats.pace).toBeCloseTo(0.3, 3)
   })
 })
 

@@ -41,10 +41,10 @@
         <tbody>
           <tr v-for="r in records" :key="r.distance">
             <td class="distance-cell">{{ r.distanceLabel }}</td>
-            <td>{{ formatDuration(r.duration) }}</td>
+            <td>{{ formatRecordTime(r.duration) }}</td>
             <td>{{ formatPace(r.pace) }}</td>
             <td class="hide-mobile">{{ formatSpeed(r.speed) }}</td>
-            <td>{{ formatDate(r.date) }}</td>
+            <td>{{ formatRecordDate(r.date) }}</td>
             <td class="hide-mobile">
               <router-link :to="`/activity-details/${r.activityId}`" class="view-link">
                 <i class="fas fa-external-link-alt" aria-hidden="true"></i>
@@ -62,6 +62,8 @@ import { ref, toRef } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
+import { formatDate } from '@/utils/dateFormat'
+import { formatRecordTime } from '@/utils/duration'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
 import RecordPeriodFilter from './RecordPeriodFilter.vue'
 import { toMs, type RecordPeriod } from '../types'
@@ -82,21 +84,15 @@ const { records, computing, progress } = usePersonalRecords(
   selectedPeriod
 )
 
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  if (h > 0) return `${h}h${String(m).padStart(2, '0')}'${String(s).padStart(2, '0')}"`
-  return `${m}'${String(s).padStart(2, '0')}"`
-}
 
 /** `pace` is seconds per metre, `speed` metres per second — both SI. */
 const formatPace = (secondsPerMeter: number) => units.format('pace', secondsPerMeter).text
 
 const formatSpeed = (metersPerSecond: number) => units.format('speed', metersPerSecond).text
 
-function formatDate(timestamp: number): string {
-  return new Date(toMs(timestamp)).toLocaleDateString()
+/** Records carry a timestamp in either unit; `toMs` settles it. */
+function formatRecordDate(timestamp: number): string {
+  return formatDate(toMs(timestamp))
 }
 </script>
 

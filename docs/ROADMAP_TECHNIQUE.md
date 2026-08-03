@@ -52,7 +52,7 @@ Passer de POC (v0.1) à production-ready (v1.0) en adressant les problèmes crit
 
 ### 1.2 Validation des Entrées (Priorité HAUTE)
 
-**Problème:** Aucune validation des données externes (Garmin, Coros, imports)
+**Problème:** Aucune validation des données externes (Garmin, Strava, imports)
 
 **Actions:**
 
@@ -64,7 +64,7 @@ Passer de POC (v0.1) à production-ready (v1.0) en adressant les problèmes crit
   ```
 - [ ] Implémenter dans adapters:
   - `GarminProvider/client/adapter.ts`
-  - `CorosProvider/client/adapter.ts`
+  - `StravaProvider/client/adapter.ts`
   - `ZipImportProvider/client/adapter.ts`
 - [ ] Ajouter error reporting si validation échoue
 - [ ] Tests unitaires pour chaque validateur
@@ -493,7 +493,7 @@ Semaine 11-12 : Phase 5 + Polish (Architecture + finitions)
 
 1. **Créer backend auth proxy** pour Google Drive
 2. **Régénérer credentials Google** (actuels compromis)
-3. **Implémenter validateurs** pour inputs Garmin/Coros
+3. **Implémenter validateurs** pour inputs Garmin/Strava
 4. **Remplacer catch vides** par proper error handling
 5. **Setup Sentry** pour monitoring production
 

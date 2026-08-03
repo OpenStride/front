@@ -101,9 +101,9 @@ const pillars = [
   { key: 'extensible', icon: 'fas fa-puzzle-piece' }
 ]
 
-// Only what actually works today. Coros is a ten-line stub and the zip provider
-// is deprecated, so neither is promised here — and there is no standalone
-// GPX import: those formats are read inside a Strava archive, nowhere else.
+// Only what actually works today. The zip provider is deprecated, so it is not
+// promised here — and there is no standalone GPX import: those formats are read
+// inside a Strava archive, nowhere else.
 const sources = [
   { key: 'garmin', icon: 'fas fa-stopwatch' },
   { key: 'strava', icon: 'fas fa-file-zipper' }

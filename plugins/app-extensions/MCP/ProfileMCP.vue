@@ -116,7 +116,7 @@
             <span class="stat__label">{{ t('profile.mcp.totalDistance') }}</span>
           </div>
           <div class="stat">
-            <span class="stat__value">{{ formatDuration(stats.totalDuration) }}</span>
+            <span class="stat__value">{{ formatCompactDuration(stats.totalDuration) }}</span>
             <span class="stat__label">{{ t('profile.mcp.totalDuration') }}</span>
           </div>
         </div>
@@ -130,6 +130,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { formatCompactDuration } from '@/utils/duration'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -302,14 +303,7 @@ function formatDistance(meters: number): string {
   return units.format('distance', meters).text
 }
 
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours > 0) {
-    return `${hours}h ${minutes}min`
-  }
-  return `${minutes}min`
-}
+
 </script>
 
 <style scoped>

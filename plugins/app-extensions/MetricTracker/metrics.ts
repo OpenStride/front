@@ -2,6 +2,7 @@ import { DISTANCE_TARGETS, timeMetricId } from '@/composables/useActivityMetrics
 import { convertQuantity } from '@/composables/useUnits'
 import type { Dimension } from '@/types/units'
 import type { MetricDefinition } from './types'
+import { formatClock, formatCompactDuration } from '@/utils/duration'
 
 export { DISTANCE_TARGETS, timeMetricId }
 
@@ -9,13 +10,9 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/** Minutes -> "1h30" / "45 min" */
+/** Minutes -> "1h30" / "45 min". The shared helper counts in seconds. */
 function formatMinutes(minutes: number): string {
-  if (!isFinite(minutes)) return '-'
-  const total = Math.round(minutes)
-  const h = Math.floor(total / 60)
-  const m = total % 60
-  return h > 0 ? `${h}h${pad(m)}` : `${m} min`
+  return formatCompactDuration(minutes * 60)
 }
 
 /** Minutes per display unit -> "4'35\"" */
@@ -51,16 +48,6 @@ function inUnits(dimension: Dimension, decimals = 1) {
   }
 }
 
-/** Seconds -> "42:31" / "3:12:45" */
-function formatDuration(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0) return '-'
-  const total = Math.round(seconds)
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const s = total % 60
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
-}
-
 /** Best time on a fixed distance — the whole point of the index */
 export const DERIVED_METRICS: MetricDefinition[] = DISTANCE_TARGETS.map(target => ({
   id: timeMetricId(target.meters),
@@ -69,7 +56,7 @@ export const DERIVED_METRICS: MetricDefinition[] = DISTANCE_TARGETS.map(target =
   betterIsLower: true,
   distanceLabel: target.label,
   toDisplay: raw => raw,
-  format: formatDuration
+  format: formatClock
 }))
 
 /**

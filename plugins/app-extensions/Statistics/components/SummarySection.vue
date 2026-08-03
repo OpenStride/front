@@ -44,6 +44,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { periodKey } from '@/utils/dateKeys'
+import { formatCompactDuration } from '@/utils/duration'
 import type { AggregationMetricDefinition, AggregationPeriod } from '@/types/aggregation'
 import type { Activity, ActivityDetails } from '@/types/activity'
 
@@ -88,20 +89,9 @@ const BASE_METRICS = [
   }
 ] as const
 
-const SECONDS_PER_MINUTE = 60
-const MINUTES_PER_HOUR = 60
-
 const period = ref<AggregationPeriod>('week')
 const definitions = ref<AggregationMetricDefinition[]>([])
 const values = ref<Record<string, number>>({})
-
-/** Seconds → "3h05" / "45 min". A duration reads the same in both systems. */
-function formatDuration(seconds: number): string {
-  const totalMinutes = Math.round(seconds / SECONDS_PER_MINUTE)
-  const h = Math.floor(totalMinutes / MINUTES_PER_HOUR)
-  const m = totalMinutes % MINUTES_PER_HOUR
-  return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`
-}
 
 /** One SI value, as the pair the tile prints. */
 function displayOf(
@@ -113,7 +103,8 @@ function displayOf(
     const { value, unit } = units.convert(metric.dimension, si)
     return { value: value.toFixed(metric.decimals ?? 0), unit }
   }
-  if (metric.unit === 's') return { value: formatDuration(si), unit: '' }
+  // A duration reads the same in both systems, so it skips the units layer.
+  if (metric.unit === 's') return { value: formatCompactDuration(si), unit: '' }
   return { value: si.toFixed(metric.decimals ?? 0), unit: metric.unit ?? '' }
 }
 

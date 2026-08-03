@@ -42,6 +42,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { formatClock } from '@/utils/duration'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
@@ -140,19 +141,14 @@ const zones = computed(() => {
   // Construction des objets zone
   return zoneThresholds.value.map((thr, i) => {
     const seconds = durationPerZone[i]
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = Math.round(seconds % 60)
 
     return {
       zone: thr.zone,
       color: thr.color,
       label: thr.label,
       percentage: totalDuration ? (seconds / totalDuration) * 100 : 0,
-      duration:
-        h > 0
-          ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-          : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+      // Padded: the five zones stack in a column and align on the colon.
+      duration: formatClock(seconds, { padLeading: true }),
       fcMin: Math.round(maxHeartRate.value * thr.min),
       fcMax: Math.round(maxHeartRate.value * thr.max)
     }

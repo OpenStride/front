@@ -25,7 +25,7 @@ describe('DataProviderService', () => {
   describe('triggerRefresh', () => {
     it('calls refreshData on each enabled plugin', async () => {
       const plugin1 = { id: 'garmin', label: 'Garmin', refreshData: vi.fn() }
-      const plugin2 = { id: 'coros', label: 'Coros', refreshData: vi.fn() }
+      const plugin2 = { id: 'strava', label: 'Strava', refreshData: vi.fn() }
       mockGetMyDataProviderPlugins.mockResolvedValue([plugin1, plugin2])
 
       await service.triggerRefresh()
@@ -68,8 +68,8 @@ describe('DataProviderService', () => {
         refreshData: vi.fn().mockRejectedValue(new Error('API error'))
       }
       const successPlugin = {
-        id: 'coros',
-        label: 'Coros',
+        id: 'strava',
+        label: 'Strava',
         refreshData: vi.fn()
       }
       mockGetMyDataProviderPlugins.mockResolvedValue([failingPlugin, successPlugin])

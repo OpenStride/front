@@ -54,6 +54,8 @@ import MapPreview from '@/components/MapPreview.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
+import { formatClock } from '@/utils/duration'
+import { formatWeekday } from '@/utils/dateFormat'
 import { usePluginContext } from '@/composables/usePluginContext'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
@@ -99,14 +101,6 @@ const totalDescent = computed<number | undefined>(() => {
 const formatDistance = (meters?: number) =>
   units.format(distanceDimension(activity.value.type), meters ?? 0)
 
-const formatDuration = (seconds?: number) => {
-  const s = Math.max(0, Math.round(seconds ?? 0))
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const sec = s % 60
-  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
-}
-
 /**
  * Which quantity to headline is `primaryMetricSpec`'s call, shared with the card.
  * Null when the sport has none — a strength session has no pace to print.
@@ -139,7 +133,7 @@ const formattedDate = computed(() => {
   const ts = activity.value?.startTime
   if (!ts) return ''
   const d = new Date(ts * 1000)
-  const weekday = d.toLocaleDateString(undefined, { weekday: 'short' })
+  const weekday = formatWeekday(ts * 1000)
   return `${weekday} ${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
 })
 
@@ -190,7 +184,7 @@ const primaryStats = computed<Stat[]>(() => {
 
   out.push({
     label: t('activityDetail.time', 'Time'),
-    value: formatDuration(activity.value.duration),
+    value: formatClock(activity.value.duration),
     unit: ''
   })
 

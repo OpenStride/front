@@ -99,7 +99,6 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "edit": "Edit",
     "delete": "Delete",
     "add": "Add",
     "configure": "Configure",
@@ -118,8 +117,6 @@
   "navigation": {
     "home": "Home",
     "profile": "Profile",
-    "dataProviders": "Data Providers",
-    "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
     "statistics": "Metrics Dashboard",
     "metricTracker": "Metric Tracker"
@@ -173,12 +170,10 @@
     "openFullPage": "Open the full page"
   },
   "profile": {
-    "createProfile": "Create a Profile",
     "enterUsername": "Enter your username",
     "choosePhoto": "Choose a photo",
     "editProfile": "Edit profile",
     "profilePhoto": "Profile photo",
-    "appSettings": "App Settings",
     "tabs": {
       "profile": "Profile",
       "preferences": "Preferences",
@@ -205,14 +200,8 @@
       "units": "Unit System",
       "metric": "Metric (km)",
       "imperial": "Imperial (mi)",
-      "theme": "Theme",
-      "themeLight": "Light",
-      "themeDark": "Dark",
-      "themeAuto": "Auto",
-      "dateFormat": "Date Format",
       "saveSuccess": "Preferences saved"
     },
-    "sharePrivacy": "Share & Privacy",
     "defaultPrivacy": "Default Privacy",
     "private": "Private (default)",
     "public": "Public",
@@ -336,7 +325,6 @@
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
-    "network": "Network error. Please check your connection.",
     "notFound": "Not found."
   },
   "providers": {
@@ -380,7 +368,6 @@
       "connecting": "Connecting..."
     },
     "importing": "Importing…",
-    "importingCount": "Importing ({count} activities)…",
     "importProgress": "Importing {month} ({current}/{total})",
     "synced": "Synced",
     "connectedPending": "Connected · Import pending",
@@ -407,7 +394,6 @@
       "importError": "Import error",
       "stateMismatch": "OAuth security error (state mismatch)",
       "popupBlocked": "Popup blocked. Allow popups or use the fallback below.",
-      "pkceMissing": "Error: PKCE verifier missing",
       "accessDenied": "{provider} access denied. Please try again.",
       "oauthError": "{provider} OAuth error: {error}",
       "generic": "{provider}: {message}"
@@ -441,9 +427,6 @@
     "newVersionAvailable": "New version available",
     "updateNow": "Update Now",
     "later": "Later",
-    "whatsNew": "What's New",
-    "installing": "Installing update...",
-    "checkingForUpdates": "Checking for updates...",
     "autoUpdating": "Update in progress..."
   },
   "migration": {
@@ -657,7 +640,6 @@
     "none": "No interactions yet",
     "sending": "Sending...",
     "publish": "Post",
-    "shareProfile": "Share my profile",
     "delete": "Delete",
     "like": "Like",
     "liked": "Liked",

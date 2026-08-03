@@ -92,6 +92,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import InteractionBar from './InteractionBar.vue'
 import type { Interaction, InteractionServiceEvent } from '@/types/interaction'
+import { formatRelativeTime } from '@/utils/dateFormat'
 
 const { t } = useI18n()
 
@@ -150,27 +151,6 @@ const deleteComment = async (commentId: string) => {
   } finally {
     deleting.value = null
   }
-}
-
-// Helpers
-const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
-
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (minutes < 1) return "à l'instant"
-  if (minutes < 60) return `il y a ${minutes} min`
-  if (hours < 24) return `il y a ${hours}h`
-  if (days === 1) return 'hier'
-  if (days < 7) return `il y a ${days} jours`
-
-  return new Date(timestamp).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short'
-  })
 }
 
 // Event listener for reactive updates
