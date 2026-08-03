@@ -137,7 +137,8 @@
     "timeOn": "Temps au {distance}",
     "groups": {
       "direct": "Données de séance",
-      "bestTimes": "Meilleurs temps"
+      "bestTimes": "Meilleurs temps",
+      "custom": "Mes agrégats"
     },
     "window": "Fenêtre",
     "windows": {

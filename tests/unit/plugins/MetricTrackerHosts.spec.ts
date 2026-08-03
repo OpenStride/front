@@ -5,6 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
 import plugin from '@plugins/app-extensions/MetricTracker/index'
+import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
 
 const mocks = vi.hoisted(() => ({ getPluginContext: vi.fn() }))
 
@@ -46,7 +47,22 @@ async function mountPanel(props: Record<string, unknown>) {
   await router.push('/metrics')
   await router.isReady()
 
-  const wrapper = mount(MetricTrackerPanel, { props, global: { plugins: [i18n, router] } })
+  // The panel reads the saved aggregates to add them to its metric list, and
+  // that goes through the injected context like every other plugin service.
+  const wrapper = mount(MetricTrackerPanel, {
+    props,
+    global: {
+      plugins: [i18n, router],
+      provide: {
+        [PLUGIN_CONTEXT_KEY]: {
+          aggregates: {
+            list: vi.fn(async () => []),
+            onChanged: vi.fn(() => () => undefined)
+          }
+        }
+      }
+    }
+  })
   await vi.waitFor(() => expect(wrapper.find('[data-test="metric-select"]').exists()).toBe(true))
   return wrapper
 }

@@ -137,7 +137,8 @@
     "timeOn": "Time on {distance}",
     "groups": {
       "direct": "Session data",
-      "bestTimes": "Best times"
+      "bestTimes": "Best times",
+      "custom": "My aggregates"
     },
     "window": "Window",
     "windows": {

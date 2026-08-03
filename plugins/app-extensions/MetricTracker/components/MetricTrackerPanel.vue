@@ -26,6 +26,13 @@
                 {{ metricLabel(m) }}
               </option>
             </optgroup>
+            <!-- Nothing to show until the reader has defined one, so the group
+                 stays out rather than sitting there empty. -->
+            <optgroup v-if="customMetrics.length" :label="t('metricTracker.groups.custom')">
+              <option v-for="m in customMetrics" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
           </select>
         </label>
 
@@ -108,13 +115,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMetricActivities } from '../composables/useMetricActivities'
 import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { buildSeries, summarize } from '../series'
-import { DIRECT_METRICS, DERIVED_METRICS, getMetric, hasMetric } from '../metrics'
+import { DIRECT_METRICS, DERIVED_METRICS, METRICS, hasMetric } from '../metrics'
+import { toMetricDefinitions } from '../customMetrics'
+import { usePluginContext } from '@/composables/usePluginContext'
 import {
   GRANULARITIES,
   WINDOWS,
@@ -145,6 +154,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const ctx = usePluginContext()
 
 const hostOwnsSport = computed(() => props.sport !== undefined)
 
@@ -156,6 +166,20 @@ function linkParam(name: string): unknown {
 const { activities, stats, sportOptions, loading, statsLoading, ensureStats } =
   useMetricActivities()
 const { derived, indexing, progress, ensureIndex } = useActivityMetricsIndex()
+
+/**
+ * The aggregates the reader defined, as plottable metrics.
+ *
+ * They arrive as two more `derived.*` keys, so neither the series builder nor
+ * the chart had to learn anything about them.
+ */
+const customMetrics = ref<MetricDefinition[]>([])
+
+async function loadCustomMetrics() {
+  customMetrics.value = toMetricDefinitions(await ctx.aggregates.list())
+}
+
+const allMetrics = computed(() => [...METRICS, ...customMetrics.value])
 
 function isGranularity(value: unknown): value is Granularity {
   return GRANULARITIES.includes(value as Granularity)
@@ -170,8 +194,13 @@ function isWindow(value: unknown): value is WindowId {
 const queryMetric = linkParam('metric')
 const queryGranularity = linkParam('granularity')
 
+// A custom aggregate's id passes through unchecked: the definitions load after
+// this runs, so `hasMetric` cannot know about them yet. `metric` falls back to
+// the default if the id turns out to name nothing.
 const selectedMetricId = ref(
-  typeof queryMetric === 'string' && hasMetric(queryMetric) ? queryMetric : 'pace'
+  typeof queryMetric === 'string' && (hasMetric(queryMetric) || queryMetric.includes('-'))
+    ? queryMetric
+    : 'pace'
 )
 const selectedGranularity = ref<Granularity>(
   isGranularity(queryGranularity) ? queryGranularity : 'activity'
@@ -186,9 +215,15 @@ const selectedWindow = ref<WindowId>(
   availableWindows(selectedGranularity.value).includes(linkedWindow) ? linkedWindow : 'all'
 )
 
-const metric = computed(() => getMetric(selectedMetricId.value))
+// Falls back to the first built-in rather than to nothing: a deep link may name
+// an aggregate that has since been deleted, and an empty chart with no
+// explanation reads worse than the default metric.
+const metric = computed(
+  () => allMetrics.value.find(m => m.id === selectedMetricId.value) ?? METRICS[0]
+)
 
 function metricLabel(definition: MetricDefinition): string {
+  if (definition.label) return definition.label
   return definition.distanceLabel
     ? t('metricTracker.timeOn', { distance: definition.distanceLabel })
     : t(`metricTracker.metrics.${definition.id}`)
@@ -257,6 +292,22 @@ watch(
   },
   { immediate: true }
 )
+
+let unsubscribeAggregates: (() => void) | null = null
+
+onMounted(async () => {
+  await loadCustomMetrics()
+  // A definition saved on the dashboard, or arriving from another device,
+  // should appear in this list without a reload.
+  unsubscribeAggregates = ctx.aggregates.onChanged(() => {
+    void loadCustomMetrics()
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeAggregates?.()
+  unsubscribeAggregates = null
+})
 
 // Keep the URL in step with the selection, so a view can be shared or reloaded.
 // A section embedded in another page has no business rewriting that page's query.

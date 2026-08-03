@@ -17,7 +17,13 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
     'aggregated-details',
     'profile-sharing',
     'goals',
-    'statistics'
+    'statistics',
+    // On by default since it is where a custom aggregate becomes a curve.
+    // Leaving it off meant defining an aggregate on the dashboard and then
+    // having to find, and enable, a second extension to see it over time —
+    // with nothing anywhere saying so. Only new installs are affected: an
+    // existing list is a preference, and is never overwritten by these.
+    'metric-tracker'
   ]
 
   private constructor() {
