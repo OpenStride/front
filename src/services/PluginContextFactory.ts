@@ -14,6 +14,8 @@ import { AppExtensionPluginManager } from './AppExtensionPluginManager'
 import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
 import { DataProviderService } from './DataProviderService'
+import { getCustomAggregateService } from './CustomAggregateService'
+import { useSampleCapabilities } from '@/composables/useSampleCapabilities'
 import {
   convertQuantity,
   ensureUnitsLoaded,
@@ -91,6 +93,22 @@ export async function createPluginContext(): Promise<PluginContext> {
       rebuildAll: (activities, detailsMap) => aggregationService.rebuildAll(activities, detailsMap),
       loadConfigFromSettings: () => aggregationService.loadConfigFromSettings(),
       subscribe: cb => aggregationService.subscribe(cb)
+    },
+
+    aggregates: {
+      list: () => getCustomAggregateService().list(),
+      create: input => getCustomAggregateService().create(input),
+      update: (id, patch) => getCustomAggregateService().update(id, patch),
+      remove: id => getCustomAggregateService().remove(id),
+      capabilities: sport => useSampleCapabilities().loadCapabilities(sport),
+      onChanged: handler => {
+        const listener = (event: Event) => {
+          handler((event as CustomEvent<{ ids: string[] }>).detail.ids)
+        }
+        const emitter = getCustomAggregateService().emitter
+        emitter.addEventListener('aggregates-changed', listener)
+        return () => emitter.removeEventListener('aggregates-changed', listener)
+      }
     },
 
     friends: {

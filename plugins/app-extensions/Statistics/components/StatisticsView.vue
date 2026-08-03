@@ -29,6 +29,7 @@
         :selected-sport="selectedSport"
       />
       <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
+      <CustomAggregatesSection :selected-sport="selectedSport" />
 
       <!-- Plugins that answer the same question as this page render here -->
       <component
@@ -52,6 +53,7 @@ import TrendsSection from './TrendsSection.vue'
 import DistributionSection from './DistributionSection.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
 import CalendarHeatmap from './CalendarHeatmap.vue'
+import CustomAggregatesSection from './CustomAggregatesSection.vue'
 
 const { t } = useI18n()
 const { allActivities, filteredActivities, selectedSport, sportOptions, loading } =

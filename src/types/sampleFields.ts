@@ -65,6 +65,23 @@ export interface SampleFieldSpec {
    * *or* from the distance trace.
    */
   computableFrom?: SampleChannel[][]
+  /**
+   * Symbol shown beside a field that has no `dimension`.
+   *
+   * Not translated, unlike the field name: bpm, W and rpm are written the same
+   * in every locale and do not change with the unit system. A field with a
+   * dimension has no business here — its unit comes from `units.convert`, which
+   * is the only place that knows the reader's preference.
+   */
+  unit?: string
+  /**
+   * Display value = stored value × `scale`, for a field with no dimension.
+   *
+   * Exists for the slope, stored as the ratio it is and read as a percentage by
+   * every human being. Keeping the factor here rather than in a form is what
+   * stops "2" meaning 200% in one screen and 2% in another.
+   */
+  scale?: number
 }
 
 export const SAMPLE_FIELD_SPECS: Record<SampleField, SampleFieldSpec> = {
@@ -72,7 +89,9 @@ export const SAMPLE_FIELD_SPECS: Record<SampleField, SampleFieldSpec> = {
     id: 'slope',
     labelKey: 'sampleFields.slope',
     // A ratio, not a measurement: 0.05 is 5% to everyone, metric or imperial.
-    computableFrom: [['elevation', 'distance']]
+    computableFrom: [['elevation', 'distance']],
+    unit: '%',
+    scale: 100
   },
   speed: {
     id: 'speed',
@@ -81,9 +100,14 @@ export const SAMPLE_FIELD_SPECS: Record<SampleField, SampleFieldSpec> = {
     channel: 'speed',
     computableFrom: [['distance']]
   },
-  heartRate: { id: 'heartRate', labelKey: 'sampleFields.heartRate', channel: 'heartRate' },
-  cadence: { id: 'cadence', labelKey: 'sampleFields.cadence', channel: 'cadence' },
-  power: { id: 'power', labelKey: 'sampleFields.power', channel: 'power' },
+  heartRate: {
+    id: 'heartRate',
+    labelKey: 'sampleFields.heartRate',
+    channel: 'heartRate',
+    unit: 'bpm'
+  },
+  cadence: { id: 'cadence', labelKey: 'sampleFields.cadence', channel: 'cadence', unit: 'rpm' },
+  power: { id: 'power', labelKey: 'sampleFields.power', channel: 'power', unit: 'W' },
   elevation: {
     id: 'elevation',
     labelKey: 'sampleFields.elevation',
