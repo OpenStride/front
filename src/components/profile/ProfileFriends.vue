@@ -270,7 +270,6 @@ const removeFriend = async () => {
 
 const formatFriendDate = (timestamp: number): string =>
   formatDate(timestamp, { year: 'numeric', month: 'short', day: 'numeric' })
-
 </script>
 
 <style scoped>
