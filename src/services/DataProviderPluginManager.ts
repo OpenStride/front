@@ -4,7 +4,7 @@ import type { ProviderPlugin } from '@/types/provider'
 import { PluginManagerBase } from './PluginManagerBase'
 
 /**
- * Manages data provider plugins (Garmin, Coros, ZipImport, etc.)
+ * Manages data provider plugins (Garmin, Strava, Health, etc.)
  * Extends PluginManagerBase to eliminate code duplication
  */
 export class DataProviderPluginManager extends PluginManagerBase<ProviderPlugin> {

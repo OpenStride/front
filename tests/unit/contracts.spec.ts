@@ -232,3 +232,68 @@ describe('the French locale is written in French', () => {
     expect(offenders, `Accents missing in fr.json:\n${offenders.join('\n')}`).toEqual([])
   })
 })
+
+/**
+ * A date is written in the language the user picked.
+ *
+ * Three ways to get this wrong were all in the tree at once. A literal tag —
+ * `toLocaleDateString('fr-FR', …)` on the comment list — dates an English
+ * reader's comments in French. `undefined` follows the *browser* instead of the
+ * preference, so switching the app to French left the activity cards' weekdays
+ * in English. And the calendar heatmap simply carried its own French month
+ * table. `@/utils/dateFormat` reads the preference, and is the only place
+ * allowed to name a locale.
+ */
+describe('dates read from the app locale', () => {
+  const HARDCODED_LOCALE =
+    /toLocale(?:Date|Time)?String\(\s*(?:'[a-z]{2}(?:-[A-Z]{2})?'|"[a-z]{2}(?:-[A-Z]{2})?"|undefined)/
+
+  it('no call site names a locale, or defers to the browser', () => {
+    const offenders: string[] = []
+
+    for (const file of sourceFiles()) {
+      if (file.endsWith(join('utils', 'dateFormat.ts'))) continue
+      const content = readFileSync(file, 'utf8')
+      content.split('\n').forEach((line, i) => {
+        if (HARDCODED_LOCALE.test(line)) {
+          offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${line.trim().slice(0, 70)}`)
+        }
+      })
+    }
+
+    expect(offenders, `Use @/utils/dateFormat:\n${offenders.join('\n')}`).toEqual([])
+  })
+})
+
+/**
+ * A duration is formatted in one place.
+ *
+ * The clock format ("38:52", "1:52:14") had six implementations — activity
+ * card, activity header, metric tracker, session bests, heart-rate zones, the
+ * recorder HUD — agreeing on the output and disagreeing on the edges: one
+ * printed `-` for a missing value where the others printed `—`, and the one
+ * built on `toISOString()` wrapped back to zero past 24 h, which the GPS
+ * recorder can reach. `@/utils/duration` owns the arithmetic now.
+ */
+describe('durations are formatted through the shared helper', () => {
+  it('no call site splits seconds into hours and minutes by hand', () => {
+    const offenders: string[] = []
+
+    for (const file of sourceFiles()) {
+      if (file.endsWith(join('utils', 'duration.ts'))) continue
+      const content = readFileSync(file, 'utf8')
+      content.split('\n').forEach((line, i) => {
+        // The tell is the second half of the split: `(x % 3600) / 60`. Dividing
+        // a duration by 3600 to get hours as a *number* is not formatting, and
+        // several statistics screens legitimately do it.
+        if (/%\s*3600\s*\)?\s*\/\s*60/.test(line)) {
+          offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${line.trim().slice(0, 70)}`)
+        }
+      })
+    }
+
+    expect(offenders, `Use formatClock() from @/utils/duration:\n${offenders.join('\n')}`).toEqual(
+      []
+    )
+  })
+})

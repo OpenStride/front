@@ -1,6 +1,7 @@
 // src/services/AppPluginRegistry.ts
 import type { ExtensionPlugin, SlotContext, SlotEntry } from '@/types/extension'
 import type { Component } from 'vue'
+import type { Router } from 'vue-router'
 import { AppExtensionPluginManager } from '@/services/AppExtensionPluginManager'
 
 // Chargement automatique de tous les plugins applicatifs
@@ -14,6 +15,37 @@ export async function getActiveAppPlugins(): Promise<ExtensionPlugin[]> {
   const manager = AppExtensionPluginManager.getInstance()
   const enabledIds = await manager.getEnabledPluginIds()
   return allAppPlugins.filter(p => enabledIds.includes(p.id))
+}
+
+/** Where someone lands when the page they asked for belongs to a disabled plugin. */
+export const DISABLED_PLUGIN_REDIRECT = '/profile?tab=app-extensions'
+
+/**
+ * Install every plugin route, each gated on its own plugin still being enabled.
+ *
+ * Registration stays unconditional so that enabling a plugin takes effect on
+ * the next click rather than on the next reload — the nav entries come from
+ * slots, which are read per navigation. The guard is the other half of that
+ * deal: a slot disappears the moment a plugin is switched off, and without it
+ * the page behind it stayed reachable by URL — a bookmark, the back button, or
+ * a link on another page opening a screen the user just unplugged.
+ *
+ * The redirect leads to the extensions tab, which is where the switch that
+ * turns it back on lives.
+ */
+export function registerPluginRoutes(router: Router): void {
+  for (const plugin of allAppPlugins) {
+    for (const route of plugin.routes ?? []) {
+      router.addRoute({
+        ...route,
+        beforeEnter: async () => {
+          const manager = AppExtensionPluginManager.getInstance()
+          const enabledIds = await manager.getEnabledPluginIds()
+          return enabledIds.includes(plugin.id) ? true : DISABLED_PLUGIN_REDIRECT
+        }
+      })
+    }
+  }
 }
 
 /**

@@ -127,6 +127,7 @@ import {
   type WindowId
 } from '../types'
 import { inRange } from '@/utils/timeRange'
+import { formatDate } from '@/utils/dateFormat'
 import ChipSelect from './ChipSelect.vue'
 import MetricSeriesChart from './MetricSeriesChart.vue'
 
@@ -239,7 +240,7 @@ const points = computed(() => {
 
 const labels = computed(() =>
   points.value.map(p =>
-    selectedGranularity.value === 'activity' ? new Date(p.startTime).toLocaleDateString() : p.key
+    selectedGranularity.value === 'activity' ? formatDate(p.startTime) : p.key
   )
 )
 

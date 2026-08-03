@@ -116,7 +116,14 @@ export function movingSecondsAt(session: RecordSession, atMs: number): number {
 export interface LiveStats {
   distance: number // meters
   duration: number // seconds (moving time, excludes paused)
-  pace: number // seconds per km (0 if no distance)
+  /**
+   * Seconds per metre — SI, like every pace in the app, and what
+   * `units.format('pace', …)` expects. It used to be seconds per kilometre,
+   * which is a metric reading baked into a computation: the HUD printed it
+   * behind a hardcoded "/km" and a runner set to imperial recorded their run
+   * in units they had asked the app not to use.
+   */
+  pace: number // seconds per metre (0 if no distance)
   speed: number // m/s (average)
 }
 
@@ -124,7 +131,7 @@ export interface LiveStats {
 export function liveStats(session: RecordSession, nowMs: number): LiveStats {
   const distance = totalDistance(session.points)
   const duration = movingSecondsAt(session, nowMs)
-  const pace = distance > 0 ? Math.round((duration / distance) * 1000) : 0
+  const pace = distance > 0 ? duration / distance : 0
   const speed = duration > 0 ? distance / duration : 0
   return { distance, duration, pace, speed }
 }

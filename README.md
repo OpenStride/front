@@ -48,7 +48,6 @@ Three pillars: Local-first / Extensible / Privacy-focused.
 - ✅ Google Drive plugin (opt-in backup with PKCE)
 - ✅ Essential widgets (speed, HR, cadence, elevation charts)
 - ✅ Aggregation system (best times, statistics)
-- ⚠️ CorosProvider incomplete (stub to finalize or remove)
 - 📊 Test coverage: ~15-20% (target 70%+)
 
 ### Problems Addressed
@@ -198,8 +197,10 @@ UI injection: `useSlotExtensions` + `ActivityDetails.vue`.
 **Data Providers (Data sources):**
 
 - ✅ **GarminProvider**: OAuth import from Garmin Connect (active)
-- ✅ **ZipImportProvider**: Import local FIT/GPX files (active)
-- ⚠️ **CorosProvider**: Incomplete stub (to finalize or remove)
+- ✅ **StravaProvider**: Guided import of a Strava archive export (active)
+- ✅ **HealthProvider**: Apple Health / Health Connect (native builds only)
+- ✅ **RecorderProvider**: GPS recording on device (native builds only)
+- ⚠️ **ZipImportProvider**: Deprecated — FIT/GPX are read inside a Strava archive
 
 **Storage Providers (Backup):**
 
@@ -209,7 +210,11 @@ UI injection: `useSlotExtensions` + `ActivityDetails.vue`.
 
 - ✅ **StandardDetails**: Summary block + speed, cadence, HR, altitude charts
 - ✅ **AggregatedDetails**: Best segments (target distances)
-- ✅ **AggregatedProgress**: Statistics and progression
+- ✅ **Statistics**: Trends, distribution, personal records, calendar heatmap
+- ✅ **MetricTracker**: One metric's evolution over time
+- ✅ **Goals**: Training goals and progress
+- ✅ **ProfileSharing** / **ActivityPrivacy**: What friends see, per activity
+- ✅ **MCP**: Model Context Protocol endpoint for the user's own data
 
 ---
 
@@ -257,7 +262,7 @@ Merge: simple timestamp logic (improvements planned).
 | Phase | Content                                             | Goal            |
 | ----- | --------------------------------------------------- | --------------- |
 | 0.1   | Local-first base, Garmin, GDrive, essential widgets | POC             |
-| 0.2   | FIT/GPX import, Coros provider, bundle export       | Sources         |
+| 0.2   | FIT/GPX import, Strava archive, bundle export        | Sources         |
 | 0.3   | Local assistant (summaries), robust offline         | Insight         |
 | 0.4   | Encrypted sharing / multi-profiles                  | Collaboration   |
 | 0.5   | Plugin catalog UI + dark theme                      | Personalization |

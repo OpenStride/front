@@ -89,15 +89,9 @@ async function bootstrap() {
   // it once during load, and without a listener already in place it is lost.
   await getInstallService().initialize()
 
-  // 5. Register plugin routes
-  const { allAppPlugins } = await import('@/services/ExtensionPluginRegistry')
-  for (const plugin of allAppPlugins) {
-    if (plugin.routes) {
-      for (const route of plugin.routes) {
-        router.addRoute(route)
-      }
-    }
-  }
+  // 5. Register plugin routes (each gated on its plugin still being enabled)
+  const { registerPluginRoutes } = await import('@/services/ExtensionPluginRegistry')
+  registerPluginRoutes(router)
 
   // 6. Create PluginContext for dependency injection
   const pluginContext = await createPluginContext()

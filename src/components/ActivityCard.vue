@@ -51,7 +51,7 @@
           </div>
           <div class="acard__metric">
             <span class="acard__label">{{ t('activityCard.time', 'Time') }}</span>
-            <span class="acard__value">{{ formatDuration(activity.duration) }}</span>
+            <span class="acard__value">{{ formatClock(activity.duration) }}</span>
           </div>
           <!-- Gym sports have no meaningful pace or speed: the energy spent takes
                the accent slot instead, once the scan has lifted it out of the details -->
@@ -94,6 +94,8 @@ import { IndexedDBService } from '@/services/IndexedDBService'
 import type { Friend, FriendActivity } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
+import { formatClock } from '@/utils/duration'
+import { formatWeekday } from '@/utils/dateFormat'
 import { useUnits } from '@/composables/useUnits'
 import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 
@@ -111,18 +113,9 @@ const shortDate = computed(() => {
   const ts = props.activity.startTime
   if (!ts) return ''
   const d = new Date(ts * 1000)
-  const wd = d.toLocaleDateString(undefined, { weekday: 'short' })
+  const wd = formatWeekday(ts * 1000)
   return `${wd} ${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
 })
-
-// Compact mono duration: "38:52" or "1:52:14"
-const formatDuration = (sec?: number) => {
-  const s = Math.max(0, Math.round(sec ?? 0))
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const ss = s % 60
-  return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`
-}
 
 // A swim reads in metres, a ride in kilometres — and either in the user's units.
 const distance = computed(() =>

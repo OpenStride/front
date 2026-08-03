@@ -99,7 +99,6 @@
   "common": {
     "save": "Sauvegarder",
     "cancel": "Annuler",
-    "edit": "Modifier",
     "delete": "Supprimer",
     "add": "Ajouter",
     "configure": "Configurer",
@@ -118,8 +117,6 @@
   "navigation": {
     "home": "Accueil",
     "profile": "Profil",
-    "dataProviders": "Sources de données",
-    "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
     "statistics": "Statistiques",
     "metricTracker": "Suivi de métriques"
@@ -173,12 +170,10 @@
     "openFullPage": "Ouvrir la page complète"
   },
   "profile": {
-    "createProfile": "Créer un Profil",
     "enterUsername": "Entrez votre pseudo",
     "choosePhoto": "Choisir une photo",
     "editProfile": "Modifier le profil",
     "profilePhoto": "Photo de profil",
-    "appSettings": "Paramètres",
     "tabs": {
       "profile": "Profil",
       "preferences": "Préférences",
@@ -205,14 +200,8 @@
       "units": "Système d'unités",
       "metric": "Métrique (km)",
       "imperial": "Impérial (mi)",
-      "theme": "Thème",
-      "themeLight": "Clair",
-      "themeDark": "Sombre",
-      "themeAuto": "Auto",
-      "dateFormat": "Format de date",
       "saveSuccess": "Préférences sauvegardées"
     },
-    "sharePrivacy": "Partage & Confidentialité",
     "defaultPrivacy": "Confidentialité par défaut",
     "private": "Privé (par défaut)",
     "public": "Public",
@@ -336,7 +325,6 @@
   },
   "errors": {
     "generic": "Une erreur est survenue. Veuillez réessayer.",
-    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
     "notFound": "Non trouvé."
   },
   "providers": {
@@ -380,7 +368,6 @@
       "connecting": "Connexion..."
     },
     "importing": "Import en cours…",
-    "importingCount": "Import en cours ({count} activités)…",
     "importProgress": "Import de {month} ({current}/{total})",
     "synced": "Synchronisé",
     "connectedPending": "Connecté · Import en attente",
@@ -407,7 +394,6 @@
       "importError": "Erreur d'import",
       "stateMismatch": "Erreur de sécurité OAuth (state invalide)",
       "popupBlocked": "Popup bloquée. Autorisez les popups ou utilisez l'option ci-dessous.",
-      "pkceMissing": "Erreur : vérificateur PKCE manquant",
       "accessDenied": "Accès {provider} refusé. Veuillez réessayer.",
       "oauthError": "Erreur OAuth {provider} : {error}",
       "generic": "{provider} : {message}"
@@ -441,9 +427,6 @@
     "newVersionAvailable": "Nouvelle version disponible",
     "updateNow": "Mettre à jour",
     "later": "Plus tard",
-    "whatsNew": "Nouveautés",
-    "installing": "Installation en cours...",
-    "checkingForUpdates": "Recherche de mises à jour...",
     "autoUpdating": "Mise à jour en cours..."
   },
   "migration": {
@@ -657,7 +640,6 @@
     "none": "Aucune interaction pour le moment",
     "sending": "Envoi...",
     "publish": "Publier",
-    "shareProfile": "Partager mon profil",
     "delete": "Supprimer",
     "like": "J'aime",
     "liked": "Aimé",
