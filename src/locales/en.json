@@ -121,7 +121,7 @@
     "dataProviders": "Data Providers",
     "storageProviders": "Storage Providers",
     "appExtensions": "App Extensions",
-    "statistics": "Statistics",
+    "statistics": "Metrics Dashboard",
     "metricTracker": "Metric Tracker"
   },
   "metricTracker": {
@@ -453,7 +453,7 @@
     "failed": "Update failed. Please try again."
   },
   "statistics": {
-    "title": "Statistics",
+    "title": "Metrics Dashboard",
     "allSports": "All sports",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
@@ -926,8 +926,8 @@
       "description": "Heart rate, cadence, speed graphs and zones for each outing."
     },
     "statistics": {
-      "label": "Statistics",
-      "description": "Trends, distributions, personal records and an activity calendar."
+      "label": "Metrics Dashboard",
+      "description": "Your metrics in one place: trends, distributions, personal records and an activity calendar."
     },
     "firebase-notifications": {
       "label": "Push notifications",

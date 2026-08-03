@@ -121,7 +121,7 @@
     "dataProviders": "Sources de données",
     "storageProviders": "Stockage cloud",
     "appExtensions": "Extensions",
-    "statistics": "Statistiques",
+    "statistics": "Tableau de bord",
     "metricTracker": "Suivi de métriques"
   },
   "metricTracker": {
@@ -453,7 +453,7 @@
     "failed": "Échec de la mise à jour. Veuillez réessayer."
   },
   "statistics": {
-    "title": "Statistiques",
+    "title": "Tableau de bord",
     "allSports": "Tous les sports",
     "noData": "Aucune donnée disponible",
     "noDataHint": "Importez des activités pour voir vos statistiques",
@@ -926,8 +926,8 @@
       "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."
     },
     "statistics": {
-      "label": "Statistiques",
-      "description": "Tendances, répartitions, records personnels et calendrier d'activité."
+      "label": "Tableau de bord",
+      "description": "Vos métriques au même endroit : tendances, répartitions, records personnels et calendrier d’activité."
     },
     "firebase-notifications": {
       "label": "Notifications push",
