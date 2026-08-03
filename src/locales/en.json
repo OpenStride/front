@@ -933,5 +933,14 @@
       "label": "Push notifications",
       "description": "Get notified when new activities are imported."
     }
+  },
+  "sampleFields": {
+    "slope": "Slope",
+    "speed": "Speed",
+    "heartRate": "Heart rate",
+    "cadence": "Cadence",
+    "power": "Power",
+    "elevation": "Elevation",
+    "temperature": "Temperature"
   }
 }

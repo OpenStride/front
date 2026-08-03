@@ -933,5 +933,14 @@
       "label": "Notifications push",
       "description": "Recevez une notification quand de nouvelles activités sont importées."
     }
+  },
+  "sampleFields": {
+    "slope": "Pente",
+    "speed": "Vitesse",
+    "heartRate": "Fréquence cardiaque",
+    "cadence": "Cadence",
+    "power": "Puissance",
+    "elevation": "Altitude",
+    "temperature": "Température"
   }
 }

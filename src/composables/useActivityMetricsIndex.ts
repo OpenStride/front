@@ -2,6 +2,7 @@ import { ref, watch, type Ref } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { PluginContext } from '@/types/plugin-context'
+import { summarizeSamples, type ChannelSummary } from '@/types/sampleFields'
 import { toMs } from '@/utils/timeRange'
 
 const STORE = 'activity_metrics'
@@ -67,10 +68,18 @@ export interface ActivityMetricsRow {
   /** Index format; a row built by an older version is recomputed */
   indexVersion: number
   values: Record<string, number>
+  /**
+   * Which sample channels this activity carried, and how they were distributed.
+   *
+   * Absent on a row with no usable samples. Keyed by channel, and only for the
+   * channels that held a value — see `summarizeSamples`, which also explains
+   * why the buckets are fixed rather than fitted.
+   */
+  channels?: Record<string, ChannelSummary>
 }
 
 /** Bump to recompute every row after an algorithm change, or a new derived value */
-export const INDEX_VERSION = 2
+export const INDEX_VERSION = 3
 
 // Max plausible speed in m/s — 50 km/h filters GPS glitches while keeping any real effort
 const MAX_SPEED_MS = 50 / 3.6
@@ -219,6 +228,7 @@ async function buildIndex(activities: Activity[]): Promise<void> {
 
       for (const activity of chunk) {
         const details = detailsMap.get(activity.id)
+        const samples = details?.samples
         rows.push({
           id: activity.id,
           startTime: toMs(activity.startTime),
@@ -226,7 +236,11 @@ async function buildIndex(activities: Activity[]): Promise<void> {
           indexVersion: INDEX_VERSION,
           // An activity with no usable samples still gets a row, so it is not
           // rescanned on every visit
-          values: details ? computeValues(ctx, details) : {}
+          values: details ? computeValues(ctx, details) : {},
+          // Ridden on the same pass as the values: the samples are already in
+          // memory here, and this is the only moment in the app where every
+          // activity's full trace is available at once.
+          ...(samples?.length ? { channels: summarizeSamples(samples) } : {})
         })
       }
 

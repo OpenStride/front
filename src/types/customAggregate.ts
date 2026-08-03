@@ -1,41 +1,20 @@
 import type { Timestamped } from './activity'
 import type { Dimension } from './units'
+import type { SampleField } from './sampleFields'
 
 /**
- * The sample fields a custom aggregate may filter on or measure.
+ * The vocabulary a definition may name lives in `sampleFields.ts`, alongside
+ * what each field can be read or computed from — because "which fields exist"
+ * is not a question this file can answer. It depends on what the user's own
+ * activities recorded, and the answer is measured rather than declared.
  *
- * These names are **persisted** inside a definition, exactly like the keys of
- * `ACTIVITY_SOURCES`, so they are a contract: renaming one silently turns every
- * stored definition that used it into a filter matching nothing. Adding a name
- * is safe, removing one is not.
- *
- * `slope` is the one entry `Sample` does not carry. It is derived at scan time
- * from elevation over a fixed distance window, because there is no way to
- * express "the 2-10% sections" from the stored fields alone. Everything else
- * reads straight off the sample.
- *
- * Pace is deliberately absent. It is `1 / speed`, so offering both would give
- * two encodings of one predicate and let two definitions that look different
- * compute the same thing. A pace filter is entered as a pace by the UI and
- * stored as a speed bound; a pace *measure* is the time-weighted average of
- * `speed`, which is total distance over total time — the right answer, and one
- * the naive mean of per-sample paces does not give.
+ * Pace is deliberately not in it. It is `1 / speed`, so offering both would
+ * give two encodings of one predicate. A pace filter is entered as a pace by
+ * the UI and stored as a speed bound; a pace *measure* is the time-weighted
+ * average of `speed`, which is total distance over total time — the right
+ * answer, and one the naive mean of per-sample paces does not give.
  */
-export const SAMPLE_FIELDS = [
-  'slope',
-  'speed',
-  'heartRate',
-  'cadence',
-  'power',
-  'elevation',
-  'temperature'
-] as const
-
-export type SampleField = (typeof SAMPLE_FIELDS)[number]
-
-export function isSampleField(value: string): value is SampleField {
-  return (SAMPLE_FIELDS as readonly string[]).includes(value)
-}
+export type { SampleField }
 
 /**
  * One band a sample must fall into to be counted.
