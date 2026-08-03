@@ -87,7 +87,7 @@
 
             <div class="friend-meta">
               <span class="meta-item">{{
-                t('friendsList.addedOn', { date: formatDate(friend.addedAt) })
+                t('friendsList.addedOn', { date: formatFriendDate(friend.addedAt) })
               }}</span>
               <span v-if="friend.lastFetched" class="meta-item">
                 {{ t('friendsList.lastSync', { time: formatRelativeTime(friend.lastFetched) }) }}
@@ -172,8 +172,9 @@ import { FriendService } from '@/services/FriendService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import QRScanner from '@/components/QRScanner.vue'
 import type { Friend } from '@/types/friend'
+import { formatDate, formatRelativeTime } from '@/utils/dateFormat'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const friendService = FriendService.getInstance()
 
@@ -267,25 +268,9 @@ const removeFriend = async () => {
   await loadFriends()
 }
 
-const formatDate = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleDateString(locale.value, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
+const formatFriendDate = (timestamp: number): string =>
+  formatDate(timestamp, { year: 'numeric', month: 'short', day: 'numeric' })
 
-const formatRelativeTime = (timestamp: number): string => {
-  const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (minutes < 1) return t('time.justNow')
-  if (minutes < 60) return t('time.minutesAgo', { count: minutes })
-  if (hours < 24) return t('time.hoursAgo', { count: hours })
-  return t('time.daysAgo', { count: days })
-}
 </script>
 
 <style scoped>

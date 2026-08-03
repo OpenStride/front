@@ -73,6 +73,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
+import { monthShort } from '@/utils/dateFormat'
 import { toMs } from '../types'
 import type { HeatmapMetric } from '../types'
 
@@ -134,21 +135,6 @@ function getStartDate(): Date {
   return d
 }
 
-const monthNames = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Avr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Aou',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec'
-]
-
 const monthPositions = computed(() => {
   const start = getStartDate()
   const positions: { label: string; col: number }[] = []
@@ -157,7 +143,7 @@ const monthPositions = computed(() => {
     const d = new Date(start)
     d.setDate(d.getDate() + w * 7)
     if (d.getMonth() !== lastMonth) {
-      positions.push({ label: monthNames[d.getMonth()], col: w + 1 })
+      positions.push({ label: monthShort(d.getMonth()), col: w + 1 })
       lastMonth = d.getMonth()
     }
   }

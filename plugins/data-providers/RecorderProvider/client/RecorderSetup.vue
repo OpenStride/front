@@ -31,15 +31,19 @@
 
       <div class="hud">
         <div class="stat">
-          <span class="stat__v">{{ fmtDuration(stats.duration) }}</span>
+          <span class="stat__v">{{ formatClock(stats.duration) }}</span>
           <span class="stat__l">{{ t('providers.recorder.statDuration') }}</span>
         </div>
         <div class="stat">
-          <span class="stat__v">{{ (stats.distance / 1000).toFixed(2) }}<small>km</small></span>
+          <span class="stat__v"
+            >{{ distance.value }}<small>{{ distance.unit }}</small></span
+          >
           <span class="stat__l">{{ t('providers.recorder.statDistance') }}</span>
         </div>
         <div class="stat">
-          <span class="stat__v">{{ fmtPace(stats.pace) }}<small>/km</small></span>
+          <span class="stat__v"
+            >{{ pace.value }}<small>{{ pace.unit }}</small></span
+          >
           <span class="stat__l">{{ t('providers.recorder.statPace') }}</span>
         </div>
       </div>
@@ -76,6 +80,7 @@ import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { formatSportType, getSportIcon, COMMON_SPORT_TYPES } from '@/utils/sportLabels'
+import { formatClock } from '@/utils/duration'
 import type { SportType } from '@/types/sport'
 import { NOT_AUTHORIZED, openLocationSettings } from './geo'
 import { liveStats, MAX_ACCURACY } from './recorder'
@@ -129,17 +134,10 @@ const notification = computed(() => ({
   message: t('providers.recorder.notificationMessage')
 }))
 
-function fmtDuration(sec: number): string {
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  const s = sec % 60
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
-}
-function fmtPace(secPerKm: number): string {
-  if (!secPerKm) return '--:--'
-  return `${Math.floor(secPerKm / 60)}'${String(secPerKm % 60).padStart(2, '0')}`
-}
+// The HUD reads in the user's units like every other figure in the app: the
+// stats arrive in SI and only the units layer decides between km and miles.
+const distance = computed(() => ctx.units.format('distance', stats.value.distance))
+const pace = computed(() => ctx.units.format('pace', stats.value.pace))
 
 function refreshTrack(): void {
   track.value = state.session.points.map(p => [p.lat, p.lng] as [number, number])

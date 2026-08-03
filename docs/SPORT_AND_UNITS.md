@@ -21,6 +21,8 @@ donnée, parce qu'une règle dont on a oublié le motif finit par être contourn
 | Afficher sur une card une valeur des détails      | `computeValues()` + `DERIVED`            |
 | Lire une valeur chiffrée saisie par l'utilisateur | `toSI(dimension, valeur)`                |
 | Nommer un champ agrégeable                        | `ACTIVITY_SOURCES`                       |
+| Afficher une durée                                | `formatClock` / `formatCompactDuration`  |
+| Afficher une date ou un « il y a X »              | `@/utils/dateFormat`                     |
 
 ---
 
@@ -356,6 +358,35 @@ l'app affiche très bien par ailleurs.
 > l'inscrire quelque part. Le test des mappers découvre désormais les providers
 > par `import.meta.glob` pour la même raison.
 
+## 12 ter. Afficher une durée, une date, un « il y a »
+
+Une durée et une date ne passent **pas** par `format()` : elles ne dépendent pas
+du système d'unités. Elles ont chacune leur module, et une seule implémentation.
+
+**Durées — `@/utils/duration` :**
+
+| Je veux                              | J'appelle                                  | Rendu        |
+| ------------------------------------ | ------------------------------------------ | ------------ |
+| Un chrono                            | `formatClock(sec)`                         | `38:52`      |
+| Un chrono aligné en colonne          | `formatClock(sec, { padLeading: true })`   | `05:30`      |
+| Un volume total                      | `formatCompactDuration(sec)`               | `3h05`       |
+| Un temps de record                   | `formatRecordTime(sec)`                    | `5'30"`      |
+
+**Dates — `@/utils/dateFormat` :** `formatDate`, `formatWeekday`, `monthShort`,
+`formatRelativeTime`. Toutes lisent la langue choisie dans l'app.
+
+> **Pourquoi.** Le chrono existait en six exemplaires — card, en-tête d'activité,
+> metric tracker, meilleurs efforts, zones cardio, HUD de l'enregistreur —
+> d'accord sur le rendu et en désaccord sur les bords : l'un rendait `-` là où
+> les autres rendaient `—`, et celui bâti sur `new Date(sec * 1000)
+> .toISOString()` repassait à zéro au-delà de 24 h, ce qu'un enregistrement GPS
+> laissé tourner atteint. Côté dates, trois façons de perdre la préférence de
+> langue cohabitaient : un `'fr-FR'` en dur qui datait en français les
+> commentaires d'un lecteur anglophone, un `undefined` qui suit le **navigateur**
+> et non la préférence, et une table de mois français écrite à la main dans le
+> calendrier. Deux contrats dans `tests/unit/contracts.spec.ts` refusent
+> désormais les deux familles de récidive.
+
 ## 13. Écrire un test qui touche aux sports ou aux unités
 
 Partir de `tests/fixtures/activities.ts`, pas d'un objet écrit à la main :
@@ -395,6 +426,7 @@ Un test unitaire qui bascule les unités doit **remettre la préférence** à la
 - [ ] Les graphes canvas touchés redessinent au changement de préférence
 - [ ] Testé en impérial **et** en métrique, pas seulement l'un des deux
 - [ ] Les nouveaux tests partent de `tests/fixtures/activities.ts`
+- [ ] Aucune durée ni date formatée à la main (§12 ter)
 
 ## Symptôme → cause → règle
 
@@ -411,3 +443,5 @@ Un test unitaire qui bascule les unités doit **remettre la préférence** à la
 | Une valeur des détails absente de la card        | Pas remontée au scan, ou `INDEX_VERSION` non bumpé | §10 bis    |
 | Un objectif saisi en miles enregistré en km      | Valeur du champ stockée sans `toSI`                | §10 ter    |
 | Une agrégation devenue plate sans erreur         | Champ renommé, `sourceRef` en chaîne               | §10 quater |
+| Une date en français pour un lecteur anglais     | Locale en dur, ou `undefined` (= navigateur)       | §12 ter    |
+| Un chrono qui repasse à zéro après 24 h          | Formatage de durée réécrit sur place               | §12 ter    |

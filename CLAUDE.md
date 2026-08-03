@@ -93,7 +93,7 @@ Services emit events via `EventTarget`, UI components listen and react. Business
 
 ### Contracts under guard (tests/unit/contracts.spec.ts)
 
-Three rules that were already written down and got broken anyway, so they are
+Rules that were already written down and got broken anyway, so they are
 now checked by a test rather than by goodwill:
 
 - **A notification reads from the locale.** `ToastService.push('Texte')` and
@@ -105,6 +105,13 @@ now checked by a test rather than by goodwill:
 - **A `.vue` file uses `usePluginContext()`**, never `getPluginContext()` — the
   factory is the door for non-Vue code. Both reach the same singleton, so the
   difference never surfaces as a bug, only as two ways of doing one thing.
+- **A date reads from the app locale.** `toLocaleDateString('fr-FR', …)` and
+  `toLocaleDateString(undefined, …)` are both refused — the first dated an
+  English reader's comments in French, the second follows the browser rather
+  than the preference. Use `@/utils/dateFormat`.
+- **A duration is formatted once.** `@/utils/duration` owns the arithmetic.
+  Six copies of the clock format existed at once, disagreeing on the edges, and
+  one of them wrapped back to zero past 24 h.
 
 ### Design (see docs/DESIGN_GUIDELINES.md)
 

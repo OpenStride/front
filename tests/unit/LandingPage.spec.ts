@@ -49,8 +49,9 @@ describe('LandingPage.vue', () => {
     expect(text).toContain('Garmin')
     expect(text).toContain('Strava')
 
-    // Coros is a ten-line stub and the zip provider is deprecated. Neither can
-    // import anything, so neither may appear on the page that promises they do.
+    // Coros was a ten-line stub and is now deleted; the zip provider is
+    // deprecated. Neither imports anything, so neither may appear on the page
+    // that promises they do.
     expect(text).not.toMatch(/Coros/i)
     expect(text).not.toMatch(/\bZIP import\b/i)
   })
