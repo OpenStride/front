@@ -907,6 +907,10 @@
       "label": "Records et classements",
       "description": "Affiche vos meilleures performances et votre classement sur l'ensemble de vos sorties."
     },
+    "firebase-notifications": {
+      "label": "Notifications push",
+      "description": "Recevez une notification quand de nouvelles activités sont importées."
+    },
     "goals": {
       "label": "Objectifs d'entraînement",
       "description": "Fixez des objectifs hebdomadaires ou mensuels et suivez leur progression en direct."
@@ -923,6 +927,10 @@
       "label": "Partage et confidentialité",
       "description": "Gère vos réglages de partage et la publication de votre profil public."
     },
+    "recorder-quick-action": {
+      "label": "Enregistrement rapide",
+      "description": "Démarre, met en pause et termine un enregistrement GPS directement depuis l'accueil."
+    },
     "standard-details": {
       "label": "Détail des activités",
       "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."
@@ -930,10 +938,10 @@
     "statistics": {
       "label": "Statistiques",
       "description": "Tendances, répartitions, records personnels et calendrier d'activité."
-    },
-    "firebase-notifications": {
-      "label": "Notifications push",
-      "description": "Recevez une notification quand de nouvelles activités sont importées."
     }
+  },
+  "recorderQuickAction": {
+    "title": "Enregistrer une activité",
+    "paused": "En pause"
   }
 }

@@ -17,7 +17,11 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
     'aggregated-details',
     'profile-sharing',
     'goals',
-    'statistics'
+    'statistics',
+    // On by default because it shows nothing until the recorder provider is
+    // connected, and only on a native build. Off by default would mean
+    // enabling two plugins to get one feature.
+    'recorder-quick-action'
   ]
 
   private constructor() {

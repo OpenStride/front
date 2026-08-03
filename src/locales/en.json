@@ -907,6 +907,10 @@
       "label": "Records and rankings",
       "description": "Shows your personal bests and how each outing ranks against the rest."
     },
+    "firebase-notifications": {
+      "label": "Push notifications",
+      "description": "Get notified when new activities are imported."
+    },
     "goals": {
       "label": "Training goals",
       "description": "Set weekly or monthly goals and follow your progress live."
@@ -923,6 +927,10 @@
       "label": "Sharing and privacy",
       "description": "Manages your sharing settings and the publication of your public profile."
     },
+    "recorder-quick-action": {
+      "label": "Quick record",
+      "description": "Start, pause and finish a GPS recording straight from the home screen."
+    },
     "standard-details": {
       "label": "Activity detail",
       "description": "Heart rate, cadence, speed graphs and zones for each outing."
@@ -930,10 +938,10 @@
     "statistics": {
       "label": "Statistics",
       "description": "Trends, distributions, personal records and an activity calendar."
-    },
-    "firebase-notifications": {
-      "label": "Push notifications",
-      "description": "Get notified when new activities are imported."
     }
+  },
+  "recorderQuickAction": {
+    "title": "Record an activity",
+    "paused": "Paused"
   }
 }
