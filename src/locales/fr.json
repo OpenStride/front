@@ -929,7 +929,7 @@
   "customAggregates": {
     "title": "Mes agrégats",
     "add": "Nouvel agrégat",
-    "empty": "Aucun agrégat pour l'instant. Créez-en un pour suivre un chiffre que les métriques natives ne couvrent pas.",
+    "empty": "Rien de suivi pour le moment. Choisissez une suggestion ci-dessus, ou créez le vôtre.",
     "pinned": "Épinglé en tête du tableau de bord",
     "edit": "Modifier {name}",
     "delete": "Supprimer {name}",
@@ -976,6 +976,17 @@
       "week": "Semaine",
       "month": "Mois",
       "year": "Année"
+    },
+    "addCustom": "Créer le mien",
+    "showCurve": "Voir la courbe de {name}",
+    "suggestionsLead": "Prêts à l'emploi, d'après ce que vos activités ont enregistré — un clic pour en suivre un :",
+    "presets": {
+      "climbHeartRate": "Fréquence cardiaque en côte",
+      "flatSpeed": "Vitesse sur le plat",
+      "climbSpeed": "Vitesse en côte",
+      "descentSpeed": "Vitesse en descente",
+      "climbPower": "Puissance en côte",
+      "hardEffortSpeed": "Vitesse à haute fréquence cardiaque"
     }
   }
 }

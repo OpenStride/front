@@ -69,6 +69,16 @@ export interface CustomAggregate extends Timestamped {
   /** User-authored, free text. NOT an i18n key — see the note below. */
   label: string
   icon?: string
+  /**
+   * The suggestion this was created from, when it was not built by hand.
+   *
+   * Kept so the same suggestion is not offered twice, and it survives a rename
+   * — which matching on the label would not. Deliberately absent from
+   * `definitionHash`: where an aggregate came from says nothing about what it
+   * computes, and editing a suggested one until it means something else must
+   * not recompute anything a hand-built twin would not.
+   */
+  presetId?: string
   /** Lowercased sport types; empty or absent means every sport. */
   sports?: string[]
   enabled: boolean

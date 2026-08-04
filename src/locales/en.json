@@ -929,7 +929,7 @@
   "customAggregates": {
     "title": "My aggregates",
     "add": "New aggregate",
-    "empty": "No aggregate yet. Create one to follow a figure the built-in metrics do not cover.",
+    "empty": "Nothing followed yet. Pick a suggestion above, or build your own.",
     "pinned": "Pinned to the top of the dashboard",
     "edit": "Edit {name}",
     "delete": "Delete {name}",
@@ -976,6 +976,17 @@
       "week": "Week",
       "month": "Month",
       "year": "Year"
+    },
+    "addCustom": "Build my own",
+    "showCurve": "Show the curve for {name}",
+    "suggestionsLead": "Ready-made, from what your activities recorded — one click to follow one:",
+    "presets": {
+      "climbHeartRate": "Heart rate on climbs",
+      "flatSpeed": "Speed on the flat",
+      "climbSpeed": "Speed on climbs",
+      "descentSpeed": "Speed on descents",
+      "climbPower": "Power on climbs",
+      "hardEffortSpeed": "Speed at high heart rate"
     }
   }
 }

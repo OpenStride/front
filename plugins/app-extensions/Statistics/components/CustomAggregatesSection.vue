@@ -1,5 +1,5 @@
 <template>
-  <section v-if="!loading" class="custom-aggregates" data-test="custom-aggregates">
+  <section v-if="!loading" class="section-card custom-aggregates" data-test="custom-aggregates">
     <div class="section-header">
       <h3 class="section-title">
         <i class="fas fa-sliders" aria-hidden="true"></i>
@@ -7,7 +7,7 @@
       </h3>
 
       <div class="header-actions">
-        <div v-if="pinned.length" class="period-chips" role="group">
+        <div v-if="aggregates.length" class="period-chips" role="group">
           <button
             v-for="p in PERIODS"
             :key="p"
@@ -27,8 +27,8 @@
           data-test="aggregate-new"
           @click="startCreate"
         >
-          <i class="fas fa-plus" aria-hidden="true"></i>
-          {{ t('customAggregates.add') }}
+          <i class="fas fa-sliders" aria-hidden="true"></i>
+          {{ t('customAggregates.addCustom') }}
         </button>
       </div>
     </div>
@@ -41,12 +41,26 @@
       <p class="hint">{{ t('customAggregates.indexingHint') }}</p>
     </div>
 
-    <ul v-if="pinned.length" class="tiles" data-test="aggregate-tiles">
-      <li v-for="tile in tiles" :key="tile.id" class="tile">
-        <span class="tile__label">{{ tile.label }}</span>
-        <span class="tile__value">{{ tile.value }}</span>
-      </li>
-    </ul>
+    <!-- Suggestions come before the form, and are the intended way in. The form
+         asks eight questions before producing anything, which is a lot to
+         answer before knowing what the answers are worth. -->
+    <div v-if="!editing && suggestions.length" class="suggestions" data-test="aggregate-presets">
+      <p class="suggestions__lead">{{ t('customAggregates.suggestionsLead') }}</p>
+      <ul class="suggestions__list">
+        <li v-for="preset in suggestions" :key="preset.id">
+          <button
+            type="button"
+            class="suggestion"
+            :data-test="`preset-${preset.id}`"
+            @click="addPreset(preset)"
+          >
+            <i :class="preset.icon" aria-hidden="true"></i>
+            {{ t(preset.labelKey) }}
+            <i class="fas fa-plus suggestion__add" aria-hidden="true"></i>
+          </button>
+        </li>
+      </ul>
+    </div>
 
     <AggregateEditForm
       v-if="editing"
@@ -56,39 +70,55 @@
       @cancel="stopEditing"
     />
 
-    <ul v-if="aggregates.length" class="stack">
-      <li v-for="aggregate in aggregates" :key="aggregate.id" class="item">
-        <div class="item__text">
-          <span class="item__label">
+    <!-- One card per aggregate. The figure and the rule that produced it belong
+         together: they were two separate blocks, and a pinned aggregate then
+         appeared twice on the same page, once as a number and once as a rule,
+         with nothing saying they were the same thing. -->
+    <ul v-if="ordered.length" class="cards" data-test="aggregate-cards">
+      <li v-for="aggregate in ordered" :key="aggregate.id">
+        <article class="agg" :data-test="`aggregate-card-${aggregate.id}`">
+          <header class="agg__head">
+            <i :class="aggregate.icon || 'fas fa-chart-simple'" aria-hidden="true"></i>
+            <h4 class="agg__label">{{ aggregate.label }}</h4>
             <i
               v-if="aggregate.pinned"
-              class="fas fa-thumbtack"
+              class="fas fa-thumbtack agg__pin"
               :title="t('customAggregates.pinned')"
               aria-hidden="true"
             ></i>
-            {{ aggregate.label }}
-          </span>
-          <span class="item__desc">{{ describe(aggregate) }}</span>
-        </div>
+          </header>
 
-        <div class="item__actions">
-          <button
-            type="button"
-            class="btn-icon"
-            :aria-label="t('customAggregates.edit', { name: aggregate.label })"
-            @click="startEdit(aggregate)"
-          >
-            <i class="fas fa-pen" aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
-            class="btn-icon"
-            :aria-label="t('customAggregates.delete', { name: aggregate.label })"
-            @click="onDelete(aggregate)"
-          >
-            <i class="fas fa-trash" aria-hidden="true"></i>
-          </button>
-        </div>
+          <p class="agg__value">{{ valueOf(aggregate) }}</p>
+          <p class="agg__desc">{{ describe(aggregate) }}</p>
+
+          <footer class="agg__actions">
+            <button
+              type="button"
+              class="btn-icon"
+              :aria-label="t('customAggregates.showCurve', { name: aggregate.label })"
+              :data-test="`aggregate-curve-${aggregate.id}`"
+              @click="showCurve(aggregate)"
+            >
+              <i class="fas fa-chart-line" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="btn-icon"
+              :aria-label="t('customAggregates.edit', { name: aggregate.label })"
+              @click="startEdit(aggregate)"
+            >
+              <i class="fas fa-pen" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="btn-icon"
+              :aria-label="t('customAggregates.delete', { name: aggregate.label })"
+              @click="onDelete(aggregate)"
+            >
+              <i class="fas fa-trash" aria-hidden="true"></i>
+            </button>
+          </footer>
+        </article>
       </li>
     </ul>
 
@@ -99,6 +129,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
@@ -108,6 +139,7 @@ import type { CustomAggregate } from '@/types/customAggregate'
 import { SAMPLE_FIELD_SPECS } from '@/types/sampleFields'
 import { periodKey } from '@/utils/dateKeys'
 import { formatValue, toDisplay, unitOf } from '../aggregateFormat'
+import { availablePresets, type AggregatePreset } from '../aggregatePresets'
 import AggregateEditForm from './AggregateEditForm.vue'
 import type { Draft } from './AggregateEditForm.vue'
 
@@ -120,6 +152,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const ctx = usePluginContext()
 const { indexing, progress, ensureIndex } = useActivityMetricsIndex()
 
@@ -132,18 +165,42 @@ const editing = ref(false)
 const edited = ref<CustomAggregate | null>(null)
 
 const sportScope = computed(() => props.selectedSport || undefined)
-const pinned = computed(() => aggregates.value.filter(a => a.pinned))
 
-const tiles = computed(() =>
-  pinned.value.map(aggregate => ({
-    id: aggregate.id,
-    label: aggregate.label,
-    value:
-      values.value[aggregate.id] === undefined
-        ? t('customAggregates.noValue')
-        : formatValue(ctx.units, aggregate.measure.field, values.value[aggregate.id])
-  }))
+/**
+ * Pinned first, then by name.
+ *
+ * Pinning no longer decides whether an aggregate is shown — every one has its
+ * card now — so what is left of it is where it sits. That is still worth
+ * having: the two or three a reader actually watches should not drift down the
+ * grid as they define more.
+ */
+const ordered = computed(() =>
+  [...aggregates.value].sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
+    return a.label.localeCompare(b.label)
+  })
 )
+
+/** Suggestions the data supports and the reader has not already taken. */
+const suggestions = computed(() =>
+  availablePresets(
+    report.value,
+    new Set(aggregates.value.map(a => a.presetId).filter((id): id is string => !!id))
+  )
+)
+
+/**
+ * The figure of the period being read, or a plain statement that there is none.
+ *
+ * A card showing nothing where a number belongs reads as a bug; one saying so
+ * reads as an aggregate that has not matched anything yet, which is what it is.
+ */
+function valueOf(aggregate: CustomAggregate): string {
+  const value = values.value[aggregate.id]
+  return value === undefined
+    ? t('customAggregates.noValue')
+    : formatValue(ctx.units, aggregate.measure.field, value)
+}
 
 async function refresh() {
   aggregates.value = await ctx.aggregates.list()
@@ -164,7 +221,7 @@ async function loadValues() {
   const next: Record<string, number> = {}
 
   await Promise.all(
-    pinned.value.map(async aggregate => {
+    aggregates.value.map(async aggregate => {
       const records = await ctx.aggregation.getAggregated(aggregate.id, period.value)
       const record = records.find(r => r.periodKey === currentKey)
       if (record) next[aggregate.id] = record.value
@@ -200,6 +257,47 @@ function describe(aggregate: CustomAggregate): string {
 
 function show(field: CustomAggregate['measure']['field'], si: number): string {
   return String(Math.round(toDisplay(ctx.units, field, si) * 10) / 10)
+}
+
+/**
+ * Accept a suggestion: one click, no form.
+ *
+ * The name is resolved from the locale here and stored as plain text, because
+ * from this point it is the reader's — they can rename it, and a key would
+ * overwrite that on the next locale change.
+ */
+async function addPreset(preset: AggregatePreset) {
+  if (!report.value) return
+
+  await ctx.aggregates.create({
+    ...preset.build(report.value),
+    label: t(preset.labelKey),
+    icon: preset.icon,
+    presetId: preset.id,
+    sports: sportScope.value ? [sportScope.value] : undefined
+  })
+
+  await runIndex()
+  await refresh()
+}
+
+/**
+ * Hand the aggregate to the metric tracker, which already owns the chart and
+ * its granularity and window controls.
+ *
+ * A link rather than a second chart here: duplicating the series engine in this
+ * plugin would mean two implementations of the same bucketing, and the two
+ * disagreeing about what a month holds is exactly the kind of drift the shared
+ * `derived.*` refs were meant to avoid.
+ */
+function showCurve(aggregate: CustomAggregate) {
+  void router.push({
+    path: '/metrics',
+    query: {
+      metric: aggregate.id,
+      ...(props.selectedSport ? { sport: props.selectedSport } : {})
+    }
+  })
 }
 
 function startCreate() {
@@ -286,8 +384,53 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.custom-aggregates {
-  margin-bottom: 1.5rem;
+/* The card shell itself comes from the global `.section-card`, like every
+   other section of this page. */
+
+.section-title i {
+  color: var(--color-green-500);
+}
+
+.suggestions {
+  margin-bottom: 1rem;
+}
+
+.suggestions__lead {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.suggestions__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  cursor: pointer;
+  background: var(--background-color);
+  border: 1px dashed var(--border-color);
+  border-radius: 999px;
+}
+
+.suggestion:hover {
+  border-style: solid;
+  border-color: var(--primary-color);
+}
+
+.suggestion__add {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 .section-header {
@@ -337,34 +480,66 @@ onUnmounted(() => {
   border-color: var(--primary-color);
 }
 
-.tiles {
+.cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
   gap: 0.6rem;
   padding: 0;
-  margin: 0 0 1rem;
+  margin: 0.75rem 0 0;
   list-style: none;
 }
 
-.tile {
+.agg {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.7rem 0.8rem;
+  height: 100%;
+  padding: 0.8rem 0.9rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
 }
 
-.tile__label {
+.agg__head {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.agg__head i {
+  color: var(--color-green-500);
+}
+
+.agg__label {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.agg__pin {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.agg__value {
+  margin: 0.4rem 0 0.15rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.agg__desc {
+  flex: 1;
+  margin: 0 0 0.6rem;
   font-size: 0.78rem;
   color: var(--text-secondary);
 }
 
-.tile__value {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-color);
+.agg__actions {
+  display: flex;
+  gap: 0.3rem;
 }
 
 .indexing {
@@ -394,50 +569,11 @@ onUnmounted(() => {
   transition: width 0.2s ease;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0;
-  margin: 0.75rem 0 0;
-  list-style: none;
-}
 
-.item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.7rem 0.9rem;
-  background: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-}
 
-.item__text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
 
-.item__label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
 
-.item__desc {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-}
 
-.item__actions {
-  display: flex;
-  gap: 0.35rem;
-}
 
 .empty {
   margin: 0;
