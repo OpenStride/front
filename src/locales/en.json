@@ -987,6 +987,19 @@
       "descentSpeed": "Speed on descents",
       "climbPower": "Power on climbs",
       "hardEffortSpeed": "Speed at high heart rate"
+    },
+    "manage": "Manage what is shown",
+    "showOnDashboard": "Show {name} on the dashboard",
+    "noneShown": "Nothing shown yet. Open the gear to pick what you want to follow.",
+    "chartOf": "Chart of {name}",
+    "notEnoughPoints": "Not enough periods yet to draw a trend.",
+    "period": "Period",
+    "window": "Range",
+    "windows": {
+      "all": "All",
+      "12m": "12 mo",
+      "6m": "6 mo",
+      "3m": "3 mo"
     }
   }
 }

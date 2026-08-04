@@ -987,6 +987,19 @@
       "descentSpeed": "Vitesse en descente",
       "climbPower": "Puissance en côte",
       "hardEffortSpeed": "Vitesse à haute fréquence cardiaque"
+    },
+    "manage": "Gérer ce qui est affiché",
+    "showOnDashboard": "Afficher {name} sur le tableau de bord",
+    "noneShown": "Rien affiché pour le moment. Ouvrez la roue dentée pour choisir ce que vous voulez suivre.",
+    "chartOf": "Courbe de {name}",
+    "notEnoughPoints": "Pas encore assez de périodes pour tracer une tendance.",
+    "period": "Période",
+    "window": "Fenêtre",
+    "windows": {
+      "all": "Tout",
+      "12m": "12 mois",
+      "6m": "6 mois",
+      "3m": "3 mois"
     }
   }
 }
