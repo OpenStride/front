@@ -1,5 +1,5 @@
 <template>
-  <section v-if="!loading" class="custom-aggregates" data-test="custom-aggregates">
+  <section v-if="!loading" class="section-card custom-aggregates" data-test="custom-aggregates">
     <div class="section-header">
       <h3 class="section-title">
         <i class="fas fa-sliders" aria-hidden="true"></i>
@@ -27,8 +27,8 @@
           data-test="aggregate-new"
           @click="startCreate"
         >
-          <i class="fas fa-plus" aria-hidden="true"></i>
-          {{ t('customAggregates.add') }}
+          <i class="fas fa-sliders" aria-hidden="true"></i>
+          {{ t('customAggregates.addCustom') }}
         </button>
       </div>
     </div>
@@ -42,11 +42,39 @@
     </div>
 
     <ul v-if="pinned.length" class="tiles" data-test="aggregate-tiles">
-      <li v-for="tile in tiles" :key="tile.id" class="tile">
-        <span class="tile__label">{{ tile.label }}</span>
-        <span class="tile__value">{{ tile.value }}</span>
+      <li v-for="tile in tiles" :key="tile.id">
+        <button
+          type="button"
+          class="tile"
+          :aria-label="t('customAggregates.showCurve', { name: tile.label })"
+          @click="showCurveById(tile.id)"
+        >
+          <span class="tile__label">{{ tile.label }}</span>
+          <span class="tile__value">{{ tile.value }}</span>
+        </button>
       </li>
     </ul>
+
+    <!-- Suggestions come before the form, and are the intended way in. The form
+         asks eight questions before producing anything, which is a lot to
+         answer before knowing what the answers are worth. -->
+    <div v-if="!editing && suggestions.length" class="suggestions" data-test="aggregate-presets">
+      <p class="suggestions__lead">{{ t('customAggregates.suggestionsLead') }}</p>
+      <ul class="suggestions__list">
+        <li v-for="preset in suggestions" :key="preset.id">
+          <button
+            type="button"
+            class="suggestion"
+            :data-test="`preset-${preset.id}`"
+            @click="addPreset(preset)"
+          >
+            <i :class="preset.icon" aria-hidden="true"></i>
+            {{ t(preset.labelKey) }}
+            <i class="fas fa-plus suggestion__add" aria-hidden="true"></i>
+          </button>
+        </li>
+      </ul>
+    </div>
 
     <AggregateEditForm
       v-if="editing"
@@ -75,6 +103,15 @@
           <button
             type="button"
             class="btn-icon"
+            :aria-label="t('customAggregates.showCurve', { name: aggregate.label })"
+            :data-test="`aggregate-curve-${aggregate.id}`"
+            @click="showCurve(aggregate)"
+          >
+            <i class="fas fa-chart-line" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="btn-icon"
             :aria-label="t('customAggregates.edit', { name: aggregate.label })"
             @click="startEdit(aggregate)"
           >
@@ -99,6 +136,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
@@ -108,6 +146,7 @@ import type { CustomAggregate } from '@/types/customAggregate'
 import { SAMPLE_FIELD_SPECS } from '@/types/sampleFields'
 import { periodKey } from '@/utils/dateKeys'
 import { formatValue, toDisplay, unitOf } from '../aggregateFormat'
+import { availablePresets, type AggregatePreset } from '../aggregatePresets'
 import AggregateEditForm from './AggregateEditForm.vue'
 import type { Draft } from './AggregateEditForm.vue'
 
@@ -120,6 +159,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const ctx = usePluginContext()
 const { indexing, progress, ensureIndex } = useActivityMetricsIndex()
 
@@ -133,6 +173,14 @@ const edited = ref<CustomAggregate | null>(null)
 
 const sportScope = computed(() => props.selectedSport || undefined)
 const pinned = computed(() => aggregates.value.filter(a => a.pinned))
+
+/** Suggestions the data supports and the reader has not already taken. */
+const suggestions = computed(() =>
+  availablePresets(
+    report.value,
+    new Set(aggregates.value.map(a => a.presetId).filter((id): id is string => !!id))
+  )
+)
 
 const tiles = computed(() =>
   pinned.value.map(aggregate => ({
@@ -200,6 +248,48 @@ function describe(aggregate: CustomAggregate): string {
 
 function show(field: CustomAggregate['measure']['field'], si: number): string {
   return String(Math.round(toDisplay(ctx.units, field, si) * 10) / 10)
+}
+
+/**
+ * Accept a suggestion: one click, no form.
+ *
+ * The name is resolved from the locale here and stored as plain text, because
+ * from this point it is the reader's — they can rename it, and a key would
+ * overwrite that on the next locale change.
+ */
+async function addPreset(preset: AggregatePreset) {
+  if (!report.value) return
+
+  await ctx.aggregates.create({
+    ...preset.build(report.value),
+    label: t(preset.labelKey),
+    icon: preset.icon,
+    presetId: preset.id,
+    sports: sportScope.value ? [sportScope.value] : undefined
+  })
+
+  await runIndex()
+  await refresh()
+}
+
+/**
+ * Hand the aggregate to the metric tracker, which already owns the chart and
+ * its granularity and window controls.
+ *
+ * A link rather than a second chart here: duplicating the series engine in this
+ * plugin would mean two implementations of the same bucketing, and the two
+ * disagreeing about what a month holds is exactly the kind of drift the shared
+ * `derived.*` refs were meant to avoid.
+ */
+function showCurveById(id: string) {
+  void router.push({
+    path: '/metrics',
+    query: { metric: id, ...(props.selectedSport ? { sport: props.selectedSport } : {}) }
+  })
+}
+
+function showCurve(aggregate: CustomAggregate) {
+  showCurveById(aggregate.id)
 }
 
 function startCreate() {
@@ -286,8 +376,53 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.custom-aggregates {
-  margin-bottom: 1.5rem;
+/* The card shell itself comes from the global `.section-card`, like every
+   other section of this page. */
+
+.section-title i {
+  color: var(--color-green-500);
+}
+
+.suggestions {
+  margin-bottom: 1rem;
+}
+
+.suggestions__lead {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.suggestions__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  cursor: pointer;
+  background: var(--background-color);
+  border: 1px dashed var(--border-color);
+  border-radius: 999px;
+}
+
+.suggestion:hover {
+  border-style: solid;
+  border-color: var(--primary-color);
+}
+
+.suggestion__add {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 .section-header {
@@ -350,10 +485,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  width: 100%;
   padding: 0.7rem 0.8rem;
+  text-align: left;
+  cursor: pointer;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
+}
+
+.tile:hover {
+  border-color: var(--primary-color);
 }
 
 .tile__label {

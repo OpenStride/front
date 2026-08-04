@@ -23,6 +23,18 @@
       <!-- First: what the reader chose to follow. The built-in sections answer
            the questions everyone has, this one answers theirs. -->
       <CustomAggregatesSection :selected-sport="selectedSport" :activities="filteredActivities" />
+
+      <!-- Plugins that answer the same question as this page render here. Right
+           under the aggregates rather than at the bottom: the metric tracker is
+           where one becomes a curve, and a chart five sections below the figure
+           it explains is a chart nobody connects to it. -->
+      <component
+        :is="section"
+        v-for="(section, i) in sectionComponents"
+        :key="`section-${i}`"
+        :sport="selectedSport"
+      />
+
       <SummarySection :selected-sport="selectedSport" />
       <CalendarHeatmap :activities="filteredActivities" />
       <TrendsSection :activities="filteredActivities" />
@@ -32,14 +44,6 @@
         :selected-sport="selectedSport"
       />
       <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
-
-      <!-- Plugins that answer the same question as this page render here -->
-      <component
-        :is="section"
-        v-for="(section, i) in sectionComponents"
-        :key="`section-${i}`"
-        :sport="selectedSport"
-      />
     </div>
   </div>
 </template>

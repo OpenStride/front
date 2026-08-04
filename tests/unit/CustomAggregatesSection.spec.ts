@@ -8,6 +8,7 @@ import type { CapabilityReport } from '@/composables/useSampleCapabilities'
 import type { CustomAggregate } from '@/types/customAggregate'
 import type { PluginContext } from '@/types/plugin-context'
 import { periodKey } from '@/utils/dateKeys'
+import type { SampleField } from '@/types/sampleFields'
 import { createActivity } from '../fixtures/activities'
 import en from '@/locales/en.json'
 
@@ -15,9 +16,13 @@ const ensureIndex = vi.fn(async () => undefined)
 const indexing = ref(false)
 const progress = ref(0)
 
+const push = vi.fn()
+
 vi.mock('@/composables/useActivityMetricsIndex', () => ({
   useActivityMetricsIndex: () => ({ indexing, progress, ensureIndex })
 }))
+
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
 
 const CustomAggregatesSection = (
   await import('@plugins/app-extensions/Statistics/components/CustomAggregatesSection.vue')
@@ -40,20 +45,27 @@ function aggregate(over: Partial<CustomAggregate> = {}): CustomAggregate {
   }
 }
 
-function measuredReport(measured = true): CapabilityReport {
+function field(name: SampleField, measured: boolean) {
+  return {
+    field: name,
+    labelKey: `sampleFields.${name}`,
+    availability: (measured ? 'measured' : 'absent') as 'measured' | 'absent',
+    activityCount: measured ? 5 : 0,
+    activityRatio: measured ? 1 : 0,
+    sampleCount: measured ? 900 : 0,
+    ...(measured ? { min: 90, max: 180, mean: 140, p05: 100, p50: 140, p95: 173 } : {})
+  }
+}
+
+function measuredReport(measured = true, extra: SampleField[] = []): CapabilityReport {
   return {
     activityCount: 5,
     sports: ['running'],
     fields: [
-      {
-        field: 'heartRate',
-        labelKey: 'sampleFields.heartRate',
-        availability: measured ? 'measured' : 'absent',
-        activityCount: measured ? 5 : 0,
-        activityRatio: measured ? 1 : 0,
-        sampleCount: measured ? 900 : 0,
-        ...(measured ? { min: 90, max: 180, mean: 140, p05: 100, p50: 140, p95: 175 } : {})
-      }
+      field('heartRate', measured),
+      ...(['slope', 'speed', 'power'] as SampleField[]).map(f =>
+        field(f, measured && extra.includes(f))
+      )
     ]
   }
 }
@@ -106,6 +118,7 @@ describe('CustomAggregatesSection', () => {
   beforeEach(() => {
     setUnitSystem('metric')
     ensureIndex.mockClear()
+    push.mockClear()
     indexing.value = false
     progress.value = 0
   })
@@ -115,7 +128,7 @@ describe('CustomAggregatesSection', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-test="custom-aggregates"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('No aggregate yet')
+    expect(wrapper.text()).toContain('Nothing followed yet')
     expect(wrapper.find('[data-test="aggregate-new"]').exists()).toBe(true)
   })
 
@@ -195,5 +208,100 @@ describe('CustomAggregatesSection', () => {
 
     expect(ctx.aggregates.remove).toHaveBeenCalledWith('agg-1')
     expect(ensureIndex).toHaveBeenCalled()
+  })
+})
+
+describe('CustomAggregatesSection — suggestions', () => {
+  beforeEach(() => {
+    setUnitSystem('metric')
+    ensureIndex.mockClear()
+    push.mockClear()
+    indexing.value = false
+  })
+
+  /**
+   * The point of the suggestions: the form asks eight questions before it
+   * produces anything, which is a lot to answer before knowing what the answers
+   * are worth.
+   */
+  it('offers ready-made aggregates the data supports', async () => {
+    const wrapper = render(context({ report: measuredReport(true, ['slope', 'speed']) }))
+    await flushPromises()
+
+    const presets = wrapper.find('[data-test="aggregate-presets"]')
+    expect(presets.exists()).toBe(true)
+    expect(presets.text()).toContain('Heart rate on climbs')
+    expect(presets.text()).toContain('Speed on the flat')
+  })
+
+  /** Suggesting a power aggregate to a bike with no meter builds a dead filter. */
+  it('withholds a suggestion whose field nothing recorded', async () => {
+    const wrapper = render(context({ report: measuredReport(true, ['slope', 'speed']) }))
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="preset-climb-power"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="preset-climb-speed"]').exists()).toBe(true)
+  })
+
+  it('shows nothing at all when the data supports no suggestion', async () => {
+    const wrapper = render(context({ report: measuredReport(true) }))
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="aggregate-presets"]').exists()).toBe(false)
+  })
+
+  it('creates from a suggestion in one click, naming it from the locale', async () => {
+    const ctx = context({ report: measuredReport(true, ['slope', 'speed']) })
+    const wrapper = render(ctx)
+    await flushPromises()
+
+    await wrapper.find('[data-test="preset-climb-heart-rate"]').trigger('click')
+    await flushPromises()
+
+    expect(ctx.aggregates.create).toHaveBeenCalledTimes(1)
+    const [draft] = (ctx.aggregates.create as unknown as { mock: { calls: [CustomAggregate][] } })
+      .mock.calls[0]
+
+    expect(draft.label).toBe('Heart rate on climbs')
+    expect(draft.presetId).toBe('climb-heart-rate')
+    expect(draft.measure).toEqual({ field: 'heartRate', op: 'avg' })
+    // A slope is stored as the ratio it is, never as a percentage.
+    expect(draft.where[0]).toEqual({ field: 'slope', min: 0.03 })
+    expect(ensureIndex).toHaveBeenCalled()
+  })
+
+  /** Offering it twice would create a duplicate computing exactly the same thing. */
+  it('stops offering a suggestion already taken', async () => {
+    const wrapper = render(
+      context({
+        report: measuredReport(true, ['slope', 'speed']),
+        aggregates: [aggregate({ presetId: 'climb-heart-rate' })]
+      })
+    )
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="preset-climb-heart-rate"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="preset-flat-speed"]').exists()).toBe(true)
+  })
+
+  it('hands an aggregate to the tracker, which owns the chart and its windows', async () => {
+    const wrapper = render(context({ aggregates: [aggregate()] }))
+    await flushPromises()
+
+    await wrapper.find('[data-test="aggregate-curve-agg-1"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ path: '/metrics', query: { metric: 'agg-1' } })
+  })
+
+  it('carries the sport filter into the curve', async () => {
+    const wrapper = render(context({ aggregates: [aggregate()] }), { selectedSport: 'running' })
+    await flushPromises()
+
+    await wrapper.find('[data-test="aggregate-curve-agg-1"]').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({
+      path: '/metrics',
+      query: { metric: 'agg-1', sport: 'running' }
+    })
   })
 })
