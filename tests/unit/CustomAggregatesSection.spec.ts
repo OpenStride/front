@@ -132,22 +132,45 @@ describe('CustomAggregatesSection', () => {
     expect(wrapper.find('[data-test="aggregate-new"]').exists()).toBe(true)
   })
 
-  it('shows a tile for a pinned aggregate, with the figure of the current period', async () => {
-    const wrapper = render(context({ aggregates: [aggregate({ pinned: true })] }))
-    await flushPromises()
-
-    const tiles = wrapper.find('[data-test="aggregate-tiles"]')
-    expect(tiles.exists()).toBe(true)
-    expect(tiles.text()).toContain('Climb heart rate')
-    expect(tiles.text()).toContain('152')
-  })
-
-  it('leaves an unpinned aggregate out of the tiles but keeps it in the list', async () => {
+  /**
+   * One card per aggregate, figure included. The figure and the rule behind it
+   * used to live in two separate blocks, so a pinned aggregate appeared twice
+   * on the same page with nothing saying it was the same thing.
+   */
+  it('gives every aggregate one card carrying its figure of the current period', async () => {
     const wrapper = render(context({ aggregates: [aggregate({ pinned: false })] }))
     await flushPromises()
 
-    expect(wrapper.find('[data-test="aggregate-tiles"]').exists()).toBe(false)
-    expect(wrapper.find('.stack').text()).toContain('Climb heart rate')
+    const cards = wrapper.findAll('[data-test="aggregate-cards"] .agg')
+    expect(cards).toHaveLength(1)
+    expect(cards[0].text()).toContain('Climb heart rate')
+    expect(cards[0].find('.agg__value').text()).toContain('152')
+  })
+
+  it('says so plainly on a card with no figure yet', async () => {
+    const ctx = context({ aggregates: [aggregate()] })
+    ;(ctx.aggregation.getAggregated as unknown as { mockResolvedValue: (v: unknown) => void })
+      .mockResolvedValue([])
+
+    const wrapper = render(ctx)
+    await flushPromises()
+
+    expect(wrapper.find('.agg__value').text()).toContain('No data')
+  })
+
+  it('puts the pinned ones first, since pinning now decides rank rather than presence', async () => {
+    const wrapper = render(
+      context({
+        aggregates: [
+          aggregate({ id: 'plain', label: 'AAA plain', pinned: false }),
+          aggregate({ id: 'pin', label: 'ZZZ pinned', pinned: true })
+        ]
+      })
+    )
+    await flushPromises()
+
+    const labels = wrapper.findAll('.agg__label').map(el => el.text())
+    expect(labels).toEqual(['ZZZ pinned', 'AAA plain'])
   })
 
   /** Reading the rule back, in the reader's units — a slope stored as a ratio. */
@@ -155,7 +178,7 @@ describe('CustomAggregatesSection', () => {
     const wrapper = render(context({ aggregates: [aggregate()] }))
     await flushPromises()
 
-    const description = wrapper.find('.item__desc').text()
+    const description = wrapper.find('.agg__desc').text()
     expect(description).toContain('Average')
     expect(description).toContain('Heart rate')
     expect(description).toContain('2–10 %')
@@ -203,7 +226,7 @@ describe('CustomAggregatesSection', () => {
     const wrapper = render(ctx)
     await flushPromises()
 
-    await wrapper.find('.item__actions .btn-icon:last-child').trigger('click')
+    await wrapper.find('.agg__actions .btn-icon:last-child').trigger('click')
     await flushPromises()
 
     expect(ctx.aggregates.remove).toHaveBeenCalledWith('agg-1')
