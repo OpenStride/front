@@ -17,15 +17,33 @@ export interface StorageServiceEvent {
  * Stores whose sync is owned by SyncService (version-based, conflict-aware).
  * StorageService must not touch them, to avoid two engines writing the same
  * remote files with divergent merge strategies.
+ *
+ * The merge below is local-wins and additive: it only pulls keys it does not
+ * already hold, and it knows nothing about tombstones. For a cache that is the
+ * right trade — nothing local is ever lost, and what is missing gets rebuilt.
+ * For records a user writes by hand it silently drops every edit made on
+ * another device and pushes deleted rows back into existence, which is why
+ * `custom_aggregates` is listed here rather than left to this path.
  */
-const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details']
+const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_aggregates']
 
 /**
  * Stores that never leave the device. They hold values derived from data that
  * is already synced, so uploading them would cost bandwidth for something we
  * can recompute. Losing them only costs a rebuild.
+ *
+ * `aggregatedData` joined them when custom aggregates started folding into it,
+ * and the reason is stronger than bandwidth. The merge that would replicate it
+ * is additive and local-wins — it never overwrites a record it already holds —
+ * while a custom aggregate's records are a fold of `activity_metrics`, which is
+ * built lazily from whatever the user has scrolled to. A partially indexed
+ * device therefore produces *correct-looking but incomplete* records, and once
+ * those reach the remote a fresh device pulls them, finds the store non-empty,
+ * and so never runs the rebuild that would have fixed them. Keeping the store
+ * local makes every device compute its own, which `rebuildAll` and the empty
+ * check in the summary section already do.
  */
-const LOCAL_ONLY_STORES = ['activity_metrics']
+const LOCAL_ONLY_STORES = ['activity_metrics', 'aggregatedData']
 
 export class StorageService {
   private static instance: StorageService

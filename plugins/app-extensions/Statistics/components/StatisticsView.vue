@@ -20,6 +20,9 @@
     </div>
 
     <div v-else class="statistics-sections">
+      <!-- First: what the reader chose to follow. The built-in sections answer
+           the questions everyone has, this one answers theirs. -->
+      <CustomAggregatesSection :selected-sport="selectedSport" :activities="filteredActivities" />
       <SummarySection :selected-sport="selectedSport" />
       <CalendarHeatmap :activities="filteredActivities" />
       <TrendsSection :activities="filteredActivities" />
@@ -52,6 +55,7 @@ import TrendsSection from './TrendsSection.vue'
 import DistributionSection from './DistributionSection.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
 import CalendarHeatmap from './CalendarHeatmap.vue'
+import CustomAggregatesSection from './CustomAggregatesSection.vue'
 
 const { t } = useI18n()
 const { allActivities, filteredActivities, selectedSport, sportOptions, loading } =

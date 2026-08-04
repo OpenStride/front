@@ -118,7 +118,7 @@
     "home": "Home",
     "profile": "Profile",
     "appExtensions": "App Extensions",
-    "statistics": "Statistics",
+    "statistics": "Metrics Dashboard",
     "metricTracker": "Metric Tracker"
   },
   "metricTracker": {
@@ -137,7 +137,8 @@
     "timeOn": "Time on {distance}",
     "groups": {
       "direct": "Session data",
-      "bestTimes": "Best times"
+      "bestTimes": "Best times",
+      "custom": "My aggregates"
     },
     "window": "Window",
     "windows": {
@@ -436,7 +437,7 @@
     "failed": "Update failed. Please try again."
   },
   "statistics": {
-    "title": "Statistics",
+    "title": "Metrics Dashboard",
     "allSports": "All sports",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
@@ -908,12 +909,73 @@
       "description": "Heart rate, cadence, speed graphs and zones for each outing."
     },
     "statistics": {
-      "label": "Statistics",
-      "description": "Trends, distributions, personal records and an activity calendar."
+      "label": "Metrics Dashboard",
+      "description": "Your metrics in one place: trends, distributions, personal records and an activity calendar."
     },
     "firebase-notifications": {
       "label": "Push notifications",
       "description": "Get notified when new activities are imported."
+    }
+  },
+  "sampleFields": {
+    "slope": "Slope",
+    "speed": "Speed",
+    "heartRate": "Heart rate",
+    "cadence": "Cadence",
+    "power": "Power",
+    "elevation": "Elevation",
+    "temperature": "Temperature"
+  },
+  "customAggregates": {
+    "title": "My aggregates",
+    "add": "New aggregate",
+    "empty": "No aggregate yet. Create one to follow a figure the built-in metrics do not cover.",
+    "pinned": "Pinned to the top of the dashboard",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}",
+    "ops": {
+      "avg": "Average",
+      "sum": "Total",
+      "min": "Lowest",
+      "max": "Highest"
+    },
+    "periodOps": {
+      "avg": "Averaged per period",
+      "sum": "Summed per period",
+      "min": "Lowest of the period",
+      "max": "Highest of the period"
+    },
+    "weights": {
+      "time": "Weighted by time",
+      "distance": "Weighted by distance",
+      "none": "Unweighted"
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Heart rate on climbs",
+      "sport": "Sport",
+      "allSports": "All sports",
+      "measure": "Measure",
+      "op": "Operation",
+      "weightBy": "Weighting",
+      "periodOp": "Per period",
+      "filters": "Only count samples where",
+      "addFilter": "Add a condition",
+      "removeFilter": "Remove this condition",
+      "min": "from",
+      "max": "to",
+      "pin": "Pin to the top of the dashboard",
+      "coverage": "{percent}% of outings",
+      "rangeHint": "Your {field} mostly sits between {low} and {high} {unit}.",
+      "nothingMeasured": "Your activities carry no measurement yet. Open a few outings so they get indexed, then come back."
+    },
+    "indexing": "Reading your activities…",
+    "indexingHint": "Done once. Your outings are scanned to find out which measurements they carry.",
+    "noValue": "No data",
+    "periods": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
     }
   }
 }

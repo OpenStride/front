@@ -232,6 +232,40 @@ export class AggregationService {
     return all.filter(r => r.metricId === metricId && r.periodType === periodType)
   }
 
+  /**
+   * Replace the period records of the custom aggregates named in `metricIds`.
+   *
+   * Replace, not merge: the records are a fold of the index, so the fold is the
+   * truth and whatever sits in the store is a previous answer to a question
+   * that may have changed. Purging only the ids being rebuilt leaves the
+   * built-in metrics — which *are* maintained incrementally — untouched.
+   */
+  async replaceCustomAggregates(metricIds: string[], records: AggregatedRecord[]) {
+    if (metricIds.length === 0) return
+    const db = await IndexedDBService.getInstance()
+    const wanted = new Set(metricIds)
+
+    try {
+      const existing = await db.getAllData<AggregatedRecord>('aggregatedData')
+      const obsolete = existing.filter(r => wanted.has(r.metricId)).map(r => r.id)
+      if (obsolete.length > 0) await db.deleteMultipleFromStore('aggregatedData', obsolete)
+    } catch (err) {
+      console.warn('[AggregationService] Failed to purge custom aggregate records', err)
+    }
+
+    if (records.length > 0) {
+      await db.addItemsToStore('aggregatedData', records, r => r.id)
+    }
+
+    for (const record of records) {
+      this.notify({
+        metricId: record.metricId,
+        periodType: record.periodType,
+        periodKey: record.periodKey
+      })
+    }
+  }
+
   async rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>) {
     const db = await IndexedDBService.getInstance()
     console.log(

@@ -118,7 +118,7 @@
     "home": "Accueil",
     "profile": "Profil",
     "appExtensions": "Extensions",
-    "statistics": "Statistiques",
+    "statistics": "Tableau de bord",
     "metricTracker": "Suivi de métriques"
   },
   "metricTracker": {
@@ -137,7 +137,8 @@
     "timeOn": "Temps au {distance}",
     "groups": {
       "direct": "Données de séance",
-      "bestTimes": "Meilleurs temps"
+      "bestTimes": "Meilleurs temps",
+      "custom": "Mes agrégats"
     },
     "window": "Fenêtre",
     "windows": {
@@ -436,7 +437,7 @@
     "failed": "Échec de la mise à jour. Veuillez réessayer."
   },
   "statistics": {
-    "title": "Statistiques",
+    "title": "Tableau de bord",
     "allSports": "Tous les sports",
     "noData": "Aucune donnée disponible",
     "noDataHint": "Importez des activités pour voir vos statistiques",
@@ -908,12 +909,73 @@
       "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."
     },
     "statistics": {
-      "label": "Statistiques",
-      "description": "Tendances, répartitions, records personnels et calendrier d'activité."
+      "label": "Tableau de bord",
+      "description": "Vos métriques au même endroit : tendances, répartitions, records personnels et calendrier d’activité."
     },
     "firebase-notifications": {
       "label": "Notifications push",
       "description": "Recevez une notification quand de nouvelles activités sont importées."
+    }
+  },
+  "sampleFields": {
+    "slope": "Pente",
+    "speed": "Vitesse",
+    "heartRate": "Fréquence cardiaque",
+    "cadence": "Cadence",
+    "power": "Puissance",
+    "elevation": "Altitude",
+    "temperature": "Température"
+  },
+  "customAggregates": {
+    "title": "Mes agrégats",
+    "add": "Nouvel agrégat",
+    "empty": "Aucun agrégat pour l'instant. Créez-en un pour suivre un chiffre que les métriques natives ne couvrent pas.",
+    "pinned": "Épinglé en tête du tableau de bord",
+    "edit": "Modifier {name}",
+    "delete": "Supprimer {name}",
+    "ops": {
+      "avg": "Moyenne",
+      "sum": "Total",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "periodOps": {
+      "avg": "Moyenne par période",
+      "sum": "Somme par période",
+      "min": "Minimum de la période",
+      "max": "Maximum de la période"
+    },
+    "weights": {
+      "time": "Pondéré par le temps",
+      "distance": "Pondéré par la distance",
+      "none": "Non pondéré"
+    },
+    "form": {
+      "name": "Nom",
+      "namePlaceholder": "ex. Fréquence cardiaque en côte",
+      "sport": "Sport",
+      "allSports": "Tous les sports",
+      "measure": "Mesure",
+      "op": "Opération",
+      "weightBy": "Pondération",
+      "periodOp": "Par période",
+      "filters": "Ne compter que les points où",
+      "addFilter": "Ajouter une condition",
+      "removeFilter": "Retirer cette condition",
+      "min": "de",
+      "max": "à",
+      "pin": "Épingler en tête du tableau de bord",
+      "coverage": "{percent}% des sorties",
+      "rangeHint": "Votre {field} se situe surtout entre {low} et {high} {unit}.",
+      "nothingMeasured": "Vos activités ne portent encore aucune mesure. Ouvrez quelques sorties pour qu'elles soient indexées, puis revenez."
+    },
+    "indexing": "Lecture de vos activités…",
+    "indexingHint": "Une seule fois. Vos sorties sont parcourues pour savoir quelles mesures elles contiennent.",
+    "noValue": "Pas de donnée",
+    "periods": {
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
     }
   }
 }

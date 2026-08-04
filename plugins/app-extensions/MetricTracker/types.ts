@@ -87,6 +87,16 @@ export interface MetricDefinition {
    * i18n pattern instead of one key per distance.
    */
   distanceLabel?: string
+  /**
+   * A name to show as-is, for a metric the app did not name.
+   *
+   * The built-in metrics resolve their label from a locale key, which is right
+   * for a vocabulary we ship and translate. A custom aggregate is named by the
+   * person who defined it, five seconds ago, in whatever language they think
+   * in — reading it through `t()` would render their own words as a missing
+   * key.
+   */
+  label?: string
   /** Stored unit -> plotted unit, e.g. metres -> km */
   toDisplay: (raw: number) => number
   /** Plotted value -> human label, used for axis ticks and tooltips */

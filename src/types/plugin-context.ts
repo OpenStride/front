@@ -6,6 +6,9 @@ import type {
   AggregatedRecord,
   AggregationMetricDefinition
 } from './aggregation'
+import type { CustomAggregate } from './customAggregate'
+import type { CustomAggregateInput } from '@/services/CustomAggregateService'
+import type { CapabilityReport } from '@/composables/useSampleCapabilities'
 
 /**
  * Plugin Context Interfaces for Dependency Injection
@@ -284,6 +287,35 @@ export interface IUnitsService {
 }
 
 /**
+ * The aggregates a user defined, and what their library can support.
+ *
+ * Separate from `IAggregationService`, which reads the *results*: a rolled-up
+ * period record reads the same whether it came from a built-in metric or from
+ * one of these, and a consumer of figures should not have to tell them apart.
+ * This one is for the screen that writes the definitions, which is a different
+ * job and a much smaller audience.
+ */
+export interface ICustomAggregateService {
+  /** Live definitions, deleted ones excluded. */
+  list(): Promise<CustomAggregate[]>
+  create(input: CustomAggregateInput): Promise<CustomAggregate>
+  update(id: string, patch: Partial<CustomAggregateInput>): Promise<CustomAggregate | null>
+  /** Soft delete: the definition stops computing and the deletion syncs. */
+  remove(id: string): Promise<boolean>
+  /**
+   * What the indexed activities can actually be asked about, optionally scoped
+   * to one sport.
+   *
+   * The reason an editor can be built at all: which fields exist depends on
+   * what the user's own activities recorded, so offering a fixed list would
+   * invite a filter on a channel nobody ever measured.
+   */
+  capabilities(sport?: string): Promise<CapabilityReport>
+  /** Subscribe to definition changes; returns the unsubscribe. */
+  onChanged(handler: (ids: string[]) => void): () => void
+}
+
+/**
  * Plugin Context - Injected into plugins
  *
  * This is the main dependency injection container for plugins.
@@ -295,6 +327,7 @@ export interface PluginContext {
   notifications: INotificationService
   plugins: IPluginManager
   aggregation: IAggregationService
+  aggregates: ICustomAggregateService
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService
