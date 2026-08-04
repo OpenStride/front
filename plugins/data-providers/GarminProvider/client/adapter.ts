@@ -10,9 +10,53 @@ interface GarminRawActivity extends RawRecord {
   activityId?: string
 }
 
+/**
+ * Garmin pushes the same activity under two different shapes, and the push
+ * buffer can hand us either one first:
+ *
+ * - **activity summary** — every field flat at the top level, no `samples`.
+ *   Sent as soon as the watch syncs.
+ * - **activity details** — the same fields nested under `summary`, plus the
+ *   `samples` time series. Sent later, once Garmin has processed the FIT file.
+ *
+ * Reading only `raw.summary` meant a summary push produced an ActivityDetails
+ * with no samples *and* no stats, which then overwrote a details push that had
+ * already landed: the activity showed up but its map and graphs were empty.
+ */
+function summaryOf(raw: GarminRawActivity): RawRecord {
+  return (raw.summary as RawRecord | undefined) ?? raw
+}
+
+/**
+ * The activity id, wherever this payload happens to carry it.
+ *
+ * Summary and details must resolve to the *same* id — they are two halves of
+ * one record. The details payload names it at the top level, the summary
+ * payload inside the summary object.
+ */
+function activityIdOf(raw: GarminRawActivity): string | undefined {
+  const summary = summaryOf(raw)
+  const id = raw.activityId ?? summary.activityId ?? raw.summaryId ?? summary.summaryId
+  return id != null ? String(id) : undefined
+}
+
+/**
+ * True when the payload carries something worth storing as an activity.
+ *
+ * The push buffer is shared with Garmin's other webhooks (dailies, sleeps…);
+ * without this, one of those would be adapted into a `garmin_undefined`
+ * activity with no date and no distance.
+ */
+export function isActivityPayload(raw: unknown): raw is GarminRawActivity {
+  if (!raw || typeof raw !== 'object') return false
+  const candidate = raw as GarminRawActivity
+  if (activityIdOf(candidate) === undefined) return false
+  return typeof summaryOf(candidate).startTimeInSeconds === 'number'
+}
+
 // Résumé d'activité Garmin → Activity OpenStride
 export function adaptGarminSummary(garminDetails: GarminRawActivity): Activity {
-  const garmin = garminDetails.summary || garminDetails
+  const garmin = summaryOf(garminDetails)
 
   const samples = garminDetails.samples ?? []
   const polyline: [number, number][] = []
@@ -24,14 +68,16 @@ export function adaptGarminSummary(garminDetails: GarminRawActivity): Activity {
     }
   }
   return {
-    id: `garmin_${garmin.activityId}`,
+    id: `garmin_${activityIdOf(garminDetails)}`,
     provider: 'garmin',
     startTime: garmin.startTimeInSeconds as number,
     duration: garmin.durationInSeconds as number,
     distance: garmin.distanceInMeters as number,
     type: mapGarminSport(garmin.activityType),
     title: garmin.activityName as string,
-    mapPolyline: polyline,
+    // Left undefined rather than empty: a summary push has no track, and an
+    // empty array would erase the one a details push already stored.
+    mapPolyline: polyline.length > 0 ? polyline : undefined,
     version: 1,
     lastModified: Date.now()
   }
@@ -39,7 +85,8 @@ export function adaptGarminSummary(garminDetails: GarminRawActivity): Activity {
 
 // Détail Garmin → ActivityDetails OpenStride
 export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
-  const start = (garmin.summary?.startTimeInSeconds as number) ?? 0
+  const summary = summaryOf(garmin)
+  const start = (summary.startTimeInSeconds as number) ?? 0
   // const metrics = garmin.activityDetailMetrics?.metrics ?? []
   const samples = garmin.samples?.map((m: RawRecord) => ({
     time: (m.startTimeInSeconds as number) - start,
@@ -64,7 +111,6 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
     distance: (lap.totalDistanceInMeters as number) || 0
   }))
 
-  const summary = garmin.summary ?? {}
   const num = (v: unknown): number | undefined =>
     typeof v === 'number' && Number.isFinite(v) ? v : undefined
 
@@ -85,7 +131,7 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
   record('swim.swolf', num(summary.averageSwolf), 'swolf')
 
   return {
-    id: `garmin_${garmin.activityId}`,
+    id: `garmin_${activityIdOf(garmin)}`,
     samples,
     laps,
     measurements: Object.keys(measurements).length > 0 ? measurements : undefined,
@@ -106,5 +152,49 @@ export function adaptGarminDetails(garmin: GarminRawActivity): ActivityDetails {
     },
     version: 1,
     lastModified: Date.now()
+  }
+}
+
+/** Incoming values win, but only where the payload actually carries one. */
+function mergeDefined<T extends object>(stored: T | undefined, incoming: T | undefined): T {
+  if (!stored) return incoming as T
+  if (!incoming) return stored
+  const out = { ...stored } as Record<string, unknown>
+  for (const [key, value] of Object.entries(incoming)) {
+    if (value !== undefined) out[key] = value
+  }
+  return out as T
+}
+
+/**
+ * Fold a freshly pushed activity into the one already stored.
+ *
+ * The two pushes describe the same outing, so the second one to arrive must
+ * complete the record rather than replace it — whichever order they land in.
+ */
+export function mergeGarminActivity(stored: Activity | undefined, incoming: Activity): Activity {
+  if (!stored) return incoming
+  return {
+    ...mergeDefined(stored, incoming),
+    version: Math.max(stored.version ?? 0, incoming.version ?? 0)
+  }
+}
+
+/** Same as `mergeGarminActivity`, for the details half of the record. */
+export function mergeGarminDetails(
+  stored: ActivityDetails | undefined,
+  incoming: ActivityDetails
+): ActivityDetails {
+  if (!stored) return incoming
+  return {
+    ...mergeDefined(stored, incoming),
+    // A summary push carries no time series; keeping the stored one is the
+    // whole point of merging instead of putting.
+    samples: incoming.samples?.length ? incoming.samples : stored.samples,
+    laps: incoming.laps?.length ? incoming.laps : stored.laps,
+    measurements: mergeDefined(stored.measurements, incoming.measurements),
+    stats: mergeDefined(stored.stats, incoming.stats),
+    version: Math.max(stored.version ?? 0, incoming.version ?? 0),
+    lastModified: incoming.lastModified
   }
 }
