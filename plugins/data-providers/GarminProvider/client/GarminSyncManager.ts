@@ -1,8 +1,15 @@
 // plugins/data-providers/GarminProvider/client/GarminSyncManager.ts
 import { getTokens, getSyncState, updateSyncState } from './storage'
-import { adaptGarminSummary, adaptGarminDetails } from './adapter'
+import {
+  adaptGarminSummary,
+  adaptGarminDetails,
+  isActivityPayload,
+  mergeGarminActivity,
+  mergeGarminDetails
+} from './adapter'
 import { getValidAccessToken } from './garminAuth'
 import { getPluginContext } from '@/services/PluginContextFactory'
+import type { Activity, ActivityDetails } from '@/types/activity'
 import pluginEnv from './env'
 
 const proxyUrl = pluginEnv.proxyUrl
@@ -261,11 +268,40 @@ export class GarminSyncManager {
 
     console.log('[GarminSync] Daily refresh: polling for push data')
 
-    const count = await this.pollAndConsumeCallbacks(1) // single attempt, no retry
+    // Ids, not saves: one outing is pushed twice (summary, then details), and
+    // it is also the one the pull below completes. Counting rows would report
+    // three activities for one run.
+    const seen = new Set<string>()
+    await this.pollAndConsumeCallbacks(1, seen) // single attempt, no retry
+    await this.fetchRecentDetails(seen)
     await updateSyncState({ lastSyncDate: Date.now() })
 
-    console.log(`[GarminSync] Daily refresh complete: ${count} activities`)
-    return count
+    console.log(`[GarminSync] Daily refresh complete: ${seen.size} activities`)
+    return seen.size
+  }
+
+  /**
+   * Pull the details for everything uploaded in the last 24 h.
+   *
+   * The push buffer alone is not enough to answer a refresh: Garmin sends the
+   * activity *summary* as soon as the watch syncs, but the *details* — the
+   * samples the map and the graphs are drawn from — only once it has processed
+   * the FIT file, minutes later. Refreshing in between used to leave the card
+   * on the feed with nothing in it until the next refresh.
+   *
+   * Best effort: the push data has already been saved when this runs, so a
+   * failure here must not fail the refresh.
+   */
+  private async fetchRecentDetails(collector: Set<string>): Promise<void> {
+    const end = new Date()
+    // Garmin caps the pull endpoints at a 24 h window.
+    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000)
+
+    try {
+      await this.fetchAndSaveActivities(start, end, false, 0, collector)
+    } catch (err) {
+      console.warn('[GarminSync] Could not pull recent activity details:', err)
+    }
   }
 
   /**
@@ -324,11 +360,12 @@ export class GarminSyncManager {
     startDate: Date,
     endDate: Date,
     useBackfill: boolean,
-    retryCount = 0
+    retryCount = 0,
+    /** Ids saved so far, when the caller counts distinct activities. */
+    collector?: Set<string>
   ): Promise<number> {
     const MAX_RETRIES = 3
     const accessToken = await getValidAccessToken()
-    const ctx = await getPluginContext()
 
     const startSeconds = Math.floor(startDate.getTime() / 1000)
     const endSeconds = Math.floor(endDate.getTime() / 1000)
@@ -352,7 +389,13 @@ export class GarminSyncManager {
           `[GarminSync] Rate limit hit, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`
         )
         await this.sleep(backoffMs)
-        return this.fetchAndSaveActivities(startDate, endDate, useBackfill, retryCount + 1)
+        return this.fetchAndSaveActivities(
+          startDate,
+          endDate,
+          useBackfill,
+          retryCount + 1,
+          collector
+        )
       }
     }
 
@@ -362,7 +405,7 @@ export class GarminSyncManager {
       // 409 = duplicate backfill already processed, poll callbacks from ping notifications
       if (res.status === 409 && errorBody.includes('duplicate backfill')) {
         console.log('[GarminSync] Backfill already done, polling callbacks')
-        return this.pollAndConsumeCallbacks()
+        return this.pollAndConsumeCallbacks(3, collector)
       }
 
       // 403 = user didn't grant HISTORICAL_DATA_EXPORT — skip this range gracefully.
@@ -390,7 +433,13 @@ export class GarminSyncManager {
             `[GarminSync] Rate limit in response, retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})`
           )
           await this.sleep(backoffMs)
-          return this.fetchAndSaveActivities(startDate, endDate, useBackfill, retryCount + 1)
+          return this.fetchAndSaveActivities(
+            startDate,
+            endDate,
+            useBackfill,
+            retryCount + 1,
+            collector
+          )
         }
       }
       throw new Error(`Garmin API error: ${res.status} - ${errorBody.substring(0, 200)}`)
@@ -404,7 +453,7 @@ export class GarminSyncManager {
     if (useBackfill && (res.status === 202 || !text || text.trim() === '')) {
       console.log('[GarminSync] Backfill accepted (async), polling push data...')
       await this.sleep(5000)
-      return this.pollAndConsumeCallbacks(5)
+      return this.pollAndConsumeCallbacks(5, collector)
     }
 
     if (!text || text.trim() === '') return 0
@@ -413,17 +462,67 @@ export class GarminSyncManager {
 
     if (!Array.isArray(raw) || raw.length === 0) {
       // Backfill may also acknowledge with an empty array; data still comes via push.
-      if (useBackfill) return this.pollAndConsumeCallbacks(5)
+      if (useBackfill) return this.pollAndConsumeCallbacks(5, collector)
       return 0
     }
 
-    const summaries = raw.map(adaptGarminSummary)
-    const details = raw.map(adaptGarminDetails)
+    const saved = await this.saveRawActivities(raw, collector)
+
+    return saved.length
+  }
+
+  /**
+   * Adapt raw Garmin payloads and fold them into what is already stored.
+   *
+   * Garmin sends the same outing twice — an activity summary as soon as the
+   * watch syncs, then the activity details with the samples once the FIT file
+   * is processed — and the two can arrive in either order, in either direction
+   * of the same batch. Writing them straight through meant whichever landed
+   * last won, so a summary push regularly erased a track that was already
+   * there: the activity stayed in the feed with an empty map.
+   *
+   * Returns the ids actually written, so both halves of one outing count once.
+   */
+  private async saveRawActivities(raw: unknown[], collector?: Set<string>): Promise<string[]> {
+    const ctx = await getPluginContext()
+    const payloads = raw.filter(isActivityPayload)
+
+    if (payloads.length < raw.length) {
+      console.warn(
+        `[GarminSync] Ignoring ${raw.length - payloads.length} payload(s) that are not activities`
+      )
+    }
+    if (payloads.length === 0) return []
+
+    // Collapse a batch that carries both halves of the same activity.
+    const byId = new Map<string, { activity: Activity; details: ActivityDetails }>()
+    for (const payload of payloads) {
+      const activity = adaptGarminSummary(payload)
+      const details = adaptGarminDetails(payload)
+      const seen = byId.get(activity.id)
+      byId.set(activity.id, {
+        activity: mergeGarminActivity(seen?.activity, activity),
+        details: mergeGarminDetails(seen?.details, details)
+      })
+    }
+
+    const activities: Activity[] = []
+    const detailsList: ActivityDetails[] = []
+    for (const [id, entry] of byId) {
+      const [storedActivity, storedDetails] = await Promise.all([
+        ctx.activity.getActivity(id),
+        ctx.activity.getDetails(id)
+      ])
+      activities.push(mergeGarminActivity(storedActivity, entry.activity))
+      detailsList.push(mergeGarminDetails(storedDetails, entry.details))
+    }
 
     // Atomic transaction: both succeed or both fail
-    await ctx.activity.saveActivitiesWithDetails(summaries, details)
+    await ctx.activity.saveActivitiesWithDetails(activities, detailsList)
 
-    return summaries.length
+    const ids = [...byId.keys()]
+    ids.forEach(id => collector?.add(id))
+    return ids
   }
 
   /**
@@ -436,9 +535,10 @@ export class GarminSyncManager {
    * Retries up to `maxRetries` times with a 5s delay when no data is buffered yet
    * (Garmin's backfill push is asynchronous).
    */
-  private async pollAndConsumeCallbacks(maxRetries = 3): Promise<number> {
-    const ctx = await getPluginContext()
-    let totalCount = 0
+  private async pollAndConsumeCallbacks(maxRetries = 3, collector?: Set<string>): Promise<number> {
+    // Ids, not entries: Garmin buffers a summary push and a details push for
+    // the same outing, and announcing "2 new activities" for one run is wrong.
+    const savedIds = collector ?? new Set<string>()
     let waited = 0
     const MAX_DRAIN_BATCHES = 500 // safety cap against an unexpected infinite loop
 
@@ -451,17 +551,17 @@ export class GarminSyncManager {
 
       if (res.status === 401) {
         console.warn('[GarminSync] Unauthorized when reading push buffer')
-        return totalCount
+        return savedIds.size
       }
       if (!res.ok) {
         console.warn(`[GarminSync] Failed to fetch push data: ${res.status}`)
-        return totalCount
+        return savedIds.size
       }
 
       const entries = await res.json()
       if (!Array.isArray(entries) || entries.length === 0) {
         // Buffer empty. If we already drained some, we're done.
-        if (totalCount > 0) break
+        if (savedIds.size > 0) break
         // Otherwise wait for Garmin's async backfill push to land.
         if (waited < maxRetries - 1) {
           waited++
@@ -483,10 +583,7 @@ export class GarminSyncManager {
 
           // Push data: activity object directly (ownership already enforced server-side)
           const items = Array.isArray(raw) ? raw : [raw]
-          const summaries = items.map(adaptGarminSummary)
-          const details = items.map(adaptGarminDetails)
-          await ctx.activity.saveActivitiesWithDetails(summaries, details)
-          totalCount += summaries.length
+          await this.saveRawActivities(items, savedIds)
 
           consumedFiles.push(entry.name)
         } catch (err) {
@@ -511,7 +608,7 @@ export class GarminSyncManager {
       }
     }
 
-    return totalCount
+    return savedIds.size
   }
 
   /**

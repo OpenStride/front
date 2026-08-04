@@ -40,13 +40,24 @@ vi.mock('../../plugins/data-providers/GarminProvider/client/env', () => ({
   default: { proxyUrl: 'https://proxy.test.com' }
 }))
 
-// Mock PluginContext
-const mockSaveActivitiesWithDetails = vi.fn()
+// Mock PluginContext — backed by a tiny in-memory store, because the sync
+// manager now reads what is already saved before writing over it.
+const savedActivities = new Map<string, any>()
+const savedDetails = new Map<string, any>()
+const mockSaveActivitiesWithDetails = vi.fn((activities: any[], details: any[]) => {
+  activities.forEach((a, i) => {
+    savedActivities.set(a.id, a)
+    savedDetails.set(details[i].id, details[i])
+  })
+  return Promise.resolve()
+})
 vi.mock('@/services/PluginContextFactory', () => ({
   getPluginContext: vi.fn(() =>
     Promise.resolve({
       activity: {
-        saveActivitiesWithDetails: mockSaveActivitiesWithDetails
+        saveActivitiesWithDetails: mockSaveActivitiesWithDetails,
+        getActivity: (id: string) => Promise.resolve(savedActivities.get(id)),
+        getDetails: (id: string) => Promise.resolve(savedDetails.get(id))
       }
     })
   )
@@ -105,12 +116,27 @@ function garminActivity(i: number) {
   }
 }
 
+/**
+ * Garmin's *other* push shape for the same outing: the activity summary, whose
+ * fields sit flat at the top level with no `samples` and no `summary` wrapper.
+ * It lands as soon as the watch syncs, before the FIT file is processed.
+ */
+function garminSummaryPush(i: number) {
+  const { summary } = garminActivity(i)
+  return { ...summary, activeKilocalories: 420 }
+}
+
 /** A /push buffer listing: [{ name, data }] where data is a raw Garmin activity */
 function pushBuffer(count: number) {
   return Array.from({ length: count }, (_, i) => {
     const a = garminActivity(i)
     return { name: `garmin_push/u1/activityDetails_${a.activityId}.json`, data: a }
   })
+}
+
+/** One /push entry, named the way the proxy names it for that payload type */
+function pushEntry(type: 'activities' | 'activityDetails', data: any) {
+  return { name: `garmin_push/u1/${type}_${data.activityId}.json`, data }
 }
 
 function okJsonResponse(data: any) {
@@ -140,10 +166,11 @@ describe('GarminSyncManager', () => {
     vi.clearAllMocks()
     vi.useFakeTimers({ shouldAdvanceTime: true })
     mockSyncState = {}
+    savedActivities.clear()
+    savedDetails.clear()
     // Reset singleton
     ;(GarminSyncManager as any).instance = null
     manager = GarminSyncManager.getInstance()
-    mockSaveActivitiesWithDetails.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -181,9 +208,7 @@ describe('GarminSyncManager', () => {
       )
 
       // Consumed files are deleted via authenticated POST /push/consume
-      const consumeCall = mockFetch.mock.calls.find(c =>
-        (c[0] as string).endsWith('/push/consume')
-      )
+      const consumeCall = mockFetch.mock.calls.find(c => (c[0] as string).endsWith('/push/consume'))
       expect(consumeCall).toBeTruthy()
       const consumeOpts = consumeCall![1] as RequestInit
       expect(consumeOpts.method).toBe('POST')
@@ -191,6 +216,157 @@ describe('GarminSyncManager', () => {
         expect.objectContaining({ Authorization: 'Bearer test-access-token' })
       )
       expect(JSON.parse(consumeOpts.body as string).files).toHaveLength(2)
+    })
+
+    it('pulls the last 24 h of details, so a refresh does not wait for the push', async () => {
+      // Only the summary has been pushed — the details push has not landed yet.
+      let pushReads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) {
+          pushReads++
+          return Promise.resolve(
+            okJsonResponse(pushReads === 1 ? [pushEntry('activities', garminSummaryPush(0))] : [])
+          )
+        }
+        // …but the pull endpoint already has them
+        if (url.includes('/api/activityDetails'))
+          return Promise.resolve(okJsonResponse([garminActivity(0)]))
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      const count = await manager.dailyRefresh()
+
+      // One outing, whichever route it came in by
+      expect(count).toBe(1)
+      expect(savedDetails.get('garmin_act-1').samples).toHaveLength(1)
+
+      // Pulled over a window Garmin accepts: 24 h, by upload time
+      const pull = mockFetch.mock.calls.find(c => (c[0] as string).includes('/api/activityDetails'))
+      expect(pull).toBeTruthy()
+      const params = new URLSearchParams((pull![0] as string).split('?')[1])
+      const span =
+        Number(params.get('uploadEndTimeInSeconds')) -
+        Number(params.get('uploadStartTimeInSeconds'))
+      expect(span).toBe(24 * 60 * 60)
+    })
+
+    it('still saves the push data when the details pull fails', async () => {
+      let pushReads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) {
+          pushReads++
+          return Promise.resolve(okJsonResponse(pushReads === 1 ? pushBuffer(1) : []))
+        }
+        if (url.includes('/api/activityDetails'))
+          return Promise.resolve(errorResponse(500, 'Garmin is down'))
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      const count = await manager.dailyRefresh()
+
+      expect(count).toBe(1)
+      expect(savedDetails.get('garmin_act-1').samples).toHaveLength(1)
+    })
+
+    it('keeps the samples when a summary push lands after the details push', async () => {
+      // Garmin sends the summary first and the details later, but the buffer
+      // can hand them over in either order — and the summary carries no track.
+      const details = garminActivity(0)
+      const buffers = [
+        [pushEntry('activityDetails', details)],
+        [pushEntry('activities', garminSummaryPush(0))],
+        []
+      ]
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) return Promise.resolve(okJsonResponse(buffers.shift() ?? []))
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      await manager.dailyRefresh() // consumes the details push
+      await manager.dailyRefresh() // consumes the summary push
+
+      const stored = savedDetails.get('garmin_act-1')
+      expect(stored.samples).toHaveLength(1)
+      expect(stored.samples[0].heartRate).toBe(140)
+      expect(savedActivities.get('garmin_act-1').mapPolyline).toHaveLength(1)
+      // …and the summary-only push still contributes what only it carries
+      expect(stored.stats.calories).toBe(420)
+    })
+
+    it('reads the stats off a summary-only push', async () => {
+      let reads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) {
+          reads++
+          return Promise.resolve(
+            okJsonResponse(reads === 1 ? [pushEntry('activities', garminSummaryPush(0))] : [])
+          )
+        }
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      const count = await manager.dailyRefresh()
+
+      expect(count).toBe(1)
+      const activity = savedActivities.get('garmin_act-1')
+      expect(activity.distance).toBe(5000)
+      expect(activity.type).toBe('running')
+      const details = savedDetails.get('garmin_act-1')
+      expect(details.stats.averageHeartRate).toBe(145)
+      expect(details.stats.calories).toBe(420)
+    })
+
+    it('counts one activity when both of its pushes are in the same batch', async () => {
+      let reads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 2 }))
+        if (url.endsWith('/push')) {
+          reads++
+          return Promise.resolve(
+            okJsonResponse(
+              reads === 1
+                ? [
+                    pushEntry('activityDetails', garminActivity(0)),
+                    pushEntry('activities', garminSummaryPush(0))
+                  ]
+                : []
+            )
+          )
+        }
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      const count = await manager.dailyRefresh()
+
+      expect(count).toBe(1)
+      expect(savedDetails.get('garmin_act-1').samples).toHaveLength(1)
+    })
+
+    it('ignores a push that is not an activity', async () => {
+      let reads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) {
+          reads++
+          return Promise.resolve(
+            okJsonResponse(
+              reads === 1 ? [{ name: 'garmin_push/u1/dailies_1.json', data: { steps: 12000 } }] : []
+            )
+          )
+        }
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      const count = await manager.dailyRefresh()
+
+      expect(count).toBe(0)
+      expect(mockSaveActivitiesWithDetails).not.toHaveBeenCalled()
+      // Still consumed, or the buffer would never drain
+      expect(mockFetch.mock.calls.some(c => (c[0] as string).endsWith('/push/consume'))).toBe(true)
     })
 
     it('returns 0 when no tokens are available', async () => {
