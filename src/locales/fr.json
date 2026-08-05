@@ -375,6 +375,8 @@
     "retry": "Réessayer",
     "fetchRecent": "Récupérer les 10 derniers jours",
     "errorLabel": "Erreur : {message}",
+    "refreshReport": "Dernier refresh : {pushed} par push, {pulled} par récupération directe",
+    "refreshPullFailed": "Récupération directe indisponible : {message}",
     "lastSync": {
       "justNow": "à l'instant",
       "minutes": "il y a {n} min",

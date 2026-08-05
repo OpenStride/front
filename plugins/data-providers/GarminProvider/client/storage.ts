@@ -38,6 +38,21 @@ export interface GarminTokens {
   refreshTokenExpiresAt: number
 }
 
+/**
+ * What the last refresh actually brought back.
+ *
+ * A refresh has two sources — the push buffer Garmin fills on its own schedule,
+ * and the 24 h details pull — and when it comes back empty the user has no way
+ * to tell which one was silent. That answer used to live in the browser
+ * console, which is unreachable on the phone the app is mostly used from.
+ */
+export interface GarminRefreshReport {
+  at: number // timestamp ms
+  pushed: number // activities drained from the push buffer
+  pulled: number // activities returned by the 24 h details pull
+  pullError?: string // why the pull returned nothing, when it failed
+}
+
 export interface GarminSyncState {
   status: 'idle' | 'syncing' | 'error'
   initialImportDone: boolean
@@ -45,6 +60,7 @@ export interface GarminSyncState {
   backfillSyncedMonths: string[] // Months where data was actually fetched and saved
   lastSyncDate: number | null // timestamp ms
   lastError: string | null
+  lastRefresh?: GarminRefreshReport
 }
 
 // ============================================================================

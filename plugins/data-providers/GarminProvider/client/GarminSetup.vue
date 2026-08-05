@@ -63,6 +63,23 @@
           <span v-else> {{ t('providers.connectedPending') }} </span>
         </p>
 
+        <!-- What the last refresh brought back, and from which of the two
+             sources. Without it an empty refresh is indistinguishable from a
+             refused one, and the console that used to answer that is out of
+             reach on a phone. -->
+        <p v-if="syncState.lastRefresh" class="refresh-report">
+          {{
+            t('providers.refreshReport', {
+              pushed: syncState.lastRefresh.pushed,
+              pulled: syncState.lastRefresh.pulled
+            })
+          }}
+          <span v-if="syncState.lastRefresh.pullError" class="refresh-report__error">
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            {{ t('providers.refreshPullFailed', { message: syncState.lastRefresh.pullError }) }}
+          </span>
+        </p>
+
         <!-- Manual refresh button (polls Firestore for push data) -->
         <button
           @click="manualRefresh"
@@ -614,6 +631,21 @@ onUnmounted(() => {
 }
 
 .fallback-warning i {
+  margin-right: 0.25rem;
+}
+
+.refresh-report {
+  color: var(--color-gray-500);
+  font-size: 0.75rem;
+}
+
+.refresh-report__error {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-yellow-600);
+}
+
+.refresh-report__error i {
   margin-right: 0.25rem;
 }
 </style>

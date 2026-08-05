@@ -273,10 +273,18 @@ export class GarminSyncManager {
     // three activities for one run.
     const seen = new Set<string>()
     await this.pollAndConsumeCallbacks(1, seen) // single attempt, no retry
-    await this.fetchRecentDetails(seen)
-    await updateSyncState({ lastSyncDate: Date.now() })
+    const pushed = seen.size
 
-    console.log(`[GarminSync] Daily refresh complete: ${seen.size} activities`)
+    const pull = await this.fetchRecentDetails(seen)
+
+    await updateSyncState({
+      lastSyncDate: Date.now(),
+      lastRefresh: { at: Date.now(), pushed, pulled: pull.pulled, pullError: pull.error }
+    })
+
+    console.log(
+      `[GarminSync] Daily refresh complete: ${seen.size} activities (${pushed} pushed, ${pull.pulled} pulled)`
+    )
     return seen.size
   }
 
@@ -290,17 +298,29 @@ export class GarminSyncManager {
    * on the feed with nothing in it until the next refresh.
    *
    * Best effort: the push data has already been saved when this runs, so a
-   * failure here must not fail the refresh.
+   * failure here must not fail the refresh — but it is reported rather than
+   * swallowed, because "the pull is refused" and "there was nothing to pull"
+   * look identical from the outside and call for opposite fixes.
    */
-  private async fetchRecentDetails(collector: Set<string>): Promise<void> {
+  private async fetchRecentDetails(
+    collector: Set<string>
+  ): Promise<{ pulled: number; error?: string }> {
     const end = new Date()
     // Garmin caps the pull endpoints at a 24 h window.
     const start = new Date(end.getTime() - 24 * 60 * 60 * 1000)
 
+    // Counted apart from the push ids: the pull usually returns the same outing
+    // the push just delivered, so a shared set could not say what it brought.
+    const pulled = new Set<string>()
     try {
-      await this.fetchAndSaveActivities(start, end, false, 0, collector)
+      await this.fetchAndSaveActivities(start, end, false, 0, pulled)
+      return { pulled: pulled.size }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       console.warn('[GarminSync] Could not pull recent activity details:', err)
+      return { pulled: pulled.size, error: message }
+    } finally {
+      pulled.forEach(id => collector.add(id))
     }
   }
 

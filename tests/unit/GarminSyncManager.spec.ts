@@ -251,6 +251,29 @@ describe('GarminSyncManager', () => {
       expect(span).toBe(24 * 60 * 60)
     })
 
+    it('reports what each source brought, so an empty refresh can be read', async () => {
+      let pushReads = 0
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith('/push/consume')) return Promise.resolve(okJsonResponse({ deleted: 1 }))
+        if (url.endsWith('/push')) {
+          pushReads++
+          return Promise.resolve(okJsonResponse(pushReads === 1 ? pushBuffer(1) : []))
+        }
+        if (url.includes('/api/activityDetails'))
+          return Promise.resolve(errorResponse(403, 'Forbidden: pull not enabled'))
+        return Promise.resolve(okJsonResponse([]))
+      })
+
+      await manager.dailyRefresh()
+
+      const [report] = (updateSyncState as any).mock.calls
+        .map((c: any[]) => c[0].lastRefresh)
+        .filter(Boolean)
+      expect(report.pushed).toBe(1)
+      expect(report.pulled).toBe(0)
+      expect(report.pullError).toContain('403')
+    })
+
     it('still saves the push data when the details pull fails', async () => {
       let pushReads = 0
       mockFetch.mockImplementation((url: string) => {

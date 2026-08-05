@@ -375,6 +375,8 @@
     "retry": "Retry",
     "fetchRecent": "Fetch last 10 days",
     "errorLabel": "Error: {message}",
+    "refreshReport": "Last refresh: {pushed} from push, {pulled} from direct fetch",
+    "refreshPullFailed": "Direct fetch unavailable: {message}",
     "lastSync": {
       "justNow": "a few seconds ago",
       "minutes": "{n}m ago",
