@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0.9rem 1rem;
+  padding: 1.1rem 1.2rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -222,13 +222,13 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-color);
 }
 
 .agg__value {
-  font-size: 1.15rem;
+  font-size: 1.45rem;
   font-weight: 600;
   color: var(--text-color);
   white-space: nowrap;
@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
 
 .agg__chart {
   position: relative;
-  height: 150px;
+  height: 210px;
 }
 
 .agg__thin {

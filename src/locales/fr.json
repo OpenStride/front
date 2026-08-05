@@ -497,6 +497,23 @@
       "distance": "Distance",
       "duration": "Durée",
       "count": "Activités"
+    },
+    "layout": {
+      "open": "Organiser cette page",
+      "lead": "Choisissez ce que cette page affiche, et dans quel ordre.",
+      "show": "Afficher {name}",
+      "up": "Monter {name}",
+      "down": "Descendre {name}",
+      "reset": "Revenir à l'ordre par défaut",
+      "names": {
+        "aggregates": "Mes agrégats",
+        "extensions": "Sections des extensions",
+        "summary": "Résumé",
+        "heatmap": "Calendrier d'activité",
+        "trends": "Tendances",
+        "distribution": "Répartition",
+        "records": "Records personnels"
+      }
     }
   },
   "setupBanner": {

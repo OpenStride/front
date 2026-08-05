@@ -247,7 +247,7 @@ onUnmounted(() => {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
   gap: 0.8rem;
   padding: 0;
   margin: 0;

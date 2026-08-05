@@ -497,6 +497,23 @@
       "distance": "Distance",
       "duration": "Duration",
       "count": "Activities"
+    },
+    "layout": {
+      "open": "Arrange this page",
+      "lead": "Choose what this page shows, and in which order.",
+      "show": "Show {name}",
+      "up": "Move {name} up",
+      "down": "Move {name} down",
+      "reset": "Back to the default order",
+      "names": {
+        "aggregates": "My aggregates",
+        "extensions": "Extension sections",
+        "summary": "Summary",
+        "heatmap": "Activity calendar",
+        "trends": "Trends",
+        "distribution": "Distribution",
+        "records": "Personal records"
+      }
     }
   },
   "setupBanner": {
