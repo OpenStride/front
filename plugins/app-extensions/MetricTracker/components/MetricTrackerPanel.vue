@@ -12,30 +12,39 @@
     </div>
 
     <template v-else>
-      <div class="controls">
-        <label class="control">
-          <span class="control-label">{{ t('metricTracker.metric') }}</span>
-          <select v-model="selectedMetricId" class="metric-select" data-test="metric-select">
-            <optgroup :label="t('metricTracker.groups.direct')">
-              <option v-for="m in DIRECT_METRICS" :key="m.id" :value="m.id">
-                {{ metricLabel(m) }}
-              </option>
-            </optgroup>
-            <optgroup :label="t('metricTracker.groups.bestTimes')">
-              <option v-for="m in DERIVED_METRICS" :key="m.id" :value="m.id">
-                {{ metricLabel(m) }}
-              </option>
-            </optgroup>
-            <!-- Nothing to show until the reader has defined one, so the group
-                 stays out rather than sitting there empty. -->
-            <optgroup v-if="customMetrics.length" :label="t('metricTracker.groups.custom')">
-              <option v-for="m in customMetrics" :key="m.id" :value="m.id">
-                {{ metricLabel(m) }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
+      <!-- Primary question — what am I looking at. Given the prominence the rest
+           of the controls used to compete with. -->
+      <div class="mt-primary">
+        <label class="primary-label" for="metric-select">{{ t('metricTracker.metric') }}</label>
+        <select
+          id="metric-select"
+          v-model="selectedMetricId"
+          class="metric-select"
+          data-test="metric-select"
+        >
+          <optgroup :label="t('metricTracker.groups.direct')">
+            <option v-for="m in DIRECT_METRICS" :key="m.id" :value="m.id">
+              {{ metricLabel(m) }}
+            </option>
+          </optgroup>
+          <optgroup :label="t('metricTracker.groups.bestTimes')">
+            <option v-for="m in DERIVED_METRICS" :key="m.id" :value="m.id">
+              {{ metricLabel(m) }}
+            </option>
+          </optgroup>
+          <!-- Nothing to show until the reader has defined one, so the group
+               stays out rather than sitting there empty. -->
+          <optgroup v-if="customMetrics.length" :label="t('metricTracker.groups.custom')">
+            <option v-for="m in customMetrics" :key="m.id" :value="m.id">
+              {{ metricLabel(m) }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
 
+      <!-- Secondary — how to slice it. Demoted onto a recessed bar so it reads
+           as an adjustment of the metric above, not as a rival to it. -->
+      <div class="mt-secondary">
         <div class="control">
           <span class="control-label">{{ t('metricTracker.granularity') }}</span>
           <ChipSelect
@@ -88,19 +97,32 @@
 
         <template v-else>
           <div class="summary">
-            <div class="summary-item">
-              <span class="summary-label">{{ t('metricTracker.summary.best') }}</span>
-              <span class="summary-value">{{ metric.format(summary.best) }}</span>
+            <div class="mini best">
+              <span class="mini-label">{{ t('metricTracker.summary.best') }}</span>
+              <span class="mini-value">{{ metric.format(summary.best) }}</span>
             </div>
-            <div class="summary-item">
-              <span class="summary-label">{{ t('metricTracker.summary.average') }}</span>
-              <span class="summary-value">{{ metric.format(summary.average) }}</span>
+            <div class="mini">
+              <span class="mini-label">{{ t('metricTracker.summary.average') }}</span>
+              <span class="mini-value">{{ metric.format(summary.average) }}</span>
             </div>
-            <div class="summary-item">
-              <span class="summary-label">{{ t('metricTracker.summary.points') }}</span>
-              <span class="summary-value">{{ summary.count }}</span>
+            <div class="mini">
+              <span class="mini-label">{{ t('metricTracker.summary.points') }}</span>
+              <span class="mini-value">{{ summary.count }}</span>
             </div>
           </div>
+
+          <!-- The chart changes its mark with the granularity and can flip its
+               axis for a metric where lower is better. Say which, so the reader
+               is not left to infer the language from the shape. -->
+          <p class="chart-caption">
+            <span class="legend">
+              <span class="legend-dot" aria-hidden="true"></span>
+              {{ chartMode }}
+            </span>
+            <span v-if="metric.betterIsLower" class="hint-pill">
+              {{ t('metricTracker.chart.lowerBetter') }}
+            </span>
+          </p>
 
           <MetricSeriesChart
             :points="points"
@@ -281,6 +303,14 @@ const labels = computed(() =>
 
 const summary = computed(() => summarize(points.value, metric.value))
 
+// The chart draws one point per activity at the finest granularity, and an
+// aggregated curve otherwise — the caption names whichever is on screen.
+const chartMode = computed(() =>
+  selectedGranularity.value === 'activity'
+    ? t('metricTracker.chart.perActivity')
+    : t('metricTracker.chart.aggregated')
+)
+
 // Details and index are only built when the selected metric actually needs
 // them. Immediate, because the activities may already be loaded from a
 // previous visit — in which case the watcher would never fire on its own.
@@ -360,42 +390,68 @@ watch(
   opacity: 0.7;
 }
 
-.controls {
+/* Primary tier — the metric, given room and weight of its own. */
+.mt-primary {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  gap: 1.2rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.9rem;
 }
 
-.control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.control-label {
-  font-size: 0.75rem;
+.primary-label {
+  font-family: var(--font-condensed);
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-color);
-  opacity: 0.65;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
 }
 
 .metric-select {
-  padding: 0.4rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid var(--color-green-200);
-  background: var(--bg-color);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-green-500);
+  background: var(--surface);
   color: var(--text-color);
-  font-family: var(--font-main);
-  font-size: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: var(--shadow-card);
 }
 
 .metric-select:focus-visible {
   outline: 2px solid var(--color-green-500);
   outline-offset: 1px;
+}
+
+/* Secondary tier — how to slice it, on a recessed bar. */
+.mt-secondary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1.2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-label {
+  font-family: var(--font-condensed);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
 }
 
 .tracker-state.indexing {
@@ -427,40 +483,90 @@ watch(
   flex-direction: column;
 }
 
+/* The three figures as real bordered tiles, the best one picked out — not the
+   flat green columns that floated between the controls and the chart. */
 .summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.8rem;
-  margin-bottom: 1.2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 1rem;
 }
 
-.summary-item {
+.mini {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
 }
 
-.summary-label {
-  font-size: 0.75rem;
+.mini.best {
+  background: var(--color-green-50);
+  border-color: var(--color-green-200);
+}
+
+.mini-label {
+  font-family: var(--font-condensed);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-color);
-  opacity: 0.65;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
 }
 
-.summary-value {
-  font-size: 1.15rem;
+.mini-value {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+}
+
+.mini.best .mini-value {
   color: var(--color-green-600);
 }
 
+.chart-caption {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--color-green-500);
+}
+
+.hint-pill {
+  padding: 0.1rem 0.6rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-color);
+  opacity: 0.85;
+}
+
 @media (max-width: 640px) {
-  .controls {
-    gap: 1rem;
+  .mt-secondary {
+    gap: 0.9rem;
   }
 
   .summary {
-    gap: 1.2rem;
+    grid-template-columns: 1fr;
   }
 }
 </style>

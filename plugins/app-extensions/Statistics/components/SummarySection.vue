@@ -40,58 +40,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
-import { periodKey } from '@/utils/dateKeys'
 import { formatCompactDuration } from '@/utils/duration'
-import type { AggregationMetricDefinition, AggregationPeriod } from '@/types/aggregation'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { AggregationMetricDefinition } from '@/types/aggregation'
+import { useSummaryTotals } from '../composables/useSummaryTotals'
 
 const { t } = useI18n()
-const { storage, aggregation, units } = usePluginContext()
+const { units } = usePluginContext()
 
 defineProps<{
   /** Only to say so when the tiles ignore it — see the caption. */
   selectedSport: string
 }>()
 
-/**
- * The totals the page opens on, read from the aggregation store.
- *
- * Every other section of this page groups the activity list on the fly. This
- * one does not: `ctx.aggregation` keeps a running sum per period, updated by
- * the activity events themselves, so the figure is there before anything is
- * scanned. It is also the only reader left of that store since the Progression
- * widget was folded into the metric tracker — and a store nothing reads is a
- * store nothing notices when it drifts.
- */
-const PERIODS: AggregationPeriod[] = ['week', 'month', 'year']
-
-/**
- * The metrics this section registers, named by their base id.
- *
- * Labels are looked up at render time rather than stored: the config is
- * replicated, so a stored French string would follow the user who wrote it onto
- * every other device. `dimension` is what the renderer converts through — a
- * stored unit and factor would be a second, preference-blind copy of the
- * conversion table.
- */
-const BASE_METRICS = [
-  { id: 'distance', sourceRef: 'distance', unit: 'm', dimension: 'distance', decimals: 1 },
-  { id: 'duration', sourceRef: 'duration', unit: 's', decimals: 0 },
-  {
-    id: 'totalAscent',
-    sourceRef: 'stats.totalAscent',
-    unit: 'm',
-    dimension: 'elevation',
-    decimals: 0
-  }
-] as const
-
-const period = ref<AggregationPeriod>('week')
-const definitions = ref<AggregationMetricDefinition[]>([])
-const values = ref<Record<string, number>>({})
+// The reconcile / rebuild / subscribe lifecycle lives in the composable, shared
+// with the dashboard KPI band so the running totals are read in one place.
+const { period, definitions, values, PERIODS, BASE_METRICS } = useSummaryTotals('week')
 
 /** One SI value, as the pair the tile prints. */
 function displayOf(
@@ -127,141 +93,6 @@ const tiles = computed(() =>
     }
   })
 )
-
-// ── Loading ─────────────────────────────────────────────────────────────────
-
-/**
- * Bring the stored definitions in line with what this section expects.
- *
- * Reconciled every time, not merely completed when absent: a config written by
- * an older version stays frozen in its old shape otherwise — it still carries
- * `displayUnit`/`displayFactor` and no `dimension`, so a distance renders as
- * raw metres, and because nothing "changed" the aggregates are never rebuilt
- * either. `enabled` is the one field a user can own, so it is preserved.
- */
-async function reconcileMetrics(): Promise<boolean> {
-  const metrics = aggregation.listMetrics()
-  let changed = false
-
-  for (const base of BASE_METRICS) {
-    for (const p of PERIODS) {
-      const id = `${p}_${base.id}`
-      const expected = {
-        sourceRef: base.sourceRef,
-        aggregation: 'sum' as const,
-        periods: [p],
-        unit: base.unit,
-        decimals: base.decimals,
-        dimension: 'dimension' in base ? base.dimension : undefined
-      }
-      const existing = metrics.find(m => m.id === id)
-
-      if (!existing) {
-        metrics.push({ id, label: base.id, enabled: true, ...expected })
-        changed = true
-        continue
-      }
-
-      const stale =
-        existing.sourceRef !== expected.sourceRef ||
-        existing.unit !== expected.unit ||
-        existing.decimals !== expected.decimals ||
-        existing.dimension !== expected.dimension ||
-        'displayFactor' in existing ||
-        'displayUnit' in existing
-
-      if (!stale) continue
-
-      Object.assign(existing, expected)
-      // Drop what the type no longer knows about, so the shape converges.
-      delete (existing as Record<string, unknown>).displayFactor
-      delete (existing as Record<string, unknown>).displayUnit
-      changed = true
-    }
-  }
-  if (!changed) return false
-
-  await storage.saveData('aggregationConfig', { metrics })
-  await aggregation.loadConfigFromSettings()
-  return true
-}
-
-async function rebuildFromScratch() {
-  // `exportDB` cannot know what a store holds, so the shape is asserted once
-  // here rather than smuggled through `Record<string, unknown>` at the call.
-  const activities = (await storage.exportDB('activities')) as Activity[]
-  const allDetails = (await storage.exportDB('activity_details')) as ActivityDetails[]
-  const detailsMap = new Map<string, ActivityDetails | null>()
-  for (const d of allDetails) {
-    if (d?.id) detailsMap.set(d.id, d)
-  }
-  await aggregation.rebuildAll(activities, detailsMap)
-}
-
-/**
- * The aggregate of the period the reader is in, not of the last one on record.
- *
- * A tile that silently showed a fortnight-old week would read as this week's
- * total. A week with nothing in it has a total, and that total is zero.
- *
- * Returns whether the store holds no aggregate at all for these definitions.
- */
-async function loadTotals(): Promise<{ empty: boolean }> {
-  const enabled = aggregation
-    .listMetrics()
-    .filter(m => m.enabled && m.periods.includes(period.value))
-  definitions.value = enabled
-
-  const currentKey = periodKey(new Date(), period.value)
-  const next: Record<string, number> = {}
-  let records = 0
-
-  await Promise.all(
-    enabled.map(async def => {
-      const stored = await aggregation.getAggregated(def.id, period.value)
-      records += stored.length
-      next[def.id] = stored.find(r => r.periodKey === currentKey)?.value ?? 0
-    })
-  )
-
-  values.value = next
-  return { empty: records === 0 }
-}
-
-let unsubscribe: (() => void) | null = null
-
-watch(period, () => {
-  void loadTotals()
-})
-
-onMounted(async () => {
-  const reconciled = await reconcileMetrics()
-  if (reconciled) await rebuildFromScratch()
-
-  const { empty } = await loadTotals()
-  // A definition can exist with no aggregate behind it — the aggregation is
-  // event-driven, so activities imported before the metric was registered were
-  // never counted. Rebuilding once here is what turns a section of zeroes into
-  // a section of figures; `rebuildAll` purges first, so it cannot double-count.
-  if (empty) {
-    const activities = await storage.exportDB('activities')
-    if (activities.length > 0) {
-      await rebuildFromScratch()
-      await loadTotals()
-    }
-  }
-
-  // An import lands as activity events, which the aggregation turns into new
-  // records; without this the tiles would keep the figures of page load.
-  unsubscribe = aggregation.subscribe(() => {
-    void loadTotals()
-  })
-})
-
-onUnmounted(() => {
-  unsubscribe?.()
-  unsubscribe = null
-})
 </script>
 
 <style scoped>

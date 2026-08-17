@@ -168,6 +168,12 @@
       "average": "Moyenne",
       "points": "Points"
     },
+    "chart": {
+      "perActivity": "1 point = 1 séance",
+      "aggregated": "Moyenne par période",
+      "trend": "tendance",
+      "lowerBetter": "axe inversé — plus bas = mieux"
+    },
     "openFullPage": "Ouvrir la page complète"
   },
   "profile": {
@@ -438,6 +444,13 @@
   },
   "statistics": {
     "title": "Tableau de bord",
+    "dashboard": {
+      "title": "Résumé",
+      "volume": "Volume",
+      "records": "Records",
+      "recordsFoot": "records établis",
+      "vsPrevious": "vs période précédente"
+    },
     "allSports": "Tous les sports",
     "noData": "Aucune donnée disponible",
     "noDataHint": "Importez des activités pour voir vos statistiques",

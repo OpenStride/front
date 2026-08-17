@@ -19,31 +19,50 @@
       <p class="hint">{{ t('statistics.noDataHint') }}</p>
     </div>
 
-    <div v-else class="statistics-sections">
-      <!-- First: what the reader chose to follow. The built-in sections answer
-           the questions everyone has, this one answers theirs. -->
-      <CustomAggregatesSection :selected-sport="selectedSport" :activities="filteredActivities" />
+    <div v-else class="dash-grid">
+      <!-- The coup d'œil first: the running totals and record count, at a glance,
+           before any chart asks to be read. -->
+      <DashboardSummary
+        class="cell-full"
+        :activities="filteredActivities"
+        :selected-sport="selectedSport"
+      />
 
-      <!-- Plugins that answer the same question as this page render here. Right
-           under the aggregates rather than at the bottom: the metric tracker is
-           where one becomes a curve, and a chart five sections below the figure
-           it explains is a chart nobody connects to it. -->
+      <!-- The activity calendar sits right under the summary — the shape of the
+           training block, before the sections that break it down. -->
+      <CalendarHeatmap class="cell-full" :activities="filteredActivities" />
+
+      <!-- Plugins that answer the same question as this page render here (the
+           metric tracker). Full width: it is where a figure becomes a curve. -->
       <component
         :is="section"
         v-for="(section, i) in sectionComponents"
         :key="`section-${i}`"
+        class="cell-full"
         :sport="selectedSport"
       />
 
-      <SummarySection :selected-sport="selectedSport" />
-      <CalendarHeatmap :activities="filteredActivities" />
-      <TrendsSection :activities="filteredActivities" />
+      <!-- The two breakdowns share a row on the desktop grid. -->
+      <TrendsSection class="cell-half" :activities="filteredActivities" />
       <DistributionSection
+        class="cell-half"
         :activities="filteredActivities"
         :all-activities="allActivities"
         :selected-sport="selectedSport"
       />
-      <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
+
+      <PersonalRecordsSection
+        class="cell-full"
+        :activities="filteredActivities"
+        :selected-sport="selectedSport"
+      />
+
+      <!-- What the reader chose to follow closes the page. -->
+      <CustomAggregatesSection
+        class="cell-full"
+        :selected-sport="selectedSport"
+        :activities="filteredActivities"
+      />
     </div>
   </div>
 </template>
@@ -54,7 +73,7 @@ import { useI18n } from 'vue-i18n'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useStatisticsData } from '../composables/useStatisticsData'
 import SportFilter from './SportFilter.vue'
-import SummarySection from './SummarySection.vue'
+import DashboardSummary from './DashboardSummary.vue'
 import TrendsSection from './TrendsSection.vue'
 import DistributionSection from './DistributionSection.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
@@ -71,9 +90,9 @@ const sectionComponents = computed(() => rawSections.value)
 
 <style scoped>
 .statistics-page {
-  max-width: 900px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
+  padding: 1.5rem 1rem 3rem;
 }
 
 .statistics-header {
@@ -126,23 +145,32 @@ const sectionComponents = computed(() => rawSections.value)
   opacity: 0.7;
 }
 
-.statistics-sections {
-  display: flex;
-  flex-direction: column;
+/* A two-column dashboard grid rather than one tall column: the summary and the
+   calendar span the full width, the two breakdowns share a row, and everything
+   collapses to a single column on a phone. `align-items: start` keeps a short
+   card from stretching to match a tall neighbour in its row. */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
+  align-items: start;
 }
 
-/* Mobile : les sections vont d'un bord à l'autre, comme les cartes de « Mes
-   activités ». La marge latérale de la page disparaît donc, et l'en-tête la
-   reprend pour lui seul. */
-@media (max-width: 640px) {
-  .statistics-page {
-    padding-left: 0;
-    padding-right: 0;
+.cell-full {
+  grid-column: 1 / -1;
+}
+
+.cell-half {
+  grid-column: span 1;
+}
+
+@media (max-width: 720px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
   }
 
-  .statistics-header {
-    padding: 0 1rem;
+  .cell-half {
+    grid-column: 1 / -1;
   }
 }
 </style>
