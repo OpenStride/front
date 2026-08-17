@@ -319,24 +319,31 @@ const recordCount = computed(() => records.value.length)
   color: var(--text-faint);
 }
 
+/* Mobile is the main surface, so the coup d'œil stays a compact 2×2 rather
+   than four full-width blocks stacked below the fold. The hero is one tile
+   among the four, not a banner — kept down to 420px so it never becomes a
+   single tall column. */
 @media (max-width: 720px) {
   .tiles {
     grid-template-columns: 1fr 1fr;
   }
 
-  .hero {
-    grid-column: 1 / -1;
-    min-height: 7rem;
+  .hero,
+  .tile {
+    min-height: 5.4rem;
+    padding: 0.7rem 0.8rem;
   }
 
   .hero-value {
-    font-size: 2.2rem;
+    font-size: 1.85rem;
   }
-}
 
-@media (max-width: 420px) {
-  .tiles {
-    grid-template-columns: 1fr;
+  .tile-value {
+    font-size: 1.5rem;
+  }
+
+  .toggle-btn {
+    min-height: 40px;
   }
 }
 </style>

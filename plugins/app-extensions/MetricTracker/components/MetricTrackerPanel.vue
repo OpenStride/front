@@ -561,12 +561,43 @@ watch(
 }
 
 @media (max-width: 640px) {
-  .mt-secondary {
-    gap: 0.9rem;
+  /* Mobile is the main surface. Stack the slice controls and let each chip
+     group scroll sideways instead of wrapping into a tall block; give the
+     native metric picker the full width for an easy tap. */
+  .mt-primary {
+    gap: 0.5rem;
   }
 
+  .metric-select {
+    width: 100%;
+  }
+
+  .mt-secondary {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .control {
+    min-width: 0;
+  }
+
+  .control-label {
+    flex: 0 0 5rem;
+  }
+
+  .control :deep(.chip-select) {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  /* Three short figures stay on one line rather than three stacked rows. */
   .summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
   }
 }
 </style>
