@@ -168,6 +168,12 @@
       "average": "Average",
       "points": "Points"
     },
+    "chart": {
+      "perActivity": "1 point = 1 session",
+      "aggregated": "Average per period",
+      "trend": "trend",
+      "lowerBetter": "inverted axis — lower is better"
+    },
     "openFullPage": "Open the full page"
   },
   "profile": {
@@ -438,6 +444,13 @@
   },
   "statistics": {
     "title": "Metrics Dashboard",
+    "dashboard": {
+      "title": "Summary",
+      "volume": "Volume",
+      "records": "Records",
+      "recordsFoot": "records held",
+      "vsPrevious": "vs previous period"
+    },
     "allSports": "All sports",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
