@@ -36,6 +36,23 @@ describe('calendarRange', () => {
     })
   })
 
+  it('bounds the current week from Monday to Monday', () => {
+    // NOW is a Saturday: the week it belongs to opened on Monday the 20th
+    expect(calendarRange('week', NOW)).toEqual({
+      key: getISOWeekKey(NOW),
+      start: new Date(2026, 6, 20).getTime(),
+      end: new Date(2026, 6, 27).getTime()
+    })
+  })
+
+  it('keeps a Sunday in the week that opened the Monday before it', () => {
+    const sunday = new Date(2026, 6, 26, 23, 30)
+    expect(calendarRange('week', sunday).start).toBe(new Date(2026, 6, 20).getTime())
+    expect(calendarRange('week', new Date(2026, 6, 27)).start).toBe(
+      new Date(2026, 6, 27).getTime()
+    )
+  })
+
   it('rolls over at period boundaries', () => {
     expect(calendarRange('quarter', new Date(2026, 2, 31)).key).toBe('2026-Q1')
     expect(calendarRange('quarter', new Date(2026, 3, 1)).key).toBe('2026-Q2')

@@ -75,6 +75,7 @@ import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { formatCompactDuration } from '@/utils/duration'
 import type { Activity } from '@/types/activity'
+import { calendarRange, inRange } from '@/utils/timeRange'
 import { useSummaryTotals } from '../composables/useSummaryTotals'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
 import type { RecordPeriod } from '../types'
@@ -129,16 +130,30 @@ function delta(base: string) {
 const distanceDelta = computed(() => delta('distance'))
 const durationDelta = computed(() => delta('duration'))
 
-// The record count follows the sport filter (unlike the totals), so it agrees
-// with the records table lower on the page. All-time, so it counts the records
-// currently held rather than only those set this week.
+// The records follow the sport filter (unlike the totals), so the tile agrees
+// with the records table lower on the page. Collected all-time: a record set
+// last year is still the record, and only an all-time list can say whether the
+// one set this week still stands.
 const allPeriod = ref<RecordPeriod>('all')
 const { records } = usePersonalRecords(
   toRef(props, 'activities'),
   toRef(props, 'selectedSport'),
   allPeriod
 )
-const recordCount = computed(() => records.value.length)
+
+/**
+ * How many of those records were set inside the period on show.
+ *
+ * Counting the records *held* looked hardcoded, and effectively was: only eight
+ * distances are tracked, so any regular runner saw a permanent "8" that no
+ * outing could ever move. Dated into the period, the figure answers the
+ * question the rest of the band answers — what did this week do — and moves
+ * when a session earns it.
+ */
+const recordCount = computed(() => {
+  const range = calendarRange(period.value)
+  return records.value.filter(record => inRange(record.date, range)).length
+})
 </script>
 
 <style scoped>

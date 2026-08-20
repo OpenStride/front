@@ -1,3 +1,5 @@
+import { getISOWeekKey } from './dateKeys'
+
 /**
  * Time windows: which activities are in scope.
  *
@@ -6,7 +8,7 @@
  * week" is a legitimate combination of the two.
  */
 
-export type CalendarPeriod = 'month' | 'quarter' | 'year'
+export type CalendarPeriod = 'week' | 'month' | 'quarter' | 'year'
 
 export interface TimeRange {
   /** Inclusive lower bound in ms, null when open */
@@ -44,9 +46,25 @@ export function openRange(): KeyedTimeRange {
   return { start: null, end: null, key: 'all' }
 }
 
-/** The current calendar month, quarter or year, in local time */
+/** The current calendar week, month, quarter or year, in local time */
 export function calendarRange(period: CalendarPeriod, now: Date = new Date()): BoundedTimeRange {
   const year = now.getFullYear()
+
+  if (period === 'week') {
+    // Monday to Monday, like every other week in the app — the aggregation keys
+    // and the calendar heatmap both start their week there. `getISOWeekKey`
+    // owns the week numbering so this file does not grow a second copy of it.
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    const nextMonday = new Date(monday)
+    nextMonday.setDate(nextMonday.getDate() + 7)
+
+    return {
+      key: getISOWeekKey(monday),
+      start: monday.getTime(),
+      end: nextMonday.getTime()
+    }
+  }
 
   if (period === 'month') {
     const month = now.getMonth()
