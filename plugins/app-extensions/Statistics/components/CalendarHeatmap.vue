@@ -248,6 +248,9 @@ const cells = computed(() => {
 
 .heatmap-controls {
   display: flex;
+  /* Three toggles no longer fit side by side on a 320px screen, and an
+     unwrapped row pushed the last one off the card. */
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 1rem;
 }

@@ -156,6 +156,15 @@ const sectionComponents = computed(() => rawSections.value)
   align-items: start;
 }
 
+/* A card never widens the column it sits in. A grid item's automatic minimum
+   size is its min-content, so one wide child — the calendar's year of 12px
+   cells, a chart's own width — used to push the track past the viewport and
+   drag every other card off-screen with it. The tracks are already
+   `minmax(0, …)`; this is the same floor on the items. */
+.dash-grid > * {
+  min-width: 0;
+}
+
 .cell-full {
   grid-column: 1 / -1;
 }
@@ -165,8 +174,11 @@ const sectionComponents = computed(() => rawSections.value)
 }
 
 @media (max-width: 720px) {
+  /* `minmax(0, 1fr)`, not `1fr`: a bare `1fr` is `minmax(auto, 1fr)`, whose
+     floor is the widest card's min-content — which is how the phone layout
+     ended up 828px wide inside a 390px screen. */
   .dash-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .cell-half {
