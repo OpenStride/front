@@ -51,7 +51,11 @@ function onChange(event: Event) {
 
 .sport-select {
   padding: 0.35rem 0.8rem;
-  border-radius: var(--radius-pill);
+  /* The radius of a form control on this page, not of a chip: the period
+     toggle right below and the section toggles further down all sit at
+     `--radius-sm`, and the cards behind them are square. A pill here was
+     inherited from the chips it replaced and read as a foreign object. */
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-green-200);
   background: var(--surface);
   color: var(--text-color);

@@ -410,7 +410,9 @@ watch(
 
 .metric-select {
   padding: 0.5rem 0.9rem;
-  border-radius: var(--radius-pill);
+  /* Same family as the page's other select. What makes this one primary is its
+     size, its weight and its green border — not a rounder corner. */
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-green-500);
   background: var(--surface);
   color: var(--text-color);
