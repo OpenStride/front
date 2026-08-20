@@ -452,6 +452,7 @@
       "vsPrevious": "vs previous period"
     },
     "allSports": "All sports",
+    "sportFilter": "Filter by sport",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
     "summary": {

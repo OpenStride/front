@@ -95,7 +95,15 @@ const sectionComponents = computed(() => rawSections.value)
   padding: 1.5rem 1rem 3rem;
 }
 
+/* Title and filter on one line: the filter is an adjustment of the page, not a
+   section of it, and as a block of its own it pushed the first figure below the
+   fold on a phone. */
 .statistics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
@@ -103,10 +111,13 @@ const sectionComponents = computed(() => rawSections.value)
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-color);
-  margin: 0 0 1rem;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* The title yields before the filter does: truncating "Metrics Dashboard" is
+     better than wrapping the control onto its own row. */
+  min-width: 0;
 }
 
 .statistics-title i {
@@ -171,6 +182,14 @@ const sectionComponents = computed(() => rawSections.value)
 
 .cell-half {
   grid-column: span 1;
+}
+
+@media (max-width: 640px) {
+  /* Enough off the title for it to keep the filter company on one line at a
+     phone's width; it wraps below it only on the narrowest screens. */
+  .statistics-title {
+    font-size: 1.15rem;
+  }
 }
 
 @media (max-width: 720px) {

@@ -403,7 +403,7 @@ Detailed documentation available in the `docs/` folder:
 | ----------------------------- | ------------------------------------------------------------ |
 | **ROADMAP_TECHNIQUE.md**      | Technical roadmap: security, quality, tests, performance     |
 | **DEPLOYMENT.md**             | Deployment guide: Firebase Hosting, CI/CD, rollback          |
-| **DESIGN_GUIDELINES.md**      | Design system rules: colors, icons, accessibility            |
+| **DESIGN_GUIDELINES.md**      | Design system rules: colors, icons, radii, accessibility     |
 | **PLUGIN_GUIDELINES.md**      | Plugin development: DI patterns, forbidden imports, examples |
 | **GOOGLE_DRIVE_SETUP.md**     | Google Drive API key setup for friend sharing                |
 | **E2E_TESTING_GUIDE.md**      | Cypress E2E testing guide                                    |

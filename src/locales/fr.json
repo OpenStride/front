@@ -452,6 +452,7 @@
       "vsPrevious": "vs période précédente"
     },
     "allSports": "Tous les sports",
+    "sportFilter": "Filtrer par sport",
     "noData": "Aucune donnée disponible",
     "noDataHint": "Importez des activités pour voir vos statistiques",
     "summary": {
