@@ -153,7 +153,17 @@ function createOrUpdate() {
         x: {
           grid: { display: false },
           border: { display: false },
-          ticks: { ...tickStyle(), autoSkip: true, maxTicksLimit: 12, maxRotation: 0 }
+          ticks: {
+            ...tickStyle(),
+            autoSkip: true,
+            // A pixel gap, not just a count: twelve dates fit a desktop card
+            // and ran into each other on a phone, where two labels printed as
+            // one unreadable string. The padding lets Chart.js drop as many
+            // as the width actually requires.
+            autoSkipPadding: 16,
+            maxTicksLimit: 12,
+            maxRotation: 0
+          }
         },
         y: {
           reverse: !!props.metric.betterIsLower,

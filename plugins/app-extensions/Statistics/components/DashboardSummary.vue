@@ -27,8 +27,10 @@
           {{ distance.value }}<small>{{ distance.unit }}</small>
         </span>
         <span v-if="distanceDelta" class="delta" :class="distanceDelta.dir">
-          <i :class="distanceDelta.icon" aria-hidden="true"></i>
-          {{ distanceDelta.text }}
+          <span class="delta-value">
+            <i :class="distanceDelta.icon" aria-hidden="true"></i>
+            {{ distanceDelta.text }}
+          </span>
           <span class="delta-note">{{ t('statistics.dashboard.vsPrevious') }}</span>
         </span>
       </div>
@@ -37,8 +39,10 @@
         <span class="tile-label">{{ t('statistics.summary.metrics.duration') }}</span>
         <span class="tile-value">{{ duration }}</span>
         <span v-if="durationDelta" class="delta" :class="durationDelta.dir">
-          <i :class="durationDelta.icon" aria-hidden="true"></i>
-          {{ durationDelta.text }}
+          <span class="delta-value">
+            <i :class="durationDelta.icon" aria-hidden="true"></i>
+            {{ durationDelta.text }}
+          </span>
         </span>
       </div>
 
@@ -281,11 +285,22 @@ const recordCount = computed(() => records.value.length)
 
 .delta {
   display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.35rem;
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+/* The figure and its arrow are one word. Left as loose inline text they broke
+   apart on a narrow tile — the caret on one line, "73" on the next, "%" on a
+   third — which read as three unrelated fragments. */
+.delta-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .delta.up {

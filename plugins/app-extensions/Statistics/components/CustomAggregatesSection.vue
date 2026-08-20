@@ -247,7 +247,10 @@ onUnmounted(() => {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  /* `min(19rem, 100%)`, not `19rem`: a bare 19rem track is wider than a 320px
+     phone's card, so the column overflowed instead of collapsing to the width
+     available. */
+  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
   gap: 0.8rem;
   padding: 0;
   margin: 0;

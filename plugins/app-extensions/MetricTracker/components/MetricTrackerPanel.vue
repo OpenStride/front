@@ -574,30 +574,53 @@ watch(
 
   .mt-secondary {
     flex-direction: column;
+    /* `nowrap` matters as much as the direction: the base rule wraps, and a
+       wrapping column container sizes its line on the widest control rather
+       than on the bar, so each row stretched to its own content width and hung
+       off the side of the card instead of stretching to it. */
+    flex-wrap: nowrap;
     align-items: stretch;
     gap: 0.6rem;
   }
 
+  /* The label goes above its chips rather than beside them. Holding a 5rem
+     label column left barely 240px for the chips, and the sideways scroll that
+     compensated cut the last chip through the middle of its word — a phone
+     reader could not see that "Mo…" was "Month", nor that anything followed
+     it. Stacked, the chips get the full width and simply wrap. */
   .control {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
     min-width: 0;
-  }
-
-  .control-label {
-    flex: 0 0 5rem;
   }
 
   .control :deep(.chip-select) {
-    flex: 1 1 auto;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    flex-wrap: wrap;
   }
 
-  /* Three short figures stay on one line rather than three stacked rows. */
+  /* A chip breaking into two lines read as two chips. */
+  .control :deep(.chip) {
+    white-space: nowrap;
+    min-height: 2.25rem;
+  }
+
+  /* Three short figures stay on one line rather than three stacked rows —
+     which only holds if a figure never wraps inside its tile. Below roughly
+     360px three tiles cannot hold a pace without breaking it, so the row
+     becomes two and the third figure drops under them. */
   .summary {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
     gap: 0.5rem;
+  }
+
+  .mini {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .mini-value {
+    font-size: 1.05rem;
+    white-space: nowrap;
   }
 }
 </style>
