@@ -118,6 +118,11 @@ now checked by a test rather than by goodwill:
 - **ALWAYS** use CSS variables from `src/assets/styles/variables.css` -- NEVER hardcode colors
 - **ALWAYS** use Font Awesome 6 (Free) -- NEVER use emojis in production code
 - **ALWAYS** add `aria-hidden="true"` to icon elements
+- **ALWAYS** take a radius from the `--radius-*` scale -- NEVER a hardcoded `px`. A
+  control (select, input, toggle) is `--radius-sm`, an inner surface is
+  `--radius-md`, a content card is square, and `--radius-pill` belongs to chips
+  alone. Two controls sitting next to each other share a radius: a pill beside a
+  5px toggle reads as a foreign component
 
 ### Sports & units (see docs/SPORT_AND_UNITS.md)
 

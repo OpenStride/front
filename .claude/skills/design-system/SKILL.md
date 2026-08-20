@@ -52,6 +52,31 @@ ALWAYS with `aria-hidden="true"`:
 
 FORBIDDEN: emojis in production code
 
+## Radii -- CSS Variables Required
+
+Source: `src/assets/styles/variables.css` (`@theme` block)
+
+```css
+var(--radius-sm)    /* 5px  - CONTROLS: selects, inputs, toggle buttons, badges */
+var(--radius-md)    /* 12px - inner surfaces: tiles, insets, modals */
+var(--radius-lg)    /* 16px - highlighted metric blocks */
+var(--radius-pill)  /* 999px - CHIPS ONLY */
+/* content cards (.section-card, .acard) are square: border-radius: 0 */
+```
+
+Rules:
+
+1. A content card is square. Deliberate, not an oversight.
+2. `--radius-pill` is for a chip, whose shape IS its function. A select or a bar
+   button is never a pill, however primary it is -- weight and border carry that.
+3. Two neighbouring controls share a radius. Look at what sits next to yours
+   before writing one.
+
+FORBIDDEN: `border-radius: 6px`, `border-radius: 20px`, `var(--border-radius)`
+(that token does not exist -- the property is dropped and the corner squares off)
+
+Full rules: `docs/DESIGN_GUIDELINES.md` -> "Rayons (arrondis)"
+
 ## Accessibility
 
 ```html

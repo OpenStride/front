@@ -5,6 +5,7 @@ Ce document définit les règles de design pour maintenir la cohérence visuelle
 ## Table des matières
 - [Couleurs](#couleurs)
 - [Icônes](#icônes)
+- [Rayons (arrondis)](#rayons-arrondis)
 - [Typographie](#typographie)
 - [Espacement](#espacement)
 
@@ -288,6 +289,93 @@ grep -rP "[\x{1F300}-\x{1F9FF}]" src/ plugins/ --color=always
 
 ---
 
+## Rayons (arrondis)
+
+### Règle Générale
+
+**TOUJOURS** un token `--radius-*` de `variables.css`, **JAMAIS** une valeur en dur.
+
+Un arrondi n'est pas un réglage libre : c'est ce qui dit à quelle famille
+appartient un élément. Deux contrôles côte à côte qui ne partagent pas leur
+rayon se lisent comme deux composants étrangers l'un à l'autre — c'est ce qui
+est arrivé au filtre de sport du tableau de bord, en pill à côté de boutons de
+bascule à 5 px.
+
+### L'Échelle
+
+| Token            | Valeur | Famille                                                             |
+| ---------------- | ------ | ------------------------------------------------------------------- |
+| `--radius-sm`    | 5px    | **Contrôles** : selects, inputs, boutons de bascule, petits badges  |
+| `--radius-md`    | 12px   | **Surfaces internes** : tuiles, encarts, modales, blocs recessés    |
+| `--radius-lg`    | 16px   | Blocs métriques mis en avant                                         |
+| `--radius-xl`    | 24px   | Rare — grandes surfaces                                              |
+| `--radius-2xl`   | 30px   | Cadre mobile                                                         |
+| `--radius-pill`  | 999px  | **Chips et pastilles uniquement**                                    |
+| `0`              | —      | **Cartes de contenu** (`.section-card`, `.acard`) : carré assumé     |
+| `50%`            | —      | Avatars et points ronds                                              |
+
+### Les Trois Règles
+
+#### 1. Une carte de contenu est carrée
+
+`.section-card` et `.acard` portent `border-radius: 0`. C'est un choix, pas un
+oubli : ne pas l'arrondir « pour faire doux ».
+
+#### 2. Le pill est réservé à ce dont la forme EST la fonction
+
+Une chip est un pill. Un select, un bouton de barre, un champ ne le sont pas —
+même quand ils veulent attirer l'œil. Ce qui rend un contrôle primaire, c'est sa
+taille, sa graisse et sa bordure, pas un rayon plus rond.
+
+#### 3. Deux contrôles voisins partagent leur rayon
+
+Avant d'écrire un `border-radius`, regarder ce que porte le contrôle d'à côté.
+Un select posé au-dessus d'une rangée de boutons de bascule prend le rayon de
+ces boutons.
+
+```css
+/* ❌ MAUVAIS */
+.sport-select {
+  border-radius: 999px; /* pill, à côté de toggles à 5px */
+}
+.tile {
+  border-radius: 10px; /* valeur inventée, hors échelle */
+}
+
+/* ✅ BON */
+.sport-select {
+  border-radius: var(--radius-sm);
+}
+.tile {
+  border-radius: var(--radius-md);
+}
+```
+
+### Pièges
+
+- **`--border-radius` et `--border-radius-sm` n'existent pas.** Quelques
+  composants écrivent `var(--border-radius)` : le token n'étant défini nulle
+  part, la propriété est invalide et l'élément rend un angle droit — un carré
+  involontaire, pas un choix. Les tokens s'appellent `--radius-*`.
+- **Les tokens vivent dans le bloc `@theme`** de `variables.css`, pas dans
+  `:root` : Tailwind injecte ses propres `--radius-*` après le fichier et
+  écraserait les nôtres. Voir le commentaire sur place avant d'en déplacer un.
+- L'existant n'est pas entièrement aligné (des `6px`, `20px`, `3px` en dur
+  traînent encore). La règle vaut pour tout code neuf ou touché ; migrer le
+  reste au fil des passages, pas en une fois.
+
+### Règle de Vérification
+
+```bash
+# Rayons en dur (hors 50%, légitime pour un rond)
+grep -rn "border-radius: *[0-9]" src plugins --include=*.vue --include=*.css | grep -v "50%"
+
+# Tokens fantômes
+grep -rn "var(--border-radius" src plugins --include=*.vue --include=*.css
+```
+
+---
+
 ## Typographie
 
 ### Règles à venir
@@ -310,6 +398,6 @@ grep -rP "[\x{1F300}-\x{1F9FF}]" src/ plugins/ --color=always
 
 ---
 
-**Version**: 1.0
-**Dernière mise à jour**: Janvier 2026
+**Version**: 1.1
+**Dernière mise à jour**: Août 2026
 **Mainteneur**: Équipe OpenStride
