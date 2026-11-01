@@ -61,9 +61,8 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      # The Cypress binary is ~220 MB. actions/cache treats a failed save as a
-      # warning; the Cypress action's own cache treats it as fatal, and a GitHub
-      # cache hiccup on a cold key failed this job before the dev server started.
+      # The Cypress binary is ~220 MB. Cached here rather than by the Cypress
+      # action, whose own cache save treats a GitHub cache hiccup as fatal.
       - uses: actions/cache@v4
         with:
           path: ~/.cache/Cypress
@@ -72,12 +71,18 @@ jobs:
       # npm ci also downloads the Cypress binary when the cache missed.
       - run: npm ci
 
+      # 127.0.0.1, not localhost. On the runner localhost is both ::1 and
+      # 127.0.0.1, so Node 20 races the two; while the dev server is still
+      # starting that ends in ERR_SOCKET_CLOSED_BEFORE_CONNECTION rather than
+      # ECONNREFUSED, which the action's ping does not retry — it gave up on
+      # the first attempt. One address fails as ECONNREFUSED and is retried.
       - uses: cypress-io/github-action@v7.0.0
         with:
           install: false
-          start: npm run dev
-          wait-on: 'http://localhost:3000'
+          start: npm run dev -- --host 127.0.0.1 --strictPort
+          wait-on: 'http://127.0.0.1:3000'
           wait-on-timeout: 120
+          config: baseUrl=http://127.0.0.1:3000
           browser: chrome
 
       - uses: actions/upload-artifact@v6.0.0
