@@ -73,6 +73,15 @@ vi.mock('@/services/IndexedDBService', () => {
       this.stores[store] = existing
     }
 
+    async deleteFromStore(store: string, key: string) {
+      this.stores[store] = (this.stores[store] || []).filter((item: any) => item.id !== key)
+    }
+
+    async deleteMultipleFromStore(store: string, keys: string[]) {
+      const drop = new Set(keys)
+      this.stores[store] = (this.stores[store] || []).filter((item: any) => !drop.has(item.id))
+    }
+
     async clearStore(store: string) {
       this.stores[store] = []
     }
@@ -702,6 +711,161 @@ describe('AggregationService', () => {
       expect(weekRecords).toHaveLength(1)
       expect(weekRecords[0].value).toBe(10000) // Only new activity
       expect(weekRecords[0].count).toBe(1)
+    })
+  })
+
+  describe('Idempotence (one activity counted once)', () => {
+    beforeEach(async () => {
+      const metrics: AggregationMetricDefinition[] = [
+        {
+          id: 'total-distance',
+          label: 'Total Distance',
+          enabled: true,
+          sourceRef: 'distance',
+          aggregation: 'sum',
+          periods: ['week'],
+          unit: 'm'
+        }
+      ]
+      await db.saveData('aggregationConfig', { metrics })
+      await service.loadConfigFromSettings()
+    })
+
+    const weekValue = async () => {
+      const records = await service.getAggregated('total-distance', 'week')
+      return records.map(r => ({ key: r.periodKey, value: r.value, count: r.count }))
+    }
+
+    it('does not double-count an activity saved twice (re-import, sync pull)', async () => {
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await service.addActivityForAggregation(activity, null)
+      await service.addActivityForAggregation({ ...activity, version: 1 }, null)
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 10000, count: 1 }])
+    })
+
+    it('replaces the old figure when an activity is edited', async () => {
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await service.addActivityForAggregation(activity, null)
+      await service.addActivityForAggregation({ ...activity, distance: 12000 }, null)
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 12000, count: 1 }])
+    })
+
+    it('moves an activity whose date changed out of its old week', async () => {
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await service.addActivityForAggregation(activity, null)
+      await service.addActivityForAggregation(
+        { ...activity, startTime: new Date('2026-01-22T08:00:00').getTime() },
+        null
+      )
+
+      const byKey = Object.fromEntries((await weekValue()).map(r => [r.key, r.value]))
+      expect(byKey).toEqual({ '2026-W03': 0, '2026-W04': 10000 })
+    })
+
+    it('counts nothing for an activity saved as deleted (sync pull of a tombstone)', async () => {
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await service.addActivityForAggregation(activity, null)
+      await service.addActivityForAggregation({ ...activity, deleted: true }, null)
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 0, count: 0 }])
+    })
+
+    it('keeps every activity of a bulk save fired in the same tick', async () => {
+      const start = new Date('2026-01-15T08:00:00').getTime()
+      await Promise.all(
+        [1, 2, 3].map(i =>
+          service.addActivityForAggregation(
+            createActivity({ id: `run-${i}`, startTime: start + i * 3600_000, distance: 5000 }),
+            null
+          )
+        )
+      )
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 15000, count: 3 }])
+    })
+
+    it('removing twice does not go below what was counted', async () => {
+      const keep = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 7000
+      })
+      const gone = createActivity({
+        id: 'run-2',
+        startTime: new Date('2026-01-15T18:00:00').getTime(),
+        distance: 5000
+      })
+      await service.addActivityForAggregation(keep, null)
+      await service.addActivityForAggregation(gone, null)
+      await service.removeActivityFromAggregation(gone, null)
+      await service.removeActivityFromAggregation(gone, null)
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 7000, count: 1 }])
+    })
+
+    it('rebuildAll skips soft-deleted activities', async () => {
+      const activities = [
+        createActivity({
+          id: 'run-1',
+          startTime: new Date('2026-01-15T08:00:00').getTime(),
+          distance: 7000
+        }),
+        createActivity({
+          id: 'run-2',
+          startTime: new Date('2026-01-15T18:00:00').getTime(),
+          distance: 5000,
+          deleted: true
+        })
+      ]
+      await service.rebuildAll(activities, new Map())
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 7000, count: 1 }])
+    })
+
+    it('asks for a rebuild until one has run, then no longer', async () => {
+      expect(await service.needsRebuild()).toBe(true)
+      await service.rebuildAll([], new Map())
+      expect(await service.needsRebuild()).toBe(false)
+    })
+
+    it('rebuildAll leaves custom aggregate records alone', async () => {
+      await service.replaceCustomAggregates(
+        ['custom-1'],
+        [
+          {
+            id: 'custom-1|week|2026-W03',
+            metricId: 'custom-1',
+            periodType: 'week',
+            periodKey: '2026-W03',
+            value: 42,
+            sum: 42,
+            count: 1,
+            lastUpdated: 1
+          }
+        ]
+      )
+      await service.rebuildAll([], new Map())
+
+      const custom = await service.getAggregated('custom-1', 'week')
+      expect(custom.map(r => r.value)).toEqual([42])
     })
   })
 

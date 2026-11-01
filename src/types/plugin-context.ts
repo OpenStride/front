@@ -175,6 +175,8 @@ export interface IAggregationService {
   listMetrics(): AggregationMetricDefinition[]
   rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>): Promise<void>
   loadConfigFromSettings(): Promise<void>
+  /** Whether the stored aggregates predate the current format and need `rebuildAll`. */
+  needsRebuild(): Promise<boolean>
   subscribe(
     cb: (ev: { metricId: string; periodType: AggregationPeriod; periodKey: string }) => void
   ): () => void

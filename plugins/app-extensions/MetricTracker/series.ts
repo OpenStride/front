@@ -13,6 +13,8 @@ interface Bucket {
   startTime: number
   numerators: number[]
   denominators: number[]
+  /** A period with no activity at all, added so the timeline has no holes. */
+  empty?: boolean
 }
 
 /** Read a metric path against the activity, its stats or the derived index */
@@ -58,17 +60,55 @@ function reduce(metric: MetricDefinition, bucket: Bucket): number | null {
   }
 }
 
+/** The start of the period after the one `date` sits in, local time. */
+function nextPeriod(date: Date, granularity: Exclude<Granularity, 'activity'>): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  if (granularity === 'week') d.setDate(d.getDate() + 7)
+  else if (granularity === 'month') d.setMonth(d.getMonth() + 1, 1)
+  else d.setFullYear(d.getFullYear() + 1, 0, 1)
+  return d
+}
+
+/**
+ * Give every period between the first one and `now` a bucket.
+ *
+ * A week without an outing is a week of zero kilometres, not a week that did
+ * not happen. Left out, the chart stitched the weeks either side together and
+ * the average counted only the weeks that had an activity: three runs of 10 km
+ * spread over six weeks read as "10 km a week" rather than five.
+ */
+function fillEmptyPeriods(
+  buckets: Map<string, Bucket>,
+  granularity: Exclude<Granularity, 'activity'>,
+  now: Date
+) {
+  if (buckets.size === 0) return
+  const first = Math.min(...Array.from(buckets.values(), b => b.startTime))
+  const lastKey = periodKey(now, granularity)
+  const last = Math.max(now.getTime(), ...Array.from(buckets.values(), b => b.startTime))
+
+  for (let d = new Date(first); d.getTime() <= last; d = nextPeriod(d, granularity)) {
+    const key = periodKey(d, granularity)
+    if (!buckets.has(key))
+      buckets.set(key, { startTime: d.getTime(), numerators: [], denominators: [], empty: true })
+    if (key === lastKey) break
+  }
+}
+
 /**
  * Group activities into buckets and collapse each one into a plot-ready point.
  *
  * A bucket that holds activities but no usable value keeps its slot with a null
  * value, so the chart shows a gap rather than silently shifting the timeline.
+ * A summed metric also gets a zero for every period with no activity at all,
+ * up to the current one — see `fillEmptyPeriods`.
  */
 export function buildSeries(
   activities: Activity[],
   sources: MetricSources,
   metric: MetricDefinition,
-  granularity: Granularity
+  granularity: Granularity,
+  now: Date = new Date()
 ): SeriesPoint[] {
   const buckets = new Map<string, Bucket>()
 
@@ -97,9 +137,12 @@ export function buildSeries(
     }
   }
 
+  const summed = metric.periodOp === 'sum' && granularity !== 'activity'
+  if (summed) fillEmptyPeriods(buckets, granularity, now)
+
   return Array.from(buckets.entries())
     .map(([key, bucket]) => {
-      const raw = reduce(metric, bucket)
+      const raw = bucket.empty ? 0 : reduce(metric, bucket)
       return {
         key,
         startTime: bucket.startTime,

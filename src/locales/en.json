@@ -118,7 +118,7 @@
     "home": "Home",
     "profile": "Profile",
     "appExtensions": "App Extensions",
-    "statistics": "Metrics Dashboard",
+    "statistics": "Dashboard",
     "metricTracker": "Metric Tracker"
   },
   "metricTracker": {
@@ -443,7 +443,7 @@
     "failed": "Update failed. Please try again."
   },
   "statistics": {
-    "title": "Metrics Dashboard",
+    "title": "Dashboard",
     "dashboard": {
       "title": "Summary",
       "volume": "Volume",
@@ -477,7 +477,8 @@
       "week": "Week",
       "month": "Month",
       "year": "Year",
-      "distanceLabel": "Distance"
+      "distanceLabel": "Distance",
+      "weekShort": "W{week} ’{year}"
     },
     "distribution": {
       "title": "Distribution",
@@ -510,7 +511,8 @@
       "more": "More",
       "distance": "Distance",
       "duration": "Duration",
-      "count": "Activities"
+      "count": "Activities",
+      "activityCount": "no activity | {n} activity | {n} activities"
     }
   },
   "setupBanner": {
@@ -923,7 +925,7 @@
       "description": "Heart rate, cadence, speed graphs and zones for each outing."
     },
     "statistics": {
-      "label": "Metrics Dashboard",
+      "label": "Dashboard",
       "description": "Your metrics in one place: trends, distributions, personal records and an activity calendar."
     },
     "firebase-notifications": {

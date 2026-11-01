@@ -178,7 +178,9 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
 
   onMounted(async () => {
     const reconciled = await reconcileMetrics()
-    if (reconciled) await rebuildFromScratch()
+    // Aggregates written before the contribution ledger double-counted every
+    // re-saved activity; they are recomputed once rather than trusted.
+    if (reconciled || (await aggregation.needsRebuild())) await rebuildFromScratch()
 
     const { empty } = await loadTotals()
     // A definition can exist with no aggregate behind it — the aggregation is

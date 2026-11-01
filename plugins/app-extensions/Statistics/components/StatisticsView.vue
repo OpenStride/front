@@ -115,7 +115,7 @@ const sectionComponents = computed(() => rawSections.value)
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  /* The title yields before the filter does: truncating "Metrics Dashboard" is
+  /* The title yields before the filter does: truncating "Tableau de bord" is
      better than wrapping the control onto its own row. */
   min-width: 0;
 }

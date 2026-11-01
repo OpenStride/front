@@ -35,6 +35,15 @@ export function formatWeekday(timestamp: number): string {
   return formatDate(timestamp, { weekday: 'short' })
 }
 
+/**
+ * One-letter weekday for a calendar row. `isoDay` runs 1 (Monday) to 7 (Sunday),
+ * the order the rows of a Monday-first calendar are in.
+ */
+export function weekdayNarrow(isoDay: number): string {
+  // 2021-02-01 was a Monday.
+  return formatDate(Date.UTC(2021, 1, isoDay), { weekday: 'narrow', timeZone: 'UTC' })
+}
+
 /** Abbreviated month name for an axis label. `month` is 0-based, like `Date`. */
 export function monthShort(month: number): string {
   // Any year works — only the month is read. 2021 is not a leap year, so day 1
