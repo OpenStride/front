@@ -1,151 +1,194 @@
 name: CI
 
+# One workflow for every change, and the only road to production.
+#
+# A pull request runs the checks, the end-to-end suite and a build, then
+# publishes that build to a preview channel. A push to main runs the same three
+# and, only when all of them are green, hands over to `release.yml`. The deploy
+# used to start on the push itself, in parallel with the checks, so a red main
+# shipped anyway.
+
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
-# Cancel in-progress runs when a new workflow with the same group name is triggered
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+  # A new push to a pull request makes the running checks moot. On main every
+  # run ends in a release, so none is interrupted halfway through a deploy.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
-  lint-and-typecheck:
-    name: Lint and Type Check
+  checks:
+    name: Format, lint, types, unit tests, audit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.2.0
+      - uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      # The Cypress binary is the e2e job's business; downloading it here was
+      # half of this job's install time.
+      - run: npm ci
+        env:
+          CYPRESS_INSTALL_BINARY: 0
 
-      - name: Run ESLint
-        run: npm run lint
-
+      - run: npm run format:check
+      - run: npm run lint
       # vue-tsc, not tsc: plain tsc cannot parse a single-file component, so it
-      # silently skipped every .vue in the repo. A property deleted from an
-      # interface stayed referenced in templates with nothing to report it.
-      - name: Run TypeScript type check
-        run: npm run typecheck
+      # silently skipped every .vue in the repo.
+      - run: npm run typecheck
+      # The coverage thresholds live in vitest.config.ts and fail the run.
+      - run: npx vitest run --coverage
+      # Production dependencies only: devDependencies never reach a browser.
+      - run: npm audit --omit=dev --audit-level=high
 
-  unit-tests:
-    name: Unit Tests
+  e2e:
+    name: End-to-end tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.2.0
+      - uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests with coverage
-        run: npm run test:unit -- --coverage --run
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v6.0.0
-        if: always()
+      # The Cypress binary is ~220 MB. Cached here rather than by the Cypress
+      # action, whose own cache save treats a GitHub cache hiccup as fatal.
+      - uses: actions/cache@v4
         with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 7
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - name: Check coverage thresholds
+      # npm ci also downloads the Cypress binary when the cache missed.
+      - run: npm ci
+
+      # The dev server is started and awaited here rather than by the action.
+      # The action's own wait failed at once with "Socket closed before the
+      # connection was established" — before vite had printed anything, and
+      # whether the URL said localhost or 127.0.0.1 — so it never got to say
+      # why. curl retries a refused connection, and the vite log shows up in
+      # the job if the server does not come up.
+      - name: Start the dev server
         run: |
-          echo "Checking coverage thresholds (60% statements, 60% lines, 60% functions, 50% branches)"
-          # Coverage thresholds are configured in vitest.config.ts
+          nohup npm run dev -- --host 127.0.0.1 --strictPort > vite.log 2>&1 &
+          if ! curl --silent --fail --output /dev/null \
+              --retry 60 --retry-delay 2 --retry-connrefused --retry-all-errors \
+              http://127.0.0.1:3000/; then
+            echo "::error::the dev server did not answer on 127.0.0.1:3000"
+            cat vite.log
+            exit 1
+          fi
+          echo "dev server up"
 
-  e2e-tests:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.2.0
+      - uses: cypress-io/github-action@v7.0.0
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Cypress binary
-        run: npx cypress install
-
-      - name: Run Cypress E2E tests
-        uses: cypress-io/github-action@v7.0.0
-        with:
-          start: npm run dev
-          wait-on: 'http://localhost:3000'
-          wait-on-timeout: 120
+          install: false
+          config: baseUrl=http://127.0.0.1:3000
           browser: chrome
 
-      - name: Upload Cypress screenshots
-        uses: actions/upload-artifact@v6.0.0
+      - name: Dev server log
+        if: failure()
+        run: cat vite.log
+
+      - uses: actions/upload-artifact@v6.0.0
         if: failure()
         with:
           name: cypress-screenshots
           path: cypress/screenshots/
           retention-days: 7
 
-      - name: Upload Cypress videos
-        uses: actions/upload-artifact@v6.0.0
-        if: always()
-        with:
-          name: cypress-videos
-          path: cypress/videos/
-          retention-days: 7
-
-  build-validation:
-    name: Build Validation
+  build:
+    name: Production build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.2.0
+      - uses: actions/setup-node@v6.2.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+        env:
+          CYPRESS_INSTALL_BINARY: 0
 
-      - name: Build production
-        run: npm run build:prod
+      - run: npm run build:prod
         env:
           VITE_APP_BASE_URL: https://openstride.org
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          VITE_GOOGLE_DRIVE_API_KEY: ${{ secrets.VITE_GOOGLE_DRIVE_API_KEY }}
+          VITE_GARMIN_CLIENT_ID: ${{ secrets.VITE_GARMIN_CLIENT_ID }}
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v6.0.0
+      # What Lighthouse was meant to catch, measured where it can still stop a
+      # merge: a PWA that quietly doubles its JavaScript is slower to install
+      # and to update on every phone. 1.74 MiB when the budget was set.
+      - name: Bundle size budget
+        run: |
+          test -f dist/index.html || { echo "::error::dist/index.html is missing"; exit 1; }
+          BUDGET_KIB=2000
+          JS_KIB=$(find dist -name '*.js' -printf '%s\n' | awk '{s+=$1} END {printf "%d", s/1024}')
+          echo "JavaScript: ${JS_KIB} KiB (budget ${BUDGET_KIB} KiB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$JS_KIB" -gt "$BUDGET_KIB" ]; then
+            echo "::error::JavaScript bundle is ${JS_KIB} KiB, over the ${BUDGET_KIB} KiB budget"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v6.0.0
         with:
           name: dist
           path: dist/
           retention-days: 7
 
-      - name: Verify build output
-        run: |
-          echo "Checking build output..."
-          ls -lah dist/
-          if [ ! -f "dist/index.html" ]; then
-            echo "Error: index.html not found in dist/"
-            exit 1
-          fi
-          echo "Build validation successful"
+  preview:
+    name: Preview channel
+    needs: build
+    # Secrets are not handed to forks or to Dependabot, and the deploy needs them.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      # firebase.json, which says what to publish.
+      - uses: actions/checkout@v6.0.1
+
+      # The very build the checks ran against, not a second one.
+      - uses: actions/download-artifact@v6.0.0
+        with:
+          name: dist
+          path: dist/
+
+      # The action comments the preview URL on the pull request and updates that
+      # one comment on later pushes. The channel expires by itself after 7 days.
+      - uses: FirebaseExtended/action-hosting-deploy@v0.10.0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+          projectId: openstrive-edd63
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
+
+  release:
+    name: Release
+    needs: [checks, e2e, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      checks: write
+      pull-requests: read
+    uses: ./.github/workflows/release.yml
+    secrets: inherit

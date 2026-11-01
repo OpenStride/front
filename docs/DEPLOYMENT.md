@@ -221,84 +221,44 @@ OpenStride utilise GitHub Actions pour automatiser les tests, le build et le dé
 
 ### Workflows Automatiques
 
-#### 1. CI Pipeline (.github/workflows/ci.yml)
+#### 1. CI (.github/workflows/ci.yml)
 
-**Déclencheurs** : Pull requests + push sur main
+**Déclencheurs** : toutes les pull requests + push sur main
 
-**Jobs parallèles** :
-- Lint & TypeCheck : Validation ESLint + TypeScript strict
-- Unit Tests : Tests Vitest avec coverage (minimum 60%)
-- E2E Tests : Tests Cypress (Chrome)
-- Build Validation : Vérification du build production
+**Jobs** :
+- `checks` : Prettier, ESLint, `vue-tsc`, tests Vitest avec seuils de couverture
+  (60 % lignes / statements / fonctions, 50 % branches — `vitest.config.ts`),
+  `npm audit --omit=dev --audit-level=high`
+- `e2e` : tests Cypress (Chrome)
+- `build` : build production + budget de taille du JavaScript (2000 KiB)
+- `preview` (PR uniquement) : publie le build du job `build` sur le canal
+  `pr-{NUMBER}`, qui expire seul après 7 jours. L'action Firebase commente l'URL
+  sur la PR. Pas de preview pour les forks ni Dependabot (pas de secrets).
+- `release` (main uniquement) : appelle `release.yml`, **seulement si `checks`,
+  `e2e` et `build` sont verts**
 
-**Durée** : 3-5 minutes
+#### 2. Release (.github/workflows/release.yml)
 
-#### 2. Code Quality (.github/workflows/code-quality.yml)
+**Déclencheurs** : appelé par la CI sur main, ou à la main (Actions → Release → Run workflow)
 
-**Déclencheurs** : Pull requests + push sur main
+**Étapes** :
+- Version = dernier tag `v*` + bump (`patch` par défaut, labels `release:minor` / `release:major`)
+- Build production avec `APP_VERSION`
+- Déploiement Firebase Hosting (live)
+- Déploiement des Functions, seulement si `functions/` a changé depuis le dernier tag
+- Tag `vX.Y.Z` poussé en dernier : un tag désigne toujours ce qui est en ligne
 
-**Vérifications** :
-- Prettier : Formatage du code
-- ESLint : Qualité du code
-- TypeScript : Type checking strict
+**Redéployer sans nouvelle version** : lancer Release à la main avec `bump: none`.
 
-#### 3. Security Audit (.github/workflows/security-audit.yml)
+#### Sécurité
 
-**Déclencheurs** : Daily (9h UTC) + pull requests + push sur main
-
-**Audits** :
-- npm audit : Vulnérabilités des dépendances (fail sur high/critical)
-- CodeQL : Analyse de sécurité statique (SAST)
-- Dependency Review : Revue des nouvelles dépendances (PRs uniquement)
-
-#### 4. Deploy Production (.github/workflows/deploy-production.yml)
-
-**Déclencheur** : Push sur main (automatique après CI)
-
-**Actions** :
-- Build production avec VITE_APP_BASE_URL=https://openstride.org
-- Déploiement vers Firebase Hosting (live channel)
-- Vérification post-déploiement
-
-**URL** : https://openstride.org
-
-**Durée** : 2-3 minutes
-
-#### 5. Deploy Preview (.github/workflows/deploy-preview.yml)
-
-**Déclencheurs** : Pull requests (opened, synchronize, reopened)
-
-**Actions** :
-- Build production
-- Déploiement vers Firebase preview channel (pr-{NUMBER})
-- Commentaire PR avec URL de preview
-- Cleanup automatique à la fermeture PR
-
-**Format URL** : https://openstrive-edd63--pr-{NUMBER}-{HASH}.web.app
-
-**Expiration** : 7 jours
-
-#### 7. Lighthouse Performance (.github/workflows/lighthouse.yml)
-
-**Déclencheur** : Après déploiement production réussi
-
-**Budgets** :
-- Performance : ≥90
-- PWA : ≥100
-- Accessibility : ≥90
-- Best Practices : ≥90
-- SEO : ≥90
+- `npm audit` dans le job `checks` (bloquant sur high / critical, dépendances de prod)
+- Dependabot (`.github/dependabot.yml`) : mises à jour npm et GitHub Actions groupées, chaque lundi
+- CodeQL : à activer en « default setup » dans Settings → Code security
 
 ### Déploiement Manuel (Fallback)
 
 Si GitHub Actions est down ou pour un déploiement urgent :
-
-#### Via GitHub Actions UI
-
-1. Aller sur Actions → Deploy Production
-2. Cliquer "Run workflow"
-3. Sélectionner la branche main
-4. Cliquer "Run workflow"
 
 #### Via CLI Local
 
@@ -321,7 +281,6 @@ Ces secrets doivent être configurés dans **GitHub Repository Settings → Secr
 |--------|-------------|-----------|
 | `FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE` | Service account JSON Firebase | Firebase Console → Project Settings → Service Accounts → Generate new private key |
 | `VITE_GOOGLE_DRIVE_API_KEY` | API key Google Drive | Voir [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md) |
-| `FIREBASE_TOKEN` (optionnel) | Token CLI Firebase pour cleanup preview | `firebase login:ci` |
 
 ### Procédure de Rollback
 

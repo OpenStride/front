@@ -1,6 +1,8 @@
 version: 2
 updates:
-  # Production dependencies
+  # One npm entry: Dependabot refuses two updates sharing an ecosystem and a
+  # directory, and the split into production / development entries had kept it
+  # from opening a single pull request. The split is now the groups'.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -15,23 +17,6 @@ updates:
         update-types:
           - minor
           - patch
-    commit-message:
-      prefix: chore
-      include: scope
-    labels:
-      - dependencies
-      - production
-
-  # Development dependencies
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: '09:00'
-      timezone: Europe/Paris
-    open-pull-requests-limit: 5
-    groups:
       development-dependencies:
         dependency-type: development
         update-types:
@@ -42,9 +27,7 @@ updates:
       include: scope
     labels:
       - dependencies
-      - development
 
-  # GitHub Actions
   - package-ecosystem: github-actions
     directory: /
     schedule:

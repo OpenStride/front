@@ -151,21 +151,29 @@ now checked by a test rather than by goodwill:
   releases with nothing to report it. `tsconfig` includes `plugins/**/*.vue` for
   the same reason.
 
-### Versioning & Releases (auto-bump)
+### CI/CD & Releases
 
-**La version est gérée automatiquement.** Ne JAMAIS bumper manuellement `package.json`.
+Deux workflows portent tout (`.github/workflows/`) :
 
-- Chaque merge sur `main` déclenche `.github/workflows/version-bump.yml` (patch par défaut)
-- Labels PR : `release:major`, `release:minor` pour override le type de bump
-- Le workflow commit `chore(release): vX.Y.Z`, crée le tag, et déploie en prod
-- `deploy-production.yml` reste dispo en `workflow_dispatch` pour redeploy manuel sans bump
-- **Ne JAMAIS** modifier `version` dans `package.json`, créer de commits `chore: bump version`, ou créer de tags `v*` manuellement
-- **Laisser le déploiement finir avant de merger la PR suivante.** Le workflow
-  rebase et réessaie désormais, mais deux merges à quelques secondes d'écart ont
-  déjà cassé la chaîne : le run partait d'un `main` devenu obsolète, poussait le
-  tag et se faisait rejeter la branche. Résultat, un tag orphelin, un
-  `package.json` jamais bumpé, et **quatre merges livrés nulle part**. Vérifier
-  qu'un tag `vX.Y.Z` est apparu avant d'enchaîner.
+- **`ci.yml`**, sur chaque PR et chaque push sur `main` : un job `checks`
+  (prettier, lint, `vue-tsc`, tests unitaires avec seuils de couverture,
+  `npm audit` des dépendances de prod), un job `e2e` (Cypress), un job `build`
+  (build prod + budget de taille du JS). Sur une PR, ce build part sur un canal
+  de preview Firebase. Sur `main`, **la prod ne part que si les trois sont verts**.
+- **`release.yml`**, appelé par `ci.yml` : calcule la version depuis le dernier
+  tag `v*`, build avec `APP_VERSION`, déploie hosting (et les Functions seulement
+  si `functions/` a changé), puis pousse le tag. Lançable à la main depuis
+  l'onglet Actions ; `bump: none` redéploie sans nouvelle version.
+
+**La version vit dans les tags, pas dans `package.json`.**
+
+- Patch par défaut ; labels PR `release:minor`, `release:major` pour changer le bump
+- Ne JAMAIS créer de tag `v*` à la main, ni de commit de bump : le `version` de
+  `package.json` n'est plus mis à jour, et un build local affiche `X.Y.Z-dev`
+- Plus de commit `chore(release)` sur `main`, donc plus de course entre deux
+  merges rapprochés : on peut enchaîner les merges. Deux merges arrivés pendant
+  un déploiement partent ensemble, sous un seul numéro de version
+- Les workflows Android et iOS restent manuels (`workflow_dispatch`)
 
 ### Common Pitfalls
 
