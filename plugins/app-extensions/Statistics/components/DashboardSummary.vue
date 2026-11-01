@@ -23,16 +23,10 @@
       <!-- The one dark "ink" block: the headline figure. -->
       <div class="hero">
         <span class="hero-label">{{ t('statistics.dashboard.volume') }}</span>
-        <!-- Not a zero while the totals are being rebuilt: on a long history
-             that takes seconds, and a 0 reads as "you ran nothing". -->
-        <span v-if="loading" class="hero-value" data-test="summary-loading">
-          <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-          <span class="sr-only">{{ t('common.loading') }}</span>
-        </span>
-        <span v-else class="hero-value" data-test="summary-volume">
+        <span class="hero-value" data-test="summary-volume">
           {{ distance.value }}<small>{{ distance.unit }}</small>
         </span>
-        <span v-if="!loading && distanceDelta" class="delta" :class="distanceDelta.dir">
+        <span v-if="distanceDelta" class="delta" :class="distanceDelta.dir">
           <span class="delta-value">
             <i :class="distanceDelta.icon" aria-hidden="true"></i>
             {{ distanceDelta.text }}
@@ -43,8 +37,8 @@
 
       <div class="tile">
         <span class="tile-label">{{ t('statistics.summary.metrics.duration') }}</span>
-        <span class="tile-value">{{ loading ? '—' : duration }}</span>
-        <span v-if="!loading && durationDelta" class="delta" :class="durationDelta.dir">
+        <span class="tile-value">{{ duration }}</span>
+        <span v-if="durationDelta" class="delta" :class="durationDelta.dir">
           <span class="delta-value">
             <i :class="durationDelta.icon" aria-hidden="true"></i>
             {{ durationDelta.text }}
@@ -54,8 +48,7 @@
 
       <div class="tile">
         <span class="tile-label">{{ t('statistics.summary.metrics.totalAscent') }}</span>
-        <span v-if="loading" class="tile-value">—</span>
-        <span v-else class="tile-value"
+        <span class="tile-value"
           >{{ ascent.value }}<small>{{ ascent.unit }}</small></span
         >
       </div>
@@ -66,13 +59,6 @@
         <span class="tile-foot">{{ t('statistics.dashboard.recordsFoot') }}</span>
       </div>
     </div>
-
-    <!-- Said only when it needs saying: the aggregate has no sport axis, so with
-         a sport selected the totals are the one block that ignores the filter. -->
-    <p v-if="selectedSport" class="band-caption">
-      <i class="fas fa-circle-info" aria-hidden="true"></i>
-      {{ t('statistics.summary.allSports') }}
-    </p>
   </section>
 </template>
 
@@ -82,7 +68,10 @@ import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { formatCompactDuration } from '@/utils/duration'
 import type { Activity } from '@/types/activity'
-import { useSummaryTotals } from '../composables/useSummaryTotals'
+import type { AggregationPeriod } from '@/types/aggregation'
+import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
+import { SUMMARY_PERIODS } from '../composables/useSummaryTotals'
+import { periodTotals, type PeriodTotals } from '../periodTotals'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
 import type { RecordPeriod } from '../types'
 
@@ -91,15 +80,22 @@ const { units } = usePluginContext()
 
 const props = defineProps<{
   activities: Activity[]
-  /** The page's sport filter — honoured by the record count, not by the totals. */
+  /** The page's sport filter — `activities` is already filtered by it. */
   selectedSport: string
 }>()
 
-const { period, values, previousValues, loading, PERIODS } = useSummaryTotals('week')
+const PERIODS = SUMMARY_PERIODS
+const period = ref<AggregationPeriod>('week')
+const { derived } = useActivityMetricsIndex()
 
-/** The SI figure of the current period for a base metric. */
-const si = (base: string) => values.value[`${period.value}_${base}`] ?? 0
-const prevSi = (base: string) => previousValues.value[`${period.value}_${base}`] ?? 0
+const totals = computed(() =>
+  periodTotals(props.activities, period.value, id => derived.value.get(id)?.[DERIVED.ascent])
+)
+
+type Base = keyof Omit<PeriodTotals, 'count'>
+/** The SI figure of the current period. */
+const si = (base: Base) => totals.value.current[base]
+const prevSi = (base: Base) => totals.value.previous[base]
 
 const distance = computed(() => {
   const { value, unit } = units.convert('distance', si('distance'))
@@ -107,7 +103,7 @@ const distance = computed(() => {
 })
 
 const ascent = computed(() => {
-  const { value, unit } = units.convert('elevation', si('totalAscent'))
+  const { value, unit } = units.convert('elevation', si('ascent'))
   return { value: value.toFixed(0), unit }
 })
 
@@ -119,7 +115,7 @@ const duration = computed(() => formatCompactDuration(si('duration')))
  * Rendered only when the previous period carried a figure: a jump "from zero"
  * is a first outing, not a trend, and reads as a meaningless +100 %.
  */
-function delta(base: string) {
+function delta(base: Base) {
   const current = si(base)
   const previous = prevSi(base)
   if (previous <= 0) return null
@@ -136,7 +132,7 @@ function delta(base: string) {
 const distanceDelta = computed(() => delta('distance'))
 const durationDelta = computed(() => delta('duration'))
 
-// The record count follows the sport filter (unlike the totals), so it agrees
+// The record count follows the sport filter, like the totals, so it agrees
 // with the records table lower on the page. All-time, so it counts the records
 // currently held rather than only those set this week.
 const allPeriod = ref<RecordPeriod>('all')
@@ -330,15 +326,6 @@ const recordCount = computed(() => records.value.length)
   font-family: var(--font-main);
   font-weight: 400;
   color: rgba(255, 255, 255, 0.6);
-}
-
-.band-caption {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--text-faint);
 }
 
 /* Mobile is the main surface, so the coup d'œil stays a compact 2×2 rather
