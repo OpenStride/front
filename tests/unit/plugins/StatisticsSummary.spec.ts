@@ -64,6 +64,7 @@ function makeContext() {
       ),
       rebuildAll,
       loadConfigFromSettings: vi.fn(async () => {}),
+      needsRebuild: vi.fn(async () => false),
       subscribe: () => () => {}
     }
   }

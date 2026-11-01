@@ -92,6 +92,7 @@ export async function createPluginContext(): Promise<PluginContext> {
       listMetrics: () => aggregationService.listMetrics(),
       rebuildAll: (activities, detailsMap) => aggregationService.rebuildAll(activities, detailsMap),
       loadConfigFromSettings: () => aggregationService.loadConfigFromSettings(),
+      needsRebuild: () => aggregationService.needsRebuild(),
       subscribe: cb => aggregationService.subscribe(cb)
     },
 

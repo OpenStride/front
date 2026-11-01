@@ -26,6 +26,43 @@ function activityDate(activity: Activity): Date | null {
 }
 
 /**
+ * What one activity put into the period records, so it can be taken out again.
+ *
+ * Kept in `aggregatedData` beside the records it explains: the store is
+ * device-local and wiped by a rebuild, which is exactly the lifetime a ledger
+ * of those records needs. It carries no `metricId`, so no reader of the
+ * records ever sees it.
+ */
+interface ContributionEntry {
+  recordId: string
+  value: number
+  aggregation: AggregationMetricDefinition['aggregation']
+}
+
+interface ContributionLedger {
+  id: string
+  kind: 'contribution'
+  activityId: string
+  entries: ContributionEntry[]
+}
+
+interface LedgerMeta {
+  id: string
+  kind: 'meta'
+  version: number
+}
+
+type StoredRow = { id: string; kind?: string; metricId?: string }
+
+/** Bumped when stored aggregates must be rebuilt to be trusted again. */
+const LEDGER_VERSION = 1
+const LEDGER_META_ID = 'meta|aggregation-ledger'
+
+function ledgerId(activityId: string): string {
+  return `contribution|${activityId}`
+}
+
+/**
  * Event-driven aggregation service
  *
  * Listens to ActivityService events and incrementally updates aggregations.
@@ -38,6 +75,7 @@ export class AggregationService {
     (ev: { metricId: string; periodType: AggregationPeriod; periodKey: string }) => void
   >()
   private activityServiceListener: ((evt: Event) => void) | null = null
+  private queue: Promise<void> = Promise.resolve()
 
   static getInstance() {
     if (!this.instance) this.instance = new AggregationService()
@@ -120,15 +158,72 @@ export class AggregationService {
     return periodKey(date, period)
   }
 
-  async addActivityForAggregation(
+  /**
+   * Bring the aggregates in line with the current state of one activity.
+   *
+   * Idempotent: whatever this activity contributed before is retracted first,
+   * using the ledger rather than the activity at hand. That matters because an
+   * activity reaches this method many times over its life — a re-import, a
+   * sync pull, an edit — and each time used to add its distance once more, so
+   * a week walked twice by the sync read twice the kilometres. Retracting from
+   * the ledger also gets an edit right: an activity whose date or distance
+   * changed is removed from where it *was* counted, not from where it is now.
+   *
+   * A soft-deleted activity contributes nothing, so it only retracts.
+   */
+  addActivityForAggregation(
     activity: Activity | null,
     details: ActivityDetails | null | undefined
+  ): Promise<void> {
+    if (!activity) return Promise.resolve()
+    return this.serialize(async () => {
+      const db = await IndexedDBService.getInstance()
+      await this.retract(db, activity.id)
+      if (activity.deleted) return
+      await this.apply(db, activity, details)
+    })
+  }
+
+  /**
+   * Take an activity out of the aggregates (soft delete).
+   *
+   * Removes what the ledger says it contributed. Removing twice, or removing
+   * an activity that was never counted, changes nothing.
+   */
+  removeActivityFromAggregation(
+    activity: Activity | null,
+    _details?: ActivityDetails | null
+  ): Promise<void> {
+    if (!activity) return Promise.resolve()
+    return this.serialize(async () => {
+      const db = await IndexedDBService.getInstance()
+      await this.retract(db, activity.id)
+    })
+  }
+
+  /**
+   * Run aggregate writes one at a time.
+   *
+   * Every write is a read-modify-write of a period record. A bulk save emits
+   * one event per activity in the same tick, so two activities of the same
+   * week used to read the same record, each add their own distance to it, and
+   * the second write erased the first.
+   */
+  private serialize(task: () => Promise<void>): Promise<void> {
+    const run = this.queue.then(task)
+    this.queue = run.catch(() => undefined)
+    return run
+  }
+
+  private async apply(
+    db: IndexedDBService,
+    activity: Activity,
+    details: ActivityDetails | null | undefined
   ) {
-    if (!activity) return
     const date = activityDate(activity)
     if (!date) return
 
-    const db = await IndexedDBService.getInstance()
+    const entries: ContributionEntry[] = []
 
     for (const metric of this.metrics) {
       if (!metric.enabled) continue
@@ -164,57 +259,75 @@ export class AggregationService {
         record.value = metric.aggregation === 'avg' ? record.sum / record.count : record.sum
         record.lastUpdated = Date.now()
         await db.addItemsToStore('aggregatedData', [record], r => r.id)
+        entries.push({ recordId: id, value: numeric, aggregation: metric.aggregation })
         this.notify({ metricId: metric.id, periodType: p, periodKey: key })
       }
     }
+
+    if (entries.length === 0) return
+    const ledger: ContributionLedger = {
+      id: ledgerId(activity.id),
+      kind: 'contribution',
+      activityId: activity.id,
+      entries
+    }
+    await db.addItemsToStore('aggregatedData', [ledger], r => r.id)
+  }
+
+  private async retract(db: IndexedDBService, activityId: string) {
+    let ledger: ContributionLedger | null = null
+    try {
+      ledger = await db.getDataFromStore<ContributionLedger>('aggregatedData', ledgerId(activityId))
+    } catch {
+      /* nothing recorded */
+    }
+    if (!ledger || !Array.isArray(ledger.entries)) return
+
+    for (const entry of ledger.entries) {
+      let record: AggregatedRecord | null = null
+      try {
+        record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', entry.recordId)
+      } catch {
+        continue
+      }
+      if (!record) continue
+
+      record.sum -= entry.value
+      record.count = Math.max(0, record.count - 1)
+      if (record.count === 0) record.sum = 0
+      record.value =
+        record.count > 0
+          ? entry.aggregation === 'avg'
+            ? record.sum / record.count
+            : record.sum
+          : 0
+      record.lastUpdated = Date.now()
+      await db.addItemsToStore('aggregatedData', [record], r => r.id)
+      this.notify({
+        metricId: record.metricId,
+        periodType: record.periodType,
+        periodKey: record.periodKey
+      })
+    }
+
+    await db.deleteFromStore('aggregatedData', ledgerId(activityId))
   }
 
   /**
-   * Remove activity from aggregations (decrement counters)
-   * Called when an activity is soft-deleted
+   * Whether the stored aggregates predate the contribution ledger.
+   *
+   * Aggregates written before it cannot be corrected incrementally — nothing
+   * says what each activity put in — and were inflated by the double counting
+   * the ledger exists to stop. They are rebuilt once, from the activities.
    */
-  async removeActivityFromAggregation(
-    activity: Activity | null,
-    details: ActivityDetails | null | undefined
-  ) {
-    if (!activity) return
-    const date = activityDate(activity)
-    if (!date) return
-
+  async needsRebuild(): Promise<boolean> {
+    if (!this.metrics.some(m => m.enabled)) return false
     const db = await IndexedDBService.getInstance()
-
-    for (const metric of this.metrics) {
-      if (!metric.enabled) continue
-      const numeric = readActivitySource(metric.sourceRef, activity, details ?? undefined)
-      if (numeric === undefined) continue
-
-      for (const p of metric.periods) {
-        const key = this.periodKey(p, date)
-        const id = `${metric.id}|${p}|${key}`
-
-        let record: AggregatedRecord | null = null
-        try {
-          record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', id)
-        } catch {
-          // Record doesn't exist, nothing to remove
-          continue
-        }
-
-        if (!record) continue
-
-        // Decrement
-        record.sum -= numeric
-        record.count = Math.max(0, record.count - 1) // Prevent negative count
-        record.value =
-          record.count > 0
-            ? metric.aggregation === 'avg'
-              ? record.sum / record.count
-              : record.sum
-            : 0
-        record.lastUpdated = Date.now()
-        await db.addItemsToStore('aggregatedData', [record], r => r.id)
-        this.notify({ metricId: metric.id, periodType: p, periodKey: key })
-      }
+    try {
+      const meta = await db.getDataFromStore<LedgerMeta>('aggregatedData', LEDGER_META_ID)
+      return meta?.version !== LEDGER_VERSION
+    } catch {
+      return true
     }
   }
 
@@ -266,25 +379,40 @@ export class AggregationService {
     }
   }
 
-  async rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>) {
-    const db = await IndexedDBService.getInstance()
-    console.log(
-      '[AggregationService] rebuildAll activities:',
-      activities.length,
-      'details:',
-      detailsMap.size
-    )
-    // Reset all aggregatedData before rebuild
-    try {
-      await db.clearStore('aggregatedData')
-      console.log('[AggregationService] Purged all records from aggregatedData before rebuild')
-    } catch (err) {
-      console.warn('[AggregationService] Failed to purge aggregatedData before rebuild', err)
-    }
-    for (const act of activities) {
-      const det = detailsMap.get(act.id) || null
-      await this.addActivityForAggregation(act, det)
-    }
+  /**
+   * Recompute the built-in aggregates from the activities.
+   *
+   * Only the built-in records and their ledger are purged: the custom
+   * aggregates folded into the same store belong to the metrics index, which
+   * would otherwise leave their tiles empty until its next pass. Soft-deleted
+   * activities are skipped — `exportDB` hands them over with the rest.
+   */
+  rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>) {
+    return this.serialize(async () => {
+      const db = await IndexedDBService.getInstance()
+      const live = activities.filter(a => a && !a.deleted)
+      console.log(
+        '[AggregationService] rebuildAll activities:',
+        live.length,
+        'details:',
+        detailsMap.size
+      )
+      try {
+        const builtIn = new Set(this.metrics.map(m => m.id))
+        const existing = await db.getAllData<StoredRow>('aggregatedData')
+        const obsolete = existing
+          .filter(r => r.kind === 'contribution' || (r.metricId && builtIn.has(r.metricId)))
+          .map(r => r.id)
+        if (obsolete.length > 0) await db.deleteMultipleFromStore('aggregatedData', obsolete)
+      } catch (err) {
+        console.warn('[AggregationService] Failed to purge aggregatedData before rebuild', err)
+      }
+      for (const act of live) {
+        await this.apply(db, act, detailsMap.get(act.id) || null)
+      }
+      const meta: LedgerMeta = { id: LEDGER_META_ID, kind: 'meta', version: LEDGER_VERSION }
+      await db.addItemsToStore('aggregatedData', [meta], r => r.id)
+    })
   }
 }
 
