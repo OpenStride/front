@@ -71,19 +71,33 @@ jobs:
       # npm ci also downloads the Cypress binary when the cache missed.
       - run: npm ci
 
-      # 127.0.0.1, not localhost. On the runner localhost is both ::1 and
-      # 127.0.0.1, so Node 20 races the two; while the dev server is still
-      # starting that ends in ERR_SOCKET_CLOSED_BEFORE_CONNECTION rather than
-      # ECONNREFUSED, which the action's ping does not retry — it gave up on
-      # the first attempt. One address fails as ECONNREFUSED and is retried.
+      # The dev server is started and awaited here rather than by the action.
+      # The action's own wait failed at once with "Socket closed before the
+      # connection was established" — before vite had printed anything, and
+      # whether the URL said localhost or 127.0.0.1 — so it never got to say
+      # why. curl retries a refused connection, and the vite log shows up in
+      # the job if the server does not come up.
+      - name: Start the dev server
+        run: |
+          nohup npm run dev -- --host 127.0.0.1 --strictPort > vite.log 2>&1 &
+          if ! curl --silent --fail --output /dev/null \
+              --retry 60 --retry-delay 2 --retry-connrefused --retry-all-errors \
+              http://127.0.0.1:3000/; then
+            echo "::error::the dev server did not answer on 127.0.0.1:3000"
+            cat vite.log
+            exit 1
+          fi
+          echo "dev server up"
+
       - uses: cypress-io/github-action@v7.0.0
         with:
           install: false
-          start: npm run dev -- --host 127.0.0.1 --strictPort
-          wait-on: 'http://127.0.0.1:3000'
-          wait-on-timeout: 120
           config: baseUrl=http://127.0.0.1:3000
           browser: chrome
+
+      - name: Dev server log
+        if: failure()
+        run: cat vite.log
 
       - uses: actions/upload-artifact@v6.0.0
         if: failure()
