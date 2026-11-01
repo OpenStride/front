@@ -61,9 +61,20 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      # The action installs the dependencies and the Cypress binary itself.
+      # The Cypress binary is ~220 MB. actions/cache treats a failed save as a
+      # warning; the Cypress action's own cache treats it as fatal, and a GitHub
+      # cache hiccup on a cold key failed this job before the dev server started.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # npm ci also downloads the Cypress binary when the cache missed.
+      - run: npm ci
+
       - uses: cypress-io/github-action@v7.0.0
         with:
+          install: false
           start: npm run dev
           wait-on: 'http://localhost:3000'
           wait-on-timeout: 120
