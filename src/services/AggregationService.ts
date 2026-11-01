@@ -54,6 +54,12 @@ interface LedgerMeta {
 
 type StoredRow = { id: string; kind?: string; metricId?: string }
 
+interface Contribution extends ContributionEntry {
+  metricId: string
+  periodType: AggregationPeriod
+  periodKey: string
+}
+
 /** Bumped when stored aggregates must be rebuilt to be trusted again. */
 const LEDGER_VERSION = 1
 const LEDGER_META_ID = 'meta|aggregation-ledger'
@@ -215,53 +221,68 @@ export class AggregationService {
     return run
   }
 
+  /** What one activity adds to each period record, without touching the store. */
+  private contributions(
+    activity: Activity,
+    details: ActivityDetails | null | undefined
+  ): Contribution[] {
+    const date = activityDate(activity)
+    if (!date) return []
+    const out: Contribution[] = []
+    for (const metric of this.metrics) {
+      if (!metric.enabled) continue
+      // An unknown source name — a config written by an older version — yields
+      // undefined and is skipped, rather than aggregating a NaN.
+      const value = readActivitySource(metric.sourceRef, activity, details ?? undefined)
+      if (value === undefined) continue
+      for (const p of metric.periods) {
+        const key = this.periodKey(p, date)
+        out.push({
+          recordId: `${metric.id}|${p}|${key}`,
+          metricId: metric.id,
+          periodType: p,
+          periodKey: key,
+          value,
+          aggregation: metric.aggregation
+        })
+      }
+    }
+    return out
+  }
+
   private async apply(
     db: IndexedDBService,
     activity: Activity,
     details: ActivityDetails | null | undefined
   ) {
-    const date = activityDate(activity)
-    if (!date) return
+    const entries = this.contributions(activity, details)
 
-    const entries: ContributionEntry[] = []
-
-    for (const metric of this.metrics) {
-      if (!metric.enabled) continue
-      // An unknown source name — a config written by an older version — yields
-      // undefined and is skipped, rather than aggregating a NaN.
-      const numeric = readActivitySource(metric.sourceRef, activity, details ?? undefined)
-      if (numeric === undefined) continue
-
-      for (const p of metric.periods) {
-        const key = this.periodKey(p, date)
-        const id = `${metric.id}|${p}|${key}`
-        let record: AggregatedRecord | null = null
-        try {
-          record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', id)
-        } catch {
-          /* ignore */
-        }
-        if (!record) {
-          record = {
-            id,
-            metricId: metric.id,
-            periodType: p,
-            periodKey: key,
-            value: 0,
-            sum: 0,
-            count: 0,
-            lastUpdated: Date.now()
-          }
-        }
-        // Only sum & avg in sprint 1
-        record.sum += numeric
-        record.count += 1
-        record.value = metric.aggregation === 'avg' ? record.sum / record.count : record.sum
-        record.lastUpdated = Date.now()
-        await db.addItemsToStore('aggregatedData', [record], r => r.id)
-        entries.push({ recordId: id, value: numeric, aggregation: metric.aggregation })
-        this.notify({ metricId: metric.id, periodType: p, periodKey: key })
+    for (const e of entries) {
+      let record: AggregatedRecord | null = null
+      try {
+        record = await db.getDataFromStore<AggregatedRecord>('aggregatedData', e.recordId)
+      } catch {
+        /* ignore */
       }
+      if (!record) {
+        record = {
+          id: e.recordId,
+          metricId: e.metricId,
+          periodType: e.periodType,
+          periodKey: e.periodKey,
+          value: 0,
+          sum: 0,
+          count: 0,
+          lastUpdated: Date.now()
+        }
+      }
+      // Only sum & avg in sprint 1
+      record.sum += e.value
+      record.count += 1
+      record.value = e.aggregation === 'avg' ? record.sum / record.count : record.sum
+      record.lastUpdated = Date.now()
+      await db.addItemsToStore('aggregatedData', [record], r => r.id)
+      this.notify({ metricId: e.metricId, periodType: e.periodType, periodKey: e.periodKey })
     }
 
     if (entries.length === 0) return
@@ -269,7 +290,7 @@ export class AggregationService {
       id: ledgerId(activity.id),
       kind: 'contribution',
       activityId: activity.id,
-      entries
+      entries: entries.map(({ recordId, value, aggregation }) => ({ recordId, value, aggregation }))
     }
     await db.addItemsToStore('aggregatedData', [ledger], r => r.id)
   }
@@ -380,6 +401,22 @@ export class AggregationService {
   }
 
   /**
+   * Recompute the built-in aggregates from what the device holds.
+   *
+   * The details are read through a cursor that keeps only their `stats` — the
+   * one part an aggregate source reads — so the samples are never all in
+   * memory at once.
+   */
+  async rebuild(): Promise<void> {
+    const db = await IndexedDBService.getInstance()
+    const activities = await db.getAllData<Activity>('activities')
+    const stats = await db.mapStore<ActivityDetails, ActivityDetails>('activity_details', d =>
+      d?.id ? ({ id: d.id, stats: d.stats } as ActivityDetails) : undefined
+    )
+    await this.rebuildAll(activities, new Map(stats.map(d => [d.id, d])))
+  }
+
+  /**
    * Recompute the built-in aggregates from the activities.
    *
    * Only the built-in records and their ledger are purged: the custom
@@ -407,11 +444,55 @@ export class AggregationService {
       } catch (err) {
         console.warn('[AggregationService] Failed to purge aggregatedData before rebuild', err)
       }
+      // Folded in memory and written in one transaction. Applying the activities
+      // one by one cost a read and a write per record — thousands of
+      // transactions for a few years of history, during which the dashboard
+      // read zero.
+      const records = new Map<string, AggregatedRecord>()
+      const ledgers: ContributionLedger[] = []
+      const now = Date.now()
       for (const act of live) {
-        await this.apply(db, act, detailsMap.get(act.id) || null)
+        const entries = this.contributions(act, detailsMap.get(act.id) || null)
+        if (entries.length === 0) continue
+        for (const e of entries) {
+          let record = records.get(e.recordId)
+          if (!record) {
+            record = {
+              id: e.recordId,
+              metricId: e.metricId,
+              periodType: e.periodType,
+              periodKey: e.periodKey,
+              value: 0,
+              sum: 0,
+              count: 0,
+              lastUpdated: now
+            }
+            records.set(e.recordId, record)
+          }
+          record.sum += e.value
+          record.count += 1
+          record.value = e.aggregation === 'avg' ? record.sum / record.count : record.sum
+        }
+        ledgers.push({
+          id: ledgerId(act.id),
+          kind: 'contribution',
+          activityId: act.id,
+          entries: entries.map(({ recordId, value, aggregation }) => ({
+            recordId,
+            value,
+            aggregation
+          }))
+        })
       }
       const meta: LedgerMeta = { id: LEDGER_META_ID, kind: 'meta', version: LEDGER_VERSION }
-      await db.addItemsToStore('aggregatedData', [meta], r => r.id)
+      await db.addItemsToStore<StoredRow>(
+        'aggregatedData',
+        [...records.values(), ...ledgers, meta],
+        r => r.id
+      )
+      for (const r of records.values()) {
+        this.notify({ metricId: r.metricId, periodType: r.periodType, periodKey: r.periodKey })
+      }
     })
   }
 }

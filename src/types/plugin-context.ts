@@ -174,6 +174,8 @@ export interface IAggregationService {
   getAggregated(metricId: string, periodType: AggregationPeriod): Promise<AggregatedRecord[]>
   listMetrics(): AggregationMetricDefinition[]
   rebuildAll(activities: Activity[], detailsMap: Map<string, ActivityDetails | null>): Promise<void>
+  /** `rebuildAll` over everything stored, without loading every sample at once. */
+  rebuild(): Promise<void>
   loadConfigFromSettings(): Promise<void>
   /** Whether the stored aggregates predate the current format and need `rebuildAll`. */
   needsRebuild(): Promise<boolean>

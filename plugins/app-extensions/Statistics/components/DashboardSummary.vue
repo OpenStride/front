@@ -23,10 +23,16 @@
       <!-- The one dark "ink" block: the headline figure. -->
       <div class="hero">
         <span class="hero-label">{{ t('statistics.dashboard.volume') }}</span>
-        <span class="hero-value">
+        <!-- Not a zero while the totals are being rebuilt: on a long history
+             that takes seconds, and a 0 reads as "you ran nothing". -->
+        <span v-if="loading" class="hero-value" data-test="summary-loading">
+          <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+          <span class="sr-only">{{ t('common.loading') }}</span>
+        </span>
+        <span v-else class="hero-value" data-test="summary-volume">
           {{ distance.value }}<small>{{ distance.unit }}</small>
         </span>
-        <span v-if="distanceDelta" class="delta" :class="distanceDelta.dir">
+        <span v-if="!loading && distanceDelta" class="delta" :class="distanceDelta.dir">
           <span class="delta-value">
             <i :class="distanceDelta.icon" aria-hidden="true"></i>
             {{ distanceDelta.text }}
@@ -37,8 +43,8 @@
 
       <div class="tile">
         <span class="tile-label">{{ t('statistics.summary.metrics.duration') }}</span>
-        <span class="tile-value">{{ duration }}</span>
-        <span v-if="durationDelta" class="delta" :class="durationDelta.dir">
+        <span class="tile-value">{{ loading ? '—' : duration }}</span>
+        <span v-if="!loading && durationDelta" class="delta" :class="durationDelta.dir">
           <span class="delta-value">
             <i :class="durationDelta.icon" aria-hidden="true"></i>
             {{ durationDelta.text }}
@@ -48,7 +54,8 @@
 
       <div class="tile">
         <span class="tile-label">{{ t('statistics.summary.metrics.totalAscent') }}</span>
-        <span class="tile-value"
+        <span v-if="loading" class="tile-value">—</span>
+        <span v-else class="tile-value"
           >{{ ascent.value }}<small>{{ ascent.unit }}</small></span
         >
       </div>
@@ -88,7 +95,7 @@ const props = defineProps<{
   selectedSport: string
 }>()
 
-const { period, values, previousValues, PERIODS } = useSummaryTotals('week')
+const { period, values, previousValues, loading, PERIODS } = useSummaryTotals('week')
 
 /** The SI figure of the current period for a base metric. */
 const si = (base: string) => values.value[`${period.value}_${base}`] ?? 0

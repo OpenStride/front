@@ -63,6 +63,7 @@ function makeContext() {
         records.filter(r => r.metricId === metricId)
       ),
       rebuildAll,
+      rebuild: vi.fn(async () => {}),
       loadConfigFromSettings: vi.fn(async () => {}),
       needsRebuild: vi.fn(async () => false),
       subscribe: () => () => {}
