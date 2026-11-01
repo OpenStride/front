@@ -74,7 +74,9 @@ export default defineConfig({
     })
   ],
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
+    // The release workflow passes the version it is about to tag. package.json no
+    // longer follows the releases, so a local build says which one it was not.
+    __APP_VERSION__: JSON.stringify(process.env.APP_VERSION || `${pkg.version}-dev`),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString())
   },
   resolve: {

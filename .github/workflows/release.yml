@@ -1,0 +1,156 @@
+name: Release
+
+# Tag a version and put it live.
+#
+# Called by CI once a push to main is green, or run by hand from the Actions
+# tab — with `bump: none` to redeploy what is live without a new version.
+#
+# The version is no longer committed back to main. It is the last `v*` tag plus
+# the bump the merged pull request asks for (`release:minor`, `release:major`,
+# patch otherwise), injected into the build as APP_VERSION, and the tag is
+# pushed once the deploy succeeded. A tag cannot be rejected as
+# non-fast-forward, which is what the old `chore(release)` commit kept running
+# into whenever two merges landed close together: orphan tags, a package.json
+# never bumped, and merges that shipped nowhere.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump (none = redeploy the current version)'
+        type: choice
+        options: [none, patch, minor, major]
+        default: none
+
+permissions:
+  contents: write
+  checks: write
+  pull-requests: read
+
+jobs:
+  release:
+    name: Tag and deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # One release at a time. A merge landing during a release waits; if a third
+    # lands meanwhile the waiting one is dropped, and the third ships both —
+    # under one version number.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Pick the bump
+        id: bump
+        uses: actions/github-script@v7.0.1
+        env:
+          REQUESTED: ${{ inputs.bump }}
+        with:
+          script: |
+            if (process.env.REQUESTED) {
+              core.setOutput('type', process.env.REQUESTED)
+              return
+            }
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            })
+            const labels = prs[0]?.labels.map(l => l.name) ?? []
+            const type = labels.includes('release:major')
+              ? 'major'
+              : labels.includes('release:minor')
+                ? 'minor'
+                : 'patch'
+            core.setOutput('type', type)
+
+      - name: Compute the version
+        id: version
+        env:
+          BUMP: ${{ steps.bump.outputs.type }}
+        run: |
+          PREVIOUS=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo v0.0.0)
+          IFS=. read -r MAJOR MINOR PATCH <<< "${PREVIOUS#v}"
+          case "$BUMP" in
+            major) VERSION="$((MAJOR + 1)).0.0" ;;
+            minor) VERSION="${MAJOR}.$((MINOR + 1)).0" ;;
+            patch) VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
+            none) VERSION="${PREVIOUS#v}" ;;
+            *) echo "::error::unknown bump '$BUMP'"; exit 1 ;;
+          esac
+
+          if [ "$BUMP" != none ] && git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "::error::v${VERSION} is already tagged"
+            exit 1
+          fi
+
+          # Functions only redeploy when they changed since the last release. A
+          # manual run redeploys everything: it is the "make it as it should be"
+          # button.
+          if [ "$BUMP" = none ] || [ "$PREVIOUS" = v0.0.0 ] || ! git diff --quiet "$PREVIOUS" HEAD -- functions/; then
+            FUNCTIONS=true
+          else
+            FUNCTIONS=false
+          fi
+
+          echo "previous=${PREVIOUS}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "functions=${FUNCTIONS}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${PREVIOUS} -> v${VERSION} (${BUMP}), functions: ${FUNCTIONS}"
+
+      - run: npm ci
+        env:
+          CYPRESS_INSTALL_BINARY: 0
+
+      - run: npm run build:prod
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_BASE_URL: https://openstride.org
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          VITE_GOOGLE_DRIVE_API_KEY: ${{ secrets.VITE_GOOGLE_DRIVE_API_KEY }}
+          VITE_GARMIN_CLIENT_ID: ${{ secrets.VITE_GARMIN_CLIENT_ID }}
+
+      - name: Deploy hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0.10.0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+          channelId: live
+          projectId: openstrive-edd63
+
+      - name: Build functions
+        if: steps.version.outputs.functions == 'true'
+        run: cd functions && npm ci && npm run build
+
+      - name: Authenticate to Google Cloud
+        if: steps.version.outputs.functions == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
+
+      - name: Deploy functions
+        if: steps.version.outputs.functions == 'true'
+        run: npx firebase-tools deploy --only functions --project openstrive-edd63
+
+      # Last, so a tag always names something that went live. A failed deploy
+      # leaves no tag, and the next run takes the same number again.
+      - name: Tag
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}" "$GITHUB_SHA"
+          git push origin "refs/tags/v${{ steps.version.outputs.version }}"
+
+      - name: Summary
+        run: |
+          echo "Deployed **v${{ steps.version.outputs.version }}** to https://openstride.org" >> "$GITHUB_STEP_SUMMARY"
+          echo "Functions deployed: ${{ steps.version.outputs.functions }}" >> "$GITHUB_STEP_SUMMARY"
