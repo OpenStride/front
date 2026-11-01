@@ -247,6 +247,32 @@ export class IndexedDBService implements IStorageService {
     })
   }
 
+  /**
+   * Read a store one record at a time, keeping only what `pick` returns.
+   *
+   * `getAll` materialises every record at once; on `activity_details` that is
+   * every sample of every outing — hundreds of megabytes over a few years, on a
+   * phone. A cursor holds one record at a time, so the peak is what is kept.
+   */
+  public mapStore<T, R>(storeName: string, pick: (value: T) => R | undefined): Promise<R[]> {
+    if (!this.db) throw new Error('DB not initialized')
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction(storeName, 'readonly')
+      const request = tx.objectStore(storeName).openCursor()
+      const out: R[] = []
+
+      request.onsuccess = () => {
+        const cursor = request.result
+        if (!cursor) return resolve(out)
+        const kept = pick(cursor.value as T)
+        if (kept !== undefined) out.push(kept)
+        cursor.continue()
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
   public getAllData<T = unknown>(storeName: string): Promise<T[]> {
     if (!this.db) throw new Error('DB not initialized')
 

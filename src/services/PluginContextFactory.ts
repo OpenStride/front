@@ -91,6 +91,7 @@ export async function createPluginContext(): Promise<PluginContext> {
         aggregationService.getAggregated(metricId, periodType),
       listMetrics: () => aggregationService.listMetrics(),
       rebuildAll: (activities, detailsMap) => aggregationService.rebuildAll(activities, detailsMap),
+      rebuild: () => aggregationService.rebuild(),
       loadConfigFromSettings: () => aggregationService.loadConfigFromSettings(),
       needsRebuild: () => aggregationService.needsRebuild(),
       subscribe: cb => aggregationService.subscribe(cb)

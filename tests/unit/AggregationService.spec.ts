@@ -73,6 +73,10 @@ vi.mock('@/services/IndexedDBService', () => {
       this.stores[store] = existing
     }
 
+    async mapStore(store: string, pick: (v: any) => any) {
+      return (this.stores[store] || []).map(pick).filter((v: any) => v !== undefined)
+    }
+
     async deleteFromStore(store: string, key: string) {
       this.stores[store] = (this.stores[store] || []).filter((item: any) => item.id !== key)
     }
@@ -838,6 +842,51 @@ describe('AggregationService', () => {
       await service.rebuildAll(activities, new Map())
 
       expect(await weekValue()).toEqual([{ key: '2026-W03', value: 7000, count: 1 }])
+    })
+
+    it('an activity re-saved after a rebuild is still counted once', async () => {
+      // The rebuild folds in memory and writes once; it must still leave the
+      // ledger behind, or the next save of the same activity adds it again.
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await service.rebuildAll([activity], new Map())
+      await service.addActivityForAggregation({ ...activity, version: 2 }, null)
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 10000, count: 1 }])
+    })
+
+    it('rebuildAll folds several activities of one week into one record', async () => {
+      const start = new Date('2026-01-12T08:00:00').getTime()
+      const activities = [1, 2, 3].map(i =>
+        createActivity({ id: `run-${i}`, startTime: start + i * 86_400_000, distance: 4000 })
+      )
+      await service.rebuildAll(activities, new Map())
+
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 12000, count: 3 }])
+    })
+
+    it('rebuild() reads the stored activities and only the stats of their details', async () => {
+      const activity = createActivity({
+        id: 'run-1',
+        startTime: new Date('2026-01-15T08:00:00').getTime(),
+        distance: 10000
+      })
+      await db.addItemsToStore('activities', [activity])
+      await db.addItemsToStore('activity_details', [
+        { id: 'run-1', samples: new Array(5).fill({ time: 0 }), stats: { totalAscent: 80 } }
+      ])
+      const spy = vi.spyOn(service, 'rebuildAll')
+
+      await service.rebuild()
+
+      const details = spy.mock.calls[0][1].get('run-1') as any
+      expect(details.stats).toEqual({ totalAscent: 80 })
+      expect(details.samples).toBeUndefined()
+      expect(await weekValue()).toEqual([{ key: '2026-W03', value: 10000, count: 1 }])
+      spy.mockRestore()
     })
 
     it('asks for a rebuild until one has run, then no longer', async () => {

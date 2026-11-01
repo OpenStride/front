@@ -2,7 +2,6 @@ import { ref, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { periodKey } from '@/utils/dateKeys'
 import type { AggregationMetricDefinition, AggregationPeriod } from '@/types/aggregation'
-import type { Activity, ActivityDetails } from '@/types/activity'
 
 /**
  * The running totals at the head of the statistics page, read from the
@@ -56,6 +55,11 @@ export interface SummaryTotals {
   values: Ref<Record<string, number>>
   /** SI value of the period before, keyed by definition id (for a delta). */
   previousValues: Ref<Record<string, number>>
+  /**
+   * True until the first figures are read. A rebuild over a long history takes
+   * seconds, and a tile showing 0 meanwhile reads as "you ran nothing".
+   */
+  loading: Ref<boolean>
   PERIODS: AggregationPeriod[]
   BASE_METRICS: typeof SUMMARY_BASE_METRICS
 }
@@ -67,6 +71,7 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
   const definitions = ref<AggregationMetricDefinition[]>([])
   const values = ref<Record<string, number>>({})
   const previousValues = ref<Record<string, number>>({})
+  const loading = ref(true)
 
   /**
    * Bring the stored definitions in line with what this page expects.
@@ -124,16 +129,8 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
     return true
   }
 
-  async function rebuildFromScratch() {
-    // `exportDB` cannot know what a store holds, so the shape is asserted once
-    // here rather than smuggled through `Record<string, unknown>` at the call.
-    const activities = (await storage.exportDB('activities')) as Activity[]
-    const allDetails = (await storage.exportDB('activity_details')) as ActivityDetails[]
-    const detailsMap = new Map<string, ActivityDetails | null>()
-    for (const d of allDetails) {
-      if (d?.id) detailsMap.set(d.id, d)
-    }
-    await aggregation.rebuildAll(activities, detailsMap)
+  function rebuildFromScratch() {
+    return aggregation.rebuild()
   }
 
   /**
@@ -177,6 +174,20 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
   })
 
   onMounted(async () => {
+    try {
+      await prepare()
+    } finally {
+      loading.value = false
+    }
+
+    // An import lands as activity events, which the aggregation turns into new
+    // records; without this the figures would stay frozen at page load.
+    unsubscribe = aggregation.subscribe(() => {
+      void loadTotals()
+    })
+  })
+
+  async function prepare() {
     const reconciled = await reconcileMetrics()
     // Aggregates written before the contribution ledger double-counted every
     // re-saved activity; they are recomputed once rather than trusted.
@@ -194,13 +205,7 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
         await loadTotals()
       }
     }
-
-    // An import lands as activity events, which the aggregation turns into new
-    // records; without this the figures would stay frozen at page load.
-    unsubscribe = aggregation.subscribe(() => {
-      void loadTotals()
-    })
-  })
+  }
 
   onUnmounted(() => {
     unsubscribe?.()
@@ -212,6 +217,7 @@ export function useSummaryTotals(initialPeriod: AggregationPeriod = 'week'): Sum
     definitions,
     values,
     previousValues,
+    loading,
     PERIODS: SUMMARY_PERIODS,
     BASE_METRICS: SUMMARY_BASE_METRICS
   }
