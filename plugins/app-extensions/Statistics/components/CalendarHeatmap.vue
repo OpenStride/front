@@ -21,11 +21,11 @@
         <div class="day-spacer"></div>
         <div class="day-grid">
           <span class="day-label" :style="{ gridRow: 1 }"></span>
-          <span class="day-label" :style="{ gridRow: 2 }">{{ dayLabels[1] }}</span>
+          <span class="day-label" :style="{ gridRow: 2 }">{{ weekdayNarrow(2) }}</span>
           <span class="day-label" :style="{ gridRow: 3 }"></span>
-          <span class="day-label" :style="{ gridRow: 4 }">{{ dayLabels[3] }}</span>
+          <span class="day-label" :style="{ gridRow: 4 }">{{ weekdayNarrow(4) }}</span>
           <span class="day-label" :style="{ gridRow: 5 }"></span>
-          <span class="day-label" :style="{ gridRow: 6 }">{{ dayLabels[5] }}</span>
+          <span class="day-label" :style="{ gridRow: 6 }">{{ weekdayNarrow(6) }}</span>
           <span class="day-label" :style="{ gridRow: 7 }"></span>
         </div>
       </div>
@@ -73,7 +73,9 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
-import { monthShort } from '@/utils/dateFormat'
+import { formatDate, monthShort, weekdayNarrow } from '@/utils/dateFormat'
+import { formatCompactDuration } from '@/utils/duration'
+import { fromDayKey, getDayKey } from '@/utils/dateKeys'
 import { toMs } from '../types'
 import type { HeatmapMetric } from '../types'
 
@@ -86,7 +88,6 @@ const props = defineProps<{
 
 const metrics: HeatmapMetric[] = ['distance', 'duration', 'count']
 const metric = ref<HeatmapMetric>('distance')
-const dayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
 const scrollArea = ref<HTMLElement | null>(null)
 
 function scrollToEnd() {
@@ -100,23 +101,19 @@ function scrollToEnd() {
 onMounted(scrollToEnd)
 watch(() => props.activities, scrollToEnd)
 
-function toDayKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
 const dayData = computed(() => {
   const map = new Map<string, { distance: number; duration: number; count: number }>()
   for (const a of props.activities) {
-    const key = toDayKey(new Date(toMs(a.startTime)))
+    const key = getDayKey(new Date(toMs(a.startTime)))
     const existing = map.get(key)
     if (existing) {
-      existing.distance += units.convert('distance', a.distance || 0).value
-      existing.duration += (a.duration || 0) / 3600
+      existing.distance += a.distance || 0
+      existing.duration += a.duration || 0
       existing.count++
     } else {
       map.set(key, {
-        distance: units.convert('distance', a.distance || 0).value,
-        duration: (a.duration || 0) / 3600,
+        distance: a.distance || 0,
+        duration: a.duration || 0,
         count: 1
       })
     }
@@ -171,7 +168,7 @@ const cells = computed(() => {
   while (d <= today) {
     const dayOfWeek = d.getDay()
     const row = dayOfWeek === 0 ? 7 : dayOfWeek
-    const key = toDayKey(d)
+    const key = getDayKey(d)
     const data = dayData.value.get(key)
     let value = 0
     if (data) {
@@ -210,13 +207,18 @@ const cells = computed(() => {
 
   for (const e of dayEntries) {
     const data = dayData.value.get(e.key)
-    let tooltip = e.key
+    const day = formatDate(fromDayKey(e.key) ?? 0, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    let tooltip = day
     if (data) {
       if (metric.value === 'distance')
-        tooltip = `${e.key}: ${Math.round(data.distance * 10) / 10} ${units.convert('distance', 0).unit}`
+        tooltip = `${day} · ${units.format('distance', data.distance).text}`
       else if (metric.value === 'duration')
-        tooltip = `${e.key}: ${Math.round(data.duration * 10) / 10} h`
-      else tooltip = `${e.key}: ${data.count} activite(s)`
+        tooltip = `${day} · ${formatCompactDuration(data.duration)}`
+      else tooltip = `${day} · ${t('statistics.heatmap.activityCount', data.count)}`
     }
     allCells.push({
       row: e.row,
@@ -231,7 +233,6 @@ const cells = computed(() => {
 </script>
 
 <style scoped>
-
 .section-title {
   font-size: 1.1rem;
   font-weight: 600;

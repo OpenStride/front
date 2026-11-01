@@ -69,7 +69,13 @@ describe('buildSeries grouping', () => {
       makeActivity('c', '2026-04-02T08:00:00Z', { distance: 8000 })
     ]
 
-    const points = buildSeries(activities, noSources, getMetric('distance'), 'month')
+    const points = buildSeries(
+      activities,
+      noSources,
+      getMetric('distance'),
+      'month',
+      new Date('2026-04-15T12:00:00Z')
+    )
 
     expect(points.map(p => p.key)).toEqual(['2026-03', '2026-04'])
     expect(points[0].value).toBeCloseTo(17.5, 5)
@@ -84,10 +90,47 @@ describe('buildSeries grouping', () => {
       makeActivity('c', '2027-03-03T08:00:00Z')
     ]
 
-    expect(buildSeries(activities, noSources, getMetric('distance'), 'week')).toHaveLength(2)
+    const now = new Date('2027-03-03T12:00:00Z')
+    // A ratio has no zero to fill with: only the weeks that hold an activity.
+    expect(buildSeries(activities, noSources, getMetric('pace'), 'week', now)).toHaveLength(2)
     expect(
-      buildSeries(activities, noSources, getMetric('distance'), 'year').map(p => p.key)
+      buildSeries(activities, noSources, getMetric('distance'), 'year', now).map(p => p.key)
     ).toEqual(['2026', '2027'])
+  })
+
+  it('counts a week without an outing as zero for a summed metric, up to now', () => {
+    // Three 10 km runs spread over six weeks: five kilometres a week, not ten.
+    const activities = [
+      makeActivity('a', '2026-03-02T08:00:00'),
+      makeActivity('b', '2026-03-18T08:00:00'),
+      makeActivity('c', '2026-03-30T08:00:00')
+    ]
+    const now = new Date('2026-04-08T12:00:00')
+
+    const points = buildSeries(activities, noSources, getMetric('distance'), 'week', now)
+
+    expect(points.map(p => p.key)).toEqual([
+      '2026-W10',
+      '2026-W11',
+      '2026-W12',
+      '2026-W13',
+      '2026-W14',
+      '2026-W15'
+    ])
+    expect(points.map(p => p.value)).toEqual([10, 0, 10, 0, 10, 0])
+    expect(summarize(points, getMetric('distance'))?.average).toBeCloseTo(5, 5)
+  })
+
+  it('leaves a week without an outing as a gap for an averaged metric', () => {
+    const activities = [
+      makeActivity('a', '2026-03-02T08:00:00'),
+      makeActivity('b', '2026-03-18T08:00:00')
+    ]
+    const now = new Date('2026-03-18T12:00:00')
+
+    expect(
+      buildSeries(activities, noSources, getMetric('pace'), 'week', now).map(p => p.key)
+    ).toEqual(['2026-W10', '2026-W12'])
   })
 })
 

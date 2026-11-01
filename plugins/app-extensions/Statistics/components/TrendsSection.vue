@@ -65,8 +65,8 @@ function getPeriodKey(date: Date, g: PeriodGranularity): string {
 
 function formatPeriodLabel(key: string, g: PeriodGranularity): string {
   if (g === 'week') {
-    const parts = key.split('-W')
-    return `S${parts[1]}`
+    const [year, week] = key.split('-W')
+    return t('statistics.trends.weekShort', { week, year: year.slice(2) })
   }
   if (g === 'month') {
     const parts = key.split('-')

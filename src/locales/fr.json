@@ -477,7 +477,8 @@
       "week": "Semaine",
       "month": "Mois",
       "year": "Année",
-      "distanceLabel": "Distance"
+      "distanceLabel": "Distance",
+      "weekShort": "S{week} ’{year}"
     },
     "distribution": {
       "title": "Répartition",
@@ -510,7 +511,8 @@
       "more": "Plus",
       "distance": "Distance",
       "duration": "Durée",
-      "count": "Activités"
+      "count": "Activités",
+      "activityCount": "aucune activité | {n} activité | {n} activités"
     }
   },
   "setupBanner": {

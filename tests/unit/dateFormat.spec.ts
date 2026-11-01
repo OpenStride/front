@@ -1,6 +1,12 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import i18n from '@/locales'
-import { appLocale, formatDate, formatRelativeTime, monthShort } from '@/utils/dateFormat'
+import {
+  appLocale,
+  formatDate,
+  formatRelativeTime,
+  monthShort,
+  weekdayNarrow
+} from '@/utils/dateFormat'
 
 /**
  * The point of the helper: a date follows the language the user picked, not the
@@ -44,6 +50,17 @@ describe('monthShort', () => {
     // The heatmap used to carry "Fev"/"Aou" by hand; French spells them with
     // the accents Intl provides.
     expect(months[1].toLowerCase()).toContain('év')
+  })
+})
+
+describe('weekdayNarrow', () => {
+  it('runs Monday to Sunday, in the app language', () => {
+    // The heatmap labelled its Tuesday row "L" (lundi): its hand-written table
+    // started on Sunday while its rows start on Monday.
+    setLocale('fr')
+    expect([1, 2, 3, 4, 5, 6, 7].map(weekdayNarrow).join('')).toBe('LMMJVSD')
+    setLocale('en')
+    expect([1, 2, 3, 4, 5, 6, 7].map(weekdayNarrow).join('')).toBe('MTWTFSS')
   })
 })
 
