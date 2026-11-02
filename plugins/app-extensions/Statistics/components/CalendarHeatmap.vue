@@ -1,352 +1,204 @@
 <template>
-  <section class="section-card">
-    <h3 class="section-title">
-      <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-      {{ t('statistics.heatmap.title') }}
-    </h3>
+  <section class="section-card" data-test="calendar">
+    <div class="card-head">
+      <h3 class="card-title">{{ t('statistics.heatmap.title') }}</h3>
+      <span class="card-note">
+        {{ t('statistics.heatmap.note', { months: 6 }) }} ·
+        <strong>{{ t('statistics.heatmap.activeWeeks', { active, total: WEEKS }) }}</strong>
+      </span>
+    </div>
 
-    <div class="heatmap-controls">
-      <button
-        v-for="m in metrics"
-        :key="m"
-        :class="['toggle-btn', { active: metric === m }]"
-        @click="metric = m"
+    <div ref="scrollArea" class="scroll">
+      <div
+        class="grid"
+        :style="{ gridTemplateColumns: `2rem repeat(${WEEKS}, minmax(0.9rem, 1.5rem))` }"
       >
-        {{ t(`statistics.heatmap.${m}`) }}
-      </button>
-    </div>
-
-    <div class="heatmap-layout">
-      <div class="heatmap-days">
-        <div class="day-spacer"></div>
-        <div class="day-grid">
-          <span class="day-label" :style="{ gridRow: 1 }"></span>
-          <span class="day-label" :style="{ gridRow: 2 }">{{ weekdayNarrow(2) }}</span>
-          <span class="day-label" :style="{ gridRow: 3 }"></span>
-          <span class="day-label" :style="{ gridRow: 4 }">{{ weekdayNarrow(4) }}</span>
-          <span class="day-label" :style="{ gridRow: 5 }"></span>
-          <span class="day-label" :style="{ gridRow: 6 }">{{ weekdayNarrow(6) }}</span>
-          <span class="day-label" :style="{ gridRow: 7 }"></span>
-        </div>
-      </div>
-      <div ref="scrollArea" class="heatmap-scroll">
-        <div class="heatmap-inner" :style="{ width: totalWeeks * 14 + 'px' }">
-          <div
-            class="heatmap-months"
-            :style="{ gridTemplateColumns: `repeat(${totalWeeks}, 12px)` }"
-          >
-            <span
-              v-for="(ml, idx) in monthPositions"
-              :key="idx"
-              class="month-label"
-              :style="{ gridColumn: ml.col }"
-              >{{ ml.label }}</span
-            >
-          </div>
-          <div class="heatmap-grid" :style="{ gridTemplateColumns: `repeat(${totalWeeks}, 12px)` }">
-            <div
-              v-for="(cell, i) in cells"
-              :key="i"
-              :class="['heatmap-cell', `level-${cell.level}`]"
-              :title="cell.tooltip"
-              :style="{ gridRow: cell.row, gridColumn: cell.col }"
-            ></div>
-          </div>
-        </div>
+        <span
+          v-for="m in months"
+          :key="`m${m.col}`"
+          class="month"
+          :style="{ gridColumn: m.col + 1, gridRow: 1 }"
+          >{{ m.label }}</span
+        >
+        <span
+          v-for="row in [1, 3, 5, 7]"
+          :key="`d${row}`"
+          class="weekday"
+          :style="{ gridColumn: 1, gridRow: row + 1 }"
+          >{{ weekdayNarrow(row) }}</span
+        >
+        <span
+          v-for="cell in cells"
+          :key="cell.key"
+          :class="['cell', `level-${cell.level}`]"
+          :title="cell.tooltip"
+          :style="{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }"
+        ></span>
       </div>
     </div>
 
-    <div class="heatmap-legend">
-      <span class="legend-label">{{ t('statistics.heatmap.less') }}</span>
-      <div class="heatmap-cell level-0"></div>
-      <div class="heatmap-cell level-1"></div>
-      <div class="heatmap-cell level-2"></div>
-      <div class="heatmap-cell level-3"></div>
-      <div class="heatmap-cell level-4"></div>
-      <span class="legend-label">{{ t('statistics.heatmap.more') }}</span>
+    <div class="legend" aria-hidden="true">
+      <span>{{ t('statistics.heatmap.less') }}</span>
+      <span v-for="l in 5" :key="l" :class="['cell', `level-${l - 1}`]"></span>
+      <span>{{ t('statistics.heatmap.more') }}</span>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { usePluginContext } from '@/composables/usePluginContext'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
 import { formatDate, monthShort, weekdayNarrow } from '@/utils/dateFormat'
 import { formatCompactDuration } from '@/utils/duration'
-import { fromDayKey, getDayKey } from '@/utils/dateKeys'
-import { toMs } from '../types'
-import type { HeatmapMetric } from '../types'
+import { getDayKey } from '@/utils/dateKeys'
+import { toMs } from '@/utils/timeRange'
+import { activeWeeks, weekStart } from '../dashboardData'
+
+/** Six months: enough to see a training block, small enough for a phone. */
+const WEEKS = 26
 
 const { t } = useI18n()
-const { units } = usePluginContext()
 
 const props = defineProps<{
   activities: Activity[]
 }>()
 
-const metrics: HeatmapMetric[] = ['distance', 'duration', 'count']
-const metric = ref<HeatmapMetric>('distance')
 const scrollArea = ref<HTMLElement | null>(null)
 
+/** The latest weeks are the ones read; a phone scrolls them into view. */
 function scrollToEnd() {
   nextTick(() => {
-    if (scrollArea.value) {
-      scrollArea.value.scrollLeft = scrollArea.value.scrollWidth
-    }
+    if (scrollArea.value) scrollArea.value.scrollLeft = scrollArea.value.scrollWidth
   })
 }
-
 onMounted(scrollToEnd)
 watch(() => props.activities, scrollToEnd)
 
-const dayData = computed(() => {
-  const map = new Map<string, { distance: number; duration: number; count: number }>()
+/**
+ * Time per day: the one quantity comparable across sports, so an hour on the
+ * bike and an hour's run shade the same.
+ */
+const byDay = computed(() => {
+  const map = new Map<string, { duration: number; count: number }>()
   for (const a of props.activities) {
+    if (a.deleted) continue
     const key = getDayKey(new Date(toMs(a.startTime)))
-    const existing = map.get(key)
-    if (existing) {
-      existing.distance += a.distance || 0
-      existing.duration += a.duration || 0
-      existing.count++
-    } else {
-      map.set(key, {
-        distance: a.distance || 0,
-        duration: a.duration || 0,
-        count: 1
-      })
-    }
+    const day = map.get(key) ?? { duration: 0, count: 0 }
+    day.duration += a.duration || 0
+    day.count += 1
+    map.set(key, day)
   }
   return map
 })
 
-function getStartDate(): Date {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() - 1)
-  d.setDate(d.getDate() + 1)
-  const day = d.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - diff)
-  d.setHours(0, 0, 0, 0)
+const first = computed(() => {
+  const d = weekStart(new Date())
+  d.setDate(d.getDate() - (WEEKS - 1) * 7)
   return d
-}
-
-const monthPositions = computed(() => {
-  const start = getStartDate()
-  const positions: { label: string; col: number }[] = []
-  let lastMonth = -1
-  for (let w = 0; w < 53; w++) {
-    const d = new Date(start)
-    d.setDate(d.getDate() + w * 7)
-    if (d.getMonth() !== lastMonth) {
-      positions.push({ label: monthShort(d.getMonth()), col: w + 1 })
-      lastMonth = d.getMonth()
-    }
-  }
-  return positions
 })
 
-const totalWeeks = computed(() => {
-  const start = getStartDate()
-  const today = new Date()
-  const diffDays = Math.ceil((today.getTime() - start.getTime()) / 86400000)
-  return Math.ceil(diffDays / 7) + 1
+const months = computed(() => {
+  const out: { label: string; col: number }[] = []
+  let last = -1
+  for (let w = 0; w < WEEKS; w++) {
+    const d = new Date(first.value)
+    d.setDate(d.getDate() + w * 7)
+    if (d.getMonth() !== last) {
+      out.push({ label: monthShort(d.getMonth()), col: w + 1 })
+      last = d.getMonth()
+    }
+  }
+  return out
 })
 
 const cells = computed(() => {
-  const start = getStartDate()
   const today = new Date()
-  today.setHours(23, 59, 59, 999)
+  const durations = [...byDay.value.values()].map(d => d.duration).filter(d => d > 0)
+  durations.sort((a, b) => a - b)
+  const q = (p: number) => durations[Math.floor(durations.length * p)] ?? 0
+  const [q1, q2, q3] = [q(0.25), q(0.5), q(0.75)]
+  const level = (v: number) => (v <= 0 ? 0 : v <= q1 ? 1 : v <= q2 ? 2 : v <= q3 ? 3 : 4)
 
-  const allCells: { row: number; col: number; level: number; tooltip: string }[] = []
-  const values: number[] = []
-  const dayEntries: { key: string; row: number; col: number; value: number }[] = []
-  const d = new Date(start)
-
-  let col = 1
-  while (d <= today) {
-    const dayOfWeek = d.getDay()
-    const row = dayOfWeek === 0 ? 7 : dayOfWeek
-    const key = getDayKey(d)
-    const data = dayData.value.get(key)
-    let value = 0
-    if (data) {
-      if (metric.value === 'distance') value = data.distance
-      else if (metric.value === 'duration') value = data.duration
-      else value = data.count
+  const out: { key: string; col: number; row: number; level: number; tooltip: string }[] = []
+  for (let w = 0; w < WEEKS; w++) {
+    for (let r = 0; r < 7; r++) {
+      const d = new Date(first.value)
+      d.setDate(d.getDate() + w * 7 + r)
+      if (d > today) continue
+      const key = getDayKey(d)
+      const day = byDay.value.get(key)
+      const date = formatDate(d.getTime(), { weekday: 'short', day: 'numeric', month: 'short' })
+      out.push({
+        key,
+        col: w + 1,
+        row: r + 1,
+        level: level(day?.duration ?? 0),
+        tooltip: day
+          ? `${date} · ${formatCompactDuration(day.duration)} · ${t('statistics.heatmap.activityCount', day.count)}`
+          : date
+      })
     }
-    dayEntries.push({ key, row, col, value })
-    if (value > 0) values.push(value)
-
-    d.setDate(d.getDate() + 1)
-    if (d.getDay() === 1) col++
   }
-
-  if (values.length === 0) {
-    return dayEntries.map(e => ({
-      row: e.row,
-      col: e.col,
-      level: 0,
-      tooltip: e.key
-    }))
-  }
-
-  values.sort((a, b) => a - b)
-  const q1 = values[Math.floor(values.length * 0.25)]
-  const q2 = values[Math.floor(values.length * 0.5)]
-  const q3 = values[Math.floor(values.length * 0.75)]
-
-  function getLevel(v: number): number {
-    if (v === 0) return 0
-    if (v <= q1) return 1
-    if (v <= q2) return 2
-    if (v <= q3) return 3
-    return 4
-  }
-
-  for (const e of dayEntries) {
-    const data = dayData.value.get(e.key)
-    const day = formatDate(fromDayKey(e.key) ?? 0, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-    let tooltip = day
-    if (data) {
-      if (metric.value === 'distance')
-        tooltip = `${day} · ${units.format('distance', data.distance).text}`
-      else if (metric.value === 'duration')
-        tooltip = `${day} · ${formatCompactDuration(data.duration)}`
-      else tooltip = `${day} · ${t('statistics.heatmap.activityCount', data.count)}`
-    }
-    allCells.push({
-      row: e.row,
-      col: e.col,
-      level: getLevel(e.value),
-      tooltip
-    })
-  }
-
-  return allCells
+  return out
 })
+
+const active = computed(() => activeWeeks(props.activities, WEEKS))
 </script>
 
 <style scoped>
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0 0 1rem;
+.card-head {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.section-title i {
-  color: var(--color-green-500);
-}
-
-.heatmap-controls {
-  display: flex;
-  /* Three toggles no longer fit side by side on a 320px screen, and an
-     unwrapped row pushed the last one off the card. */
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  margin-bottom: 0.9rem;
 }
 
-.toggle-btn {
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-green-200);
-  background: var(--bg-color);
+.card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--text-color);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition:
-    background 0.2s,
-    color 0.2s;
-  font-family: var(--font-main);
 }
 
-.toggle-btn.active {
-  background: var(--color-green-500);
-  color: var(--color-white);
-  border-color: var(--color-green-500);
+.card-note {
+  font-size: 0.82rem;
+  color: var(--text-faint);
 }
 
-.heatmap-layout {
-  display: flex;
-  gap: 4px;
-}
-
-.heatmap-days {
-  flex-shrink: 0;
-  width: 18px;
-}
-
-.day-spacer {
-  height: 16px;
-}
-
-.day-grid {
-  display: grid;
-  grid-template-rows: repeat(7, 12px);
-  gap: 2px;
-}
-
-.day-label {
-  font-size: 0.6rem;
+.card-note strong {
   color: var(--text-color);
-  opacity: 0.6;
-  line-height: 12px;
 }
 
-.heatmap-scroll {
-  flex: 1;
-  min-width: 0;
+.scroll {
   overflow-x: auto;
-  scrollbar-width: none;
 }
 
-.heatmap-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.heatmap-inner {
-  min-width: fit-content;
-}
-
-.heatmap-months {
+.grid {
   display: grid;
-  gap: 2px;
-  height: 14px;
-  margin-bottom: 2px;
+  grid-template-rows: 1.1rem repeat(7, auto);
+  gap: 3px;
+  min-width: min-content;
 }
 
-.month-label {
-  font-size: 0.6rem;
-  color: var(--text-color);
-  opacity: 0.6;
+.month,
+.weekday {
+  font-size: 0.72rem;
+  color: var(--text-faint);
   white-space: nowrap;
-  line-height: 14px;
+  line-height: 1.1rem;
 }
 
-.heatmap-grid {
-  display: grid;
-  grid-template-rows: repeat(7, 12px);
-  gap: 2px;
-}
-
-.heatmap-cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+.cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
 }
 
 .level-0 {
-  background: var(--color-gray-200);
+  background: var(--surface-muted);
 }
 .level-1 {
   background: var(--color-green-100);
@@ -361,23 +213,17 @@ const cells = computed(() => {
   background: var(--color-green-700);
 }
 
-.heatmap-legend {
+.legend {
   display: flex;
   align-items: center;
-  gap: 3px;
   justify-content: flex-end;
+  gap: 4px;
   margin-top: 0.8rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
 }
 
-.heatmap-legend .heatmap-cell {
-  width: 10px;
-  height: 10px;
-}
-
-.legend-label {
-  font-size: 0.7rem;
-  color: var(--text-color);
-  opacity: 0.6;
-  margin: 0 4px;
+.legend .cell {
+  width: 0.75rem;
 }
 </style>
