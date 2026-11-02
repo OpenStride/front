@@ -503,7 +503,9 @@
         "month": "Ce mois",
         "quarter": "Ce trimestre",
         "year": "Cette année"
-      }
+      },
+      "titleFor": "Records · {sport}",
+      "new": "Nouveau"
     },
     "heatmap": {
       "title": "Calendrier d'activité",
@@ -512,7 +514,45 @@
       "distance": "Distance",
       "duration": "Durée",
       "count": "Activités",
-      "activityCount": "aucune activité | {n} activité | {n} activités"
+      "activityCount": "aucune activité | {n} activité | {n} activités",
+      "note": "{months} derniers mois",
+      "activeWeeks": "{active} semaines actives sur {total}"
+    },
+    "week": {
+      "title": "Cette semaine",
+      "time": "Temps",
+      "sessions": "Sorties",
+      "ascent": "Dénivelé +",
+      "byDay": "Par jour, du lundi au dimanche",
+      "more": "{value} de plus que la semaine dernière à la même heure",
+      "less": "{value} de moins que la semaine dernière à la même heure",
+      "same": "Autant que la semaine dernière à la même heure",
+      "nothingYet": "Pas encore de sortie cette semaine",
+      "nothingLastWeek": "Rien la semaine dernière à la même heure",
+      "month": "Ce mois",
+      "year": "Cette année"
+    },
+    "volume": {
+      "title": "Distance par semaine",
+      "titleTime": "Temps d'entraînement par semaine",
+      "note": "{weeks} dernières semaines",
+      "thisWeek": "cette sem.",
+      "currentWeek": "Semaine en cours",
+      "average": "Moyenne des 4 semaines précédentes",
+      "aria": "Volume des {weeks} dernières semaines : {values}"
+    },
+    "progress": {
+      "pace": "Allure moyenne par semaine",
+      "speed": "Vitesse moyenne par semaine",
+      "note": "{weeks} dernières semaines · plus haut = plus rapide",
+      "faster": "dernièrement, {value} plus rapide qu’il y a {weeks} semaines",
+      "slower": "dernièrement, {value} plus lent qu’il y a {weeks} semaines",
+      "steady": "dernièrement, stable sur {weeks} semaines",
+      "explore": "Explorer dans le suivi de métriques"
+    },
+    "timeBySport": {
+      "title": "Temps d'entraînement par sport",
+      "note": "{weeks} dernières semaines"
     }
   },
   "setupBanner": {

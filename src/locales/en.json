@@ -503,7 +503,9 @@
         "month": "This month",
         "quarter": "This quarter",
         "year": "This year"
-      }
+      },
+      "titleFor": "Records · {sport}",
+      "new": "New"
     },
     "heatmap": {
       "title": "Activity Calendar",
@@ -512,7 +514,45 @@
       "distance": "Distance",
       "duration": "Duration",
       "count": "Activities",
-      "activityCount": "no activity | {n} activity | {n} activities"
+      "activityCount": "no activity | {n} activity | {n} activities",
+      "note": "last {months} months",
+      "activeWeeks": "{active} active weeks out of {total}"
+    },
+    "week": {
+      "title": "This week",
+      "time": "Time",
+      "sessions": "Outings",
+      "ascent": "Elevation gain",
+      "byDay": "By day, Monday to Sunday",
+      "more": "{value} more than last week at this point",
+      "less": "{value} less than last week at this point",
+      "same": "As much as last week at this point",
+      "nothingYet": "Nothing yet this week",
+      "nothingLastWeek": "Nothing last week at this point",
+      "month": "This month",
+      "year": "This year"
+    },
+    "volume": {
+      "title": "Distance per week",
+      "titleTime": "Training time per week",
+      "note": "last {weeks} weeks",
+      "thisWeek": "this week",
+      "currentWeek": "Week in progress",
+      "average": "Average of the 4 previous weeks",
+      "aria": "Volume of the last {weeks} weeks: {values}"
+    },
+    "progress": {
+      "pace": "Average pace per week",
+      "speed": "Average speed per week",
+      "note": "last {weeks} weeks · up is faster",
+      "faster": "most recently, {value} faster than {weeks} weeks ago",
+      "slower": "most recently, {value} slower than {weeks} weeks ago",
+      "steady": "most recently, steady over {weeks} weeks",
+      "explore": "Explore in the metric tracker"
+    },
+    "timeBySport": {
+      "title": "Training time by sport",
+      "note": "last {weeks} weeks"
     }
   },
   "setupBanner": {

@@ -1,14 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
 import SummarySection from '@plugins/app-extensions/Statistics/components/SummarySection.vue'
-import DistributionSection from '@plugins/app-extensions/Statistics/components/DistributionSection.vue'
 import { convertQuantity, formatQuantity, setUnitSystem, unitSystem } from '@/composables/useUnits'
 import { periodKey } from '@/utils/dateKeys'
 import type { AggregationMetricDefinition, AggregatedRecord } from '@/types/aggregation'
-import type { Activity } from '@/types/activity'
 
 /**
  * The totals at the head of the statistics page read the aggregation store —
@@ -170,38 +168,5 @@ describe('the totals at the head of the statistics page', () => {
     metrics = []
     const filtered = await mountSummary('running')
     expect(filtered.find('.tiles-caption').exists()).toBe(true)
-  })
-})
-
-describe('the distribution section', () => {
-  it('draws distance and duration by sport, and no share pie', async () => {
-    const i18n = createI18n({
-      legacy: false,
-      locale: 'en',
-      fallbackLocale: 'en',
-      messages: { en, fr }
-    })
-    const activity = (id: string, type: string, distance: number): Activity => ({
-      id,
-      type,
-      distance,
-      duration: 3600,
-      startTime: Date.now(),
-      provider: 'test',
-      version: 1,
-      lastModified: 1
-    })
-    const activities = [activity('a', 'running', 10000), activity('b', 'cycling', 40000)]
-
-    const wrapper = mount(DistributionSection, {
-      props: { activities, allActivities: activities, selectedSport: '' },
-      global: { plugins: [i18n], provide: { pluginContext: makeContext() } }
-    })
-    await flushPromises()
-
-    // Two canvases, not three: the share-by-sport doughnut answered a question
-    // — "which sport do I do most" — that the two bar charts already answer,
-    // and answered it in the one quantity neither of them plots.
-    expect(wrapper.findAll('canvas')).toHaveLength(2)
   })
 })

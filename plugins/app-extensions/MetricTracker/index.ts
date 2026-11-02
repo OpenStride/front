@@ -5,13 +5,9 @@ const plugin: ExtensionPlugin = {
   label: 'Metric Tracker',
   description: 'Track how a single metric evolves over time, per outing or per period',
   icon: 'fas fa-chart-line',
-  slots: {
-    // Lives inside the statistics page rather than behind its own nav entry:
-    // it answers the same question as the rest of that page. The route below
-    // stays, so a direct link — such as the one on each session best — still
-    // opens it on its own.
-    'statistics.sections': [() => import('./components/MetricTrackerSection.vue')]
-  },
+  // No slot and no nav entry: the dashboard answers "am I getting faster?"
+  // with its own progress block, which links here already set to the sport
+  // and the metric. A session best links here too.
   routes: [
     {
       path: '/metrics',

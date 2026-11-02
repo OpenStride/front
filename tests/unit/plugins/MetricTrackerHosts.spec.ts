@@ -77,8 +77,10 @@ beforeEach(() => {
 })
 
 describe('metric tracker hosts', () => {
-  it('is reachable from the statistics page and from its own route', () => {
-    expect(plugin.slots?.['statistics.sections']).toBeDefined()
+  it('is reached through its own route, linked from the dashboard', () => {
+    // The dashboard's progress block replaced the embedded panel: a scatter of
+    // every outing of every sport was the hardest chart on the page to read.
+    expect(plugin.slots?.['statistics.sections']).toBeUndefined()
     expect(plugin.routes?.some(r => r.path === '/metrics')).toBe(true)
   })
 

@@ -1,10 +1,7 @@
 <template>
-  <section class="section-card">
-    <div class="section-header">
-      <h3 class="section-title">
-        <i class="fas fa-trophy" aria-hidden="true"></i>
-        {{ t('statistics.records.title') }}
-      </h3>
+  <section class="section-card" data-test="records">
+    <div class="card-head">
+      <h3 class="card-title">{{ t('statistics.records.titleFor', { sport: sportLabel }) }}</h3>
       <RecordPeriodFilter v-model="selectedPeriod" />
     </div>
 
@@ -15,63 +12,54 @@
       <p class="computing-text">{{ t('statistics.records.computing') }} {{ progress }}%</p>
     </div>
 
-    <div v-else-if="records.length === 0" class="empty-records">
-      <p>{{ t('statistics.records.noRecords') }}</p>
-      <p class="hint">
-        {{
-          selectedPeriod === 'all'
-            ? t('statistics.records.noRecordsHint')
-            : t('statistics.records.noRecordsPeriodHint')
-        }}
-      </p>
-    </div>
+    <p v-else-if="records.length === 0" class="empty">
+      {{
+        selectedPeriod === 'all'
+          ? t('statistics.records.noRecordsHint')
+          : t('statistics.records.noRecordsPeriodHint')
+      }}
+    </p>
 
-    <div v-else class="records-table-wrapper">
-      <table class="records-table">
-        <thead>
-          <tr>
-            <th>{{ t('statistics.records.distance') }}</th>
-            <th>{{ t('statistics.records.time') }}</th>
-            <th>{{ t('statistics.records.pace') }}</th>
-            <th class="hide-mobile">{{ t('statistics.records.speed') }}</th>
-            <th>{{ t('statistics.records.date') }}</th>
-            <th class="hide-mobile"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in records" :key="r.distance">
-            <td class="distance-cell">{{ r.distanceLabel }}</td>
-            <td>{{ formatRecordTime(r.duration) }}</td>
-            <td>{{ formatPace(r.pace) }}</td>
-            <td class="hide-mobile">{{ formatSpeed(r.speed) }}</td>
-            <td>{{ formatRecordDate(r.date) }}</td>
-            <td class="hide-mobile">
-              <router-link :to="`/activity-details/${r.activityId}`" class="view-link">
-                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-              </router-link>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- A list of links rather than a table: each record is a way into the
+         outing that set it, and six columns never fitted a phone. -->
+    <ul v-else class="records">
+      <li v-for="r in rows" :key="r.distance">
+        <RouterLink :to="`/activity-details/${r.activityId}`" class="record">
+          <span class="dist">{{ r.label }}</span>
+          <span class="main">
+            <span class="time">{{ r.time }}</span>
+            <span class="sub">{{ r.metric }} · {{ r.date }}</span>
+          </span>
+          <span v-if="r.isNew" class="badge">{{ t('statistics.records.new') }}</span>
+          <i class="fas fa-chevron-right chevron" aria-hidden="true"></i>
+        </RouterLink>
+      </li>
+    </ul>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
-import { usePluginContext } from '@/composables/usePluginContext'
+import { computed, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Activity } from '@/types/activity'
+import { RouterLink } from 'vue-router'
+import { usePluginContext } from '@/composables/usePluginContext'
 import { formatDate } from '@/utils/dateFormat'
 import { formatRecordTime } from '@/utils/duration'
+import { primaryMetricSpec } from '@/utils/activityMetrics'
+import { formatSportType } from '@/utils/sportLabels'
+import type { Activity } from '@/types/activity'
 import { usePersonalRecords } from '../composables/usePersonalRecords'
 import RecordPeriodFilter from './RecordPeriodFilter.vue'
 import { toMs, type RecordPeriod } from '../types'
+
+/** A record younger than this wears a badge: the one worth noticing. */
+const NEW_DAYS = 30
 
 const { t } = useI18n()
 const { units } = usePluginContext()
 
 const props = defineProps<{
+  /** Already filtered to `selectedSport`; records only mean something per sport. */
   activities: Activity[]
   selectedSport: string
 }>()
@@ -84,41 +72,42 @@ const { records, computing, progress } = usePersonalRecords(
   selectedPeriod
 )
 
+const sportLabel = computed(() => formatSportType(props.selectedSport))
 
-/** `pace` is seconds per metre, `speed` metres per second — both SI. */
-const formatPace = (secondsPerMeter: number) => units.format('pace', secondsPerMeter).text
-
-const formatSpeed = (metersPerSecond: number) => units.format('speed', metersPerSecond).text
-
-/** Records carry a timestamp in either unit; `toMs` settles it. */
-function formatRecordDate(timestamp: number): string {
-  return formatDate(toMs(timestamp))
-}
+const rows = computed(() => {
+  const cutoff = Date.now() - NEW_DAYS * 86_400_000
+  return records.value.map(r => {
+    // Pace for a runner, speed for a cyclist: the sport says which.
+    const spec = primaryMetricSpec(props.selectedSport, { speed: r.speed })
+    return {
+      distance: r.distance,
+      activityId: r.activityId,
+      label: r.distanceLabel,
+      time: formatRecordTime(r.duration),
+      metric: spec ? units.format(spec.dimension, spec.si).text : '',
+      date: formatDate(toMs(r.date), { day: 'numeric', month: 'short', year: 'numeric' }),
+      isNew: toMs(r.date) >= cutoff
+    }
+  })
+})
 </script>
 
 <style scoped>
-
-.section-header {
+.card-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
 }
 
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color);
+.card-title {
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.section-title i {
-  color: var(--color-green-500);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-color);
 }
 
 .computing {
@@ -128,7 +117,7 @@ function formatRecordDate(timestamp: number): string {
 .progress-bar {
   height: 6px;
   background: var(--color-green-100);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 0.5rem;
 }
@@ -136,82 +125,82 @@ function formatRecordDate(timestamp: number): string {
 .progress-fill {
   height: 100%;
   background: var(--color-green-500);
-  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .computing-text {
   font-size: 0.85rem;
-  color: var(--text-color);
-  opacity: 0.7;
+  color: var(--text-faint);
   text-align: center;
   margin: 0;
 }
 
-.empty-records {
-  text-align: center;
-  padding: 1.5rem;
-  color: var(--text-color);
+.empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-faint);
 }
 
-.empty-records .hint {
-  font-size: 0.85rem;
-  opacity: 0.6;
-  margin-top: 0.3rem;
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.records-table-wrapper {
-  overflow-x: auto;
+.records li + li {
+  border-top: 1px solid var(--border-subtle);
 }
 
-.records-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.records-table th {
-  text-align: left;
-  padding: 0.5rem 0.6rem;
-  border-bottom: 2px solid var(--color-green-200);
-  color: var(--text-color);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.records-table td {
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid var(--color-gray-200);
-  color: var(--text-color);
-  white-space: nowrap;
-}
-
-.distance-cell {
-  font-weight: 600;
-  color: var(--color-green-600);
-}
-
-.view-link {
-  color: var(--color-green-500);
+.record {
+  display: grid;
+  grid-template-columns: 5rem 1fr auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 3.4rem;
+  padding: 0.3rem 0.2rem;
   text-decoration: none;
+  color: var(--text-color);
 }
 
-.view-link:hover {
-  color: var(--color-green-700);
+.record:hover,
+.record:focus-visible {
+  background: var(--surface-2);
 }
 
-@media (max-width: 640px) {
-  .hide-mobile {
-    display: none;
-  }
+.dist {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+}
 
-  .records-table {
-    font-size: 0.8rem;
-  }
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
-  .records-table th,
-  .records-table td {
-    padding: 0.4rem;
-  }
+.time {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.sub {
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-white);
+  background: var(--color-green-600);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+}
+
+.chevron {
+  color: var(--text-faint);
+  font-size: 0.8rem;
 }
 </style>

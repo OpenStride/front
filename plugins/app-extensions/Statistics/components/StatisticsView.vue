@@ -5,7 +5,12 @@
         <i class="fas fa-chart-bar" aria-hidden="true"></i>
         {{ t('statistics.title') }}
       </h2>
-      <SportFilter v-if="sportOptions.length > 1" v-model="selectedSport" :options="sportOptions" />
+      <SportFilter
+        v-if="sportOptions.length > 1"
+        :model-value="selectedSport"
+        :options="sportOptions"
+        @update:model-value="chooseSport"
+      />
     </div>
 
     <div v-if="loading" class="statistics-loading">
@@ -19,42 +24,39 @@
       <p class="hint">{{ t('statistics.noDataHint') }}</p>
     </div>
 
+    <!-- One question per block, in the order a reader asks them: how is my
+         week going, how much have I trained lately, am I getting faster,
+         what are my bests, and have I been regular. -->
     <div v-else class="dash-grid">
-      <!-- The coup d'œil first: the running totals and record count, at a glance,
-           before any chart asks to be read. -->
-      <DashboardSummary
+      <WeekSummary
         class="cell-full"
         :activities="filteredActivities"
         :selected-sport="selectedSport"
       />
 
-      <!-- The activity calendar sits right under the summary — the shape of the
-           training block, before the sections that break it down. -->
+      <WeeklyVolumeChart
+        class="cell-full"
+        :activities="filteredActivities"
+        :selected-sport="selectedSport"
+      />
+
+      <!-- Pace and records only mean something for one sport at a time; with
+           every sport mixed, the time each one took is what compares. -->
+      <template v-if="selectedSport">
+        <ProgressTrend :activities="filteredActivities" :sport="selectedSport" />
+        <PersonalRecordsSection :activities="filteredActivities" :selected-sport="selectedSport" />
+      </template>
+      <TimeBySport v-else class="cell-full" :activities="filteredActivities" />
+
       <CalendarHeatmap class="cell-full" :activities="filteredActivities" />
 
-      <!-- Plugins that answer the same question as this page render here (the
-           metric tracker). Full width: it is where a figure becomes a curve. -->
+      <!-- Plugins that answer the same question as this page render here. -->
       <component
         :is="section"
         v-for="(section, i) in sectionComponents"
         :key="`section-${i}`"
         class="cell-full"
         :sport="selectedSport"
-      />
-
-      <!-- The two breakdowns share a row on the desktop grid. -->
-      <TrendsSection class="cell-half" :activities="filteredActivities" />
-      <DistributionSection
-        class="cell-half"
-        :activities="filteredActivities"
-        :all-activities="allActivities"
-        :selected-sport="selectedSport"
-      />
-
-      <PersonalRecordsSection
-        class="cell-full"
-        :activities="filteredActivities"
-        :selected-sport="selectedSport"
       />
 
       <!-- What the reader chose to follow closes the page. -->
@@ -73,15 +75,16 @@ import { useI18n } from 'vue-i18n'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useStatisticsData } from '../composables/useStatisticsData'
 import SportFilter from './SportFilter.vue'
-import DashboardSummary from './DashboardSummary.vue'
-import TrendsSection from './TrendsSection.vue'
-import DistributionSection from './DistributionSection.vue'
+import WeekSummary from './WeekSummary.vue'
+import WeeklyVolumeChart from './WeeklyVolumeChart.vue'
+import ProgressTrend from './ProgressTrend.vue'
+import TimeBySport from './TimeBySport.vue'
 import PersonalRecordsSection from './PersonalRecordsSection.vue'
 import CalendarHeatmap from './CalendarHeatmap.vue'
 import CustomAggregatesSection from './CustomAggregatesSection.vue'
 
 const { t } = useI18n()
-const { allActivities, filteredActivities, selectedSport, sportOptions, loading } =
+const { allActivities, filteredActivities, selectedSport, chooseSport, sportOptions, loading } =
   useStatisticsData()
 
 const { components: rawSections } = useSlotExtensions('statistics.sections')
