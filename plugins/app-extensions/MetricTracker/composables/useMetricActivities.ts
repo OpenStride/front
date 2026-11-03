@@ -2,6 +2,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import { formatSportType } from '@/utils/sportLabels'
+import { canonicalSport } from '@/types/sport'
 import type { StatsMap } from '../types'
 
 const activities = ref<Activity[]>([])
@@ -16,7 +17,7 @@ let statsRequest: Promise<void> | null = null
 const sportOptions = computed(() => {
   const types = new Set<string>()
   for (const a of activities.value) {
-    if (a.type) types.add(a.type.toLowerCase())
+    if (a.type) types.add(canonicalSport(a.type))
   }
   return Array.from(types)
     .sort()

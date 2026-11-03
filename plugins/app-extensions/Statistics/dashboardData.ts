@@ -1,6 +1,7 @@
 import type { Activity } from '@/types/activity'
 import { getDayKey } from '@/utils/dateKeys'
 import { toMs } from '@/utils/timeRange'
+import { canonicalSport } from '@/types/sport'
 
 /**
  * The figures the dashboard draws, folded from the activities it shows.
@@ -12,9 +13,12 @@ import { toMs } from '@/utils/timeRange'
 
 const DAY_MS = 86_400_000
 
-/** Lower-cased sport of an activity, as every lookup in the app expects. */
+/**
+ * Canonical sport of an activity: an old import's `run` and a new one's
+ * `running` are the same sport, and must count as one.
+ */
 export function sportOf(activity: Activity): string {
-  return (activity.type || 'other').toLowerCase()
+  return canonicalSport(activity.type) || 'other'
 }
 
 function startOf(activity: Activity): number | null {

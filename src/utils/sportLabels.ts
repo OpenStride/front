@@ -1,4 +1,5 @@
 import { i18n } from '@/locales'
+import { canonicalSport } from '@/types/sport'
 
 // Common sport types always shown in the selector
 export const COMMON_SPORT_TYPES = [
@@ -23,7 +24,7 @@ export const COMMON_SPORT_TYPES = [
  */
 export function formatSportType(sport: string): string {
   if (!sport) return ''
-  const key = `sports.${sport.toLowerCase()}`
+  const key = `sports.${canonicalSport(sport)}`
   if (i18n.global.te(key)) return i18n.global.t(key)
   return sport
     .split('_')
@@ -121,5 +122,5 @@ export const SPORT_ICONS: Record<string, string> = {
 
 /** Get the FA icon class for a sport slug, with a generic fallback. */
 export function getSportIcon(sport: string): string {
-  return SPORT_ICONS[sport?.toLowerCase()] ?? 'fas fa-medal'
+  return SPORT_ICONS[canonicalSport(sport)] ?? 'fas fa-medal'
 }
