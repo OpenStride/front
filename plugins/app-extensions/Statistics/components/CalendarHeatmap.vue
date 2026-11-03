@@ -1,18 +1,13 @@
 <template>
-  <section class="section-card" data-test="calendar">
-    <div class="card-head">
-      <h3 class="card-title">{{ t('statistics.heatmap.title') }}</h3>
-      <span class="card-note">
-        {{ t('statistics.heatmap.note', { months: 6 }) }} ·
-        <strong>{{ t('statistics.heatmap.activeWeeks', { active, total: WEEKS }) }}</strong>
-      </span>
-    </div>
+  <DashCard :title="t('statistics.heatmap.title')" icon="fa-calendar-days" data-test="calendar">
+    <template #aside>
+      <strong class="active">{{
+        t('statistics.heatmap.activeWeeks', { active, total: weeks })
+      }}</strong>
+    </template>
 
     <div ref="scrollArea" class="scroll">
-      <div
-        class="grid"
-        :style="{ gridTemplateColumns: `2rem repeat(${WEEKS}, minmax(0.9rem, 1.5rem))` }"
-      >
+      <div class="grid" :style="{ gridTemplateColumns: `2rem repeat(${weeks}, 1.1rem)` }">
         <span
           v-for="m in months"
           :key="`m${m.col}`"
@@ -42,11 +37,12 @@
       <span v-for="l in 5" :key="l" :class="['cell', `level-${l - 1}`]"></span>
       <span>{{ t('statistics.heatmap.more') }}</span>
     </div>
-  </section>
+  </DashCard>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import DashCard from './DashCard.vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Activity } from '@/types/activity'
 import { formatDate, monthShort, weekdayNarrow } from '@/utils/dateFormat'
@@ -55,8 +51,13 @@ import { getDayKey } from '@/utils/dateKeys'
 import { toMs } from '@/utils/timeRange'
 import { activeWeeks, weekStart } from '../dashboardData'
 
-/** Six months: enough to see a training block, small enough for a phone. */
-const WEEKS = 26
+/** One column: a 1.1rem cell and the 3px gap after it, in px at 16px/rem. */
+const COLUMN_PX = 17.6 + 3
+/** The day-label column on the left. */
+const LABEL_PX = 32 + 3
+/** At least a training block; at most a year. */
+const MIN_WEEKS = 12
+const MAX_WEEKS = 53
 
 const { t } = useI18n()
 
@@ -65,6 +66,29 @@ const props = defineProps<{
 }>()
 
 const scrollArea = ref<HTMLElement | null>(null)
+
+/**
+ * As many weeks as the card holds, at a fixed cell size: about a year on a
+ * desktop, three to four months on a phone. Stretching cells to fill a wide
+ * card made the grid read as a board of buttons; a fixed count left half the
+ * card empty.
+ */
+const weeks = ref(26)
+let observer: ResizeObserver | null = null
+
+function fit(width: number) {
+  const fitting = Math.floor((width - LABEL_PX) / COLUMN_PX)
+  weeks.value = Math.max(MIN_WEEKS, Math.min(MAX_WEEKS, fitting))
+}
+
+onMounted(() => {
+  if (!scrollArea.value) return
+  fit(scrollArea.value.clientWidth)
+  if (typeof ResizeObserver === 'undefined') return
+  observer = new ResizeObserver(entries => fit(entries[0].contentRect.width))
+  observer.observe(scrollArea.value)
+})
+onUnmounted(() => observer?.disconnect())
 
 /** The latest weeks are the ones read; a phone scrolls them into view. */
 function scrollToEnd() {
@@ -94,14 +118,14 @@ const byDay = computed(() => {
 
 const first = computed(() => {
   const d = weekStart(new Date())
-  d.setDate(d.getDate() - (WEEKS - 1) * 7)
+  d.setDate(d.getDate() - (weeks.value - 1) * 7)
   return d
 })
 
 const months = computed(() => {
   const out: { label: string; col: number }[] = []
   let last = -1
-  for (let w = 0; w < WEEKS; w++) {
+  for (let w = 0; w < weeks.value; w++) {
     const d = new Date(first.value)
     d.setDate(d.getDate() + w * 7)
     if (d.getMonth() !== last) {
@@ -121,7 +145,7 @@ const cells = computed(() => {
   const level = (v: number) => (v <= 0 ? 0 : v <= q1 ? 1 : v <= q2 ? 2 : v <= q3 ? 3 : 4)
 
   const out: { key: string; col: number; row: number; level: number; tooltip: string }[] = []
-  for (let w = 0; w < WEEKS; w++) {
+  for (let w = 0; w < weeks.value; w++) {
     for (let r = 0; r < 7; r++) {
       const d = new Date(first.value)
       d.setDate(d.getDate() + w * 7 + r)
@@ -143,36 +167,10 @@ const cells = computed(() => {
   return out
 })
 
-const active = computed(() => activeWeeks(props.activities, WEEKS))
+const active = computed(() => activeWeeks(props.activities, weeks.value))
 </script>
 
 <style scoped>
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.3rem 1rem;
-  margin-bottom: 0.9rem;
-}
-
-.card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.card-note {
-  font-size: 0.82rem;
-  color: var(--text-faint);
-}
-
-.card-note strong {
-  color: var(--text-color);
-}
-
 .scroll {
   overflow-x: auto;
 }
@@ -186,7 +184,8 @@ const active = computed(() => activeWeeks(props.activities, WEEKS))
 
 .month,
 .weekday {
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   color: var(--text-faint);
   white-space: nowrap;
   line-height: 1.1rem;
@@ -194,7 +193,9 @@ const active = computed(() => activeWeeks(props.activities, WEEKS))
 
 .cell {
   aspect-ratio: 1;
-  border-radius: var(--radius-sm);
+  /* Square, like the cards and the bars around it: rounded tiles read as
+     buttons, and these are not. */
+  border-radius: 0;
 }
 
 .level-0 {
@@ -225,5 +226,8 @@ const active = computed(() => activeWeeks(props.activities, WEEKS))
 
 .legend .cell {
   width: 0.75rem;
+}
+.active {
+  color: var(--text-color);
 }
 </style>

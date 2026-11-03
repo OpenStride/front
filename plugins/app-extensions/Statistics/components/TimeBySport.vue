@@ -1,9 +1,11 @@
 <template>
-  <section v-if="shares.length > 1" class="section-card" data-test="time-by-sport">
-    <div class="card-head">
-      <h3 class="card-title">{{ t('statistics.timeBySport.title') }}</h3>
-      <span class="card-note">{{ t('statistics.timeBySport.note', { weeks: WEEKS }) }}</span>
-    </div>
+  <DashCard
+    v-if="shares.length > 1"
+    :title="t('statistics.timeBySport.title')"
+    icon="fa-clock"
+    data-test="time-by-sport"
+  >
+    <template #aside>{{ t('statistics.timeBySport.note', { weeks: WEEKS }) }}</template>
 
     <div class="bar" role="img" :aria-label="ariaLabel">
       <span
@@ -21,10 +23,11 @@
         <span class="percent">{{ s.percent }} %</span>
       </li>
     </ul>
-  </section>
+  </DashCard>
 </template>
 
 <script setup lang="ts">
+import DashCard from './DashCard.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatCompactDuration } from '@/utils/duration'
@@ -61,28 +64,6 @@ const ariaLabel = computed(() => shares.value.map(s => `${s.label} ${s.percent} 
 </script>
 
 <style scoped>
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.3rem 1rem;
-  margin-bottom: 0.9rem;
-}
-
-.card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.card-note {
-  font-size: 0.82rem;
-  color: var(--text-faint);
-}
-
 .bar {
   display: flex;
   height: 1.6rem;

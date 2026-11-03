@@ -1,9 +1,6 @@
 <template>
-  <section class="section-card" data-test="weekly-volume">
-    <div class="card-head">
-      <h3 class="card-title">{{ title }}</h3>
-      <span class="card-note">{{ t('statistics.volume.note', { weeks: WEEKS }) }}</span>
-    </div>
+  <DashCard :title="title" icon="fa-chart-column" data-test="weekly-volume">
+    <template #aside>{{ t('statistics.volume.note', { weeks: WEEKS }) }}</template>
 
     <div class="chart">
       <canvas ref="canvas" role="img" :aria-label="ariaLabel"></canvas>
@@ -23,10 +20,11 @@
         {{ t('statistics.volume.average') }}
       </li>
     </ul>
-  </section>
+  </DashCard>
 </template>
 
 <script setup lang="ts">
+import DashCard from './DashCard.vue'
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
@@ -39,6 +37,7 @@ import { formatSportType } from '@/utils/sportLabels'
 import type { Activity } from '@/types/activity'
 import { timeBySport, weeklySeries, type WeekBucket } from '../dashboardData'
 import { cssVar, hatch, sportColor } from '../sportPalette'
+import { axisTicks, gridLines, tooltipStyle } from '../chartTheme'
 
 const WEEKS = 12
 
@@ -149,7 +148,7 @@ function draw() {
     order: 1
   }
 
-  const tick = { color: cssVar('--text-faint', '#8c8c84'), font: { size: 11 } }
+  const tick = axisTicks()
   chart = new Chart(canvas.value, {
     data: { labels, datasets: average.value > 0 ? [...bars, line] : bars },
     options: {
@@ -162,6 +161,7 @@ function draw() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          ...tooltipStyle(),
           filter: item => item.dataset.type !== 'line' && (item.raw as number) > 0,
           callbacks: {
             label: item => `${item.dataset.label} : ${label(item.raw as number)}`,
@@ -174,15 +174,16 @@ function draw() {
         x: {
           stacked: true,
           grid: { display: false },
-          ticks: { ...tick, maxRotation: 0, autoSkip: true, autoSkipPadding: 8 }
+          border: { display: false },
+          ticks: { ...tick, maxRotation: 0, autoSkip: true, autoSkipPadding: 16 }
         },
         y: {
           stacked: true,
           beginAtZero: true,
           border: { display: false },
-          grid: { color: cssVar('--surface-muted', '#e9ece4') },
-          ticks: tick,
-          title: { display: true, text: unit.value, color: tick.color, font: { size: 11 } }
+          grid: gridLines(),
+          ticks: { ...tick, maxTicksLimit: 5 },
+          title: { display: true, text: unit.value, color: tick.color, font: tick.font }
         }
       }
     }
@@ -204,28 +205,6 @@ onUnmounted(() => chart?.destroy())
 </script>
 
 <style scoped>
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.3rem 1rem;
-  margin-bottom: 0.8rem;
-}
-
-.card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.card-note {
-  font-size: 0.82rem;
-  color: var(--text-faint);
-}
-
 .chart {
   position: relative;
   height: 15rem;

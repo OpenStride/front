@@ -515,8 +515,7 @@
       "duration": "Durée",
       "count": "Activités",
       "activityCount": "aucune activité | {n} activité | {n} activités",
-      "note": "{months} derniers mois",
-      "activeWeeks": "{active} semaines actives sur {total}"
+      "activeWeeks": "{active} semaines actives sur les {total} dernières"
     },
     "week": {
       "title": "Cette semaine",

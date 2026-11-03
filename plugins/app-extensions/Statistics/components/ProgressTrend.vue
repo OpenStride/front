@@ -1,9 +1,11 @@
 <template>
-  <section v-if="points.valued >= MIN_WEEKS" class="section-card" data-test="progress-trend">
-    <div class="card-head">
-      <h3 class="card-title">{{ title }}</h3>
-      <span class="card-note">{{ t('statistics.progress.note', { weeks: WEEKS }) }}</span>
-    </div>
+  <DashCard
+    v-if="points.valued >= MIN_WEEKS"
+    :title="title"
+    icon="fa-chart-line"
+    data-test="progress-trend"
+  >
+    <template #aside>{{ t('statistics.progress.note', { weeks: WEEKS }) }}</template>
 
     <p class="verdict">
       <strong class="latest">{{ format(points.last) }}</strong>
@@ -18,10 +20,11 @@
       {{ t('statistics.progress.explore') }}
       <i class="fas fa-arrow-right" aria-hidden="true"></i>
     </RouterLink>
-  </section>
+  </DashCard>
 </template>
 
 <script setup lang="ts">
+import DashCard from './DashCard.vue'
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
@@ -32,6 +35,7 @@ import { primaryMetricSpec } from '@/utils/activityMetrics'
 import type { Activity } from '@/types/activity'
 import { weeklySeries, weeklySpeed } from '../dashboardData'
 import { cssVar } from '../sportPalette'
+import { axisTicks, gridLines, tooltipStyle } from '../chartTheme'
 
 const WEEKS = 12
 /** Below three weeks a direction means nothing: two points only describe themselves. */
@@ -120,7 +124,6 @@ function draw() {
   if (!canvas.value) return
 
   const green = cssVar('--color-green-600', '#4d7314')
-  const faint = cssVar('--text-faint', '#8c8c84')
   chart = new Chart(canvas.value, {
     type: 'line',
     data: {
@@ -134,8 +137,13 @@ function draw() {
           label: title.value,
           data: points.value.values,
           borderColor: green,
-          backgroundColor: green,
-          borderWidth: 2.5,
+          // The same line as the metric tracker's: green, over a pale fill.
+          backgroundColor: cssVar('--color-green-100', '#e6f0cf'),
+          pointBackgroundColor: green,
+          pointBorderWidth: 0,
+          // To the bottom of the chart, whichever way the axis runs.
+          fill: 'start',
+          borderWidth: 2,
           // Straight segments: a smoothed curve invented bumps between weeks.
           tension: 0,
           spanGaps: true,
@@ -151,21 +159,25 @@ function draw() {
       animation: { duration: 300 },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: item => format(item.raw as number) } }
+        tooltip: {
+          ...tooltipStyle(),
+          displayColors: false,
+          callbacks: { label: item => format(item.raw as number) }
+        }
       },
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: faint, font: { size: 11 }, maxRotation: 0, autoSkipPadding: 8 }
+          border: { display: false },
+          ticks: { ...axisTicks(), maxRotation: 0, autoSkipPadding: 16 }
         },
         y: {
           // Up is better: a pace axis is turned over so a faster week rises.
           reverse: isPace.value,
           border: { display: false },
-          grid: { color: cssVar('--surface-muted', '#e9ece4') },
+          grid: gridLines(),
           ticks: {
-            color: faint,
-            font: { size: 11 },
+            ...axisTicks(),
             maxTicksLimit: 5,
             callback: value => format(Number(value)).split(' ')[0]
           }
@@ -189,27 +201,6 @@ onUnmounted(() => chart?.destroy())
 </script>
 
 <style scoped>
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.3rem 1rem;
-}
-
-.card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.card-note {
-  font-size: 0.82rem;
-  color: var(--text-faint);
-}
-
 .verdict {
   margin: 0.6rem 0 0.8rem;
   font-size: 0.95rem;
