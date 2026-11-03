@@ -278,13 +278,60 @@ const SPORT_OVERRIDES: Partial<Record<SportType, Partial<SportProfile>>> = {
   snowshoeing: { primaryMetric: 'elevation' }
 }
 
+/**
+ * Names that activities stored before the canonical vocabulary still carry.
+ *
+ * Providers map onto `SPORT_TYPES` today, but older imports kept whatever the
+ * source said, lower-cased: the Strava CSV's "Run" became `run`, its "Ride"
+ * `ride`. Left as they were, a runner's history split in two in every sport
+ * menu — "Run" beside "Running" — and the `run` half fell to the `other`
+ * profile, losing its pace and its records.
+ */
+const LEGACY_SPORT_NAMES: Record<string, SportType> = {
+  run: 'running',
+  virtual_run: 'running',
+  virtualrun: 'running',
+  trail_run: 'trail_running',
+  trailrun: 'trail_running',
+  ride: 'cycling',
+  bike: 'cycling',
+  biking: 'cycling',
+  virtual_ride: 'indoor_cycling',
+  virtualride: 'indoor_cycling',
+  mountain_bike_ride: 'mountain_biking',
+  mountainbikeride: 'mountain_biking',
+  e_bike_ride: 'e_biking',
+  ebikeride: 'e_biking',
+  swim: 'swimming',
+  walk: 'walking',
+  hike: 'hiking',
+  weight_training: 'strength_training',
+  weighttraining: 'strength_training'
+}
+
+/**
+ * The canonical slug for a stored sport, whatever era it was written in.
+ *
+ * Lower-cases, joins words with `_` ("Trail Running" → `trail_running`) and
+ * maps the legacy names above. A string it cannot place comes back normalised
+ * but otherwise untouched, so an unknown sport keeps its own name rather than
+ * merging into `other`.
+ */
+export function canonicalSport(sport: string | undefined | null): string {
+  const slug = (sport ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+  return LEGACY_SPORT_NAMES[slug] ?? slug
+}
+
 /** Presentation profile for a sport slug. Unknown slugs fall back to `other`. */
 export function getSportProfile(sport: string): SportProfile {
   // Normalised like every other sport lookup in the app (labels, icons, stats):
   // activities predating the canonical vocabulary carry raw provider strings
-  // such as "RUNNING", and an exact match would drop them to `other` — losing
-  // the pace the card used to show.
-  const slug = (sport ?? '').trim().toLowerCase() as SportType
+  // such as "RUNNING" or "run", and an exact match would drop them to `other` —
+  // losing the pace the card used to show.
+  const slug = canonicalSport(sport) as SportType
   const family = SPORT_FAMILY[slug] ?? 'other'
   return { ...FAMILY_PROFILES[family], ...SPORT_OVERRIDES[slug] }
 }

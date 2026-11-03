@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { canonicalSport } from '@/types/sport'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMetricActivities } from '../composables/useMetricActivities'
@@ -270,7 +271,7 @@ const filteredActivities = computed(() => {
   const range = windowRange(selectedWindow.value)
   return activities.value.filter(
     a =>
-      (!selectedSport.value || a.type?.toLowerCase() === selectedSport.value) &&
+      (!selectedSport.value || canonicalSport(a.type) === canonicalSport(selectedSport.value)) &&
       inRange(a.startTime, range)
   )
 })

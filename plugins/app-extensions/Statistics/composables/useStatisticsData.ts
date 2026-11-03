@@ -3,32 +3,34 @@ import type { Activity } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { IActivityService } from '@/types/plugin-context'
 import { formatSportType } from '@/utils/sportLabels'
-import { mainSport } from '../dashboardData'
+import { canonicalSport } from '@/types/sport'
+import { mainSport, sportOf } from '../dashboardData'
 
 const allActivities = ref<Activity[]>([])
 const selectedSport = ref<string>('')
 const loading = ref(false)
 /**
- * Whether the reader picked a sport themselves. Until they do, the page opens
- * on the sport they practise most: pace, records and a distance total only
- * mean something for one sport at a time. "All sports" stays one choice away,
- * and once chosen it stays chosen.
+ * The reader's last choice, kept in the settings so the page reopens where
+ * they left it — on this device and their others. Until they pick one, the
+ * page opens on the sport they practise most: pace, records and a distance
+ * total only mean something for one sport at a time. An empty string is a
+ * choice too: "all sports".
  */
-let sportChosen = false
+const SPORT_SETTING = 'statistics_selected_sport'
+let savedSport: string | null = null
+let savedLoaded = false
 let initialized = false
 let activityService: IActivityService | null = null
 
 const filteredActivities = computed(() => {
   if (!selectedSport.value) return allActivities.value
-  return allActivities.value.filter(
-    a => a.type?.toLowerCase() === selectedSport.value.toLowerCase()
-  )
+  return allActivities.value.filter(a => sportOf(a) === selectedSport.value)
 })
 
 const sportTypes = computed(() => {
   const types = new Set<string>()
   for (const a of allActivities.value) {
-    if (a.type) types.add(a.type.toLowerCase())
+    if (a.type) types.add(sportOf(a))
   }
   return Array.from(types).sort()
 })
@@ -40,15 +42,37 @@ const sportOptions = computed(() => {
   }))
 })
 
+function ctx() {
+  return getPluginContext()
+}
+
+/**
+ * The saved choice while it still names a sport the reader has (a sport whose
+ * activities were all deleted would open an empty page), else the main sport.
+ */
+function initialSport(): string {
+  if (savedSport !== null && (savedSport === '' || sportTypes.value.includes(savedSport))) {
+    return savedSport
+  }
+  return mainSport(allActivities.value)
+}
+
 async function loadActivities() {
   loading.value = true
   try {
-    if (!activityService) {
-      const ctx = await getPluginContext()
-      activityService = ctx.activity
+    if (!activityService) activityService = (await ctx()).activity
+    if (!savedLoaded) {
+      savedLoaded = true
+      const saved = await ctx()
+        .then(c => c.storage.getData(SPORT_SETTING))
+        .catch(() => null)
+      if (saved && typeof (saved as { sport?: unknown }).sport === 'string') {
+        // Canonical, so a choice saved before the vocabulary settled still matches.
+        savedSport = canonicalSport((saved as { sport: string }).sport)
+      }
     }
     allActivities.value = await activityService.getAllActivities()
-    if (!sportChosen && !selectedSport.value) selectedSport.value = mainSport(allActivities.value)
+    selectedSport.value = initialSport()
   } finally {
     loading.value = false
   }
@@ -72,10 +96,15 @@ function cleanup() {
   activityService = null
 }
 
-/** The reader's own choice, which the default never overrides again. */
+/** The reader's own choice: shown at once, and remembered for next time. */
 function chooseSport(sport: string) {
-  sportChosen = true
+  savedSport = sport
   selectedSport.value = sport
+  void ctx()
+    .then(c => c.storage.saveData(SPORT_SETTING, { sport }))
+    .catch(() => {
+      // Only the memory of the choice is lost; the page already shows it.
+    })
 }
 
 export function useStatisticsData() {

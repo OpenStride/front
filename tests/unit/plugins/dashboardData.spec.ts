@@ -47,6 +47,20 @@ describe('mainSport', () => {
     expect(mainSport(activities)).toBe('running')
   })
 
+  it('counts an old import `run` and a new `running` as one sport', () => {
+    // Split in two, running lost to cycling although it was the main sport
+    const activities = [
+      act('a', '2026-10-01T07:00:00', { type: 'run' }),
+      act('b', '2026-10-02T07:00:00', { type: 'run' }),
+      act('c', '2026-10-03T07:00:00', { type: 'running' }),
+      act('d', '2026-10-04T07:00:00', { type: 'running' }),
+      act('e', '2026-10-05T07:00:00', { type: 'cycling' }),
+      act('f', '2026-10-06T07:00:00', { type: 'cycling' }),
+      act('g', '2026-10-07T07:00:00', { type: 'cycling' })
+    ]
+    expect(mainSport(activities)).toBe('running')
+  })
+
   it('is empty when there is nothing', () => {
     expect(mainSport([])).toBe('')
   })
