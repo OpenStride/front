@@ -529,7 +529,17 @@
       "nothingYet": "Nothing yet this week",
       "nothingLastWeek": "Nothing last week at this point",
       "month": "This month",
-      "year": "This year"
+      "year": "This year",
+      "carousel": "Week summary, swipe for previous weeks",
+      "older": "Previous week",
+      "newer": "Next week",
+      "lastWeek": "Last week",
+      "weeksAgo": "{n} weeks ago",
+      "moreDone": "{value} more than the week before",
+      "lessDone": "{value} less than the week before",
+      "sameDone": "As much as the week before",
+      "nothingYetDone": "No outing that week",
+      "nothingLastWeekDone": "Nothing the week before"
     },
     "volume": {
       "title": "Distance per week",

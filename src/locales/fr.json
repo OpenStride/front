@@ -529,7 +529,17 @@
       "nothingYet": "Pas encore de sortie cette semaine",
       "nothingLastWeek": "Rien la semaine dernière à la même heure",
       "month": "Ce mois",
-      "year": "Cette année"
+      "year": "Cette année",
+      "carousel": "Résumé de la semaine, glisser pour les semaines précédentes",
+      "older": "Semaine précédente",
+      "newer": "Semaine suivante",
+      "lastWeek": "Semaine dernière",
+      "weeksAgo": "Il y a {n} semaines",
+      "moreDone": "{value} de plus que la semaine d’avant",
+      "lessDone": "{value} de moins que la semaine d’avant",
+      "sameDone": "Autant que la semaine d’avant",
+      "nothingYetDone": "Aucune sortie cette semaine-là",
+      "nothingLastWeekDone": "Rien la semaine d’avant"
     },
     "volume": {
       "title": "Distance par semaine",
