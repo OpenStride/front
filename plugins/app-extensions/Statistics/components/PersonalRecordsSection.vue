@@ -1,9 +1,10 @@
 <template>
-  <section class="section-card" data-test="records">
-    <div class="card-head">
-      <h3 class="card-title">{{ t('statistics.records.titleFor', { sport: sportLabel }) }}</h3>
-      <RecordPeriodFilter v-model="selectedPeriod" />
-    </div>
+  <DashCard
+    :title="t('statistics.records.titleFor', { sport: sportLabel })"
+    icon="fa-trophy"
+    data-test="records"
+  >
+    <template #aside><RecordPeriodFilter v-model="selectedPeriod" /></template>
 
     <div v-if="computing" class="computing">
       <div class="progress-bar">
@@ -35,10 +36,11 @@
         </RouterLink>
       </li>
     </ul>
-  </section>
+  </DashCard>
 </template>
 
 <script setup lang="ts">
+import DashCard from './DashCard.vue'
 import { computed, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
@@ -93,23 +95,6 @@ const rows = computed(() => {
 </script>
 
 <style scoped>
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.6rem;
-}
-
-.card-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
 .computing {
   padding: 1rem 0;
 }

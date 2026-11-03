@@ -233,11 +233,13 @@ onUnmounted(() => {
 
 .section-title {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.55rem;
   align-items: center;
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  /* The title of every other dashboard card (DashCard). */
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
   color: var(--text-color);
 }
 
