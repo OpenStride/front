@@ -147,12 +147,6 @@
       "6m": "6 months",
       "3m": "3 months"
     },
-    "granularities": {
-      "activity": "Per outing",
-      "week": "Week",
-      "month": "Month",
-      "year": "Year"
-    },
     "metrics": {
       "distance": "Distance",
       "duration": "Duration",
@@ -163,18 +157,138 @@
       "totalAscent": "Elevation +",
       "calories": "Calories"
     },
-    "summary": {
-      "best": "Best",
-      "average": "Average",
-      "points": "Points"
+    "grains": {
+      "week": "By week",
+      "month": "By month"
     },
-    "chart": {
-      "perActivity": "1 point = 1 session",
-      "aggregated": "Average per period",
-      "trend": "trend",
-      "lowerBetter": "inverted axis — lower is better"
+    "modeLabel": "Value of each point",
+    "modes": {
+      "avg": {
+        "week": "Week average",
+        "month": "Month average"
+      },
+      "best": {
+        "week": "Best outing of the week",
+        "month": "Best outing of the month"
+      },
+      "max": {
+        "week": "Week maximum",
+        "month": "Month maximum"
+      }
     },
-    "openFullPage": "Open the full page"
+    "per": {
+      "week": "week",
+      "month": "month"
+    },
+    "weekOf": "week of {date}",
+    "windowNames": {
+      "3m": "3 months",
+      "6m": "6 months",
+      "12m": "12 months",
+      "all": "your whole history"
+    },
+    "answer": {
+      "open": "Open the outing",
+      "volume": {
+        "week": "on average over {window} · the week in progress (hatched) is left out",
+        "month": "on average over {window} · the month in progress (hatched) is left out"
+      },
+      "record": "current record, set on {date} ·",
+      "avgOf": "average of the {period}",
+      "bestOf": "best outing of the {period}",
+      "maxOf": "maximum of the {period}",
+      "faster": "{value} faster than at the start of the period",
+      "slower": "{value} slower than at the start of the period",
+      "better": "{value} better than at the start of the period",
+      "worse": "{value} worse than at the start of the period",
+      "changed": "{value} since the start of the period",
+      "steady": "steady since the start of the period"
+    },
+    "tiles": {
+      "busiest": {
+        "week": "Busiest week",
+        "month": "Busiest month"
+      },
+      "total": "Total over the period",
+      "periods": {
+        "week": "{n} weeks",
+        "month": "{n} months"
+      },
+      "empty": {
+        "week": "Weeks without an outing",
+        "month": "Months without an outing"
+      },
+      "outOf": "out of {n}",
+      "recent": "Best of the last 3 months",
+      "noRecent": "no recent outing",
+      "isRecord": "it is the record",
+      "offRecord": "{value} off the record",
+      "atStart": "At the start of the period",
+      "broken": "Records broken",
+      "brokenFoot": "over the period, dark dots",
+      "bestOuting": "Best outing",
+      "maxOuting": "Highest outing",
+      "bestAverage": {
+        "week": "Best weekly average",
+        "month": "Best monthly average"
+      },
+      "maxAverage": {
+        "week": "Highest weekly average",
+        "month": "Highest monthly average"
+      },
+      "outings": "Outings",
+      "outingsFoot": "pale dots on the chart"
+    },
+    "chartTitle": {
+      "best": "{metric}: best of each month",
+      "volume": {
+        "week": "{metric} per week",
+        "month": "{metric} per month"
+      },
+      "avg": {
+        "week": "{metric}: each week’s average",
+        "month": "{metric}: each month’s average"
+      },
+      "bestOuting": {
+        "week": "{metric}: each week’s best outing",
+        "month": "{metric}: each month’s best outing"
+      },
+      "max": {
+        "week": "{metric}: each week’s maximum",
+        "month": "{metric}: each month’s maximum"
+      }
+    },
+    "legend": {
+      "bar": {
+        "week": "One bar = one week",
+        "month": "One bar = one month"
+      },
+      "busiest": {
+        "week": "The busiest week",
+        "month": "The busiest month"
+      },
+      "current": {
+        "week": "Week in progress",
+        "month": "Month in progress"
+      },
+      "average": "Average of the complete periods",
+      "record": "Record at the time",
+      "newRecord": "New record",
+      "monthBest": "Best of the month",
+      "avg": {
+        "week": "Week average",
+        "month": "Month average"
+      },
+      "best": {
+        "week": "Best outing of the week",
+        "month": "Best outing of the month"
+      },
+      "max": {
+        "week": "Week maximum",
+        "month": "Month maximum"
+      },
+      "outing": "One outing"
+    }
   },
   "profile": {
     "enterUsername": "Enter your username",

@@ -505,13 +505,18 @@ describe('metric tracker i18n', () => {
     for (const locale of [en, fr]) {
       const tracker = (locale as unknown as { metricTracker: Record<string, never> }).metricTracker
       const metrics = tracker.metrics as Record<string, string>
-      const granularities = tracker.granularities as Record<string, string>
+      // The grains the tracker offers, and its windows: what a reader can pick
+      const grains = tracker.grains as Record<string, string>
+      const windows = tracker.windows as Record<string, string>
 
       for (const metric of DIRECT_METRICS) {
         expect(metrics[metric.id], `missing label for metric "${metric.id}"`).toBeTruthy()
       }
-      for (const granularity of GRANULARITIES) {
-        expect(granularities[granularity], `missing label for "${granularity}"`).toBeTruthy()
+      for (const grain of ['week', 'month']) {
+        expect(grains[grain], `missing label for "${grain}"`).toBeTruthy()
+      }
+      for (const window of WINDOWS) {
+        expect(windows[window], `missing label for window "${window}"`).toBeTruthy()
       }
       expect(
         (locale as unknown as { navigation: Record<string, string> }).navigation.metricTracker

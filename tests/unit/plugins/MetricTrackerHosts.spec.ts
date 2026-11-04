@@ -95,7 +95,18 @@ describe('MetricTrackerPanel sport filter', () => {
   it('offers its own sport selector when no host owns one', async () => {
     const wrapper = await mountPanel({ syncUrl: true })
 
-    expect(wrapper.find('[data-test="sport-all"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="sport-select"]').exists()).toBe(true)
+  })
+
+  it('offers "all sports" for a volume, never for a pace', async () => {
+    // A ride is no running pace: the default metric, pace, lists sports only
+    const wrapper = await mountPanel({ syncUrl: true })
+    const values = () =>
+      wrapper.findAll('[data-test="sport-select"] option').map(o => o.attributes('value'))
+    expect(values()).not.toContain('')
+
+    await wrapper.find('[data-test="metric-select"]').setValue('distance')
+    expect(values()).toContain('')
   })
 
   it('hides its selector when the host provides the sport', async () => {
@@ -103,7 +114,7 @@ describe('MetricTrackerPanel sport filter', () => {
     // inside the section would let the page disagree with itself
     const wrapper = await mountPanel({ sport: '' })
 
-    expect(wrapper.find('[data-test="sport-all"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="sport-select"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="metric-select"]').exists()).toBe(true)
   })
 })
