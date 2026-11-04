@@ -12,69 +12,48 @@
     </div>
 
     <template v-else>
-      <!-- Primary question — what am I looking at. Given the prominence the rest
-           of the controls used to compete with. -->
+      <!-- What am I looking at: the metric, and for which sport. -->
       <div class="mt-primary">
-        <label class="primary-label" for="metric-select">{{ t('metricTracker.metric') }}</label>
-        <select
-          id="metric-select"
-          v-model="selectedMetricId"
-          class="metric-select"
-          data-test="metric-select"
-        >
-          <optgroup :label="t('metricTracker.groups.direct')">
-            <option v-for="m in DIRECT_METRICS" :key="m.id" :value="m.id">
-              {{ metricLabel(m) }}
+        <label class="field">
+          <span class="field-label">{{ t('metricTracker.metric') }}</span>
+          <select v-model="selectedMetricId" class="metric-select" data-test="metric-select">
+            <optgroup :label="t('metricTracker.groups.direct')">
+              <option v-for="m in DIRECT_METRICS" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
+            <optgroup :label="t('metricTracker.groups.bestTimes')">
+              <option v-for="m in DERIVED_METRICS" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
+            <!-- Nothing to show until the reader has defined one, so the group
+                 stays out rather than sitting there empty. -->
+            <optgroup v-if="customMetrics.length" :label="t('metricTracker.groups.custom')">
+              <option v-for="m in customMetrics" :key="m.id" :value="m.id">
+                {{ metricLabel(m) }}
+              </option>
+            </optgroup>
+          </select>
+        </label>
+
+        <label v-if="!hostOwnsSport && sportChoices.length > 1" class="field">
+          <span class="field-label">{{ t('metricTracker.sport') }}</span>
+          <select v-model="sportModel" class="sport-select" data-test="sport-select">
+            <option v-for="s in sportChoices" :key="s.value" :value="s.value">
+              {{ s.label }}
             </option>
-          </optgroup>
-          <optgroup :label="t('metricTracker.groups.bestTimes')">
-            <option v-for="m in DERIVED_METRICS" :key="m.id" :value="m.id">
-              {{ metricLabel(m) }}
-            </option>
-          </optgroup>
-          <!-- Nothing to show until the reader has defined one, so the group
-               stays out rather than sitting there empty. -->
-          <optgroup v-if="customMetrics.length" :label="t('metricTracker.groups.custom')">
-            <option v-for="m in customMetrics" :key="m.id" :value="m.id">
-              {{ metricLabel(m) }}
-            </option>
-          </optgroup>
-        </select>
+          </select>
+        </label>
       </div>
 
-      <!-- Secondary — how to slice it. Demoted onto a recessed bar so it reads
-           as an adjustment of the metric above, not as a rival to it. -->
-      <div class="mt-secondary">
-        <div class="control">
-          <span class="control-label">{{ t('metricTracker.granularity') }}</span>
-          <ChipSelect
-            v-model="selectedGranularity"
-            :options="granularityOptions"
-            :group-label="t('metricTracker.granularity')"
-            test-prefix="granularity"
-          />
-        </div>
-
-        <div class="control">
-          <span class="control-label">{{ t('metricTracker.window') }}</span>
-          <ChipSelect
-            v-model="selectedWindow"
-            :options="windowOptions"
-            :group-label="t('metricTracker.window')"
-            test-prefix="window"
-          />
-        </div>
-
-        <div v-if="!hostOwnsSport && sportOptions.length > 1" class="control">
-          <span class="control-label">{{ t('metricTracker.sport') }}</span>
-          <ChipSelect
-            v-model="ownSport"
-            :options="sportChoices"
-            :group-label="t('metricTracker.sport')"
-            test-prefix="sport"
-          />
-        </div>
-      </div>
+      <!-- Over what span: one row, the grain follows it. -->
+      <ChipSelect
+        v-model="selectedWindow"
+        :options="windowOptions"
+        :group-label="t('metricTracker.window')"
+        test-prefix="window"
+      />
 
       <section class="chart-area">
         <div v-if="indexing" class="tracker-state indexing">
@@ -90,46 +69,69 @@
           {{ t('metricTracker.loadingStats') }}
         </div>
 
-        <div v-else-if="!summary" class="tracker-state empty">
+        <div v-else-if="!answer" class="tracker-state empty">
           <p>{{ t('metricTracker.noPoints') }}</p>
           <p class="hint">{{ t('metricTracker.noPointsHint') }}</p>
         </div>
 
         <template v-else>
+          <!-- The answer first; the tiles and the chart are its evidence. -->
+          <div class="answer" data-test="tracker-answer">
+            <span class="answer-value">{{ answer.value }}</span>
+            <span class="answer-text">
+              {{ answer.text }}
+              <RouterLink v-if="answer.link" :to="answer.link" class="answer-link">
+                {{ t('metricTracker.answer.open') }}
+              </RouterLink>
+            </span>
+          </div>
+
           <div class="summary">
-            <div class="mini best">
-              <span class="mini-label">{{ t('metricTracker.summary.best') }}</span>
-              <span class="mini-value">{{ metric.format(summary.best) }}</span>
-            </div>
-            <div class="mini">
-              <span class="mini-label">{{ t('metricTracker.summary.average') }}</span>
-              <span class="mini-value">{{ metric.format(summary.average) }}</span>
-            </div>
-            <div class="mini">
-              <span class="mini-label">{{ t('metricTracker.summary.points') }}</span>
-              <span class="mini-value">{{ summary.count }}</span>
+            <div v-for="tile in tiles" :key="tile.label" class="mini">
+              <span class="mini-label">{{ tile.label }}</span>
+              <span class="mini-value">{{ tile.value }}</span>
+              <span class="mini-foot">{{ tile.foot }}</span>
             </div>
           </div>
 
-          <!-- The chart changes its mark with the granularity and can flip its
-               axis for a metric where lower is better. Say which, so the reader
-               is not left to infer the language from the shape. -->
-          <p class="chart-caption">
-            <span class="legend">
-              <span class="legend-dot" aria-hidden="true"></span>
-              {{ chartMode }}
-            </span>
-            <span v-if="metric.betterIsLower" class="hint-pill">
-              {{ t('metricTracker.chart.lowerBetter') }}
-            </span>
-          </p>
+          <div class="chart-head">
+            <span class="chart-title">{{ chartTitle }}</span>
+            <div class="toggles">
+              <ChipSelect
+                v-if="kind === 'intensity'"
+                v-model="mode"
+                :options="modeOptions"
+                :group-label="t('metricTracker.modeLabel')"
+                test-prefix="mode"
+              />
+              <ChipSelect
+                v-if="kind !== 'best'"
+                v-model="grainModel"
+                :options="grainOptions"
+                :group-label="t('metricTracker.granularity')"
+                test-prefix="grain"
+              />
+            </div>
+          </div>
 
-          <MetricSeriesChart
-            :points="points"
-            :labels="labels"
+          <TrackerChart
+            :kind="kind"
             :metric="metric"
-            :granularity="selectedGranularity"
+            :periods="periods"
+            :outings="windowOutings"
+            :records="records"
+            :grain="grain"
+            :mode="mode"
+            :average="average"
+            :label="chartTitle"
           />
+
+          <ul class="legend">
+            <li v-for="item in legend" :key="item.label">
+              <span :class="['swatch', item.kind]" aria-hidden="true"></span>
+              {{ item.label }}
+            </li>
+          </ul>
         </template>
       </section>
     </template>
@@ -138,36 +140,37 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { canonicalSport } from '@/types/sport'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { canonicalSport } from '@/types/sport'
 import { useMetricActivities } from '../composables/useMetricActivities'
 import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
-import { buildSeries, summarize } from '../series'
 import { DIRECT_METRICS, DERIVED_METRICS, METRICS, hasMetric } from '../metrics'
 import { toMetricDefinitions } from '../customMetrics'
 import { usePluginContext } from '@/composables/usePluginContext'
-import {
-  GRANULARITIES,
-  WINDOWS,
-  availableWindows,
-  needsDetails,
-  needsIndex,
-  windowRange,
-  type Granularity,
-  type MetricDefinition,
-  type WindowId
-} from '../types'
-import { inRange } from '@/utils/timeRange'
 import { formatDate } from '@/utils/dateFormat'
+import { WINDOWS, needsDetails, needsIndex, type MetricDefinition, type WindowId } from '../types'
+import {
+  beats,
+  bestOuting,
+  defaultGrain,
+  mainSport,
+  metricKind,
+  outingsOf,
+  periodSeries,
+  recordSteps,
+  type Grain,
+  type Period,
+  type PointMode
+} from '../trackerData'
 import ChipSelect from './ChipSelect.vue'
-import MetricSeriesChart from './MetricSeriesChart.vue'
+import TrackerChart from './TrackerChart.vue'
 
 const props = defineProps<{
   /**
-   * Set by a host that owns the sport filter — the statistics page does. The
-   * panel then follows it and hides its own chips, so one page never shows two
-   * sport selectors disagreeing with each other.
+   * Set by a host that owns the sport filter. The panel then follows it and
+   * hides its own selector, so one page never shows two sport selectors
+   * disagreeing with each other.
    */
   sport?: string
   /** Only the standalone route reads and writes the query string */
@@ -182,20 +185,16 @@ const ctx = usePluginContext()
 const hostOwnsSport = computed(() => props.sport !== undefined)
 
 /** Query parameters are the standalone route's business, not a section's */
-function linkParam(name: string): unknown {
-  return props.syncUrl ? route.query[name] : undefined
+function linkParam(name: string): string | undefined {
+  const v = props.syncUrl ? route.query[name] : undefined
+  return typeof v === 'string' ? v : undefined
 }
 
 const { activities, stats, sportOptions, loading, statsLoading, ensureStats } =
   useMetricActivities()
 const { derived, indexing, progress, ensureIndex } = useActivityMetricsIndex()
 
-/**
- * The aggregates the reader defined, as plottable metrics.
- *
- * They arrive as two more `derived.*` keys, so neither the series builder nor
- * the chart had to learn anything about them.
- */
+/** The aggregates the reader defined, as plottable metrics. */
 const customMetrics = ref<MetricDefinition[]>([])
 
 async function loadCustomMetrics() {
@@ -204,46 +203,21 @@ async function loadCustomMetrics() {
 
 const allMetrics = computed(() => [...METRICS, ...customMetrics.value])
 
-function isGranularity(value: unknown): value is Granularity {
-  return GRANULARITIES.includes(value as Granularity)
-}
-
-function isWindow(value: unknown): value is WindowId {
-  return WINDOWS.includes(value as WindowId)
-}
-
-// Deep links land here from the "Bests de la séance" table, which points at a
-// specific distance: /metrics?metric=time_5000
+// Deep links land here from the dashboard and from the session bests, which
+// name a metric and a sport: /metrics?metric=time_5000&sport=running
 const queryMetric = linkParam('metric')
-const queryGranularity = linkParam('granularity')
-
 // A custom aggregate's id passes through unchecked: the definitions load after
-// this runs, so `hasMetric` cannot know about them yet. `metric` falls back to
-// the default if the id turns out to name nothing.
+// this runs, so `hasMetric` cannot know about them yet.
 const selectedMetricId = ref(
-  typeof queryMetric === 'string' && (hasMetric(queryMetric) || queryMetric.includes('-'))
-    ? queryMetric
-    : 'pace'
-)
-const selectedGranularity = ref<Granularity>(
-  isGranularity(queryGranularity) ? queryGranularity : 'activity'
-)
-const ownSport = ref(typeof linkParam('sport') === 'string' ? (linkParam('sport') as string) : '')
-const selectedSport = computed(() => (hostOwnsSport.value ? props.sport! : ownSport.value))
-
-// A hand-edited or stale link can pair a window with a granularity that cannot
-// carry it, and the watcher below only fires on later changes
-const linkedWindow = isWindow(linkParam('window')) ? (linkParam('window') as WindowId) : 'all'
-const selectedWindow = ref<WindowId>(
-  availableWindows(selectedGranularity.value).includes(linkedWindow) ? linkedWindow : 'all'
+  queryMetric && (hasMetric(queryMetric) || queryMetric.includes('-')) ? queryMetric : 'pace'
 )
 
-// Falls back to the first built-in rather than to nothing: a deep link may name
-// an aggregate that has since been deleted, and an empty chart with no
-// explanation reads worse than the default metric.
+// Falls back to the first built-in rather than to nothing: a link may name an
+// aggregate that has since been deleted.
 const metric = computed(
   () => allMetrics.value.find(m => m.id === selectedMetricId.value) ?? METRICS[0]
 )
+const kind = computed(() => metricKind(metric.value))
 
 function metricLabel(definition: MetricDefinition): string {
   if (definition.label) return definition.label
@@ -252,69 +226,317 @@ function metricLabel(definition: MetricDefinition): string {
     : t(`metricTracker.metrics.${definition.id}`)
 }
 
-const granularityOptions = computed(() =>
-  GRANULARITIES.map(value => ({ value, label: t(`metricTracker.granularities.${value}`) }))
+const linkedWindow = linkParam('window')
+const selectedWindow = ref<WindowId>(
+  WINDOWS.includes(linkedWindow as WindowId) ? (linkedWindow as WindowId) : '6m'
 )
-
-const openWindows = computed(() => availableWindows(selectedGranularity.value))
-
 const windowOptions = computed(() =>
-  openWindows.value.map(value => ({ value, label: t(`metricTracker.windows.${value}`) }))
+  (['3m', '6m', '12m', 'all'] as WindowId[]).map(value => ({
+    value,
+    label: t(`metricTracker.windows.${value}`)
+  }))
 )
 
-const sportChoices = computed(() => [
-  { value: '', label: t('metricTracker.allSports') },
-  ...sportOptions.value
+/**
+ * Weeks or months: the window picks, the reader may override. A best time is
+ * read by month: a week rarely holds a race-pace effort.
+ */
+const linkedGrain = linkParam('grain')
+const grainOverride = ref<Grain | null>(
+  linkedGrain === 'week' || linkedGrain === 'month' ? linkedGrain : null
+)
+watch(selectedWindow, () => (grainOverride.value = null))
+const grain = computed<Grain>(() =>
+  kind.value === 'best' ? 'month' : (grainOverride.value ?? defaultGrain(selectedWindow.value))
+)
+const grainModel = computed<Grain>({
+  get: () => grain.value,
+  set: v => (grainOverride.value = v)
+})
+const grainOptions = computed(() =>
+  (['week', 'month'] as Grain[]).map(value => ({
+    value,
+    label: t(`metricTracker.grains.${value}`)
+  }))
+)
+
+/** Average of the period or its best outing: a point says which it is. */
+const mode = ref<PointMode>(linkParam('mode') === 'best' ? 'best' : 'avg')
+
+/** Pace and speed have a better side; a heart rate only a higher one. */
+const hasBetter = computed(
+  () => metric.value.betterIsLower || metric.value.id === 'speed' || metric.value.id === 'pace'
+)
+const modeOptions = computed(() => [
+  { value: 'avg' as PointMode, label: t(`metricTracker.modes.avg.${grain.value}`) },
+  {
+    value: 'best' as PointMode,
+    label: t(`metricTracker.modes.${hasBetter.value ? 'best' : 'max'}.${grain.value}`)
+  }
 ])
 
-const filteredActivities = computed(() => {
-  const range = windowRange(selectedWindow.value)
-  return activities.value.filter(
-    a =>
-      (!selectedSport.value || canonicalSport(a.type) === canonicalSport(selectedSport.value)) &&
-      inRange(a.startTime, range)
-  )
+const ownSport = ref(linkParam('sport') ?? '')
+
+/**
+ * "All sports" only for a volume: a total of time or distance adds up across
+ * sports, a pace or a best time does not — a ride is no 5 km record.
+ */
+const sportChoices = computed(() =>
+  kind.value === 'volume'
+    ? [{ value: '', label: t('metricTracker.allSports') }, ...sportOptions.value]
+    : sportOptions.value
+)
+const selectedSport = computed(() => {
+  const chosen = hostOwnsSport.value ? props.sport! : ownSport.value
+  return chosen || kind.value === 'volume' ? chosen : mainSport(activities.value)
+})
+const sportModel = computed({
+  get: () => selectedSport.value,
+  set: v => (ownSport.value = v)
 })
 
-// A coarser granularity can drop the current window — fall back to the widest
-// rather than silently plotting one lone point
-watch(openWindows, windows => {
-  if (!windows.includes(selectedWindow.value)) selectedWindow.value = 'all'
-})
+const sportActivities = computed(() =>
+  selectedSport.value
+    ? activities.value.filter(a => canonicalSport(a.type) === canonicalSport(selectedSport.value))
+    : activities.value
+)
 
 const sources = computed(() => ({ stats: stats.value, derived: derived.value }))
+const ready = computed(() => !statsLoading.value && !indexing.value)
 
-// Buckets holding no usable value are kept so the chart shows a gap where the
-// data is missing, instead of stitching distant points together
-const points = computed(() => {
-  if (statsLoading.value || indexing.value) return []
-  return buildSeries(
-    filteredActivities.value,
-    sources.value,
-    metric.value,
-    selectedGranularity.value
+const periods = computed<Period[]>(() =>
+  ready.value
+    ? periodSeries(sportActivities.value, sources.value, metric.value, {
+        grain: grain.value,
+        window: selectedWindow.value,
+        mode: kind.value === 'best' ? 'best' : mode.value
+      })
+    : []
+)
+
+const allOutings = computed(() =>
+  ready.value ? outingsOf(sportActivities.value, sources.value, metric.value) : []
+)
+const windowFrom = computed(() => periods.value[0]?.start.getTime() ?? Infinity)
+const windowOutings = computed(() => allOutings.value.filter(o => o.startTime >= windowFrom.value))
+
+/** For a best time, the record as it stood before the window opened. */
+const records = computed(() => {
+  if (kind.value !== 'best') return []
+  const before = bestOuting(
+    allOutings.value.filter(o => o.startTime < windowFrom.value),
+    metric.value
   )
+  return recordSteps(periods.value, metric.value, before?.value ?? null)
 })
 
-const labels = computed(() =>
-  points.value.map(p =>
-    selectedGranularity.value === 'activity' ? formatDate(p.startTime) : p.key
+const complete = computed(() => periods.value.filter(p => !p.isCurrent))
+const valued = computed(() => periods.value.filter(p => p.value !== null && p.count > 0))
+
+/** Mean of the complete periods: the one under way would pull it down. */
+const average = computed(() => {
+  if (kind.value !== 'volume' || complete.value.length === 0) return null
+  return complete.value.reduce((s, p) => s + (p.value ?? 0), 0) / complete.value.length
+})
+
+const fmt = (v: number) => metric.value.format(v)
+const dateOf = (ms: number) => formatDate(ms, { day: 'numeric', month: 'short', year: 'numeric' })
+
+function periodName(p: Period): string {
+  return grain.value === 'month'
+    ? formatDate(p.start.getTime(), { month: 'long', year: 'numeric' })
+    : t('metricTracker.weekOf', {
+        date: formatDate(p.start.getTime(), { day: 'numeric', month: 'short' })
+      })
+}
+
+const windowName = computed(() => t(`metricTracker.windowNames.${selectedWindow.value}`))
+
+/**
+ * The change from the first period to the last, in words: faster or slower
+ * for a pace or a speed, a signed figure for anything else.
+ */
+function change(first: number, last: number): string {
+  const diff = last - first
+  // Below the precision the figure is shown at, there is no change to tell.
+  const nothing =
+    metric.value.id === 'pace'
+      ? Math.round(Math.abs(diff) * 60) === 0
+      : fmt(Math.abs(diff)) === fmt(0)
+  if (nothing) return t('metricTracker.answer.steady')
+  if (!hasBetter.value) {
+    const sign = diff > 0 ? '+' : diff < 0 ? '−' : ''
+    return t('metricTracker.answer.changed', { value: `${sign}${fmt(Math.abs(diff))}` })
+  }
+  const better = beats(metric.value, last, first)
+  const amount =
+    metric.value.id === 'pace' ? `${Math.round(Math.abs(diff) * 60)} s` : fmt(Math.abs(diff))
+  const moving = metric.value.id === 'pace' || metric.value.id === 'speed'
+  const word = moving ? (better ? 'faster' : 'slower') : better ? 'better' : 'worse'
+  return t(`metricTracker.answer.${word}`, { value: amount })
+}
+
+const answer = computed(() => {
+  if (valued.value.length === 0) return null
+  if (kind.value === 'volume') {
+    if (average.value === null) return null
+    return {
+      value: `${fmt(average.value)} / ${t(`metricTracker.per.${grain.value}`)}`,
+      text: t(`metricTracker.answer.volume.${grain.value}`, { window: windowName.value })
+    }
+  }
+  if (kind.value === 'best') {
+    const record = bestOuting(allOutings.value, metric.value)
+    if (!record) return null
+    return {
+      value: fmt(record.value),
+      text: t('metricTracker.answer.record', { date: dateOf(record.startTime) }),
+      link: `/activity-details/${record.id}`
+    }
+  }
+  // Intensity: the last complete period with a value, else the one under way.
+  const done = valued.value.filter(p => !p.isCurrent)
+  const last = done[done.length - 1] ?? valued.value[valued.value.length - 1]
+  const first = valued.value[0]
+  const what =
+    mode.value === 'best'
+      ? t(`metricTracker.answer.${hasBetter.value ? 'bestOf' : 'maxOf'}`, {
+          period: periodName(last)
+        })
+      : t('metricTracker.answer.avgOf', { period: periodName(last) })
+  return {
+    value: fmt(last.value as number),
+    text: first === last ? what : `${what} · ${change(first.value as number, last.value as number)}`
+  }
+})
+
+const tiles = computed(() => {
+  const g = grain.value
+  if (kind.value === 'volume') {
+    const best = complete.value.reduce<Period | null>(
+      (b, p) => ((p.value ?? 0) > (b?.value ?? 0) ? p : b),
+      null
+    )
+    const total = periods.value.reduce((s, p) => s + (p.value ?? 0), 0)
+    const empty = complete.value.filter(p => p.count === 0).length
+    return [
+      {
+        label: t(`metricTracker.tiles.busiest.${g}`),
+        value: best ? fmt(best.value as number) : '—',
+        foot: best ? periodName(best) : ''
+      },
+      {
+        label: t('metricTracker.tiles.total'),
+        value: fmt(total),
+        foot: t(`metricTracker.tiles.periods.${g}`, { n: periods.value.length })
+      },
+      {
+        label: t(`metricTracker.tiles.empty.${g}`),
+        value: String(empty),
+        foot: t('metricTracker.tiles.outOf', { n: complete.value.length })
+      }
+    ]
+  }
+  if (kind.value === 'best') {
+    const record = bestOuting(allOutings.value, metric.value)
+    const recent = bestOuting(
+      allOutings.value.filter(o => o.startTime >= Date.now() - 91 * 86_400_000),
+      metric.value
+    )
+    const first = valued.value[0]
+    const broken = records.value.filter(r => r.isNew).length
+    return [
+      {
+        label: t('metricTracker.tiles.recent'),
+        value: recent ? fmt(recent.value) : '—',
+        foot:
+          !recent || !record
+            ? t('metricTracker.tiles.noRecent')
+            : recent.id === record.id
+              ? t('metricTracker.tiles.isRecord')
+              : t('metricTracker.tiles.offRecord', {
+                  value: fmt(Math.abs(recent.value - record.value))
+                })
+      },
+      {
+        label: t('metricTracker.tiles.atStart'),
+        value: first ? fmt(first.value as number) : '—',
+        foot: first ? periodName(first) : ''
+      },
+      {
+        label: t('metricTracker.tiles.broken'),
+        value: String(broken),
+        foot: t('metricTracker.tiles.brokenFoot')
+      }
+    ]
+  }
+  const first = valued.value[0]
+  const bestPeriod = valued.value.reduce<Period | null>(
+    (b, p) => (!b || beats(metric.value, p.value as number, b.value as number) ? p : b),
+    null
   )
-)
+  const topOuting = bestOuting(windowOutings.value, metric.value)
+  const bestTile =
+    mode.value === 'best'
+      ? {
+          label: t(`metricTracker.tiles.${hasBetter.value ? 'bestOuting' : 'maxOuting'}`),
+          value: topOuting ? fmt(topOuting.value) : '—',
+          foot: topOuting ? dateOf(topOuting.startTime) : ''
+        }
+      : {
+          label: t(`metricTracker.tiles.${hasBetter.value ? 'bestAverage' : 'maxAverage'}.${g}`),
+          value: bestPeriod ? fmt(bestPeriod.value as number) : '—',
+          foot: bestPeriod ? periodName(bestPeriod) : ''
+        }
+  return [
+    bestTile,
+    {
+      label: t('metricTracker.tiles.atStart'),
+      value: first ? fmt(first.value as number) : '—',
+      foot: first ? periodName(first) : ''
+    },
+    {
+      label: t('metricTracker.tiles.outings'),
+      value: String(windowOutings.value.length),
+      foot: t('metricTracker.tiles.outingsFoot')
+    }
+  ]
+})
 
-const summary = computed(() => summarize(points.value, metric.value))
+const chartTitle = computed(() => {
+  const name = metricLabel(metric.value)
+  if (kind.value === 'best') return t('metricTracker.chartTitle.best', { metric: name })
+  if (kind.value === 'volume')
+    return t(`metricTracker.chartTitle.volume.${grain.value}`, { metric: name })
+  const key = mode.value === 'best' ? (hasBetter.value ? 'bestOuting' : 'max') : 'avg'
+  return t(`metricTracker.chartTitle.${key}.${grain.value}`, { metric: name })
+})
 
-// The chart draws one point per activity at the finest granularity, and an
-// aggregated curve otherwise — the caption names whichever is on screen.
-const chartMode = computed(() =>
-  selectedGranularity.value === 'activity'
-    ? t('metricTracker.chart.perActivity')
-    : t('metricTracker.chart.aggregated')
-)
+const legend = computed(() => {
+  if (kind.value === 'volume') {
+    return [
+      { kind: 'bar', label: t(`metricTracker.legend.bar.${grain.value}`) },
+      { kind: 'bar-best', label: t(`metricTracker.legend.busiest.${grain.value}`) },
+      { kind: 'hatched', label: t(`metricTracker.legend.current.${grain.value}`) },
+      { kind: 'dashed', label: t('metricTracker.legend.average') }
+    ]
+  }
+  if (kind.value === 'best') {
+    return [
+      { kind: 'step', label: t('metricTracker.legend.record') },
+      { kind: 'dot-dark', label: t('metricTracker.legend.newRecord') },
+      { kind: 'dot', label: t('metricTracker.legend.monthBest') }
+    ]
+  }
+  const key = mode.value === 'best' ? (hasBetter.value ? 'best' : 'max') : 'avg'
+  return [
+    { kind: 'line', label: t(`metricTracker.legend.${key}.${grain.value}`) },
+    { kind: 'dot-pale', label: t('metricTracker.legend.outing') }
+  ]
+})
 
 // Details and index are only built when the selected metric actually needs
-// them. Immediate, because the activities may already be loaded from a
-// previous visit — in which case the watcher would never fire on its own.
+// them. Immediate, because the activities may already be loaded.
 watch(
   [metric, activities],
   ([m, acts]) => {
@@ -341,18 +563,19 @@ onUnmounted(() => {
 })
 
 // Keep the URL in step with the selection, so a view can be shared or reloaded.
-// A section embedded in another page has no business rewriting that page's query.
 watch(
-  [selectedMetricId, selectedGranularity, ownSport, selectedWindow],
-  ([metricId, granularity, sport, window]) => {
+  [selectedMetricId, ownSport, selectedWindow, grainOverride, mode],
+  ([metricId, sport, window, g, m]) => {
     if (!props.syncUrl) return
     router.replace({
       query: {
         ...route.query,
         metric: metricId,
-        granularity,
         sport: sport || undefined,
-        window: window === 'all' ? undefined : window
+        window: window === '6m' ? undefined : window,
+        grain: g ?? undefined,
+        mode: m === 'best' ? m : undefined,
+        granularity: undefined
       }
     })
   }
@@ -363,6 +586,7 @@ watch(
 .tracker-panel {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .tracker-state {
@@ -391,72 +615,6 @@ watch(
   opacity: 0.7;
 }
 
-/* Primary tier — the metric, given room and weight of its own. */
-.mt-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.9rem;
-}
-
-.primary-label {
-  font-family: var(--font-condensed);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
-}
-
-.metric-select {
-  padding: 0.5rem 0.9rem;
-  /* Same family as the page's other select. What makes this one primary is its
-     size, its weight and its green border — not a rounder corner. */
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--color-green-500);
-  background: var(--surface);
-  color: var(--text-color);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-card);
-}
-
-.metric-select:focus-visible {
-  outline: 2px solid var(--color-green-500);
-  outline-offset: 1px;
-}
-
-/* Secondary tier — how to slice it, on a recessed bar. */
-.mt-secondary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1.2rem;
-  padding: 0.6rem 0.8rem;
-  margin-bottom: 1.2rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-}
-
-.control {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.control-label {
-  font-family: var(--font-condensed);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-faint);
-}
-
 .tracker-state.indexing {
   width: 100%;
   gap: 0.3rem;
@@ -467,7 +625,7 @@ watch(
   max-width: 320px;
   height: 6px;
   background: var(--color-green-100);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 0.4rem;
 }
@@ -475,155 +633,243 @@ watch(
 .progress-fill {
   height: 100%;
   background: var(--color-green-500);
-  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
-/* Deliberately bare: the card around the panel belongs to whoever hosts it,
-   so an embedded panel never draws a second card inside its host's one. */
+/* The metric and the sport, side by side; the metric is the larger. */
+.mt-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.metric-select,
+.sport-select {
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-green-200);
+  background: var(--surface);
+  color: var(--text-color);
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.metric-select {
+  min-width: 14rem;
+  border-color: var(--color-green-500);
+}
+
+.metric-select:focus-visible,
+.sport-select:focus-visible {
+  outline: 2px solid var(--color-green-500);
+  outline-offset: 1px;
+}
+
 .chart-area {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
-/* The three figures as real bordered tiles, the best one picked out — not the
-   flat green columns that floated between the controls and the chart. */
+/* The answer to the question the metric asks, before any chart. */
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.answer-value {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-green-700);
+}
+
+.answer-text {
+  font-size: 0.95rem;
+  color: var(--color-ink-soft);
+}
+
+.answer-link {
+  margin-left: 0.3rem;
+  font-weight: 600;
+  color: var(--color-green-700);
+}
+
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.7rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
 .mini {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.6rem 0.8rem;
+  gap: 0.15rem;
+  padding: 0.65rem 0.8rem;
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-}
-
-.mini.best {
-  background: var(--color-green-50);
-  border-color: var(--color-green-200);
+  min-width: 0;
 }
 
 .mini-label {
-  font-family: var(--font-condensed);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.78rem;
   color: var(--text-faint);
 }
 
 .mini-value {
   font-family: var(--font-mono);
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--text-color);
+  white-space: nowrap;
 }
 
-.mini.best .mini-value {
-  color: var(--color-green-600);
-}
-
-.chart-caption {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  margin: 0 0 0.6rem;
-  font-size: 0.78rem;
+.mini-foot {
+  font-size: 0.75rem;
   color: var(--text-faint);
 }
 
+.chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.chart-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-color);
+}
+
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+
+.legend li {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.legend-dot {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 50%;
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.swatch.bar {
   background: var(--color-green-500);
 }
 
-.hint-pill {
-  padding: 0.1rem 0.6rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
+.swatch.bar-best {
+  background: var(--color-green-700);
+}
+
+.swatch.hatched {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-green-500) 0 3px,
+    var(--surface) 3px 6px
+  );
+  outline: 1px solid var(--color-green-500);
+  outline-offset: -1px;
+}
+
+.swatch.dashed {
+  height: 0;
+  border-top: 2px dashed var(--color-ink-soft);
+}
+
+.swatch.line {
+  height: 0;
+  border-top: 3px solid var(--color-green-600);
+}
+
+.swatch.step {
+  height: 0;
+  border-top: 2px solid var(--color-ink);
+}
+
+.swatch.dot,
+.swatch.dot-dark,
+.swatch.dot-pale {
+  width: 0.6rem;
+  height: 0.6rem;
   border-radius: var(--radius-pill);
-  color: var(--text-color);
-  opacity: 0.85;
+}
+
+.swatch.dot {
+  background: var(--color-green-300);
+}
+
+.swatch.dot-dark {
+  background: var(--color-green-700);
+}
+
+.swatch.dot-pale {
+  background: var(--color-green-200);
 }
 
 @media (max-width: 640px) {
-  /* Mobile is the main surface. Stack the slice controls and let each chip
-     group scroll sideways instead of wrapping into a tall block; give the
-     native metric picker the full width for an easy tap. */
-  .mt-primary {
-    gap: 0.5rem;
+  .mt-primary .field {
+    flex: 1 1 100%;
   }
 
   .metric-select {
-    width: 100%;
-  }
-
-  .mt-secondary {
-    flex-direction: column;
-    /* `nowrap` matters as much as the direction: the base rule wraps, and a
-       wrapping column container sizes its line on the widest control rather
-       than on the bar, so each row stretched to its own content width and hung
-       off the side of the card instead of stretching to it. */
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 0.6rem;
-  }
-
-  /* The label goes above its chips rather than beside them. Holding a 5rem
-     label column left barely 240px for the chips, and the sideways scroll that
-     compensated cut the last chip through the middle of its word — a phone
-     reader could not see that "Mo…" was "Month", nor that anything followed
-     it. Stacked, the chips get the full width and simply wrap. */
-  .control {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.35rem;
     min-width: 0;
   }
 
-  .control :deep(.chip-select) {
-    flex-wrap: wrap;
+  .answer-value {
+    font-size: 1.8rem;
   }
 
-  /* A chip breaking into two lines read as two chips. */
-  .control :deep(.chip) {
-    white-space: nowrap;
-    min-height: 2.25rem;
-  }
-
-  /* Three short figures stay on one line rather than three stacked rows —
-     which only holds if a figure never wraps inside its tile. Below roughly
-     360px three tiles cannot hold a pace without breaking it, so the row
-     becomes two and the third figure drops under them. */
+  /* Three short figures stay on one line while they fit, else wrap. */
   .summary {
-    grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
     gap: 0.5rem;
-  }
-
-  .mini {
-    padding: 0.5rem 0.6rem;
   }
 
   .mini-value {
     font-size: 1.05rem;
-    white-space: nowrap;
+  }
+
+  :deep(.chip-select) {
+    flex-wrap: wrap;
   }
 }
 </style>

@@ -147,12 +147,6 @@
       "6m": "6 mois",
       "3m": "3 mois"
     },
-    "granularities": {
-      "activity": "Par sortie",
-      "week": "Semaine",
-      "month": "Mois",
-      "year": "Année"
-    },
     "metrics": {
       "distance": "Distance",
       "duration": "Durée",
@@ -163,18 +157,138 @@
       "totalAscent": "Dénivelé +",
       "calories": "Calories"
     },
-    "summary": {
-      "best": "Meilleur",
-      "average": "Moyenne",
-      "points": "Points"
+    "grains": {
+      "week": "Par semaine",
+      "month": "Par mois"
     },
-    "chart": {
-      "perActivity": "1 point = 1 séance",
-      "aggregated": "Moyenne par période",
-      "trend": "tendance",
-      "lowerBetter": "axe inversé — plus bas = mieux"
+    "modeLabel": "Valeur de chaque point",
+    "modes": {
+      "avg": {
+        "week": "Moyenne de la semaine",
+        "month": "Moyenne du mois"
+      },
+      "best": {
+        "week": "Meilleure sortie de la semaine",
+        "month": "Meilleure sortie du mois"
+      },
+      "max": {
+        "week": "Maximum de la semaine",
+        "month": "Maximum du mois"
+      }
     },
-    "openFullPage": "Ouvrir la page complète"
+    "per": {
+      "week": "semaine",
+      "month": "mois"
+    },
+    "weekOf": "semaine du {date}",
+    "windowNames": {
+      "3m": "3 mois",
+      "6m": "6 mois",
+      "12m": "12 mois",
+      "all": "tout l’historique"
+    },
+    "answer": {
+      "open": "Ouvrir la sortie",
+      "volume": {
+        "week": "en moyenne sur {window} · la semaine en cours (hachurée) n’est pas comptée",
+        "month": "en moyenne sur {window} · le mois en cours (hachuré) n’est pas compté"
+      },
+      "record": "record actuel, établi le {date} ·",
+      "avgOf": "moyenne de la {period}",
+      "bestOf": "meilleure sortie de la {period}",
+      "maxOf": "maximum de la {period}",
+      "faster": "{value} plus rapide qu’au début de la période",
+      "slower": "{value} plus lent qu’au début de la période",
+      "better": "{value} de mieux qu’au début de la période",
+      "worse": "{value} de moins bien qu’au début de la période",
+      "changed": "{value} par rapport au début de la période",
+      "steady": "stable depuis le début de la période"
+    },
+    "tiles": {
+      "busiest": {
+        "week": "Semaine la plus chargée",
+        "month": "Mois le plus chargé"
+      },
+      "total": "Total sur la période",
+      "periods": {
+        "week": "{n} semaines",
+        "month": "{n} mois"
+      },
+      "empty": {
+        "week": "Semaines sans sortie",
+        "month": "Mois sans sortie"
+      },
+      "outOf": "sur {n}",
+      "recent": "Meilleur des 3 derniers mois",
+      "noRecent": "aucune sortie récente",
+      "isRecord": "c’est le record",
+      "offRecord": "à {value} du record",
+      "atStart": "Au début de la période",
+      "broken": "Records battus",
+      "brokenFoot": "sur la période, points foncés",
+      "bestOuting": "Meilleure sortie",
+      "maxOuting": "Sortie la plus haute",
+      "bestAverage": {
+        "week": "Meilleure moyenne hebdo",
+        "month": "Meilleure moyenne mensuelle"
+      },
+      "maxAverage": {
+        "week": "Moyenne hebdo la plus haute",
+        "month": "Moyenne mensuelle la plus haute"
+      },
+      "outings": "Sorties",
+      "outingsFoot": "points clairs du graphique"
+    },
+    "chartTitle": {
+      "best": "{metric} : meilleur de chaque mois",
+      "volume": {
+        "week": "{metric} par semaine",
+        "month": "{metric} par mois"
+      },
+      "avg": {
+        "week": "{metric} : moyenne de chaque semaine",
+        "month": "{metric} : moyenne de chaque mois"
+      },
+      "bestOuting": {
+        "week": "{metric} : meilleure sortie de chaque semaine",
+        "month": "{metric} : meilleure sortie de chaque mois"
+      },
+      "max": {
+        "week": "{metric} : maximum de chaque semaine",
+        "month": "{metric} : maximum de chaque mois"
+      }
+    },
+    "legend": {
+      "bar": {
+        "week": "Une barre = une semaine",
+        "month": "Une barre = un mois"
+      },
+      "busiest": {
+        "week": "La semaine la plus chargée",
+        "month": "Le mois le plus chargé"
+      },
+      "current": {
+        "week": "Semaine en cours",
+        "month": "Mois en cours"
+      },
+      "average": "Moyenne des périodes complètes",
+      "record": "Record à date",
+      "newRecord": "Nouveau record",
+      "monthBest": "Meilleur du mois",
+      "avg": {
+        "week": "Moyenne de la semaine",
+        "month": "Moyenne du mois"
+      },
+      "best": {
+        "week": "Meilleure sortie de la semaine",
+        "month": "Meilleure sortie du mois"
+      },
+      "max": {
+        "week": "Maximum de la semaine",
+        "month": "Maximum du mois"
+      },
+      "outing": "Une sortie"
+    }
   },
   "profile": {
     "enterUsername": "Entrez votre pseudo",

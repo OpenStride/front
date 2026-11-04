@@ -18,7 +18,7 @@ interface Bucket {
 }
 
 /** Read a metric path against the activity, its stats or the derived index */
-function readValue(
+export function readValue(
   activity: Activity,
   sources: MetricSources,
   path: MetricSourceRef
