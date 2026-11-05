@@ -85,9 +85,7 @@ export class FriendManagementService {
     const db = await IndexedDBService.getInstance()
     // A miss resolves to undefined, not null — normalise so callers can compare
     const existing = (await db.getDataFromStore('friends', friendId).catch(() => null)) as
-      | Friend
-      | null
-      | undefined
+      Friend | null | undefined
 
     return {
       manifestUrl,
