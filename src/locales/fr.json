@@ -1234,7 +1234,8 @@
       "initialDistance": "Déjà parcourus ({unit})",
       "alertDistance": "Alerte à ({unit})",
       "alertDuration": "Alerte à (heures)",
-      "alertHelp": "Orange à 80 % de la limite, rouge au-delà. Sans limite, pas d'alerte."
+      "alertHelp": "Orange à 80 % de la limite, rouge au-delà. Sans limite, pas d'alerte.",
+      "terrain": "Terrain"
     },
     "activity": {
       "label": "Équipement",
@@ -1264,6 +1265,10 @@
       "title": "Équipement",
       "manage": "Gérer",
       "percent": "{percent} % de la limite"
+    },
+    "terrain": {
+      "road": "Route",
+      "trail": "Trail"
     }
   }
 }

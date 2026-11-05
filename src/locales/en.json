@@ -1234,7 +1234,8 @@
       "initialDistance": "Already covered ({unit})",
       "alertDistance": "Alert at ({unit})",
       "alertDuration": "Alert at (hours)",
-      "alertHelp": "Orange at 80 % of the limit, red past it. No limit, no alert."
+      "alertHelp": "Orange at 80 % of the limit, red past it. No limit, no alert.",
+      "terrain": "Terrain"
     },
     "activity": {
       "label": "Gear",
@@ -1264,6 +1265,10 @@
       "title": "Gear",
       "manage": "Manage",
       "percent": "{percent} % of the limit"
+    },
+    "terrain": {
+      "road": "Road",
+      "trail": "Trail"
     }
   }
 }
