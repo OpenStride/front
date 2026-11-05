@@ -88,7 +88,7 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openstride-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
