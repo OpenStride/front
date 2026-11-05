@@ -24,11 +24,34 @@
       </div>
     </fieldset>
 
+    <!-- Road and trail shoes are two pairs: a new pair says which it is, so it
+         does not become the default for both. -->
+    <fieldset v-if="kind === 'shoes' && !initial" class="gf__field">
+      <legend>{{ t('gear.form.terrain') }}</legend>
+      <div class="gf__kinds">
+        <label
+          v-for="tr in TERRAINS"
+          :key="tr"
+          :class="['gf__kind', { 'is-on': terrain === tr }]"
+          :data-test="`gear-terrain-${tr}`"
+        >
+          <input v-model="terrain" type="radio" :value="tr" class="gf__sr" @change="onTerrain" />
+          <i :class="['fas', tr === 'road' ? 'fa-road' : 'fa-mountain']" aria-hidden="true"></i>
+          {{ t(`gear.terrain.${tr}`) }}
+        </label>
+      </div>
+    </fieldset>
+
     <fieldset class="gf__field">
       <legend>{{ t('gear.form.sports') }}</legend>
       <p class="gf__help">{{ t('gear.form.sportsHelp') }}</p>
       <div class="gf__sports">
-        <label v-for="s in sports" :key="s" :class="['gf__chip', { 'is-on': picked.includes(s) }]">
+        <label
+          v-for="s in sportChoices"
+          :key="s"
+          :class="['gf__chip', { 'is-on': picked.includes(s) }]"
+          :data-test="`gear-sport-${s}`"
+        >
           <input v-model="picked" type="checkbox" :value="s" class="gf__sr" />
           {{ formatSportType(s) }}
         </label>
@@ -114,7 +137,10 @@ const shown = (si: number | undefined) =>
 const g = props.initial
 const name = ref(g?.name ?? '')
 const kind = ref<GearKind>(g?.kind ?? 'shoes')
-const picked = ref<string[]>(g ? [...g.sports] : familySports('shoes'))
+type Terrain = 'road' | 'trail'
+const TERRAINS: Terrain[] = ['road', 'trail']
+const terrain = ref<Terrain>('road')
+const picked = ref<string[]>(g ? [...g.sports] : shoeSports('road'))
 const activeFrom = ref(getDayKey(new Date(g?.activeFrom ?? Date.now())))
 const initialDistance = ref<number | undefined>(shown(g?.initialDistance))
 const alertDistance = ref<number | undefined>(
@@ -124,17 +150,42 @@ const alertHours = ref<number | undefined>(
   g?.alertDuration ? Math.round(g.alertDuration / 3600) : undefined
 )
 
-/** Shoes default to the running sports the reader does, a bike to the cycling ones. */
-function familySports(k: GearKind): string[] {
-  const family = k === 'shoes' ? 'running' : k === 'bike' ? 'cycling' : null
-  if (!family) return []
-  return props.sports.filter(s => isSportType(s) && SPORT_FAMILY[s] === family)
+const TRAIL = 'trail_running'
+
+/**
+ * Road shoes default to the reader's running sports other than trail (treadmill
+ * included), trail shoes to trail alone — offered even before a first trail
+ * outing, since the pair usually comes first.
+ */
+function shoeSports(t: Terrain): string[] {
+  if (t === 'trail') return [TRAIL]
+  const road = props.sports.filter(
+    s => isSportType(s) && SPORT_FAMILY[s] === 'running' && s !== TRAIL
+  )
+  return road.length ? road : ['running']
+}
+
+/** The usual sports of a new gear of this kind. */
+function defaultSports(k: GearKind): string[] {
+  if (k === 'shoes') return shoeSports(terrain.value)
+  if (k === 'bike') return props.sports.filter(s => isSportType(s) && SPORT_FAMILY[s] === 'cycling')
+  return []
+}
+
+/** The reader's sports, plus any a default picked that they have not done yet. */
+const sportChoices = computed(() => [
+  ...props.sports,
+  ...picked.value.filter(s => !props.sports.includes(s))
+])
+
+function onTerrain() {
+  picked.value = shoeSports(terrain.value)
 }
 
 /** A new gear's kind decides its usual sports and limit; an existing one keeps its own. */
 function onKind() {
   if (g) return
-  picked.value = familySports(kind.value)
+  picked.value = defaultSports(kind.value)
   alertDistance.value = shown(DEFAULT_ALERT_DISTANCE[kind.value])
 }
 

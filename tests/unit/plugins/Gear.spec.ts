@@ -184,16 +184,24 @@ describe('GearTab.vue', () => {
     expect(card.text()).toContain('2 outings')
   })
 
-  it('creates shoes defaulting to the running sports the reader does, with a 700 km alert', async () => {
-    const ctx = context(
+  const runner = () =>
+    context(
       [],
-      [run('a'), run('b', { type: 'trail_running' }), run('c', { type: 'cycling' })]
+      [
+        run('a'),
+        run('b', { type: 'treadmill_running' }),
+        run('c', { type: 'trail_running' }),
+        run('d', { type: 'cycling' })
+      ]
     )
+
+  it('makes new shoes road shoes: the road sports the reader does, not trail, 700 km', async () => {
+    const ctx = runner()
     const wrapper = mountTab(ctx)
     await flushPromises()
 
     await wrapper.find('[data-test="gear-add"]').trigger('click')
-    await wrapper.find('[data-test="gear-name"]').setValue('Speedgoat')
+    await wrapper.find('[data-test="gear-name"]').setValue('Pegasus')
     expect(
       (wrapper.find('[data-test="gear-alert-distance"]').element as HTMLInputElement).value
     ).toBe('700')
@@ -201,8 +209,33 @@ describe('GearTab.vue', () => {
     await flushPromises()
 
     const input = ctx.gear.create.mock.calls[0]![0]
-    expect(input).toMatchObject({ name: 'Speedgoat', kind: 'shoes', alertDistance: 700_000 })
-    expect([...input.sports].sort()).toEqual(['running', 'trail_running'])
+    expect(input).toMatchObject({ name: 'Pegasus', kind: 'shoes', alertDistance: 700_000 })
+    expect([...input.sports].sort()).toEqual(['running', 'treadmill_running'])
+  })
+
+  it('makes trail shoes the default for trail alone', async () => {
+    const ctx = runner()
+    const wrapper = mountTab(ctx)
+    await flushPromises()
+
+    await wrapper.find('[data-test="gear-add"]').trigger('click')
+    await wrapper.find('[data-test="gear-name"]').setValue('Speedgoat')
+    await wrapper.find('[data-test="gear-terrain-trail"] input').setValue(true)
+    await wrapper.find('[data-test="gear-form"]').trigger('submit')
+    await flushPromises()
+
+    expect(ctx.gear.create.mock.calls[0]![0].sports).toEqual(['trail_running'])
+  })
+
+  it('offers trail to a reader who has not run a trail yet', async () => {
+    const ctx = context([], [run('a')])
+    const wrapper = mountTab(ctx)
+    await flushPromises()
+
+    await wrapper.find('[data-test="gear-add"]').trigger('click')
+    expect(wrapper.find('[data-test="gear-sport-trail_running"]').exists()).toBe(false)
+    await wrapper.find('[data-test="gear-terrain-trail"] input').setValue(true)
+    expect(wrapper.find('[data-test="gear-sport-trail_running"]').classes()).toContain('is-on')
   })
 
   it('stores the alert in metres when the reader reads miles', async () => {
