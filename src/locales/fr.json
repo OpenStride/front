@@ -303,7 +303,8 @@
       "appExtensions": "Extensions",
       "sharing": "Partage & Confidentialité",
       "friends": "Amis & partage",
-      "mcp": "Assistant IA (MCP)"
+      "mcp": "Assistant IA (MCP)",
+      "gear": "Équipement"
     },
     "identity": {
       "section": "Identité"
@@ -1094,6 +1095,10 @@
     "firebase-notifications": {
       "label": "Notifications push",
       "description": "Recevez une notification quand de nouvelles activités sont importées."
+    },
+    "gear": {
+      "label": "Équipement",
+      "description": "Suivez l'usure de vos chaussures et vélos, sortie après sortie."
     }
   },
   "sampleFields": {
@@ -1179,6 +1184,55 @@
       "12m": "12 mois",
       "6m": "6 mois",
       "3m": "3 mois"
+    }
+  },
+  "gear": {
+    "title": "Équipement",
+    "intro": "Chaussures, vélos : qui a fait quoi, et combien de kilomètres il leur reste.",
+    "add": "Ajouter un équipement",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "retire": "Mettre à la retraite",
+    "reactivate": "Remettre en service",
+    "empty": "Aucun équipement pour l'instant. Ajoutez une paire de chaussures ou un vélo : vos sorties s'y rattachent toutes seules selon le sport.",
+    "retiredTitle": "À la retraite",
+    "retired": "retiré",
+    "noDefault": "Aucun sport par défaut",
+    "outings": "aucune sortie | {n} sortie | {n} sorties",
+    "since": "En service depuis le {date}",
+    "retiredOn": "retiré le {date}",
+    "ofLimit": "{percent} % de {limit}",
+    "wearLabel": "Usure",
+    "confirmDelete": "Supprimer « {name} » ? Les sorties qui l'utilisaient n'auront plus d'équipement.",
+    "wear": {
+      "warn": "bientôt à changer",
+      "over": "à changer"
+    },
+    "kinds": {
+      "shoes": "Chaussures",
+      "bike": "Vélo",
+      "other": "Autre"
+    },
+    "form": {
+      "name": "Nom",
+      "namePlaceholder": "ex. Pegasus 40",
+      "kind": "Type",
+      "sports": "Par défaut pour",
+      "sportsHelp": "Une sortie de ces sports prend cet équipement, sauf si vous en choisissez un autre.",
+      "activeFrom": "En service depuis",
+      "initialDistance": "Déjà parcourus ({unit})",
+      "alertDistance": "Alerte à ({unit})",
+      "alertDuration": "Alerte à (heures)",
+      "alertHelp": "Orange à 80 % de la limite, rouge au-delà. Sans limite, pas d'alerte."
+    },
+    "activity": {
+      "label": "Équipement",
+      "none": "Aucun",
+      "byDefault": "par défaut",
+      "change": "Changer",
+      "pick": "Équipement utilisé sur cette sortie",
+      "useDefault": "Revenir au défaut",
+      "alert": "{name} : {status}"
     }
   }
 }

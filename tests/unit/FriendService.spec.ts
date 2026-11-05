@@ -64,7 +64,11 @@ describe('FriendService Event-Driven Pattern', () => {
     // Dispatch event after removing listener
     friendService.emitter.dispatchEvent(
       new CustomEvent('friend-event', {
-        detail: { type: 'friend-added', messageKey: 'friendEvents.friendAdded', messageType: 'success' }
+        detail: {
+          type: 'friend-added',
+          messageKey: 'friendEvents.friendAdded',
+          messageType: 'success'
+        }
       })
     )
 

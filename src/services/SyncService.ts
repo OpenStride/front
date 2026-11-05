@@ -2,7 +2,10 @@ import { StoragePluginManager } from '@/services/StoragePluginManager'
 import type { StoragePlugin } from '@/types/storage'
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { getActivityService } from '@/services/ActivityService'
-import type { Activity, ActivityDetails } from '@/types/activity'
+import type { Activity, ActivityDetails, Timestamped } from '@/types/activity'
+import type { Gear } from '@/types/gear'
+import { GEAR_STORE, getGearService } from '@/services/GearService'
+import { gearChoiceToKeep } from '@/utils/gear'
 import type { CustomAggregate } from '@/types/customAggregate'
 import {
   CUSTOM_AGGREGATES_STORE,
@@ -282,13 +285,25 @@ export class SyncService {
         `[SyncService] To push: ${toPush.length}, To pull: ${toPull.length}, Conflicts: ${conflicts.length}`
       )
 
-      // 5. Resolve conflicts (LWW)
+      // 5. Resolve conflicts (LWW) — the newer record wins whole, except the
+      // reader's gear choice, which is taken from whichever side set it last.
+      const regear = new Map<string, Pick<Activity, 'gearIds' | 'gearSetAt'>>()
       for (const conflict of conflicts) {
         const winner = this.resolveConflict(conflict.local, conflict.remote)
+        const loser = winner === conflict.local ? conflict.remote : conflict.local
+        const keep = gearChoiceToKeep(winner, loser)
         if (winner === conflict.local) {
-          toPush.push(conflict.local)
+          if (keep) {
+            const merged = { ...conflict.local, ...keep }
+            const db = await IndexedDBService.getInstance()
+            await db.addItemsToStore('activities', [merged], (a: Activity) => a.id)
+            toPush.push(merged)
+          } else {
+            toPush.push(conflict.local)
+          }
         } else {
           toPull.push(conflict.remote)
+          if (keep) regear.set(conflict.remote.id, keep)
         }
       }
 
@@ -329,6 +344,29 @@ export class SyncService {
         }
 
         console.log(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)
+      }
+
+      // 6b. Put back the gear choices the pulled winners did not carry, as a
+      // new local version: the next round pushes it.
+      if (regear.size > 0) {
+        const db = await IndexedDBService.getInstance()
+        for (const [id, keep] of regear) {
+          const pulled = await activityService.getActivity(id)
+          if (!pulled) continue
+          await db.addItemsToStore(
+            'activities',
+            [
+              {
+                ...pulled,
+                ...keep,
+                version: pulled.version + 1,
+                lastModified: Date.now(),
+                synced: false
+              }
+            ],
+            (a: Activity) => a.id
+          )
+        }
       }
 
       // 7. Push local changes to remote
@@ -392,8 +430,39 @@ export class SyncService {
    * see the note on SYNC_SERVICE_OWNED_STORES.
    */
   private async syncDefinitions(plugin: StoragePlugin): Promise<{ errors: string[] }> {
-    const store = CUSTOM_AGGREGATES_STORE
-    const service = getCustomAggregateService()
+    const results = await Promise.all([
+      this.syncRecordStore<CustomAggregate>(plugin, {
+        store: CUSTOM_AGGREGATES_STORE,
+        service: getCustomAggregateService(),
+        noun: 'aggregate',
+        name: r => r.label
+      }),
+      // The reader's gear: the same kind of store, a few hand-written rows.
+      this.syncRecordStore<Gear>(plugin, {
+        store: GEAR_STORE,
+        service: getGearService(),
+        noun: 'gear',
+        name: r => r.name
+      })
+    ])
+    return { errors: results.flatMap(r => r.errors) }
+  }
+
+  /** One store of hand-written `Timestamped` rows against one plugin. */
+  private async syncRecordStore<T extends Timestamped>(
+    plugin: StoragePlugin,
+    def: {
+      store: string
+      service: {
+        listAll(): Promise<T[]>
+        applyRemote(records: T[]): Promise<void>
+        markAsSynced(ids: string[]): Promise<void>
+      }
+      noun: string
+      name: (record: T) => string
+    }
+  ): Promise<{ errors: string[] }> {
+    const { store, service } = def
 
     try {
       const local = await service.listAll()
@@ -407,7 +476,7 @@ export class SyncService {
         return { errors: [] }
       }
 
-      const remote = ((await plugin.readRemote(store)) as CustomAggregate[]) ?? []
+      const remote = ((await plugin.readRemote(store)) as T[]) ?? []
 
       const { toPush, toPull } = applyConflictResolution(
         reconcile(local, remote),
@@ -416,7 +485,7 @@ export class SyncService {
           // its listener renders an activity toast. Reusing it here would tell
           // the user one of their outings clashed, which is not what happened.
           console.warn(
-            `[SyncService] ⚠️ Conflict on aggregate "${localRecord.label}"`,
+            `[SyncService] ⚠️ Conflict on ${def.noun} "${def.name(localRecord)}"`,
             `\nLocal: v${localRecord.version} (${new Date(localRecord.lastModified).toISOString()})`,
             `\nRemote: v${remoteRecord.version} (${new Date(remoteRecord.lastModified).toISOString()})`,
             `\nWinner: ${winner === localRecord ? 'Local' : 'Remote'}`
@@ -426,13 +495,13 @@ export class SyncService {
 
       if (toPull.length > 0) {
         await service.applyRemote(toPull)
-        console.log(`[SyncService] Pulled ${toPull.length} aggregates from ${plugin.label}`)
+        console.log(`[SyncService] Pulled ${toPull.length} ${def.noun} rows from ${plugin.label}`)
       }
 
       if (toPush.length > 0) {
         await plugin.writeRemote(store, mergedRemote(remote, toPush))
         await service.markAsSynced(toPush.map(r => r.id))
-        console.log(`[SyncService] Pushed ${toPush.length} aggregates to ${plugin.label}`)
+        console.log(`[SyncService] Pushed ${toPush.length} ${def.noun} rows to ${plugin.label}`)
       }
 
       // Re-read after any push so the baseline reflects our own write.
@@ -440,7 +509,7 @@ export class SyncService {
 
       return { errors: [] }
     } catch (error) {
-      const msg = `Failed to sync aggregates with ${plugin.label}: ${error}`
+      const msg = `Failed to sync ${def.noun} rows with ${plugin.label}: ${error}`
       console.error('[SyncService]', msg)
       return { errors: [msg] }
     }

@@ -202,21 +202,25 @@ export class ActivityService implements IActivityService {
    * Update activity fields (increments version, updates timestamp)
    */
   public async updateActivity(id: string, updates: Partial<Activity>): Promise<void> {
-    const db = this.ensureDB()
     const activity = await this.getActivity(id)
     if (!activity) {
       throw new Error(`Activity ${id} not found`)
     }
 
-    const updatedActivity: Activity = {
+    await this.commitUpdate({
       ...activity,
       ...updates,
       id: activity.id, // Prevent ID change
       version: activity.version + 1,
       lastModified: Date.now(),
       synced: false
-    }
+    })
+  }
 
+  /** Write an updated activity and tell everyone listening, as an update. */
+  private async commitUpdate(updatedActivity: Activity): Promise<void> {
+    const db = this.ensureDB()
+    const id = updatedActivity.id
     await db.addItemsToStore('activities', [updatedActivity], (a: Activity) => a.id)
 
     // Emit dbChange event (backward compatibility)
@@ -239,6 +243,30 @@ export class ActivityService implements IActivityService {
     )
 
     console.log(`[ActivityService] Updated activity ${id} (version ${updatedActivity.version})`)
+  }
+
+  /**
+   * Set the gear of one or more activities, as the reader's own choice.
+   *
+   * `null` gives an activity back to its sport's default gear; an empty list
+   * says "no gear". Each activity gets a new version, so the choice syncs.
+   */
+  public async setGear(ids: string[], gearIds: string[] | null): Promise<void> {
+    const now = Date.now()
+    for (const id of ids) {
+      const activity = await this.getActivity(id)
+      if (!activity) continue
+      // Built whole rather than patched: clearing the choice means the field
+      // is gone, which a spread of `undefined` would not do.
+      const { gearIds: _previous, ...rest } = activity
+      await this.commitUpdate({
+        ...(gearIds === null ? rest : { ...rest, gearIds: [...gearIds] }),
+        gearSetAt: now,
+        version: activity.version + 1,
+        lastModified: now,
+        synced: false
+      })
+    }
   }
 
   /**

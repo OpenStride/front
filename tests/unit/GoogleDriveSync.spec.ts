@@ -18,7 +18,10 @@ vi.mock('../../plugins/storage-providers/GDrive/client/GoogleDriveFileService', 
   }
 }))
 
-import { readRemote, writeRemote } from '../../plugins/storage-providers/GDrive/client/GoogleDriveSync'
+import {
+  readRemote,
+  writeRemote
+} from '../../plugins/storage-providers/GDrive/client/GoogleDriveSync'
 
 // ---------- Tests ----------
 
@@ -141,18 +144,14 @@ describe('GoogleDriveSync', () => {
     it('throws when ensureBackupFile returns null', async () => {
       mockEnsureBackupFile.mockResolvedValue(null)
 
-      await expect(writeRemote('activities', [])).rejects.toThrow(
-        'Cannot ensure file on Drive'
-      )
+      await expect(writeRemote('activities', [])).rejects.toThrow('Cannot ensure file on Drive')
     })
 
     it('propagates write errors', async () => {
       mockEnsureBackupFile.mockResolvedValue('file-456')
       mockWriteBackupFileByFileId.mockRejectedValue(new Error('Write failed'))
 
-      await expect(writeRemote('activities', [{ id: 'a1' }])).rejects.toThrow(
-        'Write failed'
-      )
+      await expect(writeRemote('activities', [{ id: 'a1' }])).rejects.toThrow('Write failed')
     })
 
     it('writes to different stores correctly', async () => {

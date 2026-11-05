@@ -7,6 +7,7 @@ import type {
   AggregationMetricDefinition
 } from './aggregation'
 import type { CustomAggregate } from './customAggregate'
+import type { Gear, GearInput } from './gear'
 import type { CustomAggregateInput } from '@/services/CustomAggregateService'
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
 
@@ -51,6 +52,12 @@ export interface IActivityService {
    * Returns undefined if activity doesn't exist
    */
   getActivity(id: string): Promise<Activity | undefined>
+
+  /**
+   * Set the gear of one or more activities as the reader's own choice.
+   * `null` gives them back to their sport's default gear; `[]` means "none".
+   */
+  setGear(ids: string[], gearIds: string[] | null): Promise<void>
 
   /**
    * Get all activity summaries
@@ -320,6 +327,21 @@ export interface ICustomAggregateService {
 }
 
 /**
+ * The reader's gear: what it is, what it is the default for, and since when.
+ * Wear is computed from the activities (`@/utils/gear`), never stored.
+ */
+export interface IGearService {
+  /** Live gear, deleted ones excluded. */
+  list(): Promise<Gear[]>
+  create(input: GearInput): Promise<Gear>
+  update(id: string, patch: Partial<GearInput>): Promise<Gear | null>
+  /** Soft delete: the deletion syncs to the reader's other devices. */
+  remove(id: string): Promise<boolean>
+  /** Subscribe to gear changes; returns the unsubscribe. */
+  onChanged(handler: (ids: string[]) => void): () => void
+}
+
+/**
  * Plugin Context - Injected into plugins
  *
  * This is the main dependency injection container for plugins.
@@ -332,6 +354,7 @@ export interface PluginContext {
   plugins: IPluginManager
   aggregation: IAggregationService
   aggregates: ICustomAggregateService
+  gear: IGearService
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService

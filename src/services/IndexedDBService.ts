@@ -80,13 +80,13 @@ export class IndexedDBService implements IStorageService {
 
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('OpenStrideDB', 12)
+      const request = indexedDB.open('OpenStrideDB', 13)
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v12`)
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v13`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -135,6 +135,9 @@ export class IndexedDBService implements IStorageService {
           // — and via SyncService, not the generic backup (see
           // SYNC_SERVICE_OWNED_STORES in StorageService).
           { name: 'custom_aggregates', options: { keyPath: 'id' } },
+          // The reader's gear (v13). Hand-written like custom_aggregates, so it
+          // syncs through SyncService for the same reasons.
+          { name: 'gear', options: { keyPath: 'id' } },
           { name: 'friends', options: { keyPath: 'id' } },
           { name: 'friend_activities', options: { keyPath: 'id' } },
           {

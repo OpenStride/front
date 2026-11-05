@@ -21,6 +21,21 @@ export interface Activity extends Timestamped {
   type: SportType | (string & {})
   title?: string
   mapPolyline?: [number, number][] // tableau de [lat, lng] réduit
+  /**
+   * Gear the reader picked for this outing, by id. Absent: the gear that is
+   * the default for the sport on that date applies (see `resolveGear`). An
+   * empty list is a choice too: "no gear".
+   *
+   * Only the reader's own choice is stored. A default stays computed, so
+   * moving a pair of shoes' start date moves its whole history with it.
+   */
+  gearIds?: string[]
+  /**
+   * When `gearIds` was last set, in ms. A sync conflict keeps the newer
+   * record whole, but takes the gear choice from whichever record set it
+   * last, so a provider update elsewhere cannot silently undo it.
+   */
+  gearSetAt?: number
 }
 
 export interface Sample {
