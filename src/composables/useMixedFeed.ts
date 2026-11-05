@@ -114,6 +114,7 @@ export function useMixedFeed(options: FeedOptions = {}) {
     reload,
     counts,
     facets,
-    totalCount
+    totalCount,
+    matching
   }
 }

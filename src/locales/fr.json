@@ -1057,6 +1057,14 @@
       "all": "Tout",
       "own": "Moi",
       "friends": "Amis"
+    },
+    "select": {
+      "start": "Sélectionner",
+      "region": "Sélection",
+      "count": "Aucune sélectionnée | {n} sélectionnée | {n} sélectionnées",
+      "all": "Tout sélectionner ({count})",
+      "none": "Tout désélectionner",
+      "stop": "Quitter la sélection"
     }
   },
   "extensions": {
@@ -1233,6 +1241,14 @@
       "pick": "Équipement utilisé sur cette sortie",
       "useDefault": "Revenir au défaut",
       "alert": "{name} : {status}"
+    },
+    "applyPast": "Appliquer à des sorties",
+    "bulk": {
+      "open": "Équipement",
+      "title": "Équipement de {n} sortie | Équipement de {n} sortie | Équipement de {n} sorties",
+      "help": "L'équipement coché remplace celui du même type ; le reste ne change pas.",
+      "apply": "Appliquer",
+      "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
     }
   }
 }

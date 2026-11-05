@@ -1057,6 +1057,14 @@
       "all": "All",
       "own": "Me",
       "friends": "Friends"
+    },
+    "select": {
+      "start": "Select",
+      "region": "Selection",
+      "count": "None selected | {n} selected | {n} selected",
+      "all": "Select all ({count})",
+      "none": "Clear selection",
+      "stop": "Leave selection"
     }
   },
   "extensions": {
@@ -1233,6 +1241,14 @@
       "pick": "Gear used on this outing",
       "useDefault": "Back to default",
       "alert": "{name}: {status}"
+    },
+    "applyPast": "Apply to outings",
+    "bulk": {
+      "open": "Gear",
+      "title": "Gear for {n} outing | Gear for {n} outing | Gear for {n} outings",
+      "help": "Checked gear replaces the gear of the same kind; the rest stays as it is.",
+      "apply": "Apply",
+      "done": "No outing changed | {n} outing changed | {n} outings changed"
     }
   }
 }

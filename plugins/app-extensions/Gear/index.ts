@@ -13,6 +13,8 @@ export default {
   icon: 'fas fa-shoe-prints',
   slots: {
     'profile.tabs': [() => import('./GearTab.vue')],
+    // Selection mode on the activity list: put one gear on many outings at once.
+    'activities.bulk': [() => import('./GearBulkAction.vue')],
     'activity.top': [
       {
         id: 'activity-gear',

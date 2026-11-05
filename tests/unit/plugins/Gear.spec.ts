@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ActivityGear from '@plugins/app-extensions/Gear/ActivityGear.vue'
 import GearTab from '@plugins/app-extensions/Gear/GearTab.vue'
+import GearBulkAction from '@plugins/app-extensions/Gear/GearBulkAction.vue'
 import GearPlugin from '@plugins/app-extensions/Gear/index'
 import {
   convertQuantity,
@@ -62,6 +63,7 @@ function context(gearList: Gear[], activities: Activity[]) {
       remove: vi.fn(async () => true),
       onChanged: vi.fn(() => () => {})
     },
+    notifications: { notify: vi.fn() },
     activity: {
       getAllActivities: vi.fn(async () => [...store.values()]),
       getActivity: vi.fn(async (id: string) => store.get(id)),
@@ -155,7 +157,7 @@ describe('ActivityGear.vue', () => {
 
 describe('GearTab.vue', () => {
   const mountTab = (ctx: ReturnType<typeof context>) =>
-    mount(GearTab, { global: { provide: { pluginContext: ctx } } })
+    mount(GearTab, { global: { provide: { pluginContext: ctx }, stubs: { RouterLink: true } } })
 
   it('lists the gear with its usage', async () => {
     const ctx = context([gear('Pegasus')], [run('a'), run('b')])
@@ -199,5 +201,47 @@ describe('GearTab.vue', () => {
     await wrapper.find('[data-test="gear-form"]').trigger('submit')
     await flushPromises()
     expect(ctx.gear.create.mock.calls[0]![0].alertDistance).toBeCloseTo(160_934, 0)
+  })
+})
+
+describe('GearBulkAction.vue', () => {
+  const mountBulk = (ctx: ReturnType<typeof context>, ids: string[]) =>
+    mount(GearBulkAction, { props: { ids }, global: { provide: { pluginContext: ctx } } })
+
+  it('puts the picked shoes on every outing, keeping their bike, in one write per result', async () => {
+    const road = gear('road')
+    const trail = gear('trail', { sports: [] })
+    const bike = gear('bike', { kind: 'bike', sports: ['running'] })
+    const ctx = context([road, trail, bike], [run('a'), run('b'), run('c', { gearIds: [] })])
+    const wrapper = mountBulk(ctx, ['a', 'b', 'c'])
+    await flushPromises()
+
+    await wrapper.find('[data-test="gear-bulk-open"]').trigger('click')
+    const boxes = wrapper.findAll('[data-test="gear-bulk-sheet"] input[type="checkbox"]')
+    await boxes.find(b => (b.element as HTMLInputElement).value === 'trail')!.setValue(true)
+    await wrapper.find('[data-test="gear-bulk-sheet"]').trigger('submit')
+    await flushPromises()
+
+    expect(ctx.activity.setGear).toHaveBeenCalledTimes(2)
+    expect(ctx.activity.setGear).toHaveBeenCalledWith(['a', 'b'], ['bike', 'trail'])
+    expect(ctx.activity.setGear).toHaveBeenCalledWith(['c'], ['trail'])
+    expect(ctx.notifications.notify).toHaveBeenCalledWith('3 outings changed', { type: 'success' })
+    expect(wrapper.emitted('done')).toHaveLength(1)
+  })
+
+  it('sends the whole selection back to the default', async () => {
+    const ctx = context([gear('road')], [run('a', { gearIds: [] })])
+    const wrapper = mountBulk(ctx, ['a'])
+    await flushPromises()
+    await wrapper.find('[data-test="gear-bulk-open"]').trigger('click')
+    await wrapper.find('[data-test="gear-bulk-default"]').trigger('click')
+    await flushPromises()
+    expect(ctx.activity.setGear).toHaveBeenCalledWith(['a'], null)
+  })
+
+  it('stays out of the bar for a reader without gear', async () => {
+    const wrapper = mountBulk(context([], []), ['a'])
+    await flushPromises()
+    expect(wrapper.find('[data-test="gear-bulk-open"]').exists()).toBe(false)
   })
 })
