@@ -934,4 +934,76 @@ describe('SyncService', () => {
       expect(syncService.isSyncing()).toBe(false)
     })
   })
+
+  describe('Gear choice across a conflict', () => {
+    const base = (fields: Partial<Activity>): Activity => ({
+      id: 'gear-act',
+      provider: 'garmin',
+      startTime: 1_000,
+      duration: 3600,
+      distance: 10000,
+      type: 'running',
+      version: 2,
+      deleted: false,
+      lastModified: 0,
+      ...fields
+    })
+
+    it('keeps a gear picked here when a newer provider update wins from the cloud', async () => {
+      const { IndexedDBService } = await import('@/services/IndexedDBService')
+      const db: any = await IndexedDBService.getInstance()
+      const now = Date.now()
+
+      const local = base({
+        title: 'Old',
+        gearIds: ['trail'],
+        gearSetAt: now - 5000,
+        lastModified: now - 5000,
+        synced: false
+      })
+      const remote = base({ title: 'Renamed by Garmin', lastModified: now, synced: true })
+      await db.addItemsToStore('activities', [local], (a: Activity) => a.id)
+      remoteStorage.activities = [remote]
+      remoteStorage.activity_details = [
+        { id: 'gear-act', version: 2, lastModified: now, synced: true, deleted: false, samples: [] }
+      ]
+
+      const result = await syncService.syncNow()
+      expect(result.success).toBe(true)
+
+      const [stored] = (await db.getAllData('activities')).filter(
+        (a: Activity) => a.id === 'gear-act'
+      )
+      expect(stored.title).toBe('Renamed by Garmin')
+      expect(stored.gearIds).toEqual(['trail'])
+    })
+
+    it('carries a gear picked on the other device into the record kept here', async () => {
+      const { IndexedDBService } = await import('@/services/IndexedDBService')
+      const db: any = await IndexedDBService.getInstance()
+      const now = Date.now()
+
+      const local = base({ title: 'Renamed here', lastModified: now, synced: false })
+      const remote = base({
+        title: 'Old',
+        gearIds: ['road'],
+        gearSetAt: now - 1000,
+        lastModified: now - 1000,
+        synced: true
+      })
+      await db.addItemsToStore('activities', [local], (a: Activity) => a.id)
+      remoteStorage.activities = [remote]
+
+      const result = await syncService.syncNow()
+      expect(result.success).toBe(true)
+
+      const [stored] = (await db.getAllData('activities')).filter(
+        (a: Activity) => a.id === 'gear-act'
+      )
+      expect(stored.title).toBe('Renamed here')
+      expect(stored.gearIds).toEqual(['road'])
+      const pushed = remoteStorage.activities.find((a: Activity) => a.id === 'gear-act')
+      expect(pushed.gearIds).toEqual(['road'])
+    })
+  })
 })

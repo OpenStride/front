@@ -303,7 +303,8 @@
       "appExtensions": "App Extensions",
       "sharing": "Share & Privacy",
       "friends": "Friends & sharing",
-      "mcp": "AI Assistant (MCP)"
+      "mcp": "AI Assistant (MCP)",
+      "gear": "Gear"
     },
     "identity": {
       "section": "Identity"
@@ -1094,6 +1095,10 @@
     "firebase-notifications": {
       "label": "Push notifications",
       "description": "Get notified when new activities are imported."
+    },
+    "gear": {
+      "label": "Gear",
+      "description": "Track the wear of your shoes and bikes, outing by outing."
     }
   },
   "sampleFields": {
@@ -1179,6 +1184,55 @@
       "12m": "12 mo",
       "6m": "6 mo",
       "3m": "3 mo"
+    }
+  },
+  "gear": {
+    "title": "Gear",
+    "intro": "Shoes, bikes: what went where, and how many miles they have left.",
+    "add": "Add gear",
+    "edit": "Edit",
+    "delete": "Delete",
+    "retire": "Retire",
+    "reactivate": "Back in service",
+    "empty": "No gear yet. Add a pair of shoes or a bike: your outings attach to it on their own, by sport.",
+    "retiredTitle": "Retired",
+    "retired": "retired",
+    "noDefault": "No default sport",
+    "outings": "no outing | {n} outing | {n} outings",
+    "since": "In service since {date}",
+    "retiredOn": "retired on {date}",
+    "ofLimit": "{percent} % of {limit}",
+    "wearLabel": "Wear",
+    "confirmDelete": "Delete “{name}”? The outings that used it will have no gear.",
+    "wear": {
+      "warn": "replace soon",
+      "over": "replace now"
+    },
+    "kinds": {
+      "shoes": "Shoes",
+      "bike": "Bike",
+      "other": "Other"
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Pegasus 40",
+      "kind": "Kind",
+      "sports": "Default for",
+      "sportsHelp": "An outing of these sports gets this gear, unless you pick another.",
+      "activeFrom": "In service since",
+      "initialDistance": "Already covered ({unit})",
+      "alertDistance": "Alert at ({unit})",
+      "alertDuration": "Alert at (hours)",
+      "alertHelp": "Orange at 80 % of the limit, red past it. No limit, no alert."
+    },
+    "activity": {
+      "label": "Gear",
+      "none": "None",
+      "byDefault": "default",
+      "change": "Change",
+      "pick": "Gear used on this outing",
+      "useDefault": "Back to default",
+      "alert": "{name}: {status}"
     }
   }
 }

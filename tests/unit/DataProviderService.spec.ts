@@ -39,7 +39,7 @@ describe('DataProviderService', () => {
       mockGetMyDataProviderPlugins.mockResolvedValue([plugin])
 
       const events: CustomEvent[] = []
-      service.emitter.addEventListener('provider-activities-imported', (e) => {
+      service.emitter.addEventListener('provider-activities-imported', e => {
         events.push(e as CustomEvent)
       })
 
@@ -89,7 +89,7 @@ describe('DataProviderService', () => {
       mockGetMyDataProviderPlugins.mockResolvedValue([failingPlugin])
 
       const events: Event[] = []
-      service.emitter.addEventListener('provider-activities-imported', (e) => events.push(e))
+      service.emitter.addEventListener('provider-activities-imported', e => events.push(e))
 
       await service.triggerRefresh()
 

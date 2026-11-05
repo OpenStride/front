@@ -359,6 +359,38 @@ describe('ActivityService', () => {
     })
   })
 
+  describe('setGear', () => {
+    it('records the choice with its own time, on every activity given', async () => {
+      await service.saveActivityWithDetails(
+        createActivity({ id: 'a', version: 1 }),
+        createActivityDetails('a')
+      )
+      await service.saveActivityWithDetails(
+        createActivity({ id: 'b', version: 3 }),
+        createActivityDetails('b')
+      )
+
+      await service.setGear(['a', 'b', 'missing'], ['trail'])
+
+      const a = await service.getActivity('a')
+      const b = await service.getActivity('b')
+      expect(a).toMatchObject({ gearIds: ['trail'], version: 2, synced: false })
+      expect(b).toMatchObject({ gearIds: ['trail'], version: 4 })
+      expect(a!.gearSetAt).toBeGreaterThan(0)
+    })
+
+    it('goes back to the default by removing the choice, still dated', async () => {
+      await service.saveActivityWithDetails(
+        createActivity({ id: 'a', gearIds: ['x'] }),
+        createActivityDetails('a')
+      )
+      await service.setGear(['a'], null)
+      const a = await service.getActivity('a')
+      expect('gearIds' in a!).toBe(false)
+      expect(a!.gearSetAt).toBeGreaterThan(0)
+    })
+  })
+
   describe('deleteActivity (soft delete)', () => {
     it('should set deleted flag instead of removing', async () => {
       const activity = createActivity({ id: 'test-1' })

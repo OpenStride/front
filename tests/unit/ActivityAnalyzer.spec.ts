@@ -49,7 +49,9 @@ describe('ActivityAnalyzer.sampleBySlopeChange', () => {
 
 describe('elevationChange', () => {
   const withElevations = (elevations: number[]) =>
-    new ActivityAnalyzer(elevations.map((elevation, i) => ({ time: i, distance: i * 10, elevation })))
+    new ActivityAnalyzer(
+      elevations.map((elevation, i) => ({ time: i, distance: i * 10, elevation }))
+    )
 
   it('sums a clean climb and descent', () => {
     // up 100, down 60

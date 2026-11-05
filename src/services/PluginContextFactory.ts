@@ -15,6 +15,7 @@ import { StorageService } from './StorageService'
 import { SyncService } from './SyncService'
 import { DataProviderService } from './DataProviderService'
 import { getCustomAggregateService } from './CustomAggregateService'
+import { getGearService } from './GearService'
 import { useSampleCapabilities } from '@/composables/useSampleCapabilities'
 import {
   convertQuantity,
@@ -110,6 +111,21 @@ export async function createPluginContext(): Promise<PluginContext> {
         const emitter = getCustomAggregateService().emitter
         emitter.addEventListener('aggregates-changed', listener)
         return () => emitter.removeEventListener('aggregates-changed', listener)
+      }
+    },
+
+    gear: {
+      list: () => getGearService().list(),
+      create: input => getGearService().create(input),
+      update: (id, patch) => getGearService().update(id, patch),
+      remove: id => getGearService().remove(id),
+      onChanged: handler => {
+        const listener = (event: Event) => {
+          handler((event as CustomEvent<{ ids: string[] }>).detail.ids)
+        }
+        const emitter = getGearService().emitter
+        emitter.addEventListener('gear-changed', listener)
+        return () => emitter.removeEventListener('gear-changed', listener)
       }
     },
 

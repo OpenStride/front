@@ -25,7 +25,7 @@ export interface StorageServiceEvent {
  * another device and pushes deleted rows back into existence, which is why
  * `custom_aggregates` is listed here rather than left to this path.
  */
-const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_aggregates']
+const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_aggregates', 'gear']
 
 /**
  * Stores that never leave the device. They hold values derived from data that

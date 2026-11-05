@@ -66,15 +66,15 @@ See `docs/PLUGIN_GUIDELINES.md` for complete guide with examples.
 
 ### Core Services
 
-| Service                | Purpose                                                                                                                                                                 |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                                                                |
-| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                                                            |
-| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                                                       |
-| **IndexedDBService**   | Singleton IndexedDB access (v11). Stores: settings, activities, activity_details, aggregatedData, activity_metrics, notifLogs, friends, friend_activities, interactions |
-| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                                                   |
-| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                                                   |
-| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                                                         |
+| Service                | Purpose                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ActivityService**    | CRUD with atomic transactions, versioning, soft delete. Emits `activity-changed` events.                                                                                                         |
+| **SyncService**        | Manual sync with conflict detection (version + timestamp), incremental sync.                                                                                                                     |
+| **AggregationService** | Event-driven O(1) aggregation, listens to ActivityService events.                                                                                                                                |
+| **IndexedDBService**   | Singleton IndexedDB access (v13). Stores: settings, activities, activity_details, aggregatedData, activity_metrics, notifLogs, friends, friend_activities, interactions, custom_aggregates, gear |
+| **ActivityAnalyzer**   | Segmentation, best efforts, slope analysis, averages.                                                                                                                                            |
+| **MigrationService**   | App-level data migrations on version upgrades. See `src/migrations/`.                                                                                                                            |
+| **ToastService**       | UI-only notifications. NEVER call from business logic services.                                                                                                                                  |
 
 **Deprecated:** ActivityDBService (use ActivityService), StorageListener (use SyncService).
 

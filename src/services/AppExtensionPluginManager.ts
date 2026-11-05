@@ -23,7 +23,8 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
     // having to find, and enable, a second extension to see it over time —
     // with nothing anywhere saying so. Only new installs are affected: an
     // existing list is a preference, and is never overwritten by these.
-    'metric-tracker'
+    'metric-tracker',
+    'gear'
   ]
 
   private constructor() {
