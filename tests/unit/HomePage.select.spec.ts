@@ -37,7 +37,23 @@ vi.mock('@/composables/useSlotExtensions', () => ({
     components: { value: slot === 'activities.bulk' ? bulk : [] }
   })
 }))
-vi.mock('@/composables/useActivityMetricsIndex', () => ({ useFeedMetricsIndex: () => {} }))
+const metrics = vi.hoisted(() => ({ ascent: new Map<string, number>(), ensureIndex: vi.fn() }))
+vi.mock('@/composables/useActivityMetricsIndex', async () => {
+  const { ref } = await import('vue')
+  const derived = ref(new Map<string, Record<string, number>>())
+  return {
+    DERIVED: { ascent: 'ascent' },
+    useFeedMetricsIndex: () => {},
+    useActivityMetricsIndex: () => ({
+      derived,
+      indexing: ref(false),
+      ensureIndex: async (...args: unknown[]) => {
+        metrics.ensureIndex(...args)
+        derived.value = new Map([...metrics.ascent].map(([id, a]) => [id, { ascent: a }]))
+      }
+    })
+  }
+})
 vi.mock('@/services/ActivityService', () => ({
   getActivityService: async () => ({ emitter: new EventTarget() })
 }))

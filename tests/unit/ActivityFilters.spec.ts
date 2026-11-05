@@ -429,7 +429,8 @@ describe('ActivityService - Filters', () => {
     it('lists each sport present once', async () => {
       await seedActivities()
       const { sports } = await service.getFilterFacets()
-      expect(sports.sort()).toEqual(['bike', 'hike', 'run', 'swim'])
+      // Canonical: "run" and "running" are one choice, not two
+      expect(sports.sort()).toEqual(['cycling', 'hiking', 'running', 'swimming'])
     })
 
     // Legacy activities carry raw provider strings, so the chips would
@@ -449,7 +450,11 @@ describe('ActivityService - Filters', () => {
     it('ignores deleted activities', async () => {
       await seedActivities()
       await service.deleteActivity('2') // the only bike ride
-      expect((await service.getFilterFacets()).sports.sort()).toEqual(['hike', 'run', 'swim'])
+      expect((await service.getFilterFacets()).sports.sort()).toEqual([
+        'hiking',
+        'running',
+        'swimming'
+      ])
     })
 
     it('reports a distance to narrow when the library holds one', async () => {

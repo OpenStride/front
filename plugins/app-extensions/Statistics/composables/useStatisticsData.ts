@@ -3,8 +3,8 @@ import type { Activity } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { IActivityService } from '@/types/plugin-context'
 import { formatSportType } from '@/utils/sportLabels'
-import { canonicalSport } from '@/types/sport'
-import { mainSport, sportOf } from '../dashboardData'
+import { canonicalSport, matchesSportScope, sportScopes } from '@/types/sport'
+import { mainSport } from '../dashboardData'
 
 const allActivities = ref<Activity[]>([])
 const selectedSport = ref<string>('')
@@ -24,16 +24,11 @@ let activityService: IActivityService | null = null
 
 const filteredActivities = computed(() => {
   if (!selectedSport.value) return allActivities.value
-  return allActivities.value.filter(a => sportOf(a) === selectedSport.value)
+  return allActivities.value.filter(a => matchesSportScope(selectedSport.value, a.type))
 })
 
-const sportTypes = computed(() => {
-  const types = new Set<string>()
-  for (const a of allActivities.value) {
-    if (a.type) types.add(sportOf(a))
-  }
-  return Array.from(types).sort()
-})
+/** The menu's choices: running gathers road, treadmill and trail (see `sportScopes`). */
+const sportTypes = computed(() => sportScopes(allActivities.value.map(a => a.type)))
 
 const sportOptions = computed(() => {
   return sportTypes.value.map(s => ({

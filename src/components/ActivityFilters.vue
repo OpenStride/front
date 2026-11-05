@@ -57,6 +57,44 @@
       </div>
     </div>
 
+    <!-- Climb per distance: what tells a trail from a road run, whatever the
+         watch was set to. Distance-based, so it leaves with the distance. -->
+    <div v-if="hasDistance" class="filter-section" data-test="climb-section">
+      <label class="filter-label">{{ t('filters.climb') }}</label>
+      <div class="range-inputs">
+        <div class="range-field">
+          <input
+            type="number"
+            class="range-input"
+            :placeholder="t('filters.min')"
+            :value="climbMinDisplay"
+            min="0"
+            step="5"
+            data-test="climb-min"
+            @input="onClimbMin"
+          />
+          <span class="range-unit">{{ climbUnit }}</span>
+        </div>
+        <span class="range-separator">-</span>
+        <div class="range-field">
+          <input
+            type="number"
+            class="range-input"
+            :placeholder="t('filters.max')"
+            :value="climbMaxDisplay"
+            min="0"
+            step="5"
+            data-test="climb-max"
+            @input="onClimbMax"
+          />
+          <span class="range-unit">{{ climbUnit }}</span>
+        </div>
+      </div>
+      <p class="filter-hint">
+        {{ t('filters.climbHint', { value: climbToDisplay(TRAIL_CLIMB), unit: climbUnit }) }}
+      </p>
+    </div>
+
     <!-- Date range: how one actually looks for a session again -->
     <div class="filter-section">
       <label class="filter-label">{{ t('filters.date') }}</label>
@@ -183,6 +221,31 @@ const distanceMinDisplay = computed(() =>
 const distanceMaxDisplay = computed(() =>
   toDisplay('distance', props.modelValue.distanceMax ?? undefined)
 )
+
+/**
+ * Climb is stored as metres per metre; it reads as height per distance in the
+ * reader's units — m/km, or ft/mi. One display unit of distance, in metres:
+ */
+const metresPerDistanceUnit = computed(() => 1 / convert('distance', 1).value)
+const climbUnit = computed(() => `${convert('elevation', 0).unit}/${convert('distance', 0).unit}`)
+const climbToDisplay = (si?: number) =>
+  si != null ? Math.round(convert('elevation', si * metresPerDistanceUnit.value).value) : undefined
+const climbToSI = (value: number) =>
+  value / convert('elevation', 1).value / metresPerDistanceUnit.value
+/** 25 m/km: a rough line past which a run is usually a trail. A hint, never a rule. */
+const TRAIL_CLIMB = 0.025
+const climbMinDisplay = computed(() => climbToDisplay(props.modelValue.climbMin ?? undefined))
+const climbMaxDisplay = computed(() => climbToDisplay(props.modelValue.climbMax ?? undefined))
+
+function onClimbMin(e: Event) {
+  const entered = parseNumInput(e)
+  updateFilter('climbMin', entered != null ? climbToSI(entered) : undefined)
+}
+
+function onClimbMax(e: Event) {
+  const entered = parseNumInput(e)
+  updateFilter('climbMax', entered != null ? climbToSI(entered) : undefined)
+}
 
 // Time is not a `Dimension`: a minute reads the same in both systems, so it
 // needs the storage conversion (seconds) and no unit system.
@@ -360,6 +423,12 @@ function onDateTo(e: Event) {
   color: var(--text-faint);
   font-size: 0.8rem;
   pointer-events: none;
+}
+
+.filter-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-faint);
 }
 
 .range-separator {

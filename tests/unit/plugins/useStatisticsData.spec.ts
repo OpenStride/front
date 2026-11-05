@@ -60,7 +60,8 @@ describe('useStatisticsData — which sport the page opens on', () => {
     const { api } = await load()
 
     expect(api.selectedSport.value).toBe('running')
-    expect(api.sportTypes.value).toEqual(['cycling', 'running'])
+    // Running first: it is the group the menu opens with
+    expect(api.sportTypes.value).toEqual(['running', 'cycling'])
     expect(api.filteredActivities.value.map(a => a.id)).toEqual(['a', 'b'])
   })
 

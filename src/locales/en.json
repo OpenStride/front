@@ -94,7 +94,8 @@
     "skateboarding": "Skateboarding",
     "wheelchair": "Wheelchair",
     "canoeing_kayaking": "Canoe / Kayak",
-    "other": "Other"
+    "other": "Other",
+    "road_running": "Road running"
   },
   "common": {
     "save": "Save",
@@ -396,7 +397,10 @@
     "dateFrom": "From",
     "dateTo": "Until",
     "duration": "Duration",
-    "minutes": "min"
+    "minutes": "min",
+    "climb": "Climb",
+    "climbHint": "Per distance covered: past {value} {unit}, it is usually a trail.",
+    "indexingClimb": "Reading the climb of your outings…"
   },
   "friends": {
     "addFriend": "Add Friend",

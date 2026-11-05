@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SPORT_TYPES, isSportType } from '@/types/sport'
+import { ROAD_RUNNING, SPORT_TYPES, isSportType } from '@/types/sport'
 import { SPORT_ICONS } from '@/utils/sportLabels'
 import en from '@/locales/en.json'
 import fr from '@/locales/fr.json'
@@ -17,12 +17,15 @@ describe('SportType canonical vocabulary', () => {
     }
   })
 
+  // `road_running` is no sport but a menu choice, named like one (see sportScopes)
+  const known = (key: string) => isSportType(key) || key === ROAD_RUNNING
+
   it('has no orphan i18n sport keys (locale keys all map to a SportType)', () => {
     for (const key of Object.keys(enSports)) {
-      expect(isSportType(key), `en has orphan sport key "${key}"`).toBe(true)
+      expect(known(key), `en has orphan sport key "${key}"`).toBe(true)
     }
     for (const key of Object.keys(frSports)) {
-      expect(isSportType(key), `fr has orphan sport key "${key}"`).toBe(true)
+      expect(known(key), `fr has orphan sport key "${key}"`).toBe(true)
     }
   })
 })
@@ -46,8 +49,7 @@ describe('every provider that maps sports honours the contract', () => {
     for (const [path, mod] of entries) {
       const provider = providerFolder(path)
       const mapper = Object.values(mod).find(v => typeof v === 'function') as
-        | ((raw: unknown) => string)
-        | undefined
+        ((raw: unknown) => string) | undefined
       expect(mapper, `${provider} exports no mapper function`).toBeTruthy()
 
       // Junk, empty and wrong-cased input must all land on a real slug rather
@@ -108,7 +110,10 @@ describe('sport icon coverage', () => {
 
   it('has no icons for unknown (non-SportType) slugs', () => {
     for (const slug of Object.keys(SPORT_ICONS)) {
-      expect(isSportType(slug), `SPORT_ICONS has non-SportType key "${slug}"`).toBe(true)
+      expect(
+        isSportType(slug) || slug === ROAD_RUNNING,
+        `SPORT_ICONS has non-SportType key "${slug}"`
+      ).toBe(true)
     }
   })
 })

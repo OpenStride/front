@@ -42,7 +42,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { canonicalSport } from '@/types/sport'
+import { matchesSportScope } from '@/types/sport'
 import { resolveGear, wearRatio } from '@/utils/gear'
 import { KIND_ICON, useGear } from './useGear'
 
@@ -57,10 +57,9 @@ const { gear, activities, usageOf, levelOf, usageText } = useGear()
 /** Gear the dashboard's sport actually wore, so a ride's page does not list shoes. */
 const wornForSport = computed(() => {
   if (!props.sport) return null
-  const sport = canonicalSport(props.sport)
   const ids = new Set<string>()
   for (const a of activities.value) {
-    if (a.deleted || canonicalSport(a.type) !== sport) continue
+    if (a.deleted || !matchesSportScope(props.sport, a.type)) continue
     for (const g of resolveGear(a, gear.value)) ids.add(g.id)
   }
   return ids

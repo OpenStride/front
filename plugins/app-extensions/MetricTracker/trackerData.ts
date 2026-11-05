@@ -1,5 +1,5 @@
 import type { Activity } from '@/types/activity'
-import { canonicalSport } from '@/types/sport'
+import { sportScopes, topSportScope } from '@/types/sport'
 import { readValue } from './series'
 import { toMs, type MetricDefinition, type MetricSources, type WindowId } from './types'
 
@@ -225,10 +225,12 @@ export function bestOuting(outings: Outing[], metric: MetricDefinition): Outing 
 
 /** The sport with the most outings, canonical. */
 export function mainSport(activities: Activity[]): string {
+  // Counted by menu choice, so trails and road runs add up to "running".
+  const scopes = sportScopes(activities.map(a => a.type))
   const counts = new Map<string, number>()
   for (const a of activities) {
     if (a.deleted || !a.type) continue
-    const s = canonicalSport(a.type)
+    const s = topSportScope(a.type, scopes)
     counts.set(s, (counts.get(s) ?? 0) + 1)
   }
   let best = ''

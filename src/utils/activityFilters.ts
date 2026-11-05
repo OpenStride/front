@@ -1,5 +1,6 @@
 import type { Activity, ActivityFilters } from '@/types/activity'
 import { toMs } from '@/utils/timeRange'
+import { sportScopes, matchesSportScope } from '@/types/sport'
 
 /**
  * Whether one activity answers a set of filters.
@@ -11,13 +12,21 @@ import { toMs } from '@/utils/timeRange'
  * results depending on whose activity it was would be the surprise, not the
  * feature.
  */
-export function matchesFilters(activity: Activity, filters: ActivityFilters): boolean {
+/** An activity's ascent in metres, when it is known. */
+export type AscentLookup = (activityId: string) => number | undefined
+
+export function matchesFilters(
+  activity: Activity,
+  filters: ActivityFilters,
+  ascentOf?: AscentLookup
+): boolean {
   if (filters.text && !activity.title?.toLowerCase().includes(filters.text.toLowerCase())) {
     return false
   }
 
-  // Legacy activities carry raw provider strings like "RUNNING"
-  if (filters.sportType && activity.type?.toLowerCase() !== filters.sportType.toLowerCase()) {
+  // Canonical on both sides (legacy activities carry raw strings like "RUNNING"),
+  // and "running" takes in trails, as a runner counts them.
+  if (filters.sportType && !matchesSportScope(filters.sportType, activity.type)) {
     return false
   }
 
@@ -34,17 +43,32 @@ export function matchesFilters(activity: Activity, filters: ActivityFilters): bo
   if (filters.durationMin != null && activity.duration < filters.durationMin) return false
   if (filters.durationMax != null && activity.duration > filters.durationMax) return false
 
+  // A climb filter asks something only the details know; an activity whose
+  // ascent is not known (yet, or ever: a friend's, a pool swim) cannot answer.
+  if (filters.climbMin != null || filters.climbMax != null) {
+    const ascent = ascentOf?.(activity.id)
+    if (ascent === undefined || !(activity.distance > 0)) return false
+    const climb = ascent / activity.distance
+    if (filters.climbMin != null && climb < filters.climbMin) return false
+    if (filters.climbMax != null && climb > filters.climbMax) return false
+  }
+
   return true
 }
 
 /** Narrow a list, keeping its order and the concrete type of its items. */
 export function applyActivityFilters<T extends Activity>(
   activities: T[],
-  filters?: ActivityFilters
+  filters?: ActivityFilters,
+  ascentOf?: AscentLookup
 ): T[] {
   if (!filters) return activities
-  return activities.filter(activity => matchesFilters(activity, filters))
+  return activities.filter(activity => matchesFilters(activity, filters, ascentOf))
 }
+
+/** Whether these filters need each activity's ascent. */
+export const filtersNeedAscent = (filters?: ActivityFilters): boolean =>
+  filters?.climbMin != null || filters?.climbMax != null
 
 /**
  * What a filter panel may offer for a given corpus.
@@ -54,13 +78,6 @@ export function applyActivityFilters<T extends Activity>(
  * asking for one has nothing to offer.
  */
 export function filterFacets(activities: Activity[]): { sports: string[]; hasDistance: boolean } {
-  const sports = new Set<string>()
-  let hasDistance = false
-
-  for (const activity of activities) {
-    if (activity.type) sports.add(activity.type.toLowerCase())
-    if (activity.distance > 0) hasDistance = true
-  }
-
-  return { sports: [...sports], hasDistance }
+  const hasDistance = activities.some(activity => activity.distance > 0)
+  return { sports: sportScopes(activities.map(activity => activity.type)), hasDistance }
 }

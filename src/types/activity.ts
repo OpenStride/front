@@ -113,4 +113,11 @@ export interface ActivityFilters {
   dateTo?: number
   durationMin?: number // in seconds
   durationMax?: number // in seconds
+  /**
+   * Climb per distance covered, metres per metre (25 m/km is 0.025). Not
+   * readable off an `Activity`: the ascent lives in the details, so a list
+   * filtering on it supplies each activity's ascent (see `matchesFilters`).
+   */
+  climbMin?: number
+  climbMax?: number
 }

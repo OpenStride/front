@@ -1,7 +1,7 @@
 import type { Activity } from '@/types/activity'
 import { getDayKey } from '@/utils/dateKeys'
 import { toMs } from '@/utils/timeRange'
-import { canonicalSport } from '@/types/sport'
+import { canonicalSport, sportScopes, topSportScope } from '@/types/sport'
 
 /**
  * The figures the dashboard draws, folded from the activities it shows.
@@ -53,10 +53,12 @@ function addDays(date: Date, days: number): Date {
  * have to leave.
  */
 export function mainSport(activities: Activity[]): string {
+  // Counted by menu choice, so trails and road runs add up to "running".
+  const scopes = sportScopes(activities.map(a => a.type))
   const counts = new Map<string, number>()
   for (const a of activities) {
     if (startOf(a) === null) continue
-    const s = sportOf(a)
+    const s = topSportScope(sportOf(a), scopes)
     counts.set(s, (counts.get(s) ?? 0) + 1)
   }
   let best = ''

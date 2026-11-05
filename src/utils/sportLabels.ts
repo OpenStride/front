@@ -45,6 +45,8 @@ export const SPORT_ICONS: Record<string, string> = {
   running: 'fas fa-person-running',
   treadmill_running: 'fas fa-person-running',
   trail_running: 'fas fa-person-running',
+  // Not a sport but a menu choice: running off the trails (see `ROAD_RUNNING`).
+  road_running: 'fas fa-person-running',
   // Cycling
   cycling: 'fas fa-person-biking',
   cyclocross: 'fas fa-person-biking',
