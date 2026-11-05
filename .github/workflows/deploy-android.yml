@@ -82,7 +82,7 @@ jobs:
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
       - name: Upload AAB artifact
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7
         with:
           name: android-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
