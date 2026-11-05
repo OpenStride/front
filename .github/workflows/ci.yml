@@ -63,7 +63,7 @@ jobs:
 
       # The Cypress binary is ~220 MB. Cached here rather than by the Cypress
       # action, whose own cache save treats a GitHub cache hiccup as fatal.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package-lock.json') }}

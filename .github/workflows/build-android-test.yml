@@ -76,7 +76,7 @@ jobs:
       # other (a fresh runner would otherwise sign every build with a different
       # random debug key → "App not installed" on reinstall).
       - name: Cache the debug signing key
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.android/debug.keystore
           key: android-debug-keystore-v1
