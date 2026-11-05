@@ -120,3 +120,16 @@ export function gearChoiceToKeep(
   if ((loser.gearSetAt ?? 0) <= (winner.gearSetAt ?? 0)) return null
   return { gearIds: loser.gearIds, gearSetAt: loser.gearSetAt }
 }
+
+/**
+ * The gear an activity ends up with once `picked` is applied to it in bulk.
+ *
+ * Picking shoes for twenty outings changes their shoes, not their bike: the
+ * gear of every kind picked is replaced, the rest of what each outing resolved
+ * to is kept. The result is always an explicit choice.
+ */
+export function applyGearPick(activity: Activity, gear: Gear[], picked: Gear[]): string[] {
+  const kinds = new Set(picked.map(g => g.kind))
+  const kept = resolveGear(activity, gear).filter(g => !kinds.has(g.kind))
+  return [...kept, ...picked].map(g => g.id)
+}

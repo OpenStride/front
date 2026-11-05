@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { Activity } from '@/types/activity'
 import type { Gear } from '@/types/gear'
 import {
+  applyGearPick,
   defaultGear,
   gearChoiceToKeep,
   gearUsage,
@@ -137,5 +138,21 @@ describe('gearChoiceToKeep — sync conflicts', () => {
     const winner = run('a', '2026-03-01', { gearIds: ['road'], gearSetAt: 100 })
     const loser = run('a', '2026-03-01', { gearSetAt: 200 })
     expect(gearChoiceToKeep(winner, loser)).toEqual({ gearIds: undefined, gearSetAt: 200 })
+  })
+})
+
+describe('applyGearPick — bulk', () => {
+  const road = gear('road')
+  const trail = gear('trail', { sports: [] })
+  const bike = gear('bike', { kind: 'bike', sports: ['running'] })
+  const all = [road, trail, bike]
+
+  it('replaces the gear of the kind picked and keeps the rest', () => {
+    expect(applyGearPick(run('a', '2026-03-01'), all, [trail]).sort()).toEqual(['bike', 'trail'])
+  })
+
+  it('starts from the outing’s own choice when it has one', () => {
+    const a = run('a', '2026-03-01', { gearIds: [] })
+    expect(applyGearPick(a, all, [trail])).toEqual(['trail'])
   })
 })

@@ -1,12 +1,26 @@
 <template>
-  <article class="acard" data-test="activity-card">
+  <article
+    class="acard"
+    :class="{ 'is-selectable': selectable, 'is-selected': selected }"
+    data-test="activity-card"
+  >
     <div
       class="acard__click"
-      role="link"
+      :role="selectable ? 'checkbox' : 'link'"
+      :aria-checked="selectable ? selected : undefined"
       tabindex="0"
-      @click="showDetails"
-      @keydown.enter="showDetails"
+      @click="onActivate"
+      @keydown.enter="onActivate"
+      @keydown.space.prevent="selectable && onActivate()"
     >
+      <!-- Selection mode: the card is a checkbox, and says so where the eye lands first. -->
+      <span
+        v-if="selectable"
+        :class="['acard__check', hasMap ? 'is-on-map' : 'is-on-body']"
+        data-test="card-check"
+      >
+        <i v-if="selected" class="fas fa-check" aria-hidden="true"></i>
+      </span>
       <!-- Héro : uniquement s'il y a un tracé. Une nage en bassin ou une séance
            de renfo n'a pas de GPS : lui réserver 186 px de vide n'apprend rien. -->
       <div v-if="hasMap" class="acard__hero">
@@ -102,7 +116,16 @@ import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetri
 const props = defineProps<{
   activity: Activity
   friendUsername?: string
+  /** Selection mode: a click toggles the card instead of opening it. */
+  selectable?: boolean
+  selected?: boolean
 }>()
+const emit = defineEmits<{ toggle: [] }>()
+
+function onActivate() {
+  if (props.selectable) emit('toggle')
+  else showDetails()
+}
 const { t } = useI18n()
 const { format } = useUnits()
 
@@ -267,6 +290,46 @@ const showDetails = () => {
 .acard__click {
   cursor: pointer;
   display: block;
+  position: relative;
+}
+
+/* Selection mode: the map stops taking the pointer, so a tap anywhere toggles. */
+.is-selectable .acard__map {
+  pointer-events: none;
+}
+
+.acard.is-selected {
+  box-shadow:
+    inset 0 0 0 2px var(--color-green-600),
+    var(--shadow-card);
+}
+
+.acard__check {
+  position: absolute;
+  top: 0.75rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid var(--color-green-600);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--color-white);
+}
+
+/* Over a map the date chip holds the right corner, and a friend's chip — the one
+   thing on the left — never shows on a selectable card. Without a map the sport
+   badge holds the left. */
+.acard__check.is-on-map {
+  left: 0.75rem;
+}
+.acard__check.is-on-body {
+  right: 0.75rem;
+}
+
+.is-selected .acard__check {
+  background: var(--color-green-600);
 }
 .acard__click:focus-visible {
   outline: 2px solid var(--color-green-500);
