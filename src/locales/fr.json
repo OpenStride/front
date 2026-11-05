@@ -288,7 +288,9 @@
         "month": "Maximum du mois"
       },
       "outing": "Une sortie"
-    }
+    },
+    "gear": "Équipement",
+    "allGear": "Tous"
   },
   "profile": {
     "enterUsername": "Entrez votre pseudo",
@@ -542,7 +544,8 @@
       "importing": "Import en cours… {done}/{total}",
       "done": "{count} activités importées.",
       "noCsv": "Ce fichier ne ressemble pas à un export Strava (activities.csv introuvable).",
-      "error": "Échec de l'import : {message}"
+      "error": "Échec de l'import : {message}",
+      "gearDone": "| {n} équipement retrouvé. | {n} équipements retrouvés."
     }
   },
   "update": {
@@ -1249,6 +1252,18 @@
       "help": "L'équipement coché remplace celui du même type ; le reste ne change pas.",
       "apply": "Appliquer",
       "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
+    },
+    "alert": {
+      "title": "Alertes d'équipement",
+      "warn": "{name} : bientôt à changer",
+      "over": "{name} : à changer",
+      "detail": "{usage} sur {limit} prévus",
+      "later": "Plus tard"
+    },
+    "stats": {
+      "title": "Équipement",
+      "manage": "Gérer",
+      "percent": "{percent} % de la limite"
     }
   }
 }

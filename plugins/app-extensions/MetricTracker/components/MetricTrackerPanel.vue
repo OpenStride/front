@@ -45,6 +45,16 @@
             </option>
           </select>
         </label>
+
+        <!-- Pace in one pair against the other: only once there is more than one
+             to compare for this sport. -->
+        <label v-if="gearChoices.length > 1" class="field">
+          <span class="field-label">{{ t('metricTracker.gear') }}</span>
+          <select v-model="selectedGear" class="sport-select" data-test="gear-select">
+            <option value="">{{ t('metricTracker.allGear') }}</option>
+            <option v-for="g in gearChoices" :key="g.id" :value="g.id">{{ g.name }}</option>
+          </select>
+        </label>
       </div>
 
       <!-- Over what span: one row, the grain follows it. -->
@@ -143,6 +153,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { canonicalSport } from '@/types/sport'
+import type { Gear } from '@/types/gear'
+import { resolveGear } from '@/utils/gear'
 import { useMetricActivities } from '../composables/useMetricActivities'
 import { useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import { DIRECT_METRICS, DERIVED_METRICS, METRICS, hasMetric } from '../metrics'
@@ -301,12 +313,56 @@ const sportActivities = computed(() =>
     : activities.value
 )
 
+// ── Gear ────────────────────────────────────────────────────────────────────
+const gear = ref<Gear[]>([])
+let unsubscribeGear: (() => void) | null = null
+async function loadGear() {
+  gear.value = (await ctx.gear?.list()) ?? []
+}
+onMounted(() => {
+  loadGear()
+  unsubscribeGear = ctx.gear?.onChanged(loadGear) ?? null
+})
+onUnmounted(() => unsubscribeGear?.())
+
+const selectedGear = ref(linkParam('gear') ?? '')
+
+/** What each outing of the sport wore, resolved once for the list and the filter. */
+const gearByActivity = computed(() => {
+  const map = new Map<string, Gear[]>()
+  if (!gear.value.length) return map
+  for (const a of sportActivities.value) map.set(a.id, resolveGear(a, gear.value))
+  return map
+})
+
+/** The gear this sport's outings actually wore. */
+const gearChoices = computed(() => {
+  const worn = new Map<string, Gear>()
+  for (const list of gearByActivity.value.values()) for (const g of list) worn.set(g.id, g)
+  return [...worn.values()].sort((a, b) => b.activeFrom - a.activeFrom)
+})
+
+// A gear the new sport never wore would leave an empty chart behind it.
+watch(gearChoices, choices => {
+  if (selectedGear.value && !choices.some(g => g.id === selectedGear.value)) {
+    selectedGear.value = ''
+  }
+})
+
+const trackedActivities = computed(() =>
+  selectedGear.value
+    ? sportActivities.value.filter(a =>
+        gearByActivity.value.get(a.id)?.some(g => g.id === selectedGear.value)
+      )
+    : sportActivities.value
+)
+
 const sources = computed(() => ({ stats: stats.value, derived: derived.value }))
 const ready = computed(() => !statsLoading.value && !indexing.value)
 
 const periods = computed<Period[]>(() =>
   ready.value
-    ? periodSeries(sportActivities.value, sources.value, metric.value, {
+    ? periodSeries(trackedActivities.value, sources.value, metric.value, {
         grain: grain.value,
         window: selectedWindow.value,
         mode: kind.value === 'best' ? 'best' : mode.value
@@ -315,7 +371,7 @@ const periods = computed<Period[]>(() =>
 )
 
 const allOutings = computed(() =>
-  ready.value ? outingsOf(sportActivities.value, sources.value, metric.value) : []
+  ready.value ? outingsOf(trackedActivities.value, sources.value, metric.value) : []
 )
 const windowFrom = computed(() => periods.value[0]?.start.getTime() ?? Infinity)
 const windowOutings = computed(() => allOutings.value.filter(o => o.startTime >= windowFrom.value))
@@ -564,8 +620,8 @@ onUnmounted(() => {
 
 // Keep the URL in step with the selection, so a view can be shared or reloaded.
 watch(
-  [selectedMetricId, ownSport, selectedWindow, grainOverride, mode],
-  ([metricId, sport, window, g, m]) => {
+  [selectedMetricId, ownSport, selectedWindow, grainOverride, mode, selectedGear],
+  ([metricId, sport, window, g, m, gearId]) => {
     if (!props.syncUrl) return
     router.replace({
       query: {
@@ -575,6 +631,7 @@ watch(
         window: window === '6m' ? undefined : window,
         grain: g ?? undefined,
         mode: m === 'best' ? m : undefined,
+        gear: gearId || undefined,
         granularity: undefined
       }
     })
