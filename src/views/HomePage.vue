@@ -55,7 +55,8 @@
 
       <div v-if="(hasActiveFilters && !loading) || canSelect" class="home-controls__row">
         <p v-if="hasActiveFilters && !loading" class="result-count" data-test="result-count">
-          {{ t('filters.resultCount', { count: totalCount }) }}
+          <template v-if="indexingAscent">{{ t('filters.indexingClimb') }}</template>
+          <template v-else>{{ t('filters.resultCount', { count: totalCount }) }}</template>
         </p>
         <!-- Only when an extension has something to do with a selection. -->
         <button
@@ -204,11 +205,20 @@ const {
   toggleFiltersPanel
 } = useActivityFilters()
 
-const { activities, loading, hasMore, loadMore, reload, facets, totalCount, matching } =
-  useMixedFeed({
-    filters: serviceFilters,
-    scope
-  })
+const {
+  activities,
+  loading,
+  hasMore,
+  loadMore,
+  reload,
+  facets,
+  totalCount,
+  matching,
+  indexingAscent
+} = useMixedFeed({
+  filters: serviceFilters,
+  scope
+})
 
 // ── Selection ───────────────────────────────────────────────────────────────
 const { components: bulkRaw } = useSlotExtensions('activities.bulk')

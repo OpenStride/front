@@ -1,6 +1,7 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { ActivityFeedService, type FeedActivity } from '@/services/ActivityFeedService'
-import { applyActivityFilters, filterFacets } from '@/utils/activityFilters'
+import { applyActivityFilters, filterFacets, filtersNeedAscent } from '@/utils/activityFilters'
+import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
 import type { ActivityFilters } from '@/types/activity'
 
 // Re-export FeedActivity type for convenience
@@ -53,7 +54,23 @@ export function useMixedFeed(options: FeedOptions = {}) {
     }
   })
 
-  const matching = computed(() => applyActivityFilters(inScope.value, filters?.value))
+  // A climb filter needs every activity's ascent, which the per-page index
+  // (`useFeedMetricsIndex`) only has for what was scrolled to: it asks for the
+  // whole history once, then reads the cache the index keeps on the device.
+  const { derived, indexing: indexingAscent, ensureIndex } = useActivityMetricsIndex()
+  const ascentOf = (id: string) => derived.value.get(id)?.[DERIVED.ascent]
+
+  const matching = computed(() => applyActivityFilters(inScope.value, filters?.value, ascentOf))
+
+  watch(
+    [() => filtersNeedAscent(filters?.value), () => all.value.length],
+    ([needed]) => {
+      if (!needed) return
+      const own = all.value.filter(a => a.source === 'own')
+      if (own.length) void ensureIndex(own).catch(() => undefined)
+    },
+    { immediate: true }
+  )
 
   const activities = computed(() => matching.value.slice(0, shown.value))
   const hasMore = computed(() => shown.value < matching.value.length)
@@ -115,6 +132,8 @@ export function useMixedFeed(options: FeedOptions = {}) {
     counts,
     facets,
     totalCount,
-    matching
+    matching,
+    /** True while a climb filter waits on the history being indexed. */
+    indexingAscent: computed(() => indexingAscent.value && filtersNeedAscent(filters?.value))
   }
 }

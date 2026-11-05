@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { ActivityMetricsRow } from './useActivityMetricsIndex'
 import type { Dimension } from '@/types/units'
+import { matchesSportScope } from '@/types/sport'
 import {
   SAMPLE_FIELDS,
   SAMPLE_FIELD_SPECS,
@@ -83,7 +84,7 @@ export function buildCapabilityReport(
   rows: ActivityMetricsRow[],
   sport?: string
 ): CapabilityReport {
-  const scope = sport ? rows.filter(row => row.sport === sport.toLowerCase()) : rows
+  const scope = sport ? rows.filter(row => matchesSportScope(sport, row.sport)) : rows
 
   const presentChannels = new Set<string>()
   for (const row of scope) {

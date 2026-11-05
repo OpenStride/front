@@ -108,4 +108,29 @@ describe('ActivityFilters — every range is stored in SI', () => {
       expect(wrapper.find('[data-test="date-from"]').exists()).toBe(true)
     })
   })
+
+  // Height per distance: m/km for one reader, ft/mi for the next, metres per
+  // metre in storage, so a link keeps its meaning across both.
+  describe('climb, height per distance', () => {
+    it('stores 25 m/km as 0.025', async () => {
+      const wrapper = render()
+      await type(wrapper, 'climb-min', '25')
+      expect(lastEmit(wrapper).climbMin).toBeCloseTo(0.025, 6)
+    })
+
+    it('reads and writes ft/mi for an imperial reader', async () => {
+      setUnitSystem('imperial')
+      const wrapper = render({ modelValue: { climbMin: 0.025 } })
+      expect(valueOf(wrapper, 'climb-min')).toBe('132')
+      expect(wrapper.find('[data-test="climb-section"] .range-unit').text()).toBe('ft/mi')
+      await type(wrapper, 'climb-max', '132')
+      expect(lastEmit(wrapper).climbMax).toBeCloseTo(0.025, 4)
+    })
+
+    it('stays away from a library with no distance', () => {
+      expect(render({ hasDistance: false }).find('[data-test="climb-section"]').exists()).toBe(
+        false
+      )
+    })
+  })
 })

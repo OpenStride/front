@@ -325,6 +325,72 @@ export function canonicalSport(sport: string | undefined | null): string {
   return LEGACY_SPORT_NAMES[slug] ?? slug
 }
 
+/**
+ * A choice in a sport menu that is no single sport: running on anything but a
+ * trail (road and treadmill). Providers never write it; a menu offers it beside
+ * `running`, which takes in the whole running family, trail included.
+ */
+export const ROAD_RUNNING = 'road_running'
+const TRAIL_RUNNING = 'trail_running'
+
+const isRunning = (slug: string): boolean =>
+  (SPORT_FAMILY as Record<string, SportFamily>)[slug] === 'running'
+
+/**
+ * Whether an activity of `sport` falls under a menu choice.
+ *
+ * A trail is a run with a climb, so `running` takes in the whole running family
+ * — road, treadmill, trail — the way a runner counts their week. `road_running`
+ * and `trail_running` split it. Any other choice is one sport. No choice is all.
+ */
+export function matchesSportScope(
+  scope: string | undefined | null,
+  sport: string | undefined | null
+): boolean {
+  if (!scope) return true
+  const want = canonicalSport(scope)
+  const slug = canonicalSport(sport)
+  if (want === 'running') return isRunning(slug)
+  if (want === ROAD_RUNNING) return isRunning(slug) && slug !== TRAIL_RUNNING
+  return want === slug
+}
+
+/**
+ * The choices a sport menu offers for these activities' sports.
+ *
+ * The running family collapses into `running`; once there are both trails and
+ * other runs, `road_running` and `trail_running` follow it, so one or the other
+ * can be read alone. Trails only stay `trail_running`. Running comes first, the
+ * rest alphabetically.
+ */
+export function sportScopes(sports: Iterable<string | undefined | null>): string[] {
+  const others = new Set<string>()
+  let road = false
+  let trail = false
+  for (const sport of sports) {
+    const slug = canonicalSport(sport)
+    if (!slug) continue
+    if (!isRunning(slug)) others.add(slug)
+    else if (slug === TRAIL_RUNNING) trail = true
+    else road = true
+  }
+  const running =
+    road && trail
+      ? ['running', ROAD_RUNNING, TRAIL_RUNNING]
+      : road
+        ? ['running']
+        : trail
+          ? [TRAIL_RUNNING]
+          : []
+  return [...running, ...[...others].sort()]
+}
+
+/** The widest of `scopes` an activity of `sport` falls under: what a sport menu counts it as. */
+export function topSportScope(sport: string | undefined | null, scopes: string[]): string {
+  const slug = canonicalSport(sport)
+  return isRunning(slug) && scopes.includes('running') ? 'running' : slug
+}
+
 /** Presentation profile for a sport slug. Unknown slugs fall back to `other`. */
 export function getSportProfile(sport: string): SportProfile {
   // Normalised like every other sport lookup in the app (labels, icons, stats):
@@ -332,6 +398,6 @@ export function getSportProfile(sport: string): SportProfile {
   // such as "RUNNING" or "run", and an exact match would drop them to `other` —
   // losing the pace the card used to show.
   const slug = canonicalSport(sport) as SportType
-  const family = SPORT_FAMILY[slug] ?? 'other'
+  const family = (slug as string) === ROAD_RUNNING ? 'running' : (SPORT_FAMILY[slug] ?? 'other')
   return { ...FAMILY_PROFILES[family], ...SPORT_OVERRIDES[slug] }
 }

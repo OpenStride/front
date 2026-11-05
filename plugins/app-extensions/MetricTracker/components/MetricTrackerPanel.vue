@@ -152,7 +152,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { canonicalSport } from '@/types/sport'
+import { matchesSportScope } from '@/types/sport'
 import type { Gear } from '@/types/gear'
 import { resolveGear } from '@/utils/gear'
 import { useMetricActivities } from '../composables/useMetricActivities'
@@ -309,7 +309,7 @@ const sportModel = computed({
 
 const sportActivities = computed(() =>
   selectedSport.value
-    ? activities.value.filter(a => canonicalSport(a.type) === canonicalSport(selectedSport.value))
+    ? activities.value.filter(a => matchesSportScope(selectedSport.value, a.type))
     : activities.value
 )
 

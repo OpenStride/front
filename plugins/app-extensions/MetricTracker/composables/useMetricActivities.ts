@@ -2,7 +2,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import { formatSportType } from '@/utils/sportLabels'
-import { canonicalSport } from '@/types/sport'
+import { sportScopes } from '@/types/sport'
 import type { StatsMap } from '../types'
 
 const activities = ref<Activity[]>([])
@@ -14,15 +14,13 @@ let initialized = false
 let statsLoaded = false
 let statsRequest: Promise<void> | null = null
 
-const sportOptions = computed(() => {
-  const types = new Set<string>()
-  for (const a of activities.value) {
-    if (a.type) types.add(canonicalSport(a.type))
-  }
-  return Array.from(types)
-    .sort()
-    .map(value => ({ value, label: formatSportType(value) }))
-})
+/** The menu's choices: running gathers road, treadmill and trail (see `sportScopes`). */
+const sportOptions = computed(() =>
+  sportScopes(activities.value.map(a => a.type)).map(value => ({
+    value,
+    label: formatSportType(value)
+  }))
+)
 
 async function loadActivities() {
   loading.value = true

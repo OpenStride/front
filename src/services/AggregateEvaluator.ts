@@ -2,6 +2,7 @@ import type { Sample } from '@/types/activity'
 import type { CustomAggregate, SampleFilter } from '@/types/customAggregate'
 import { aggregateSumKey, aggregateWeightKey } from '@/types/customAggregate'
 import type { SampleField } from '@/types/sampleFields'
+import { matchesSportScope } from '@/types/sport'
 import { deriveSeries } from '@/utils/derivedSamples'
 
 /**
@@ -18,11 +19,13 @@ export interface AggregateAccumulator {
   weight: number
 }
 
-/** Lowercased on both sides: legacy activities carry raw provider strings. */
+/**
+ * Canonical on both sides (legacy activities carry raw provider strings), and a
+ * "running" aggregate takes in trails, as the running menu does.
+ */
 export function appliesToSport(definition: CustomAggregate, sport: string): boolean {
   if (!definition.sports?.length) return true
-  const wanted = definition.sports.map(s => s.toLowerCase())
-  return wanted.includes((sport || '').toLowerCase())
+  return definition.sports.some(scope => matchesSportScope(scope, sport))
 }
 
 /**

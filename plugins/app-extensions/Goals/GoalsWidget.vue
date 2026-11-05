@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import { matchesSportScope, sportScopes } from '@/types/sport'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getISOWeekKey, getMonthKey } from '@/utils/dateKeys'
@@ -114,11 +115,8 @@ function getActivityPeriodKey(period: 'week' | 'month', startTime: number): stri
 
 async function loadSportTypes() {
   const activities = await activityService.getAllActivities()
-  const types = new Set<string>(COMMON_SPORT_TYPES)
-  for (const act of activities) {
-    if (act.type && !act.deleted) types.add(act.type)
-  }
-  availableSportTypes.value = Array.from(types).sort()
+  const done = activities.filter(act => !act.deleted).map(act => act.type)
+  availableSportTypes.value = sportScopes([...COMMON_SPORT_TYPES, ...done])
 }
 
 async function computeProgress(): Promise<GoalProgress[]> {
@@ -134,7 +132,7 @@ async function computeProgress(): Promise<GoalProgress[]> {
 
     for (const act of activities) {
       if (act.deleted) continue
-      if (goal.sportType && act.type !== goal.sportType) continue
+      if (goal.sportType && !matchesSportScope(goal.sportType, act.type)) continue
       if (!act.startTime) continue
 
       const actPeriodKey = getActivityPeriodKey(goal.period, act.startTime)

@@ -94,7 +94,8 @@
     "skateboarding": "Skateboard",
     "wheelchair": "Fauteuil roulant",
     "canoeing_kayaking": "Canoë / Kayak",
-    "other": "Autre"
+    "other": "Autre",
+    "road_running": "Course sur route"
   },
   "common": {
     "save": "Sauvegarder",
@@ -396,7 +397,10 @@
     "dateFrom": "À partir du",
     "dateTo": "Jusqu'au",
     "duration": "Durée",
-    "minutes": "min"
+    "minutes": "min",
+    "climb": "Dénivelé positif",
+    "climbHint": "Par distance parcourue : au-delà de {value} {unit}, c'est souvent du trail.",
+    "indexingClimb": "Lecture du dénivelé de vos sorties…"
   },
   "friends": {
     "addFriend": "Ajouter un ami",

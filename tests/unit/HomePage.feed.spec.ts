@@ -7,7 +7,10 @@ import en from '@/locales/en.json'
 import { createActivity } from '../fixtures/activities'
 
 vi.mock('@/components/ActivityCard.vue', () => ({
-  default: { props: ['activity', 'friendUsername'], template: '<div class="stub-card" />' }
+  default: {
+    props: ['activity', 'friendUsername'],
+    template: '<div class="stub-card" :data-id="activity.id" />'
+  }
 }))
 vi.mock('@/components/InstallPrompt.vue', () => ({ default: { template: '<div />' } }))
 // Pulls in a camera scanner and a QR renderer; its presence is what matters.
@@ -17,7 +20,23 @@ vi.mock('@/components/FriendsQuickActions.vue', () => ({
 vi.mock('@/composables/useSlotExtensions', () => ({
   useSlotExtensions: () => ({ components: { value: [] } })
 }))
-vi.mock('@/composables/useActivityMetricsIndex', () => ({ useFeedMetricsIndex: () => {} }))
+const metrics = vi.hoisted(() => ({ ascent: new Map<string, number>(), ensureIndex: vi.fn() }))
+vi.mock('@/composables/useActivityMetricsIndex', async () => {
+  const { ref } = await import('vue')
+  const derived = ref(new Map<string, Record<string, number>>())
+  return {
+    DERIVED: { ascent: 'ascent' },
+    useFeedMetricsIndex: () => {},
+    useActivityMetricsIndex: () => ({
+      derived,
+      indexing: ref(false),
+      ensureIndex: async (...args: unknown[]) => {
+        metrics.ensureIndex(...args)
+        derived.value = new Map([...metrics.ascent].map(([id, a]) => [id, { ascent: a }]))
+      }
+    })
+  }
+})
 vi.mock('@/services/ActivityService', () => ({
   getActivityService: async () => ({ emitter: new EventTarget() })
 }))
@@ -184,5 +203,33 @@ describe('HomePage — the one activity list', () => {
       expect(wrapper.find('[data-test="friends-empty"]').exists()).toBe(true)
       expect(wrapper.find('[data-test="activity-empty-state"]').exists()).toBe(false)
     })
+  })
+})
+
+describe('HomePage — climb filter', () => {
+  beforeEach(() => {
+    route.query = {}
+    metrics.ascent.clear()
+    metrics.ensureIndex.mockClear()
+  })
+
+  it('keeps the outings that climb past the line, whatever the watch called them', async () => {
+    feed = [
+      own({ id: 'hilly-run', type: 'running', distance: 10_000 }),
+      own({ id: 'flat-run', type: 'running', distance: 10_000 }),
+      own({ id: 'unknown', type: 'running', distance: 10_000 }),
+      friend({ id: 'friend-hill', distance: 10_000 })
+    ]
+    metrics.ascent.set('hilly-run', 400) // 40 m/km
+    metrics.ascent.set('flat-run', 50) // 5 m/km
+    route.query = { climbMin: '0.025' }
+
+    const wrapper = await render()
+
+    // The whole own history is indexed once, friends excluded: no details of theirs here
+    expect(metrics.ensureIndex).toHaveBeenCalledTimes(1)
+    const indexed = (metrics.ensureIndex.mock.calls[0][0] as FeedActivity[]).map(a => a.id)
+    expect(indexed.sort()).toEqual(['flat-run', 'hilly-run', 'unknown'])
+    expect(cards(wrapper).map(c => c.attributes('data-id'))).toEqual(['hilly-run'])
   })
 })

@@ -34,7 +34,9 @@ const QUERY_KEYS = {
   dateFrom: 'from',
   dateTo: 'to',
   durationMin: 'durMin',
-  durationMax: 'durMax'
+  durationMax: 'durMax',
+  climbMin: 'climbMin',
+  climbMax: 'climbMax'
 } as const
 
 function readNumber(value: unknown): number | undefined {
@@ -58,7 +60,9 @@ export function filtersFromQuery(query: LocationQuery): ActivityFilters {
     dateFrom: fromDayKey(readString(query[QUERY_KEYS.dateFrom]), 'start'),
     dateTo: fromDayKey(readString(query[QUERY_KEYS.dateTo]), 'end'),
     durationMin: readNumber(query[QUERY_KEYS.durationMin]),
-    durationMax: readNumber(query[QUERY_KEYS.durationMax])
+    durationMax: readNumber(query[QUERY_KEYS.durationMax]),
+    climbMin: readNumber(query[QUERY_KEYS.climbMin]),
+    climbMax: readNumber(query[QUERY_KEYS.climbMax])
   }
 }
 
@@ -74,6 +78,8 @@ export function filtersToQuery(filters: ActivityFilters): LocationQueryRaw {
   if (filters.dateTo != null) query[QUERY_KEYS.dateTo] = getDayKey(new Date(filters.dateTo))
   if (filters.durationMin != null) query[QUERY_KEYS.durationMin] = String(filters.durationMin)
   if (filters.durationMax != null) query[QUERY_KEYS.durationMax] = String(filters.durationMax)
+  if (filters.climbMin != null) query[QUERY_KEYS.climbMin] = String(filters.climbMin)
+  if (filters.climbMax != null) query[QUERY_KEYS.climbMax] = String(filters.climbMax)
 
   return query
 }
@@ -112,7 +118,9 @@ export function useActivityFilters() {
       f.dateFrom != null ||
       f.dateTo != null ||
       f.durationMin != null ||
-      f.durationMax != null
+      f.durationMax != null ||
+      f.climbMin != null ||
+      f.climbMax != null
     )
   })
 
@@ -126,6 +134,7 @@ export function useActivityFilters() {
     if (f.distanceMin != null || f.distanceMax != null) count++
     if (f.dateFrom != null || f.dateTo != null) count++
     if (f.durationMin != null || f.durationMax != null) count++
+    if (f.climbMin != null || f.climbMax != null) count++
     return count
   })
 
@@ -142,6 +151,8 @@ export function useActivityFilters() {
     if (f.dateTo != null) result.dateTo = f.dateTo
     if (f.durationMin != null) result.durationMin = f.durationMin
     if (f.durationMax != null) result.durationMax = f.durationMax
+    if (f.climbMin != null) result.climbMin = f.climbMin
+    if (f.climbMax != null) result.climbMax = f.climbMax
     return result
   })
 

@@ -28,3 +28,35 @@ describe('canonicalSport', () => {
     expect(formatSportType('run')).toBe(formatSportType('running'))
   })
 })
+
+describe('sport scopes — trail is running with a climb', () => {
+  it('counts road, treadmill and trail under running, and splits them on demand', async () => {
+    const { matchesSportScope, ROAD_RUNNING } = await import('@/types/sport')
+    expect(matchesSportScope('running', 'trail_running')).toBe(true)
+    expect(matchesSportScope('running', 'TREADMILL_RUNNING')).toBe(true)
+    expect(matchesSportScope('running', 'run')).toBe(true)
+    expect(matchesSportScope(ROAD_RUNNING, 'running')).toBe(true)
+    expect(matchesSportScope(ROAD_RUNNING, 'treadmill_running')).toBe(true)
+    expect(matchesSportScope(ROAD_RUNNING, 'trail_running')).toBe(false)
+    expect(matchesSportScope('trail_running', 'running')).toBe(false)
+    expect(matchesSportScope('running', 'cycling')).toBe(false)
+    expect(matchesSportScope('', 'cycling')).toBe(true)
+  })
+
+  it('offers the split only when there is something to split', async () => {
+    const { sportScopes } = await import('@/types/sport')
+    expect(sportScopes(['running', 'treadmill_running', 'cycling'])).toEqual(['running', 'cycling'])
+    expect(sportScopes(['RUNNING', 'trail_running', 'swim'])).toEqual([
+      'running',
+      'road_running',
+      'trail_running',
+      'swimming'
+    ])
+    expect(sportScopes(['trail_running'])).toEqual(['trail_running'])
+  })
+
+  it('reads a road run like a run', async () => {
+    const { getSportProfile } = await import('@/types/sport')
+    expect(getSportProfile('road_running').primaryMetric).toBe('pace')
+  })
+})
