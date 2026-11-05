@@ -15,6 +15,9 @@ export default {
     'profile.tabs': [() => import('./GearTab.vue')],
     // Selection mode on the activity list: put one gear on many outings at once.
     'activities.bulk': [() => import('./GearBulkAction.vue')],
+    // Gear past 80 % of its limit asks for a decision, so it sits with the goals.
+    'home.top': [() => import('./GearAlert.vue')],
+    'statistics.sections': [() => import('./GearStatsCard.vue')],
     'activity.top': [
       {
         id: 'activity-gear',

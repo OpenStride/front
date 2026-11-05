@@ -3,6 +3,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import ActivityGear from '@plugins/app-extensions/Gear/ActivityGear.vue'
 import GearTab from '@plugins/app-extensions/Gear/GearTab.vue'
 import GearBulkAction from '@plugins/app-extensions/Gear/GearBulkAction.vue'
+import GearAlert from '@plugins/app-extensions/Gear/GearAlert.vue'
+import GearStatsCard from '@plugins/app-extensions/Gear/GearStatsCard.vue'
 import GearPlugin from '@plugins/app-extensions/Gear/index'
 import {
   convertQuantity,
@@ -64,6 +66,19 @@ function context(gearList: Gear[], activities: Activity[]) {
       onChanged: vi.fn(() => () => {})
     },
     notifications: { notify: vi.fn() },
+    storage: {
+      settings: {} as Record<string, unknown>,
+      getData: vi.fn(async function (this: { settings: Record<string, unknown> }, key: string) {
+        return this.settings[key]
+      }),
+      saveData: vi.fn(async function (
+        this: { settings: Record<string, unknown> },
+        key: string,
+        value: unknown
+      ) {
+        this.settings[key] = value
+      })
+    },
     activity: {
       getAllActivities: vi.fn(async () => [...store.values()]),
       getActivity: vi.fn(async (id: string) => store.get(id)),
@@ -243,5 +258,86 @@ describe('GearBulkAction.vue', () => {
     const wrapper = mountBulk(context([], []), ['a'])
     await flushPromises()
     expect(wrapper.find('[data-test="gear-bulk-open"]').exists()).toBe(false)
+  })
+})
+
+describe('GearAlert.vue', () => {
+  const mountAlert = (ctx: ReturnType<typeof context>) =>
+    mount(GearAlert, { global: { provide: { pluginContext: ctx } } })
+
+  it('speaks only for gear in service past 80 %', async () => {
+    const worn = gear('Pegasus', { initialDistance: 600_000 })
+    const fresh = gear('Fresh', { activeFrom: day('2027-01-01') })
+    const retired = gear('Old', { initialDistance: 900_000, retiredAt: day('2026-02-01') })
+    const wrapper = mountAlert(context([worn, fresh, retired], [run('a')]))
+    await flushPromises()
+    const text = wrapper.find('[data-test="gear-alert"]').text()
+    expect(text).toContain('Pegasus: replace soon')
+    expect(text).not.toContain('Fresh')
+    expect(text).not.toContain('Old')
+  })
+
+  it('renders nothing when all is well', async () => {
+    const wrapper = mountAlert(context([gear('Pegasus')], [run('a')]))
+    await flushPromises()
+    expect(wrapper.find('[data-test="gear-alert"]').exists()).toBe(false)
+  })
+
+  it('"Later" holds the alert at its level, and it speaks again in red', async () => {
+    const ctx = context([gear('Pegasus', { initialDistance: 600_000 })], [run('a')])
+    const wrapper = mountAlert(ctx)
+    await flushPromises()
+    await wrapper.find('[data-test="gear-alert-later"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-test="gear-alert"]').exists()).toBe(false)
+    expect(ctx.storage.settings.gearAlertsDismissed).toEqual({ Pegasus: 'warn' })
+
+    // Worn further, on the next visit
+    const red = context([gear('Pegasus', { initialDistance: 800_000 })], [run('a')])
+    red.storage.settings.gearAlertsDismissed = { Pegasus: 'warn' }
+    const again = mountAlert(red)
+    await flushPromises()
+    expect(again.find('[data-test="gear-alert"]').text()).toContain('replace now')
+  })
+
+  it('retires the gear from the alert', async () => {
+    const ctx = context([gear('Pegasus', { initialDistance: 800_000 })], [run('a')])
+    const wrapper = mountAlert(ctx)
+    await flushPromises()
+    await wrapper.find('[data-test="gear-alert-retire"]').trigger('click')
+    expect(ctx.gear.update).toHaveBeenCalledWith('Pegasus', { retiredAt: expect.any(Number) })
+  })
+})
+
+describe('GearStatsCard.vue', () => {
+  const mountCard = (ctx: ReturnType<typeof context>, sport?: string) =>
+    mount(GearStatsCard, {
+      props: { sport },
+      global: { provide: { pluginContext: ctx }, stubs: { RouterLink: true } }
+    })
+
+  const road = gear('road', { initialDistance: 100_000 })
+  const worn = gear('worn', { sports: [], initialDistance: 650_000 })
+  const bike = gear('bike', { kind: 'bike', sports: ['cycling'], alertDistance: undefined })
+  const acts = [run('a'), run('b', { gearIds: ['worn'] }), run('c', { type: 'cycling' })]
+
+  it('lists gear in use, the most worn first', async () => {
+    const wrapper = mountCard(context([road, worn, bike], acts))
+    await flushPromises()
+    const names = wrapper.findAll('.gsc__name').map(n => n.text())
+    expect(names).toEqual(['worn', 'road', 'bike'])
+    expect(wrapper.find('.gsc__row.is-warn').text()).toContain('worn')
+  })
+
+  it('follows the dashboard’s sport', async () => {
+    const wrapper = mountCard(context([road, worn, bike], acts), 'cycling')
+    await flushPromises()
+    expect(wrapper.findAll('.gsc__name').map(n => n.text())).toEqual(['bike'])
+  })
+
+  it('renders nothing for a reader whose gear has not been out yet', async () => {
+    const wrapper = mountCard(context([gear('new', { activeFrom: day('2027-01-01') })], acts))
+    await flushPromises()
+    expect(wrapper.find('[data-test="gear-stats"]').exists()).toBe(false)
   })
 })

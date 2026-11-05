@@ -31,7 +31,7 @@ const n = (v: unknown): number | undefined => {
 }
 
 /** Strava "Activity Date" (e.g. "Aug 1, 2024, 6:12:00 AM") → epoch seconds. */
-function csvDateToEpoch(date?: string): number {
+export function csvDateToEpoch(date?: string): number {
   if (!date) return 0
   const t = Date.parse(date)
   return isNaN(t) ? 0 : Math.floor(t / 1000)

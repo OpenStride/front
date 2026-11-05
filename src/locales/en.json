@@ -288,7 +288,9 @@
         "month": "Month maximum"
       },
       "outing": "One outing"
-    }
+    },
+    "gear": "Gear",
+    "allGear": "All"
   },
   "profile": {
     "enterUsername": "Enter your username",
@@ -542,7 +544,8 @@
       "importing": "Importing… {done}/{total}",
       "done": "Imported {count} activities.",
       "noCsv": "This file doesn't look like a Strava export (activities.csv not found).",
-      "error": "Import failed: {message}"
+      "error": "Import failed: {message}",
+      "gearDone": "| {n} piece of gear found. | {n} pieces of gear found."
     }
   },
   "update": {
@@ -1249,6 +1252,18 @@
       "help": "Checked gear replaces the gear of the same kind; the rest stays as it is.",
       "apply": "Apply",
       "done": "No outing changed | {n} outing changed | {n} outings changed"
+    },
+    "alert": {
+      "title": "Gear alerts",
+      "warn": "{name}: replace soon",
+      "over": "{name}: replace now",
+      "detail": "{usage} of the {limit} planned",
+      "later": "Later"
+    },
+    "stats": {
+      "title": "Gear",
+      "manage": "Manage",
+      "percent": "{percent} % of the limit"
     }
   }
 }

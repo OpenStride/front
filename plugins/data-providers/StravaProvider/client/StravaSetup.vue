@@ -47,7 +47,9 @@ import JSZip from 'jszip'
 import Papa from 'papaparse'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity } from '@/types/activity'
-import { adaptStravaExport, type StravaCsvRow } from './adapter'
+import { DEFAULT_ALERT_DISTANCE } from '@/types/gear'
+import { adaptStravaExport, csvDateToEpoch, type StravaCsvRow } from './adapter'
+import { collectStravaGear, gearName, namesOf, type StravaGearCsvRow } from './gear'
 import { parseTrackFile } from './parseTrack'
 
 const EXPORT_URL = 'https://www.strava.com/athlete/delete_your_account'
@@ -72,6 +74,40 @@ function readAsArrayBuffer(file: File): Promise<ArrayBuffer> {
     reader.onerror = () => reject(reader.error)
     reader.readAsArrayBuffer(file)
   })
+}
+
+/**
+ * The gear the export names, matched to the reader's by name or created.
+ *
+ * A created gear is the default for no sport: the export says which outings
+ * wore it, and what the reader's next outings will wear is theirs to say.
+ */
+async function matchGear(
+  rows: StravaCsvRow[],
+  shoes: Set<string>,
+  bikes: Set<string>
+): Promise<Map<string, string>> {
+  const refs = collectStravaGear(rows, shoes, bikes, r => csvDateToEpoch(r['Activity Date']) * 1000)
+  const ids = new Map<string, string>()
+  if (!refs.length) return ids
+  const mine = new Map((await ctx.gear.list()).map(g => [g.name.trim().toLowerCase(), g.id]))
+  for (const ref of refs) {
+    const key = ref.name.toLowerCase()
+    const known = mine.get(key)
+    if (known) {
+      ids.set(key, known)
+      continue
+    }
+    const created = await ctx.gear.create({
+      name: ref.name,
+      kind: ref.kind,
+      sports: [],
+      activeFrom: ref.firstUse > 0 ? ref.firstUse : Date.now(),
+      alertDistance: DEFAULT_ALERT_DISTANCE[ref.kind]
+    })
+    ids.set(key, created.id)
+  }
+  return ids
 }
 
 async function onFileChange(e: Event) {
@@ -103,7 +139,21 @@ async function onFileChange(e: Event) {
 
     // Skip activities already present (by startTime), like the ZIP importer.
     const existing = await ctx.activity.getAllActivities()
-    const existingStartTimes = new Set(existing.map((a: Activity) => a.startTime))
+    const existingByStart = new Map(existing.map((a: Activity) => [a.startTime, a]))
+
+    const readCsv = async (suffix: string): Promise<StravaGearCsvRow[]> => {
+      const key = Object.keys(zip.files).find(k => k.toLowerCase().endsWith(suffix))
+      if (!key) return []
+      const text = await zip.files[key].async('string')
+      return Papa.parse(text, { header: true, skipEmptyLines: true }).data as StravaGearCsvRow[]
+    }
+    const gearIdByName = await matchGear(
+      rows,
+      namesOf(await readCsv('shoes.csv'), 'Shoe'),
+      namesOf(await readCsv('bikes.csv'), 'Bike')
+    )
+    /** Outings imported earlier without any gear choice, to receive the export's. */
+    const toEquip = new Map<string, string[]>()
 
     let imported = 0
     for (const row of rows) {
@@ -121,10 +171,16 @@ async function onFileChange(e: Event) {
         }
 
         const { activity, details } = adaptStravaExport(row, track)
-        if (!existingStartTimes.has(activity.startTime)) {
+        const gearId = gearIdByName.get(gearName(row)?.toLowerCase() ?? '')
+        const already = existingByStart.get(activity.startTime)
+        if (!already) {
+          if (gearId) activity.gearIds = [gearId]
           await ctx.activity.saveActivityWithDetails(activity, details)
-          existingStartTimes.add(activity.startTime)
+          existingByStart.set(activity.startTime, activity)
           imported++
+        } else if (gearId && already.gearIds === undefined) {
+          // Imported before gear existed: take the export's word, never over a choice.
+          toEquip.set(gearId, [...(toEquip.get(gearId) ?? []), already.id])
         }
       } catch (err) {
         console.warn('[StravaImport] Failed to import an activity:', err)
@@ -133,7 +189,12 @@ async function onFileChange(e: Event) {
       if (done.value % 10 === 0) await tick() // keep the UI responsive
     }
 
+    for (const [gearId, ids] of toEquip) await ctx.activity.setGear(ids, [gearId])
+
     doneMessage.value = t('providers.strava.done', { count: imported })
+    if (gearIdByName.size) {
+      doneMessage.value += ' ' + t('providers.strava.gearDone', gearIdByName.size)
+    }
     ctx.notifications.notify(doneMessage.value, { type: 'success' })
   } catch (err) {
     error.value = t('providers.strava.error', {
