@@ -548,8 +548,8 @@ const avgHeartRate = computed(() => {
 ```
 
 **Bulk actions (`activities.bulk`):** a component in this slot appears in the
-activity list's selection bar, and the "Select" button only shows when at least
-one active extension fills it. It receives `ids` (the selected own activities,
+activity list's selection bar, beside the core's own action (changing the sport,
+kept behind an icon since it is rare). It receives `ids` (the selected own activities,
 including those not scrolled to) and emits `done` when it has acted, which
 closes selection. Friends' activities are never selectable. A list opened with
 `?select=1` starts in selection mode, so a link can land on a pre-filtered list

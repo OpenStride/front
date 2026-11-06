@@ -5,7 +5,7 @@ import { getActivityService } from '@/services/ActivityService'
 import type { Activity, ActivityDetails, Timestamped } from '@/types/activity'
 import type { Gear } from '@/types/gear'
 import { GEAR_STORE, getGearService } from '@/services/GearService'
-import { gearChoiceToKeep } from '@/utils/gear'
+import { readerChoicesToKeep } from '@/utils/gear'
 import type { CustomAggregate } from '@/types/customAggregate'
 import {
   CUSTOM_AGGREGATES_STORE,
@@ -286,12 +286,12 @@ export class SyncService {
       )
 
       // 5. Resolve conflicts (LWW) — the newer record wins whole, except the
-      // reader's gear choice, which is taken from whichever side set it last.
-      const regear = new Map<string, Pick<Activity, 'gearIds' | 'gearSetAt'>>()
+      // reader's own choices (gear, sport), taken from whichever side set them last.
+      const regear = new Map<string, Partial<Activity>>()
       for (const conflict of conflicts) {
         const winner = this.resolveConflict(conflict.local, conflict.remote)
         const loser = winner === conflict.local ? conflict.remote : conflict.local
-        const keep = gearChoiceToKeep(winner, loser)
+        const keep = readerChoicesToKeep(winner, loser)
         if (winner === conflict.local) {
           if (keep) {
             const merged = { ...conflict.local, ...keep }
@@ -346,7 +346,7 @@ export class SyncService {
         console.log(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)
       }
 
-      // 6b. Put back the gear choices the pulled winners did not carry, as a
+      // 6b. Put back the reader's choices the pulled winners did not carry, as a
       // new local version: the next round pushes it.
       if (regear.size > 0) {
         const db = await IndexedDBService.getInstance()

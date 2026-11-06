@@ -91,3 +91,30 @@ describe('Garmin adapter — measurements', () => {
     }
   })
 })
+
+describe('mergeGarminActivity — the reader’s sport outlives a push', () => {
+  it('keeps a sport corrected by hand, and takes Garmin’s otherwise', async () => {
+    const { mergeGarminActivity } =
+      await import('@plugins/data-providers/GarminProvider/client/adapter')
+    const base = {
+      id: 'g1',
+      provider: 'garmin',
+      startTime: 1,
+      distance: 10_000,
+      duration: 3000,
+      version: 2,
+      lastModified: 1
+    }
+    const incoming = { ...base, type: 'running', title: 'Morning Run' }
+
+    const corrected = { ...base, type: 'trail_running', typeSetAt: 500 }
+    expect(mergeGarminActivity(corrected, incoming)).toMatchObject({
+      type: 'trail_running',
+      typeSetAt: 500,
+      title: 'Morning Run'
+    })
+
+    const untouched = { ...base, type: 'cycling' }
+    expect(mergeGarminActivity(untouched, incoming).type).toBe('running')
+  })
+})

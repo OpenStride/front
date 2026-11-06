@@ -54,8 +54,9 @@ vi.mock('@/composables/useActivityMetricsIndex', async () => {
     })
   }
 })
+const setSport = vi.hoisted(() => vi.fn(async () => undefined))
 vi.mock('@/services/ActivityService', () => ({
-  getActivityService: async () => ({ emitter: new EventTarget() })
+  getActivityService: async () => ({ emitter: new EventTarget(), setSport })
 }))
 
 const route = { query: {} as Record<string, string> }
@@ -95,10 +96,38 @@ beforeEach(() => {
 })
 
 describe('HomePage — selection', () => {
-  it('offers selection only when an extension can act on it', async () => {
+  it('offers selection on one’s own outings, extension or not, never on friends’ alone', async () => {
     bulk = []
     const wrapper = await render()
-    expect(wrapper.find('[data-test="select-start"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="select-start"]').exists()).toBe(true)
+
+    route.query = { who: 'friends' }
+    const friends = await render()
+    expect(friends.find('[data-test="select-start"]').exists()).toBe(false)
+  })
+
+  it('corrects the sport of the selection, out of the way behind an icon', async () => {
+    const wrapper = await render()
+    await wrapper.find('[data-test="select-start"]').trigger('click')
+    await wrapper.findAll('.stub-card')[0].trigger('click')
+    await wrapper.findAll('.stub-card')[1].trigger('click')
+
+    expect(wrapper.find('[data-test="bulk-sport-sheet"]').exists()).toBe(false)
+    await wrapper.find('[data-test="bulk-sport-open"]').trigger('click')
+    const select = wrapper.find('[data-test="bulk-sport-select"]')
+    // The reader's own sports come first
+    expect(select.find('optgroup').attributes('label')).toBe(en.feed.select.sportMine)
+    await select.setValue('trail_running')
+    const reads = vi.mocked(ActivityFeedService.prototype.loadAllActivities).mock.calls.length
+    await wrapper.find('[data-test="bulk-sport-sheet"]').trigger('submit')
+    await flushPromises()
+
+    expect(setSport).toHaveBeenCalledWith(['o0', 'o1'], 'trail_running')
+    expect(wrapper.find('[data-test="select-bar"]').exists()).toBe(false)
+    // Read again: the cards change sport, and maybe filter
+    expect(vi.mocked(ActivityFeedService.prototype.loadAllActivities).mock.calls.length).toBe(
+      reads + 1
+    )
   })
 
   it('toggles own cards, never a friend’s, and hands the ids to the extension', async () => {

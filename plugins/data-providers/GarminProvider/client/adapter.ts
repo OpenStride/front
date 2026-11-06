@@ -176,6 +176,8 @@ export function mergeGarminActivity(stored: Activity | undefined, incoming: Acti
   if (!stored) return incoming
   return {
     ...mergeDefined(stored, incoming),
+    // A sport the reader corrected by hand outlives Garmin's next push.
+    ...(stored.typeSetAt ? { type: stored.type, typeSetAt: stored.typeSetAt } : {}),
     version: Math.max(stored.version ?? 0, incoming.version ?? 0)
   }
 }

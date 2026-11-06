@@ -251,6 +251,27 @@ export class ActivityService implements IActivityService {
    * `null` gives an activity back to its sport's default gear; an empty list
    * says "no gear". Each activity gets a new version, so the choice syncs.
    */
+  /**
+   * Correct the sport of one or several activities — a trail the watch logged
+   * as a run. Dated like a gear choice, so a provider push or a sync conflict
+   * keeps it. The gear default follows: it is resolved from the sport.
+   */
+  public async setSport(ids: string[], type: string): Promise<void> {
+    const now = Date.now()
+    for (const id of ids) {
+      const activity = await this.getActivity(id)
+      if (!activity) continue
+      await this.commitUpdate({
+        ...activity,
+        type,
+        typeSetAt: now,
+        version: activity.version + 1,
+        lastModified: now,
+        synced: false
+      })
+    }
+  }
+
   public async setGear(ids: string[], gearIds: string[] | null): Promise<void> {
     const now = Date.now()
     for (const id of ids) {

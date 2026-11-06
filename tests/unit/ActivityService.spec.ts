@@ -359,6 +359,19 @@ describe('ActivityService', () => {
     })
   })
 
+  describe('setSport', () => {
+    it('corrects the sport, dated, on every activity given', async () => {
+      await service.saveActivityWithDetails(
+        createActivity({ id: 'a', type: 'running', version: 1 }),
+        createActivityDetails('a')
+      )
+      await service.setSport(['a', 'missing'], 'trail_running')
+      const a = await service.getActivity('a')
+      expect(a).toMatchObject({ type: 'trail_running', version: 2, synced: false })
+      expect(a!.typeSetAt).toBeGreaterThan(0)
+    })
+  })
+
   describe('setGear', () => {
     it('records the choice with its own time, on every activity given', async () => {
       await service.saveActivityWithDetails(

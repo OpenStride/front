@@ -152,6 +152,7 @@
             :ids="[...selected]"
             @done="stopSelecting"
           />
+          <BulkSportAction :ids="[...selected]" :sports="ownSports" @done="onSportChanged" />
           <button
             type="button"
             class="select-bar__close"
@@ -173,6 +174,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
+import BulkSportAction from '@/components/BulkSportAction.vue'
 import ActivityEmptyState from '@/components/ActivityEmptyState.vue'
 import ActivitySearchBar from '@/components/ActivitySearchBar.vue'
 import ActivityFiltersPanel from '@/components/ActivityFilters.vue'
@@ -224,8 +226,8 @@ const {
 const { components: bulkRaw } = useSlotExtensions('activities.bulk')
 const bulkComponents = computed(() => bulkRaw.value)
 
-/** Own outings only: nothing an extension could do applies to a friend's. */
-const canSelect = computed(() => bulkComponents.value.length > 0 && scope.value !== 'friends')
+/** Own outings only: nothing a selection can do applies to a friend's. */
+const canSelect = computed(() => scope.value !== 'friends')
 
 // `?select=1` opens the list ready to pick, for links such as "apply this gear
 // to past outings" that land on a pre-filtered list.
@@ -259,8 +261,17 @@ watch(selectableIds, ids => {
   if (next.size !== selected.value.size) selected.value = next
 })
 watch(canSelect, can => {
-  if (!can && bulkComponents.value.length) stopSelecting()
+  if (!can) stopSelecting()
 })
+
+/** The sports the reader's outings carry, offered first when correcting one. */
+const ownSports = computed(() => matching.value.filter(a => a.source === 'own').map(a => a.type))
+
+/** A sport moves a card between filters and changes its label: read the list again. */
+function onSportChanged() {
+  stopSelecting()
+  void reload()
+}
 
 // Lifts calories, climb and the rest out of the details of the page on screen,
 // so the cards can show what only the details hold.

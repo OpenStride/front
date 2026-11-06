@@ -1071,7 +1071,15 @@
       "count": "None selected | {n} selected | {n} selected",
       "all": "Select all ({count})",
       "none": "Clear selection",
-      "stop": "Leave selection"
+      "stop": "Leave selection",
+      "changeSport": "Change the sport",
+      "sportTitle": "Sport of {n} outing | Sport of {n} outing | Sport of {n} outings",
+      "sportHelp": "For an outing the watch typed wrong, such as a trail logged as a run. The choice stays, even when the outing syncs again.",
+      "sportPick": "Pick a sport",
+      "sportMine": "Your sports",
+      "sportOthers": "Other sports",
+      "apply": "Apply",
+      "sportDone": "No outing changed | {n} outing changed | {n} outings changed"
     }
   },
   "extensions": {
@@ -1257,13 +1265,6 @@
       "help": "Checked gear replaces the gear of the same kind; the rest stays as it is.",
       "apply": "Apply",
       "done": "No outing changed | {n} outing changed | {n} outings changed"
-    },
-    "alert": {
-      "title": "Gear alerts",
-      "warn": "{name}: replace soon",
-      "over": "{name}: replace now",
-      "detail": "{usage} of the {limit} planned",
-      "later": "Later"
     },
     "stats": {
       "title": "Gear",
