@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { Activity } from '@/types/activity'
 import type { Gear } from '@/types/gear'
 import {
+  readerChoicesToKeep,
   applyGearPick,
   defaultGear,
   gearChoiceToKeep,
@@ -154,5 +155,30 @@ describe('applyGearPick — bulk', () => {
   it('starts from the outing’s own choice when it has one', () => {
     const a = run('a', '2026-03-01', { gearIds: [] })
     expect(applyGearPick(a, all, [trail])).toEqual(['trail'])
+  })
+})
+
+describe('readerChoicesToKeep — the sport, like the gear', () => {
+  it('carries a sport corrected after the winner was written', () => {
+    const winner = run('a', '2026-03-01', { title: 'Renamed by Garmin', type: 'running' })
+    const loser = run('a', '2026-03-01', { type: 'trail_running', typeSetAt: 150 })
+    expect(readerChoicesToKeep(winner, loser)).toEqual({ type: 'trail_running', typeSetAt: 150 })
+  })
+
+  it('carries both choices at once, and nothing when the winner is the latest', () => {
+    const loser = run('a', '2026-03-01', {
+      type: 'trail_running',
+      typeSetAt: 150,
+      gearIds: ['trail'],
+      gearSetAt: 160
+    })
+    expect(readerChoicesToKeep(run('a', '2026-03-01'), loser)).toEqual({
+      type: 'trail_running',
+      typeSetAt: 150,
+      gearIds: ['trail'],
+      gearSetAt: 160
+    })
+    const newer = run('a', '2026-03-01', { typeSetAt: 300, gearSetAt: 300 })
+    expect(readerChoicesToKeep(newer, loser)).toBeNull()
   })
 })

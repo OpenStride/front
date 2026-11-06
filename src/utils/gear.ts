@@ -133,3 +133,21 @@ export function applyGearPick(activity: Activity, gear: Gear[], picked: Gear[]):
   const kept = resolveGear(activity, gear).filter(g => !kinds.has(g.kind))
   return [...kept, ...picked].map(g => g.id)
 }
+
+/**
+ * The sport choice to carry over in the same conflict: the reader's own, when
+ * it is later than the winner's. Same rule as the gear, for the same reason.
+ */
+export function sportChoiceToKeep(
+  winner: Activity,
+  loser: Activity
+): Pick<Activity, 'type' | 'typeSetAt'> | null {
+  if ((loser.typeSetAt ?? 0) <= (winner.typeSetAt ?? 0)) return null
+  return { type: loser.type, typeSetAt: loser.typeSetAt }
+}
+
+/** Every choice of the reader's the losing side made later than the winner. */
+export function readerChoicesToKeep(winner: Activity, loser: Activity): Partial<Activity> | null {
+  const kept = { ...gearChoiceToKeep(winner, loser), ...sportChoiceToKeep(winner, loser) }
+  return Object.keys(kept).length ? kept : null
+}

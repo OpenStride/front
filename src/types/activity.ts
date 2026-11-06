@@ -36,6 +36,12 @@ export interface Activity extends Timestamped {
    * last, so a provider update elsewhere cannot silently undo it.
    */
   gearSetAt?: number
+  /**
+   * When the reader chose this activity's sport by hand (ms). A provider
+   * re-sending the activity keeps the reader's sport, and a sync conflict
+   * keeps the latest choice, as for the gear.
+   */
+  typeSetAt?: number
 }
 
 export interface Sample {

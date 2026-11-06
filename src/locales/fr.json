@@ -1071,7 +1071,15 @@
       "count": "Aucune sélectionnée | {n} sélectionnée | {n} sélectionnées",
       "all": "Tout sélectionner ({count})",
       "none": "Tout désélectionner",
-      "stop": "Quitter la sélection"
+      "stop": "Quitter la sélection",
+      "changeSport": "Changer le sport",
+      "sportTitle": "Sport de {n} sortie | Sport de {n} sortie | Sport de {n} sorties",
+      "sportHelp": "Pour une sortie mal typée par la montre, un trail noté en course par exemple. Le choix reste, même si la sortie est resynchronisée.",
+      "sportPick": "Choisir un sport",
+      "sportMine": "Vos sports",
+      "sportOthers": "Autres sports",
+      "apply": "Appliquer",
+      "sportDone": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
     }
   },
   "extensions": {
@@ -1257,13 +1265,6 @@
       "help": "L'équipement coché remplace celui du même type ; le reste ne change pas.",
       "apply": "Appliquer",
       "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
-    },
-    "alert": {
-      "title": "Alertes d'équipement",
-      "warn": "{name} : bientôt à changer",
-      "over": "{name} : à changer",
-      "detail": "{usage} sur {limit} prévus",
-      "later": "Plus tard"
     },
     "stats": {
       "title": "Équipement",
