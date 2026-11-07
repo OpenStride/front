@@ -305,14 +305,10 @@ export class InteractionService {
       return null
     }
 
-    // Prevent commenting on own activities
-    if (activityOwnerId === authorId) {
-      console.warn('[InteractionService] Cannot comment on own activity')
-      return null
-    }
-
-    // Check mutual friendship
-    if (!(await this.isMutualFriend(activityOwnerId))) {
+    // On one's own activity a comment is a reply to the friends who wrote
+    // there: no friendship to check. Anywhere else, the friendship is mutual.
+    const ownActivity = activityOwnerId === authorId
+    if (!ownActivity && !(await this.isMutualFriend(activityOwnerId))) {
       console.warn('[InteractionService] Cannot comment: not mutual friends')
       return null
     }

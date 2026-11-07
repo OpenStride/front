@@ -832,7 +832,8 @@
     "like": "Like",
     "liked": "Liked",
     "whyBlocked": "Why can I not do this?",
-    "publishAction": "Publish my profile"
+    "publishAction": "Publish my profile",
+    "reply": "Reply"
   },
   "friendsList": {
     "empty": "No friend added",

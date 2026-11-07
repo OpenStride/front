@@ -56,6 +56,7 @@ type Props = {
   activityOwnerId?: string
   showWarning?: boolean
   isMutualFriend?: boolean
+  allowReply?: boolean
 }
 
 async function mountBar(props: Props = {}, locale: 'en' | 'fr' = 'en') {
@@ -180,5 +181,32 @@ describe('InteractionBar', () => {
     const wrapper = await mountBar({ activityOwnerId: 'user_me' })
 
     expect(wrapper.find('.interaction-bar').exists()).toBe(false)
+  })
+
+  describe('replying on one’s own activity', () => {
+    it('offers a reply, never a like, where the thread is shown', async () => {
+      state.myUserId = 'user_me'
+      const wrapper = await mountBar({
+        activityOwnerId: 'user_me',
+        allowReply: true,
+        showWarning: true
+      })
+
+      expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(false)
+      // No "add you back" warning: there is nobody to be friends with on one's own
+      expect(wrapper.text()).not.toContain(en.interactions.mutualRequired)
+      await wrapper.find('[data-test="reply-btn"]').trigger('click')
+      await wrapper.find('textarea').setValue('Merci, belle sortie !')
+      await wrapper.find('.comment-input-section button').trigger('click')
+      await flushPromises()
+
+      expect(service.addComment).toHaveBeenCalledWith('act1', 'user_me', 'Merci, belle sortie !')
+    })
+
+    it('stays off the feed cards, where no reply is offered', async () => {
+      state.myUserId = 'user_me'
+      const wrapper = await mountBar({ activityOwnerId: 'user_me' })
+      expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(false)
+    })
   })
 })
