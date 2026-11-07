@@ -60,6 +60,12 @@ export interface IActivityService {
   setGear(ids: string[], gearIds: string[] | null): Promise<void>
 
   /**
+   * Correct the sport of one or more activities, as the reader's own choice:
+   * a provider re-sending them keeps it.
+   */
+  setSport(ids: string[], type: string): Promise<void>
+
+  /**
    * Get all activity summaries
    * Returns array of Activity objects (without samples)
    */

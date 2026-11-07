@@ -13,10 +13,8 @@ export default {
   icon: 'fas fa-shoe-prints',
   slots: {
     'profile.tabs': [() => import('./GearTab.vue')],
-    // Selection mode on the activity list: put one gear on many outings at once.
-    'activities.bulk': [() => import('./GearBulkAction.vue')],
-    'statistics.sections': [() => import('./GearStatsCard.vue')],
-    'activity.top': [
+    // Closes the outing's summary panel, under its figures (StandardDetails).
+    'activity.summary': [
       {
         id: 'activity-gear',
         component: async () => (await import('./ActivityGear.vue')).default,

@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page" :class="{ 'is-selecting': selecting }">
+  <div class="home-page">
     <!-- Blocks that ask for an action rather than report a figure -->
     <div v-if="topSlotComponents.length" class="home-top">
       <component v-for="(comp, i) in topSlotComponents" :is="comp" :key="`home-top-${i}`" />
@@ -53,23 +53,10 @@
         />
       </Transition>
 
-      <div v-if="(hasActiveFilters && !loading) || canSelect" class="home-controls__row">
-        <p v-if="hasActiveFilters && !loading" class="result-count" data-test="result-count">
-          <template v-if="indexingAscent">{{ t('filters.indexingClimb') }}</template>
-          <template v-else>{{ t('filters.resultCount', { count: totalCount }) }}</template>
-        </p>
-        <!-- Only when an extension has something to do with a selection. -->
-        <button
-          v-if="canSelect && !selecting"
-          type="button"
-          class="select-toggle"
-          data-test="select-start"
-          @click="selecting = true"
-        >
-          <i class="fas fa-list-check" aria-hidden="true"></i>
-          {{ t('feed.select.start') }}
-        </button>
-      </div>
+      <p v-if="hasActiveFilters && !loading" class="result-count" data-test="result-count">
+        <template v-if="indexingAscent">{{ t('filters.indexingClimb') }}</template>
+        <template v-else>{{ t('filters.resultCount', { count: totalCount }) }}</template>
+      </p>
     </div>
 
     <!-- Activities Feed -->
@@ -79,10 +66,7 @@
         :key="activity.id"
         :activity="activity"
         :friend-username="activity.source === 'friend' ? activity.friendUsername : undefined"
-        :selectable="selecting && activity.source === 'own'"
-        :selected="selected.has(activity.id)"
         data-test="activity-card"
-        @toggle="toggle(activity.id)"
       />
 
       <p v-if="loading" class="loading-text" data-test="loading-message">
@@ -118,63 +102,13 @@
         {{ t('activities.allLoaded') }}
       </p>
     </div>
-
-    <!-- Selection mode: what is picked, and what can be done with it. The actions
-         come from extensions, so core holds the selection and nothing else. -->
-    <div
-      v-if="selecting"
-      class="select-bar"
-      role="region"
-      :aria-label="t('feed.select.region')"
-      data-test="select-bar"
-    >
-      <div class="select-bar__inner">
-        <span class="select-bar__count" aria-live="polite">{{
-          t('feed.select.count', selected.size)
-        }}</span>
-        <button
-          v-if="selected.size < selectableIds.length"
-          type="button"
-          class="select-bar__link"
-          data-test="select-all"
-          @click="selectAll"
-        >
-          {{ t('feed.select.all', { count: selectableIds.length }) }}
-        </button>
-        <button v-else type="button" class="select-bar__link" @click="selected = new Set()">
-          {{ t('feed.select.none') }}
-        </button>
-        <div class="select-bar__actions">
-          <component
-            :is="comp"
-            v-for="(comp, i) in bulkComponents"
-            :key="`bulk-${i}`"
-            :ids="[...selected]"
-            @done="stopSelecting"
-          />
-          <BulkSportAction :ids="[...selected]" :sports="ownSports" @done="onSportChanged" />
-          <button
-            type="button"
-            class="select-bar__close"
-            :aria-label="t('feed.select.stop')"
-            :title="t('feed.select.stop')"
-            data-test="select-stop"
-            @click="stopSelecting"
-          >
-            <i class="fas fa-xmark" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ActivityCard from '@/components/ActivityCard.vue'
-import BulkSportAction from '@/components/BulkSportAction.vue'
 import ActivityEmptyState from '@/components/ActivityEmptyState.vue'
 import ActivitySearchBar from '@/components/ActivitySearchBar.vue'
 import ActivityFiltersPanel from '@/components/ActivityFilters.vue'
@@ -207,71 +141,11 @@ const {
   toggleFiltersPanel
 } = useActivityFilters()
 
-const {
-  activities,
-  loading,
-  hasMore,
-  loadMore,
-  reload,
-  facets,
-  totalCount,
-  matching,
-  indexingAscent
-} = useMixedFeed({
-  filters: serviceFilters,
-  scope
-})
-
-// ── Selection ───────────────────────────────────────────────────────────────
-const { components: bulkRaw } = useSlotExtensions('activities.bulk')
-const bulkComponents = computed(() => bulkRaw.value)
-
-/** Own outings only: nothing a selection can do applies to a friend's. */
-const canSelect = computed(() => scope.value !== 'friends')
-
-// `?select=1` opens the list ready to pick, for links such as "apply this gear
-// to past outings" that land on a pre-filtered list.
-const selecting = ref(useRoute().query.select === '1')
-const selected = ref<Set<string>>(new Set())
-
-/** Everything the filters match, scrolled to or not. */
-const selectableIds = computed(() => matching.value.filter(a => a.source === 'own').map(a => a.id))
-
-function toggle(id: string) {
-  const next = new Set(selected.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  selected.value = next
-}
-
-function selectAll() {
-  selected.value = new Set(selectableIds.value)
-}
-
-function stopSelecting() {
-  selecting.value = false
-  selected.value = new Set()
-}
-
-// The selection is what the list shows: narrowing the filters drops what falls out
-// of it, so an action never reaches an outing the reader can no longer see.
-watch(selectableIds, ids => {
-  const keep = new Set(ids)
-  const next = new Set([...selected.value].filter(id => keep.has(id)))
-  if (next.size !== selected.value.size) selected.value = next
-})
-watch(canSelect, can => {
-  if (!can) stopSelecting()
-})
-
-/** The sports the reader's outings carry, offered first when correcting one. */
-const ownSports = computed(() => matching.value.filter(a => a.source === 'own').map(a => a.type))
-
-/** A sport moves a card between filters and changes its label: read the list again. */
-function onSportChanged() {
-  stopSelecting()
-  void reload()
-}
+const { activities, loading, hasMore, loadMore, reload, facets, totalCount, indexingAscent } =
+  useMixedFeed({
+    filters: serviceFilters,
+    scope
+  })
 
 // Lifts calories, climb and the rest out of the details of the page on screen,
 // so the cards can show what only the details hold.
@@ -423,95 +297,6 @@ function onFiltersChange(newFilters: ActivityFilters) {
 .friends-empty__hint {
   margin: 0;
   font-size: 0.875rem;
-}
-
-.home-controls__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.select-toggle {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 2.75rem;
-  padding: 0 0.5rem;
-  border: 0;
-  background: none;
-  color: var(--color-green-700);
-  font-family: var(--font-main);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  cursor: pointer;
-}
-
-/* Room for the bar, so the last card can scroll clear of it. */
-.home-page.is-selecting {
-  padding-bottom: 5rem;
-}
-
-.select-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  background: var(--surface);
-  border-top: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-float);
-  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
-}
-
-.select-bar__inner {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
-}
-
-.select-bar__count {
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.select-bar__link {
-  min-height: 2.75rem;
-  padding: 0 0.25rem;
-  border: 0;
-  background: none;
-  color: var(--color-green-700);
-  font-family: var(--font-main);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  cursor: pointer;
-}
-
-.select-bar__actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.select-bar__close {
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-muted);
-  font-size: 1.1rem;
-  cursor: pointer;
 }
 
 /* Sits last inside the panel, so it needs no margin of its own */

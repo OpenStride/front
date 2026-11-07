@@ -43,6 +43,10 @@
           </span>
         </div>
       </div>
+
+      <!-- What other extensions add to the summary — the gear an outing wore —
+           closes this panel rather than opening a block of its own. -->
+      <component :is="comp" v-for="(comp, i) in summary" :key="`summary-${i}`" :data="data" />
     </div>
   </article>
 </template>
@@ -57,12 +61,18 @@ import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
 import { formatClock } from '@/utils/duration'
 import { formatWeekday } from '@/utils/dateFormat'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { useSlotExtensions } from '@/composables/useSlotExtensions'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { t } = useI18n()
 
 const activity = computed(() => props.data.activity)
 const details = computed(() => props.data.details)
+
+const { components: summary } = useSlotExtensions('activity.summary', () => ({
+  activity: props.data.activity,
+  details: props.data.details
+}))
 
 const polyline = computed<[number, number][]>(() => {
   // Build from samples (full local activities)
