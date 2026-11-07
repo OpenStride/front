@@ -41,10 +41,15 @@ describe('a friend’s replies reach the thread one took part in', () => {
       (f: { id: string }) => f.id
     )
     const sync = getInteractionSyncService()
-    vi.spyOn(sync as never, 'fetchManifest').mockResolvedValue({
+    // The network edges, stubbed: the merge of what comes back is what is tested
+    const internals = sync as unknown as {
+      fetchManifest(url: string): Promise<unknown>
+      fetchInteractionYearFile(url: string): Promise<unknown>
+    }
+    vi.spyOn(internals, 'fetchManifest').mockResolvedValue({
       profile: { username: 'camille', userId: 'user_camille' },
       availableInteractionYears: [{ year: 2026, fileUrl: 'https://x/i-2026.json' }]
-    } as never)
+    })
     const entry = (over: Record<string, unknown>) => ({
       type: 'comment',
       activityId: 'run1',
@@ -54,7 +59,7 @@ describe('a friend’s replies reach the thread one took part in', () => {
       timestamp: 1,
       ...over
     })
-    vi.spyOn(sync as never, 'fetchInteractionYearFile').mockResolvedValue({
+    vi.spyOn(internals, 'fetchInteractionYearFile').mockResolvedValue({
       interactions: {
         // Camille's like on one of my activities
         user_me: [entry({ type: 'like', activityId: 'mine', text: undefined, timestamp: 2 })],
@@ -63,7 +68,7 @@ describe('a friend’s replies reach the thread one took part in', () => {
         // Camille's comment on someone else's activity: none of my business
         user_other: [entry({ activityId: 'other', text: 'Bravo', timestamp: 4 })]
       }
-    } as never)
+    })
 
     const result = await sync.syncFriendInteractions('f1')
 
