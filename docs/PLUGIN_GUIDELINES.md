@@ -547,20 +547,11 @@ const avgHeartRate = computed(() => {
 </script>
 ```
 
-**Bulk actions (`activities.bulk`):** a component in this slot appears in the
-activity list's selection bar, beside the core's own action (changing the sport,
-kept behind an icon since it is rare). It receives `ids` (the selected own activities,
-including those not scrolled to) and emits `done` when it has acted, which
-closes selection. Friends' activities are never selectable. A list opened with
-`?select=1` starts in selection mode, so a link can land on a pre-filtered list
-ready to pick (see `Gear/GearTab.vue`).
-
-```vue
-<script setup lang="ts">
-defineProps<{ ids: string[] }>()
-defineEmits<{ done: [] }>()
-</script>
-```
+**Outing summary (`activity.summary`):** a component here closes the first panel
+of an activity's page, under its figures (rendered by `StandardDetails`'s top
+block), rather than opening a block of its own. It receives the same
+`data: { activity, details }` as `activity.top`, and should look like one more of
+that panel's tiles — the gear an outing wore lives there (`Gear/ActivityGear.vue`).
 
 ---
 

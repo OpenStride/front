@@ -1064,22 +1064,6 @@
       "all": "Tout",
       "own": "Moi",
       "friends": "Amis"
-    },
-    "select": {
-      "start": "Sélectionner",
-      "region": "Sélection",
-      "count": "Aucune sélectionnée | {n} sélectionnée | {n} sélectionnées",
-      "all": "Tout sélectionner ({count})",
-      "none": "Tout désélectionner",
-      "stop": "Quitter la sélection",
-      "changeSport": "Changer le sport",
-      "sportTitle": "Sport de {n} sortie | Sport de {n} sortie | Sport de {n} sorties",
-      "sportHelp": "Pour une sortie mal typée par la montre, un trail noté en course par exemple. Le choix reste, même si la sortie est resynchronisée.",
-      "sportPick": "Choisir un sport",
-      "sportMine": "Vos sports",
-      "sportOthers": "Autres sports",
-      "apply": "Appliquer",
-      "sportDone": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
     }
   },
   "extensions": {
@@ -1259,21 +1243,20 @@
       "alert": "{name} : {status}"
     },
     "applyPast": "Appliquer à des sorties",
-    "bulk": {
-      "open": "Équipement",
-      "title": "Équipement de {n} sortie | Équipement de {n} sortie | Équipement de {n} sorties",
-      "help": "L'équipement coché remplace celui du même type ; le reste ne change pas.",
-      "apply": "Appliquer",
-      "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
-    },
-    "stats": {
-      "title": "Équipement",
-      "manage": "Gérer",
-      "percent": "{percent} % de la limite"
-    },
     "terrain": {
       "road": "Route",
       "trail": "Trail"
+    },
+    "assign": {
+      "title": "Mettre {name} sur des sorties",
+      "sport": "Sport",
+      "climb": "D+ min ({unit})",
+      "count": "Aucune sortie | {n} sortie | {n} sorties",
+      "all": "Tout cocher",
+      "none": "Tout décocher",
+      "retype": "Passer aussi ces {count} sorties en {sport}",
+      "apply": "Appliquer | Appliquer à {n} sortie | Appliquer à {n} sorties",
+      "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
     }
   }
 }

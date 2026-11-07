@@ -1064,22 +1064,6 @@
       "all": "All",
       "own": "Me",
       "friends": "Friends"
-    },
-    "select": {
-      "start": "Select",
-      "region": "Selection",
-      "count": "None selected | {n} selected | {n} selected",
-      "all": "Select all ({count})",
-      "none": "Clear selection",
-      "stop": "Leave selection",
-      "changeSport": "Change the sport",
-      "sportTitle": "Sport of {n} outing | Sport of {n} outing | Sport of {n} outings",
-      "sportHelp": "For an outing the watch typed wrong, such as a trail logged as a run. The choice stays, even when the outing syncs again.",
-      "sportPick": "Pick a sport",
-      "sportMine": "Your sports",
-      "sportOthers": "Other sports",
-      "apply": "Apply",
-      "sportDone": "No outing changed | {n} outing changed | {n} outings changed"
     }
   },
   "extensions": {
@@ -1259,21 +1243,20 @@
       "alert": "{name}: {status}"
     },
     "applyPast": "Apply to outings",
-    "bulk": {
-      "open": "Gear",
-      "title": "Gear for {n} outing | Gear for {n} outing | Gear for {n} outings",
-      "help": "Checked gear replaces the gear of the same kind; the rest stays as it is.",
-      "apply": "Apply",
-      "done": "No outing changed | {n} outing changed | {n} outings changed"
-    },
-    "stats": {
-      "title": "Gear",
-      "manage": "Manage",
-      "percent": "{percent} % of the limit"
-    },
     "terrain": {
       "road": "Road",
       "trail": "Trail"
+    },
+    "assign": {
+      "title": "Put {name} on outings",
+      "sport": "Sport",
+      "climb": "Min climb ({unit})",
+      "count": "No outing | {n} outing | {n} outings",
+      "all": "Check all",
+      "none": "Uncheck all",
+      "retype": "Also file these {count} outings as {sport}",
+      "apply": "Apply | Apply to {n} outing | Apply to {n} outings",
+      "done": "No outing changed | {n} outing changed | {n} outings changed"
     }
   }
 }

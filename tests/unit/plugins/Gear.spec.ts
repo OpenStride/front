@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ActivityGear from '@plugins/app-extensions/Gear/ActivityGear.vue'
 import GearTab from '@plugins/app-extensions/Gear/GearTab.vue'
-import GearBulkAction from '@plugins/app-extensions/Gear/GearBulkAction.vue'
-import GearStatsCard from '@plugins/app-extensions/Gear/GearStatsCard.vue'
+import GearAssign from '@plugins/app-extensions/Gear/GearAssign.vue'
 import GearPlugin from '@plugins/app-extensions/Gear/index'
 import {
   convertQuantity,
@@ -15,6 +14,21 @@ import {
 import type { Activity } from '@/types/activity'
 import type { Gear, GearInput } from '@/types/gear'
 import type { SlotContext, SlotEntry } from '@/types/extension'
+
+const ascents = vi.hoisted(() => new Map<string, number>())
+vi.mock('@/composables/useActivityMetricsIndex', async () => {
+  const { ref } = await import('vue')
+  const derived = ref(new Map<string, Record<string, number>>())
+  return {
+    DERIVED: { ascent: 'ascent' },
+    useActivityMetricsIndex: () => ({
+      derived,
+      ensureIndex: async () => {
+        derived.value = new Map([...ascents].map(([id, a]) => [id, { ascent: a }]))
+      }
+    })
+  }
+})
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).getTime()
 
@@ -81,6 +95,7 @@ function context(gearList: Gear[], activities: Activity[]) {
     activity: {
       getAllActivities: vi.fn(async () => [...store.values()]),
       getActivity: vi.fn(async (id: string) => store.get(id)),
+      setSport: vi.fn(async () => undefined),
       setGear: vi.fn(async (ids: string[], gearIds: string[] | null) => {
         for (const id of ids) {
           const { gearIds: _old, ...rest } = store.get(id)!
@@ -96,7 +111,7 @@ beforeEach(() => {
 })
 
 describe('Gear plugin slot', () => {
-  const entry = (GearPlugin.slots!['activity.top'] as SlotEntry[])[0]
+  const entry = (GearPlugin.slots!['activity.summary'] as SlotEntry[])[0]
   const applies = (ctx: SlotContext) => entry.appliesTo!(ctx)
 
   it('stays off a friend’s outing', () => {
@@ -125,9 +140,10 @@ describe('ActivityGear.vue', () => {
     const chip = wrapper.find('[data-test="gear-chip"]')
     expect(chip.text()).toContain('Pegasus')
     expect(chip.text()).toContain('570 km')
-    expect(wrapper.find('.ag__alert').text()).toContain('replace soon')
+    // Said in the colour, and to a screen reader — no sentence on screen
+    expect(chip.find('.ag__sr').text()).toContain('replace soon')
+    expect(wrapper.find('.ag__alert').exists()).toBe(false)
     expect(chip.classes()).toContain('is-warn')
-    expect(wrapper.text()).toContain('default')
   })
 
   it('turns red past the limit', async () => {
@@ -251,77 +267,73 @@ describe('GearTab.vue', () => {
   })
 })
 
-describe('GearBulkAction.vue', () => {
-  const mountBulk = (ctx: ReturnType<typeof context>, ids: string[]) =>
-    mount(GearBulkAction, { props: { ids }, global: { provide: { pluginContext: ctx } } })
+describe('GearAssign.vue — put a gear on past outings, from the profile', () => {
+  const trail = gear('trail', { sports: ['trail_running'], activeFrom: day('2026-01-01') })
+  const road = gear('road', { activeFrom: day('2026-01-01') })
+  const bike = gear('bike', { kind: 'bike', sports: ['running'] })
+  const outings = [
+    run('hill', { distance: 10_000, startTime: day('2026-03-01') }),
+    run('flat', { distance: 10_000, startTime: day('2026-03-02') }),
+    run('real-trail', { type: 'trail_running', distance: 10_000, startTime: day('2026-03-03') }),
+    run('ride', { type: 'cycling', distance: 40_000, startTime: day('2026-03-04') }),
+    run('before', { distance: 10_000, startTime: day('2025-12-01') })
+  ]
 
-  it('puts the picked shoes on every outing, keeping their bike, in one write per result', async () => {
-    const road = gear('road')
-    const trail = gear('trail', { sports: [] })
-    const bike = gear('bike', { kind: 'bike', sports: ['running'] })
-    const ctx = context([road, trail, bike], [run('a'), run('b'), run('c', { gearIds: [] })])
-    const wrapper = mountBulk(ctx, ['a', 'b', 'c'])
+  const mountAssign = (ctx: ReturnType<typeof context>) =>
+    mount(GearAssign, {
+      props: { target: trail, gear: [trail, road, bike], activities: outings },
+      global: { provide: { pluginContext: ctx } }
+    })
+
+  const titlesOf = (wrapper: ReturnType<typeof mountAssign>) =>
+    wrapper.findAll('.ga__row input').map(i => (i.element as HTMLInputElement).value)
+
+  it('starts on all running since the gear went into service, trail included', async () => {
+    const wrapper = mountAssign(context([trail, road, bike], outings))
+    await flushPromises()
+    expect(titlesOf(wrapper)).toEqual(['real-trail', 'flat', 'hill'])
+  })
+
+  it('narrows to the climb that tells a trail from a road run', async () => {
+    ascents.set('hill', 400) // 40 m/km
+    ascents.set('flat', 50)
+    ascents.set('real-trail', 600)
+    const wrapper = mountAssign(context([trail, road, bike], outings))
+    await flushPromises()
+    await wrapper.find('[data-test="assign-climb"]').setValue('25')
+    expect(titlesOf(wrapper)).toEqual(['real-trail', 'hill'])
+  })
+
+  it('puts the gear on, keeping the bike, and files the runs as trails when asked', async () => {
+    ascents.set('hill', 400)
+    ascents.set('real-trail', 600)
+    const ctx = context([trail, road, bike], outings)
+    const wrapper = mountAssign(ctx)
+    await flushPromises()
+    await wrapper.find('[data-test="assign-climb"]').setValue('25')
+    await wrapper.find('[data-test="assign-all"]').trigger('click')
+
+    const retype = wrapper.find('[data-test="assign-retype"]')
+    expect(retype.text()).toContain('1')
+    await retype.find('input').setValue(true)
+    await wrapper.find('[data-test="assign-apply"]').trigger('click')
     await flushPromises()
 
-    await wrapper.find('[data-test="gear-bulk-open"]').trigger('click')
-    const boxes = wrapper.findAll('[data-test="gear-bulk-sheet"] input[type="checkbox"]')
-    await boxes.find(b => (b.element as HTMLInputElement).value === 'trail')!.setValue(true)
-    await wrapper.find('[data-test="gear-bulk-sheet"]').trigger('submit')
-    await flushPromises()
-
-    expect(ctx.activity.setGear).toHaveBeenCalledTimes(2)
-    expect(ctx.activity.setGear).toHaveBeenCalledWith(['a', 'b'], ['bike', 'trail'])
-    expect(ctx.activity.setGear).toHaveBeenCalledWith(['c'], ['trail'])
-    expect(ctx.notifications.notify).toHaveBeenCalledWith('3 outings changed', { type: 'success' })
+    expect(ctx.activity.setSport).toHaveBeenCalledWith(['hill'], 'trail_running')
+    // hill: its default road shoes give way to the trail pair, its bike stays;
+    // real-trail already wore the trail pair by default, and now by choice
+    expect(ctx.activity.setGear).toHaveBeenCalledWith(['hill'], ['bike', 'trail'])
+    expect(ctx.activity.setGear).toHaveBeenCalledWith(['real-trail'], ['trail'])
     expect(wrapper.emitted('done')).toHaveLength(1)
   })
 
-  it('sends the whole selection back to the default', async () => {
-    const ctx = context([gear('road')], [run('a', { gearIds: [] })])
-    const wrapper = mountBulk(ctx, ['a'])
+  it('leaves the sport alone unless asked', async () => {
+    const ctx = context([trail, road, bike], outings)
+    const wrapper = mountAssign(ctx)
     await flushPromises()
-    await wrapper.find('[data-test="gear-bulk-open"]').trigger('click')
-    await wrapper.find('[data-test="gear-bulk-default"]').trigger('click')
+    await wrapper.find('.ga__row input').setValue(true)
+    await wrapper.find('[data-test="assign-apply"]').trigger('click')
     await flushPromises()
-    expect(ctx.activity.setGear).toHaveBeenCalledWith(['a'], null)
-  })
-
-  it('stays out of the bar for a reader without gear', async () => {
-    const wrapper = mountBulk(context([], []), ['a'])
-    await flushPromises()
-    expect(wrapper.find('[data-test="gear-bulk-open"]').exists()).toBe(false)
-  })
-})
-
-describe('GearStatsCard.vue', () => {
-  const mountCard = (ctx: ReturnType<typeof context>, sport?: string) =>
-    mount(GearStatsCard, {
-      props: { sport },
-      global: { provide: { pluginContext: ctx }, stubs: { RouterLink: true } }
-    })
-
-  const road = gear('road', { initialDistance: 100_000 })
-  const worn = gear('worn', { sports: [], initialDistance: 650_000 })
-  const bike = gear('bike', { kind: 'bike', sports: ['cycling'], alertDistance: undefined })
-  const acts = [run('a'), run('b', { gearIds: ['worn'] }), run('c', { type: 'cycling' })]
-
-  it('lists gear in use, the most worn first', async () => {
-    const wrapper = mountCard(context([road, worn, bike], acts))
-    await flushPromises()
-    const names = wrapper.findAll('.gsc__name').map(n => n.text())
-    expect(names).toEqual(['worn', 'road', 'bike'])
-    expect(wrapper.find('.gsc__row.is-warn').text()).toContain('worn')
-  })
-
-  it('follows the dashboard’s sport', async () => {
-    const wrapper = mountCard(context([road, worn, bike], acts), 'cycling')
-    await flushPromises()
-    expect(wrapper.findAll('.gsc__name').map(n => n.text())).toEqual(['bike'])
-  })
-
-  it('renders nothing for a reader whose gear has not been out yet', async () => {
-    const wrapper = mountCard(context([gear('new', { activeFrom: day('2027-01-01') })], acts))
-    await flushPromises()
-    expect(wrapper.find('[data-test="gear-stats"]').exists()).toBe(false)
+    expect(ctx.activity.setSport).not.toHaveBeenCalled()
   })
 })

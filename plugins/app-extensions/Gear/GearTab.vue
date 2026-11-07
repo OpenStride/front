@@ -25,6 +25,15 @@
       @cancel="editing = null"
     />
 
+    <GearAssign
+      v-if="assigning"
+      :target="assigning"
+      :gear="gear"
+      :activities="activities"
+      @close="assigning = null"
+      @done="onAssigned"
+    />
+
     <p v-if="loaded && !gear.length && !editing" class="gear-tab__empty">
       {{ t('gear.empty') }}
     </p>
@@ -101,10 +110,15 @@
             </span>
           </div>
 
-          <RouterLink :to="applyLink(g)" class="gt-card__apply" data-test="gear-apply-past">
+          <button
+            type="button"
+            class="gt-card__apply"
+            data-test="gear-apply-past"
+            @click="startAssign(g)"
+          >
             <i class="fas fa-list-check" aria-hidden="true"></i>
             {{ t('gear.applyPast') }}
-          </RouterLink>
+          </button>
 
           <p class="gt-card__dates">
             {{ t('gear.since', { date: formatDate(g.activeFrom, dateOptions) }) }}
@@ -127,13 +141,13 @@ import { formatSportType } from '@/utils/sportLabels'
 import { formatDate } from '@/utils/dateFormat'
 import { formatCompactDuration } from '@/utils/duration'
 import { wearRatio } from '@/utils/gear'
-import { RouterLink } from 'vue-router'
-import { getDayKey } from '@/utils/dateKeys'
 import GearForm from './GearForm.vue'
+import GearAssign from './GearAssign.vue'
 import { KIND_ICON, useGear } from './useGear'
 
 const { t } = useI18n()
-const { ctx, gear, activities, loaded, usageOf, levelOf, usageText, distanceText } = useGear()
+const { ctx, gear, activities, loaded, reload, usageOf, levelOf, usageText, distanceText } =
+  useGear()
 
 const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }
 
@@ -141,6 +155,7 @@ const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short'
 const editing = ref<Gear | 'new' | null>(null)
 
 function startCreate() {
+  assigning.value = null
   editing.value = 'new'
 }
 
@@ -176,16 +191,19 @@ function limitOf(g: Gear): string | null {
   return null
 }
 
-/**
- * The activity list, narrowed to this gear's sport and service dates, open on
- * selection: the usual way to put it on outings logged before it was added.
- */
-function applyLink(g: Gear) {
-  const query: Record<string, string> = { who: 'own', select: '1' }
-  if (g.sports.length === 1) query.sport = g.sports[0]
-  query.from = getDayKey(new Date(g.activeFrom))
-  if (g.retiredAt !== undefined) query.to = getDayKey(new Date(g.retiredAt))
-  return { path: '/', query }
+/** The gear being put on past outings, in the panel above the list. */
+const assigning = ref<Gear | null>(null)
+
+function startAssign(g: Gear) {
+  editing.value = null
+  assigning.value = g
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function onAssigned() {
+  assigning.value = null
+  // Wear is counted from the outings, which have just changed.
+  await reload()
 }
 
 async function onSave(input: GearInput) {
@@ -318,6 +336,13 @@ async function remove(g: Gear) {
 
 .gt-card__apply {
   align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
