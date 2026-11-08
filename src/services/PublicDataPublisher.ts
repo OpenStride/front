@@ -129,15 +129,19 @@ export class PublicDataPublisher {
 
       const interactionSyncService = getInteractionSyncService()
       const interactionResult = await interactionSyncService.publishInteractions()
+      if (!interactionResult.success) {
+        console.warn(
+          '[PublicDataPublisher] Interactions not republished:',
+          interactionResult.errors
+        )
+      }
 
-      if (interactionResult.success && interactionResult.interactionsSynced > 0) {
-        const interactionYears = await interactionSyncService.getInteractionYearsForManifest()
-        if (interactionYears.length > 0) {
-          manifest.availableInteractionYears = interactionYears
-          console.log(
-            `[PublicDataPublisher] Added ${interactionYears.length} interaction years to manifest`
-          )
-        }
+      // Listed whether or not this round's upload worked: a friend reads a
+      // missing year as interactions taken back, so a failed upload must leave
+      // the files already online listed rather than make them vanish.
+      const interactionYears = await interactionSyncService.getInteractionYearsForManifest()
+      if (interactionYears.length > 0) {
+        manifest.availableInteractionYears = interactionYears
       }
 
       const manifestUrl = await publicFileService.writePublicFile('manifest.json', manifest)

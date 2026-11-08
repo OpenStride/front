@@ -231,16 +231,6 @@ export class InteractionSyncService {
         }
       }
 
-      // Check if manifest has interaction years
-      if (!manifest.availableInteractionYears || manifest.availableInteractionYears.length === 0) {
-        console.log(`[InteractionSyncService] Friend ${friendId} has no interactions published`)
-        return {
-          success: true,
-          interactionsSynced: 0,
-          errors: []
-        }
-      }
-
       // Get my user ID to filter interactions on my activities
       const myUserId = await interactionService.getMyUserId()
       if (!myUserId) {
@@ -271,10 +261,18 @@ export class InteractionSyncService {
         lastModified: Date.now()
       })
 
+      // What the friend publishes now, by id: anything of theirs stored here
+      // and no longer in it was taken back — an unlike, a deleted comment
+      const published = new Set<string>()
+      let complete = true
+
       // Fetch each year's interactions
-      for (const yearEntry of manifest.availableInteractionYears) {
+      for (const yearEntry of manifest.availableInteractionYears ?? []) {
         const yearData = await this.fetchInteractionYearFile(yearEntry.fileUrl)
-        if (!yearData) continue
+        if (!yearData) {
+          complete = false
+          continue
+        }
 
         // Interactions that concern me (on my activities)
         const onMine = (yearData.interactions[myUserId] ?? []).map(entry =>
@@ -288,9 +286,21 @@ export class InteractionSyncService {
           : []
 
         const interactions = [...onMine, ...replies]
+        for (const i of interactions) published.add(i.id)
         if (interactions.length === 0) continue
         await interactionService.storeRemoteInteractions(interactions)
         totalSynced += interactions.length
+      }
+
+      // Only on a complete read: a year that failed to download says nothing
+      // about what it holds. And only for a friend whose id is known, since
+      // that id is what tells their interactions from everyone else's.
+      if (complete && ownerKey) {
+        await interactionService.removeWithdrawnInteractions(
+          ownerKey,
+          [myUserId, ownerViewedAs],
+          published
+        )
       }
 
       console.log(
