@@ -6,6 +6,8 @@ Ce document définit les règles de design pour maintenir la cohérence visuelle
 - [Couleurs](#couleurs)
 - [Icônes](#icônes)
 - [Rayons (arrondis)](#rayons-arrondis)
+- [Boutons et champs](#boutons-et-champs)
+- [Diagnostics](#diagnostics)
 - [Typographie](#typographie)
 - [Espacement](#espacement)
 
@@ -14,87 +16,35 @@ Ce document définit les règles de design pour maintenir la cohérence visuelle
 ## Couleurs
 
 ### Règle Générale
-**TOUJOURS utiliser les variables CSS définies dans `src/assets/styles/variables.css`**
 
-### Couleurs Principales
+**`src/assets/styles/variables.css` est la seule palette.** Aucun littéral hex,
+`rgb()` ou `hsl()` ailleurs : un test de contrat (`tests/unit/contracts.spec.ts`)
+le refuse. Deux exceptions, nommées dans le test : le QR code (noir et blanc purs
+pour les lecteurs) et la rampe de couleur calculée de l'allure.
 
-#### Vert OpenStride (Couleur de marque)
+| Besoin | Comment |
+| --- | --- |
+| Une couleur en CSS | `var(--color-green-600)` — **sans** valeur de secours (`var(--x, #…)` est refusé) |
+| Une couleur dans un canvas, Chart.js, Leaflet | `cssVar('--color-green-600')` depuis `@/utils/cssVar` |
+| Une transparence | `color-mix(in srgb, var(--color-white) 70%, transparent)` |
+| Une ombre | `--shadow-card` (posé), `--shadow-float` (carte levée), `--shadow-pop` (modale, toast, bandeau) |
+| Le voile sous une modale | `--scrim` |
+| Le j'aime | `--color-like` |
+
 ```css
 /* ❌ INTERDIT */
-background: #10b981;  /* Tailwind green */
-background: #88aa00;  /* Hardcodé */
+background: #4d7314;
+color: var(--color-green-600, #4d7314);
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 
 /* ✅ CORRECT */
-background: var(--color-green-500);  /* #88aa00 - Vert principal */
-background: var(--color-green-600);  /* #6d8a00 - Vert foncé */
-background: var(--color-green-400);  /* #b4d647 - Vert clair */
+background: var(--color-green-600);
+box-shadow: var(--shadow-pop);
+border: 1px solid color-mix(in srgb, var(--color-white) 15%, transparent);
 ```
 
-#### Palette Complète OpenStride
-```css
---color-green-50:  #f8fbea;  /* Très clair (backgrounds) */
---color-green-100: #edf6c8;  /* Clair */
---color-green-200: #dff19a;  /* */
---color-green-300: #cbe56d;  /* */
---color-green-400: #b4d647;  /* Clair accent */
---color-green-500: #88aa00;  /* ⭐ Principal - Boutons, CTA */
---color-green-600: #6d8a00;  /* ⭐ Hover states */
---color-green-700: #566d00;  /* Foncé */
---color-green-800: #415200;  /* Très foncé */
---color-green-900: #2f3c00;  /* Maximum foncé */
-```
-
-#### Variables Sémantiques
-```css
---primary-color: #333333;     /* Couleur texte principal */
---secondary-color: #88aa00;   /* Alias de green-500 */
---text-color: #333333;        /* Texte par défaut */
---bg-color: #fafafa;          /* Background principal */
-```
-
-### Cas d'Usage
-
-#### Boutons Primaires
-```vue
-<style scoped>
-.btn-primary {
-  background: var(--color-green-500);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--color-green-600);
-}
-</style>
-```
-
-#### Backgrounds Subtils
-```vue
-<style scoped>
-.info-card {
-  background: var(--color-green-50);
-  border: 1px solid var(--color-green-200);
-}
-</style>
-```
-
-#### Textes Colorés
-```vue
-<style scoped>
-.success-text {
-  color: var(--color-green-700);
-}
-</style>
-```
-
-### Règle de Vérification
-Avant de commit, exécutez :
-```bash
-# Vérifier qu'aucune couleur hardcodée n'existe
-grep -r "#88aa00\|#6d8a00\|#10b981\|#059669" src/ plugins/
-```
-
-Si des couleurs hardcodées sont trouvées, remplacez-les par les variables CSS.
+Les valeurs elles-mêmes vivent dans `variables.css` et nulle part ailleurs — ce
+document ne les recopie pas, pour ne pas les laisser dériver.
 
 ---
 
@@ -311,15 +261,23 @@ bascule à 5 px.
 | `--radius-xl`    | 24px   | Rare — grandes surfaces                                              |
 | `--radius-2xl`   | 30px   | Cadre mobile                                                         |
 | `--radius-pill`  | 999px  | **Chips et pastilles uniquement**                                    |
-| `0`              | —      | **Cartes de contenu** (`.section-card`, `.acard`) : carré assumé     |
-| `50%`            | —      | Avatars et points ronds                                              |
+| `--radius-round` | 50%    | **Un rond** : avatars, points, étapes numérotées                     |
+| `0`              | —      | **Cartes de contenu** : carré assumé, partout dans l'app             |
+
+Un test de contrat refuse tout `border-radius` hors de ces jetons (ou `0`), et
+toute classe Tailwind `rounded` autre que `rounded-none`, `rounded-sm`,
+`rounded-md` ou `rounded-full`.
+
+Les interrupteurs (bascules on/off) sont des contrôles : `--radius-sm` pour le
+rail comme pour le bouton, sur le modèle de `PrivacyToggle`.
 
 ### Les Trois Règles
 
 #### 1. Une carte de contenu est carrée
 
-`.section-card` et `.acard` portent `border-radius: 0`. C'est un choix, pas un
-oubli : ne pas l'arrondir « pour faire doux ».
+Toute carte de contenu porte `border-radius: 0` : celles du flux, de la page
+d'une sortie, du tableau de bord, du profil, des réglages, les modales. C'est un
+choix, pas un oubli : ne pas l'arrondir « pour faire doux ».
 
 #### 2. Le pill est réservé à ce dont la forme EST la fonction
 
@@ -401,3 +359,33 @@ grep -rn "var(--border-radius" src plugins --include=*.vue --include=*.css
 **Version**: 1.1
 **Dernière mise à jour**: Août 2026
 **Mainteneur**: Équipe OpenStride
+
+---
+
+## Boutons et champs
+
+Un bouton prend la famille globale `.btn` (`global.css`) avant d'en dessiner un :
+
+| Classe | Pour |
+| --- | --- |
+| `.btn.btn--primary` | L'acte pour lequel l'écran existe (un seul par écran, idéalement) |
+| `.btn.btn--quiet` | Tout le reste |
+| `.btn.btn--outline` | Une action sur un élément d'une liste |
+| `.btn--block` | Pleine largeur |
+
+Pas de bouton vert refait en classes Tailwind (`bg-green-600 px-4 py-2 …`) : c'est
+ce qui faisait coexister quatre verts et trois tailles d'un écran à l'autre.
+
+Un choix de fichier passe par `.filepick` (zone en pointillés, `<input>` caché
+dedans), jamais par le `<input type="file">` natif, qui affiche « No file
+chosen » en anglais et change d'allure à chaque navigateur.
+
+---
+
+## Diagnostics
+
+`logger.debug(…)` (`@/utils/logger`), jamais `console.log` (refusé par un test de
+contrat). Il parle en développement et en test, se tait en production — sauf
+`localStorage.setItem('openstride:debug', '1')`, pour aider quelqu'un à
+diagnostiquer son installation. `console.warn` et `console.error` restent
+directs : c'est ce dont un rapport de bug a besoin.
