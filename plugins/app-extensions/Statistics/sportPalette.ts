@@ -1,3 +1,5 @@
+import { cssVar } from '@/utils/cssVar'
+export { cssVar }
 /**
  * Colours for sports drawn side by side, read from the design tokens.
  *
@@ -6,24 +8,17 @@
  * anticipated. The neighbours differ in lightness as well as hue, so a stacked
  * bar still reads for a colour-blind reader.
  */
-const TOKENS: [string, string][] = [
-  ['--color-green-500', '#5f8f1a'],
-  ['--color-blue-600', '#2563eb'],
-  ['--color-orange-400', '#f49268'],
-  ['--color-purple-500', '#9b59b6'],
-  ['--color-teal-500', '#1abc9c'],
-  ['--text-faint', '#8c8c84']
+const TOKENS: string[] = [
+  '--color-green-500',
+  '--color-blue-600',
+  '--color-orange-400',
+  '--color-purple-500',
+  '--color-teal-500',
+  '--text-faint'
 ]
 
 export function sportColor(rank: number): string {
-  const [name, fallback] = TOKENS[Math.min(rank, TOKENS.length - 1)]
-  return cssVar(name, fallback)
-}
-
-/** A CSS variable's value, for a canvas that cannot read `var()` itself. */
-export function cssVar(name: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+  return cssVar(TOKENS[Math.min(rank, TOKENS.length - 1)])
 }
 
 /**
@@ -38,7 +33,7 @@ export function hatch(color: string): CanvasPattern | string {
   canvas.height = size
   const ctx = canvas.getContext('2d')
   if (!ctx) return color
-  ctx.fillStyle = cssVar('--surface', '#ffffff')
+  ctx.fillStyle = cssVar('--surface')
   ctx.fillRect(0, 0, size, size)
   ctx.strokeStyle = color
   ctx.lineWidth = 3

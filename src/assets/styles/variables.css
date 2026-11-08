@@ -37,6 +37,11 @@
   /* — Ombres douces — */
   --shadow-card: 0 2px 8px rgba(30, 30, 46, 0.06);
   --shadow-float: 0 22px 50px -24px rgba(30, 30, 46, 0.3);
+  /* Ce qui passe par-dessus la page : modale, toast, bandeau */
+  --shadow-pop: 0 10px 30px -8px rgba(30, 30, 46, 0.45);
+
+  /* — Voile sous une modale — */
+  --scrim: rgba(30, 30, 46, 0.6);
 
   /* 🖋 Typographie */
   --font-main: 'Barlow', Helvetica, Arial, sans-serif; /* corps */

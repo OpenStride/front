@@ -247,7 +247,7 @@ onUnmounted(async () => {
   margin: 0 auto;
 }
 .intro {
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-gray-600);
   font-size: 0.9rem;
   text-align: center;
   margin-bottom: 1rem;
@@ -255,7 +255,7 @@ onUnmounted(async () => {
 .lbl {
   display: block;
   font-size: 0.85rem;
-  color: var(--color-gray-500, #6b7280);
+  color: var(--color-gray-500);
   margin-bottom: 0.5rem;
 }
 .sports {
@@ -269,15 +269,15 @@ onUnmounted(async () => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.8rem;
-  border: 1px solid var(--color-gray-300, #d1d5db);
+  border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-pill);
   background: transparent;
   cursor: pointer;
   font-size: 0.85rem;
 }
 .chip--on {
-  background: var(--color-green-600, #88aa00);
-  color: var(--color-white, #fff);
+  background: var(--color-green-600);
+  color: var(--color-white);
   border-color: transparent;
 }
 .btn {
@@ -290,22 +290,22 @@ onUnmounted(async () => {
   border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
-  color: var(--color-white, #fff);
+  color: var(--color-white);
 }
 .btn--go {
-  background: var(--color-green-600, #88aa00);
+  background: var(--color-green-600);
   width: 100%;
 }
 .btn--pause {
-  background: var(--color-yellow-500, #f59e0b);
+  background: var(--color-yellow-500);
   flex: 1;
 }
 .btn--stop {
-  background: var(--color-red-600, #dc2626);
+  background: var(--color-red-600);
   flex: 1;
 }
 .btn--settings {
-  background: var(--color-gray-700, #374151);
+  background: var(--color-gray-700);
   margin-top: 0.6rem;
 }
 .map {
@@ -320,8 +320,8 @@ onUnmounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  background: var(--color-gray-100, #f3f4f6);
-  color: var(--color-gray-500, #6b7280);
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
 }
 .hud {
   display: flex;
@@ -344,7 +344,7 @@ onUnmounted(async () => {
 }
 .stat__l {
   font-size: 0.75rem;
-  color: var(--color-gray-500, #6b7280);
+  color: var(--color-gray-500);
   text-transform: uppercase;
 }
 .controls {
@@ -354,11 +354,11 @@ onUnmounted(async () => {
 .ok {
   margin-top: 1rem;
   text-align: center;
-  color: var(--color-emerald-700, #047857);
+  color: var(--color-emerald-700);
 }
 .err {
   margin-top: 1rem;
   text-align: center;
-  color: var(--color-red-600, #dc2626);
+  color: var(--color-red-600);
 }
 </style>

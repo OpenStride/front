@@ -573,20 +573,20 @@ onUnmounted(() => {
 .fallback-section {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: var(--color-gray-50, #f9fafb);
+  background: var(--color-gray-50);
   border-radius: var(--radius-md);
   text-align: center;
 }
 
 .fallback-text {
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-gray-600);
   font-size: 0.875rem;
   margin-bottom: 1rem;
 }
 
 .fallback-text i {
   margin-right: 0.5rem;
-  color: var(--color-blue-500, #3b82f6);
+  color: var(--color-blue-500);
 }
 
 .fallback-button {
@@ -594,7 +594,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--color-green-500, #88aa00);
+  background: var(--color-green-500);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-sm);
@@ -604,12 +604,12 @@ onUnmounted(() => {
 }
 
 .fallback-button:hover {
-  background: var(--color-green-600, #6d8a00);
+  background: var(--color-green-600);
 }
 
 .fallback-warning {
   margin-top: 0.75rem;
-  color: var(--color-yellow-600, #d97706);
+  color: var(--color-yellow-600);
   font-size: 0.75rem;
 }
 

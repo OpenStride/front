@@ -65,11 +65,11 @@ function draw() {
   chart = null
   if (!canvas.value || props.periods.length === 0) return
 
-  const green = cssVar('--color-green-500', '#5f8f1a')
-  const dark = cssVar('--color-green-700', '#3d5c10')
-  const line = cssVar('--color-green-600', '#4d7314')
-  const pale = cssVar('--color-green-200', '#d3e5a6')
-  const ink = cssVar('--color-ink', '#1e1e2e')
+  const green = cssVar('--color-green-500')
+  const dark = cssVar('--color-green-700')
+  const line = cssVar('--color-green-600')
+  const pale = cssVar('--color-green-200')
+  const ink = cssVar('--color-ink')
   const tick = axisTicks()
   const fmt = (v: number) => props.metric.format(v)
   const y = {
@@ -104,7 +104,7 @@ function draw() {
       datasets.push({
         type: 'line',
         data: props.periods.map(() => props.average),
-        borderColor: cssVar('--color-ink-soft', '#55554f'),
+        borderColor: cssVar('--color-ink-soft'),
         borderDash: [6, 4],
         borderWidth: 1.5,
         pointRadius: 0,
@@ -225,7 +225,7 @@ function draw() {
         data: bests.map(({ p }) => ({ x: p.bestOuting!.startTime, y: p.value as number })),
         pointRadius: bests.map(({ rec }) => (rec?.isNew ? 5.5 : 3.5)),
         pointBackgroundColor: bests.map(({ rec }) =>
-          rec?.isNew ? dark : cssVar('--color-green-300', '#b9d673')
+          rec?.isNew ? dark : cssVar('--color-green-300')
         ),
         pointBorderWidth: 0,
         order: 1

@@ -9,12 +9,12 @@ import { cssVar } from './sportPalette'
 export function axisTicks() {
   return {
     font: { family: cssVar('--font-mono', 'monospace'), size: 10 },
-    color: cssVar('--text-faint', '#8c8c84')
+    color: cssVar('--text-faint')
   }
 }
 
 export function gridLines() {
-  return { color: cssVar('--border-subtle', '#e6e6e0') }
+  return { color: cssVar('--border-subtle') }
 }
 
 /** Tooltip in the app's body face, figures included. */

@@ -13,6 +13,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { useI18n } from 'vue-i18n'
 import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
 import Chart from 'chart.js/auto'
@@ -20,9 +21,6 @@ import { Activity, ActivityDetails } from '@/types/activity'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
-
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
@@ -56,8 +54,8 @@ onMounted(() => {
         {
           label: '',
           data: bpmSeries.value,
-          borderColor: cssVar('--color-red-500', '#ef4444'),
-          backgroundColor: cssVar('--color-red-500', '#ef4444') + '55',
+          borderColor: cssVar('--color-red-500'),
+          backgroundColor: cssVar('--color-red-500') + '55',
           tension: 0.1,
           fill: true,
           borderWidth: 2,
@@ -67,7 +65,7 @@ onMounted(() => {
         {
           label: t('graphs.average'),
           data: Array(bpmSeries.value.length).fill(meanBPM.value),
-          borderColor: cssVar('--color-gray-400', '#9ca3af'),
+          borderColor: cssVar('--color-gray-400'),
           borderWidth: 2,
           borderDash: [3, 3],
           pointRadius: 0,
@@ -86,7 +84,7 @@ onMounted(() => {
         y: {
           title: { display: false, text: 'bpm' },
           beginAtZero: false,
-          ticks: { font: { size: 12 }, color: cssVar('--color-gray-400', '#9ca3af') }
+          ticks: { font: { size: 12 }, color: cssVar('--color-gray-400') }
         }
       }
     }

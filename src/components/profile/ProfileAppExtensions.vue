@@ -173,7 +173,7 @@ async function handleToggle(pluginId: string) {
   height: 1.25rem;
   border-radius: var(--radius-sm);
   background: var(--color-white);
-  box-shadow: 0 1px 2px rgba(30, 30, 46, 0.25);
+  box-shadow: var(--shadow-card);
   transition: transform 0.2s;
 }
 

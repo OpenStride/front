@@ -537,7 +537,7 @@ const secondaryStats = computed<Stat[]>(() => {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: color-mix(in srgb, var(--color-white) 50%, transparent);
 }
 .atb__cvalue {
   font-family: var(--font-mono);
@@ -570,7 +570,7 @@ const secondaryStats = computed<Stat[]>(() => {
   font-size: 13px;
   font-weight: 500;
   margin-left: 4px;
-  color: rgba(255, 255, 255, 0.5);
+  color: color-mix(in srgb, var(--color-white) 50%, transparent);
 }
 .atb__cell--hi .atb__clabel {
   color: var(--color-lime-soft);

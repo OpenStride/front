@@ -386,7 +386,7 @@ const formatFriendDate = (timestamp: number): string =>
 }
 
 .friend-card:hover {
-  box-shadow: 0 4px 10px rgba(30, 30, 46, 0.09);
+  box-shadow: var(--shadow-card);
 }
 
 .friend-avatar {
@@ -532,7 +532,7 @@ const formatFriendDate = (timestamp: number): string =>
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -546,7 +546,7 @@ const formatFriendDate = (timestamp: number): string =>
   padding: 1.5rem;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-pop);
 }
 
 .modal-content h3 {

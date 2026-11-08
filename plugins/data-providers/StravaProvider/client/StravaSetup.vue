@@ -231,7 +231,7 @@ async function onFileChange(e: Event) {
   margin-bottom: 0.4rem;
 }
 .intro {
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-gray-600);
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
@@ -252,12 +252,12 @@ async function onFileChange(e: Event) {
 .steps {
   margin: 0 0 1.2rem 1.1rem;
   padding: 0;
-  color: var(--color-gray-700, #374151);
+  color: var(--color-gray-700);
   font-size: 0.9rem;
   line-height: 1.6;
 }
 .link {
-  color: var(--color-green-600, #88aa00);
+  color: var(--color-green-600);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -266,13 +266,13 @@ async function onFileChange(e: Event) {
   align-items: center;
   gap: 0.6rem;
   padding: 0.9rem 1.1rem;
-  border: 2px dashed var(--color-gray-300, #d1d5db);
+  border: 2px dashed var(--color-gray-300);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.2s;
 }
 .filepick:hover {
-  border-color: var(--color-green-500, #88aa00);
+  border-color: var(--color-green-500);
 }
 .filepick--busy {
   opacity: 0.6;
@@ -283,27 +283,27 @@ async function onFileChange(e: Event) {
 }
 .status {
   margin-top: 1rem;
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-gray-600);
   font-size: 0.9rem;
 }
 .bar {
   margin-top: 0.5rem;
   height: 6px;
-  background: var(--color-gray-200, #e5e7eb);
+  background: var(--color-gray-200);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .bar__fill {
   height: 100%;
-  background: var(--color-green-500, #88aa00);
+  background: var(--color-green-500);
   transition: width 0.2s;
 }
 .ok {
   margin-top: 1rem;
-  color: var(--color-emerald-700, #047857);
+  color: var(--color-emerald-700);
 }
 .err {
   margin-top: 1rem;
-  color: var(--color-red-600, #dc2626);
+  color: var(--color-red-600);
 }
 </style>

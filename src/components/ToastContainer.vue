@@ -34,14 +34,14 @@ const dismiss = (id: number) => ToastService.remove(id)
 }
 .toast {
   width: 100%;
-  /* --color-ink #1e1e2e = rgb(30, 30, 46), kept translucent for the glass effect */
-  background: rgba(30, 30, 46, 0.9);
+  /* Ink, kept translucent for the glass effect */
+  background: color-mix(in srgb, var(--color-ink) 90%, transparent);
   color: var(--color-white);
   padding: 12px 16px;
   border-radius: var(--radius-md);
   font-size: 14px;
   line-height: 1.3;
-  box-shadow: 0 10px 30px -8px rgba(30, 30, 46, 0.45);
+  box-shadow: var(--shadow-pop);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -53,20 +53,19 @@ const dismiss = (id: number) => ToastService.remove(id)
   opacity: 0;
   transform: translateY(12px) scale(0.98);
   animation: fadeIn 0.25s forwards;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid color-mix(in srgb, var(--color-white) 7%, transparent);
 }
 .toast.success {
-  /* --color-green-600 #4d7314 = rgb(77, 115, 20) — OpenStride olive */
-  background: rgba(77, 115, 20, 0.94);
+  background: color-mix(in srgb, var(--color-green-600) 94%, transparent);
 }
 .toast.error {
-  background: rgba(180, 35, 24, 0.9);
+  background: color-mix(in srgb, var(--color-red-600) 90%, transparent);
 }
 .toast.info {
-  background: rgba(3, 105, 161, 0.9);
+  background: color-mix(in srgb, var(--color-blue-700) 90%, transparent);
 }
 .toast.warning {
-  background: rgba(180, 83, 9, 0.9);
+  background: color-mix(in srgb, var(--color-yellow-800) 90%, transparent);
 }
 .toast .close {
   background: transparent;
