@@ -5,6 +5,8 @@ import { getActivityService } from '@/services/ActivityService'
 import type { Activity, ActivityDetails, Timestamped } from '@/types/activity'
 import type { Gear } from '@/types/gear'
 import { GEAR_STORE, getGearService } from '@/services/GearService'
+import { getPhotoService } from '@/services/PhotoService'
+import { PHOTO_STORE, type ActivityPhoto } from '@/types/photo'
 import { readerChoicesToKeep } from '@/utils/gear'
 import type { CustomAggregate } from '@/types/customAggregate'
 import {
@@ -54,6 +56,7 @@ export class SyncService {
   public emitter = new EventTarget()
   private activityServiceListener: ((evt: Event) => void) | null = null
   private debouncedSync: (() => void) | null = null
+  private photoUnsubscribe: (() => void) | null = null
 
   private constructor() {
     /* singleton */
@@ -445,7 +448,32 @@ export class SyncService {
         name: r => r.name
       })
     ])
-    return { errors: results.flatMap(r => r.errors) }
+    const photos = await this.syncPhotos(plugin)
+    return { errors: [...results.flatMap(r => r.errors), ...photos.errors] }
+  }
+
+  /**
+   * The photos: their images first, as files of their own, then their rows like
+   * any hand-written store. In that order, a row reaches another device already
+   * saying where its images are, and the files of a deleted photo are gone
+   * before its tombstone says so.
+   */
+  private async syncPhotos(plugin: StoragePlugin): Promise<{ errors: string[] }> {
+    const service = getPhotoService()
+    const errors: string[] = []
+    try {
+      errors.push(...(await service.uploadPending(plugin)).errors)
+      errors.push(...(await service.purgeRemote(plugin)).errors)
+    } catch (error) {
+      errors.push(`Failed to sync photo files with ${plugin.label}: ${error}`)
+    }
+    const rows = await this.syncRecordStore<ActivityPhoto>(plugin, {
+      store: PHOTO_STORE,
+      service,
+      noun: 'photo',
+      name: r => r.id
+    })
+    return { errors: [...errors, ...rows.errors] }
   }
 
   /** One store of hand-written `Timestamped` rows against one plugin. */
@@ -665,6 +693,11 @@ export class SyncService {
     }
 
     activityService.emitter.addEventListener('activity-changed', this.activityServiceListener)
+    // A photo added or deleted here travels too. One brought by a sync does not
+    // start another: there is nothing new to push.
+    this.photoUnsubscribe = getPhotoService().onChanged((_id, source) => {
+      if (source === 'local' && this.debouncedSync) this.debouncedSync()
+    })
     console.log('[SyncService] Started listening to ActivityService events (debounced 5s)')
   }
 
@@ -675,6 +708,8 @@ export class SyncService {
     if (this.activityServiceListener) {
       const activityService = await getActivityService()
       activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener)
+      this.photoUnsubscribe?.()
+      this.photoUnsubscribe = null
       this.activityServiceListener = null
       this.debouncedSync = null
       console.log('[SyncService] Stopped listening')

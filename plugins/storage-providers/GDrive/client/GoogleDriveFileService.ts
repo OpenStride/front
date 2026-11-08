@@ -295,6 +295,94 @@ export class GoogleDriveFileService {
     return { md5: data.md5Checksum, modifiedTime: data.modifiedTime }
   }
 
+  // ========== PRIVATE FILES (photos) ==========
+
+  private photoFolderId: string | null = null
+
+  /** OpenStride/photos, private: the images of the reader's outings. */
+  private async ensurePhotoFolder(accessToken: string): Promise<string | null> {
+    if (this.photoFolderId) return this.photoFolderId
+    if (!this.folderId) this.folderId = await this.ensureFolderExists('OpenStride')
+    if (!this.folderId) return null
+
+    const query = `name='photos' and '${this.folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    const search = await fetch(`${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    if (search.ok) {
+      const data = await search.json()
+      if (data.files?.length) {
+        this.photoFolderId = data.files[0].id as string
+        return this.photoFolderId
+      }
+    }
+
+    const create = await fetch(DRIVE_API_ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'photos',
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [this.folderId]
+      })
+    })
+    if (!create.ok) {
+      console.error('[GDrive] Error creating photos folder:', await create.text())
+      return null
+    }
+    this.photoFolderId = (await create.json()).id as string
+    return this.photoFolderId
+  }
+
+  /**
+   * Upload a binary file to OpenStride/photos in one request (metadata and
+   * content as a multipart body). Never public: only the reader's own devices
+   * read it back, with their token.
+   */
+  public async writeFile(name: string, content: Blob): Promise<string | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return null
+    const folderId = await this.ensurePhotoFolder(accessToken)
+    if (!folderId) return null
+
+    const boundary = `openstride-${Date.now().toString(36)}`
+    const metadata = JSON.stringify({ name, parents: [folderId] })
+    const body = new Blob([
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+      `--${boundary}\r\nContent-Type: ${content.type || 'application/octet-stream'}\r\n\r\n`,
+      content,
+      `\r\n--${boundary}--`
+    ])
+
+    const response = await fetch(`${DRIVE_UPLOAD_ENDPOINT}?uploadType=multipart&fields=id`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    })
+    if (!response.ok) {
+      console.error('[GDrive] Failed to upload file:', await response.text())
+      return null
+    }
+    return ((await response.json()).id as string) ?? null
+  }
+
+  /** Download a file written by `writeFile`; null when it is gone. */
+  public async readFile(fileId: string): Promise<Blob | null> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return null
+    const response = await fetch(`${DRIVE_API_ENDPOINT}/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    if (!response.ok) {
+      console.warn('[GDrive] Failed to download file, status', response.status)
+      return null
+    }
+    return await response.blob()
+  }
+
   // ========== PUBLIC FILE SHARING METHODS ==========
 
   private publicFolderId: string | null = null
@@ -565,7 +653,9 @@ export class GoogleDriveFileService {
         }
       })
 
-      if (!response.ok) {
+      // Already gone is what was asked for: a photo deleted from two devices
+      // must not leave either retrying forever.
+      if (!response.ok && response.status !== 404) {
         console.error('[GDrive] Failed to delete file:', await response.text())
         return false
       }

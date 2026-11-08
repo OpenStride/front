@@ -30,6 +30,17 @@ const GDriveBackupPlugin: StoragePlugin = {
     return await fs.writePublicFile(filename, content)
   },
 
+  // Private files: the photos of the reader's outings
+  async writeFile(name: string, content: Blob): Promise<string | null> {
+    const fs = await GoogleDriveFileService.getInstance()
+    return await fs.writeFile(name, content)
+  },
+
+  async readFile(fileId: string): Promise<Blob | null> {
+    const fs = await GoogleDriveFileService.getInstance()
+    return await fs.readFile(fileId)
+  },
+
   async deleteFile(fileId: string): Promise<boolean> {
     const fs = await GoogleDriveFileService.getInstance()
     return await fs.deleteFile(fileId)

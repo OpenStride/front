@@ -39,8 +39,21 @@ export interface StoragePlugin {
    */
   writePublicFile?(filename: string, content: unknown): Promise<string | null>
 
+  // ========== PRIVATE FILES ==========
   /**
-   * Optional: delete a file from storage by its ID
+   * Optional: store a binary file (a photo) in the user's private space.
+   * Returns the provider's id for it, or null when the upload failed.
+   */
+  writeFile?(name: string, content: Blob): Promise<string | null>
+
+  /**
+   * Optional: read back a file written by `writeFile`. Null when it is gone.
+   */
+  readFile?(fileId: string): Promise<Blob | null>
+
+  /**
+   * Optional: delete a file from storage by its ID. A file already gone
+   * counts as deleted.
    * Used for cleanup and rollback operations
    */
   deleteFile?(fileId: string): Promise<boolean>

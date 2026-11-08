@@ -25,7 +25,13 @@ export interface StorageServiceEvent {
  * another device and pushes deleted rows back into existence, which is why
  * `custom_aggregates` is listed here rather than left to this path.
  */
-const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_aggregates', 'gear']
+const SYNC_SERVICE_OWNED_STORES = [
+  'activities',
+  'activity_details',
+  'custom_aggregates',
+  'gear',
+  'activity_photos'
+]
 
 /**
  * Stores that never leave the device. They hold values derived from data that
@@ -46,9 +52,9 @@ const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_agg
 const LOCAL_ONLY_STORES = [
   'activity_metrics',
   'aggregatedData',
-  // Photos are not derived, but images have no place in a JSON backup: they
-  // stay on the device until sync uploads them as files of their own.
-  'activity_photos',
+  // The images themselves. Not derived, but they have no place in a JSON
+  // backup: SyncService uploads each one as a file of its own, and the rows of
+  // `activity_photos` say where.
   'photo_blobs'
 ]
 

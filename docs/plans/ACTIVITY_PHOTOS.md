@@ -35,14 +35,20 @@ l'utilisateur, sur son propre quota (le scope `drive.file` actuel suffit).
   première photo devient l'image de tête.
 - Plugins : `ctx.photos` (`list`, `add`, `blob`, `remove`, `onChanged`).
 
-### 2. Sync multi-appareils
+### 2. Sync multi-appareils — fait
 
-- `activity_photos` sort de `LOCAL_ONLY_STORES` et passe par `SyncService`
-  (versions, tombstones), comme `gear`.
-- Chaque image devient un fichier Drive à part dans un dossier `photos/`, hors
-  de la sauvegarde JSON ; son id Drive est noté sur la ligne.
-- Un autre appareil ne télécharge une image qu'à l'ouverture de la sortie.
-- Une suppression efface aussi le fichier Drive.
+- `activity_photos` passe par `SyncService` (versions, tombstones), comme
+  `gear` ; `photo_blobs` reste sur l'appareil.
+- À chaque sync, avant les lignes : chaque image (et sa miniature) devient un
+  fichier privé dans `OpenStride/photos/` (`StoragePlugin.writeFile`), et la
+  ligne note les ids (`remote[pluginId]`). Une ligne arrive donc sur un autre
+  appareil en sachant déjà où sont ses images. Un envoi à moitié raté est
+  défait et retenté à la sync suivante.
+- Un autre appareil ne télécharge une image qu'au moment de l'afficher
+  (`readFile`), une seule fois, puis la garde.
+- Une photo supprimée : ses fichiers sont effacés du Drive par le premier
+  appareil qui synchronise, puis `remote` est vidé (une version plus loin).
+- Ajouter ou supprimer une photo déclenche la sync automatique (5 s).
 
 ### 3. Partage aux amis
 

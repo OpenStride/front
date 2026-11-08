@@ -11,6 +11,7 @@
           @click="openViewer(i)"
         >
           <img v-if="thumbs[photo.id]" :src="thumbs[photo.id]" alt="" loading="lazy" />
+          <i v-else class="fas fa-image aph__placeholder" aria-hidden="true"></i>
         </button>
       </li>
       <li v-if="busy">
@@ -124,21 +125,23 @@ const input = ref<HTMLInputElement | null>(null)
 
 async function load() {
   const list = await ctx.photos.list(props.activityId)
-  const next: Record<string, string> = {}
-  for (const photo of list) {
-    const known = thumbs.value[photo.id]
-    if (known) {
-      next[photo.id] = known
-      continue
-    }
-    const blob = await ctx.photos.blob(photo.id, 'thumb')
-    if (blob) next[photo.id] = URL.createObjectURL(blob)
-  }
+  const live = new Set(list.map(p => p.id))
+  const kept: Record<string, string> = {}
   for (const [id, url] of Object.entries(thumbs.value)) {
-    if (!next[id]) URL.revokeObjectURL(url)
+    if (live.has(id)) kept[id] = url
+    else URL.revokeObjectURL(url)
   }
-  thumbs.value = next
+  thumbs.value = kept
+  // The tiles first, the images as they come: on another device than the one
+  // that took them, each thumbnail is a download
   photos.value = list
+  for (const photo of list) {
+    if (thumbs.value[photo.id]) continue
+    const blob = await ctx.photos.blob(photo.id, 'thumb')
+    if (blob && photos.value.some(p => p.id === photo.id) && !thumbs.value[photo.id]) {
+      thumbs.value = { ...thumbs.value, [photo.id]: URL.createObjectURL(blob) }
+    }
+  }
 }
 
 /** Opens the file picker — also what the camera button beside the title calls. */
@@ -279,6 +282,9 @@ defineExpose({ pick })
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.aph__placeholder {
+  color: var(--text-faint);
 }
 .aph__thumb--busy {
   cursor: default;

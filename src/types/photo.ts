@@ -31,13 +31,28 @@ export interface ActivityPhoto extends Timestamped {
   mime: string
   /** Bytes of the stored image, thumbnail excluded. */
   size: number
+  /**
+   * Where each storage provider keeps the two images, by plugin id: the file
+   * ids another device downloads them from. Absent until uploaded; emptied
+   * once the files of a deleted photo are gone from the provider.
+   */
+  remote?: Record<string, RemotePhotoFiles>
 }
 
-/** What `photo_blobs` holds for a photo, under the same id. */
+/** A photo's two images as files of one storage provider. */
+export interface RemotePhotoFiles {
+  full: string
+  thumb: string
+}
+
+/**
+ * What `photo_blobs` holds for a photo, under the same id. Both images on the
+ * device that took the photo; on another one, only those downloaded so far.
+ */
 export interface PhotoBlobs {
   id: string
-  full: Blob
-  thumb: Blob
+  full?: Blob
+  thumb?: Blob
 }
 
 export type PhotoSize = 'thumb' | 'full'
