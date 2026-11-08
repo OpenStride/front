@@ -69,7 +69,7 @@ button {
 
 /* ✅ Focus : contour visible pour accessibilité */
 button:focus {
-  outline: 2px solid rgba(0, 123, 255, 0.5);
+  outline: 2px solid color-mix(in srgb, var(--color-green-500) 50%, transparent);
 }
 
 input {

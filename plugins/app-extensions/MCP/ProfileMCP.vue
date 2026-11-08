@@ -302,8 +302,6 @@ function formatDate(timestamp: number): string {
 function formatDistance(meters: number): string {
   return units.format('distance', meters).text
 }
-
-
 </script>
 
 <style scoped>
@@ -450,7 +448,7 @@ function formatDistance(meters: number): string {
   padding: 0.25rem 0.5rem;
   border: none;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--color-white) 14%, transparent);
   color: var(--color-white);
   font-family: inherit;
   font-size: 0.6875rem;
@@ -458,13 +456,13 @@ function formatDistance(meters: number): string {
 }
 
 .code__copy:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: color-mix(in srgb, var(--color-white) 24%, transparent);
 }
 
 .code__body {
   margin: 0;
   padding: 0.875rem;
-  background: #14141f;
+  background: var(--color-ink);
   color: var(--color-gray-100);
   font-family: var(--font-mono);
   font-size: 0.6875rem;

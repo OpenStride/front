@@ -367,3 +367,47 @@ describe('corners are rounded from the scale', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * A colour comes from the palette.
+ *
+ * A hundred and forty literals had spread: hex fallbacks repeating the token
+ * beside them (sometimes a different shade from the token they stood for),
+ * five private copies of `cssVar` each with its own spare palette, shadows and
+ * veils as raw `rgba()`. `variables.css` is the palette; everything else reads
+ * it — `var()` in CSS, `cssVar()` from `@/utils/cssVar` in a canvas, and
+ * `color-mix()` over a token for a transparency.
+ */
+const COLOUR_EXCEPTIONS: Record<string, string> = {
+  // A QR code is pure black on pure white, or scanners misread it
+  'src/components/QRCodeDisplay.vue': 'QR code contrast',
+  // A ramp computed from the data (pace → lightness), not a palette colour
+  'plugins/app-extensions/StandardDetails/SpeedSampled.vue': 'data-driven ramp'
+}
+
+describe('colours come from the palette', () => {
+  it('no hex, rgb() or hsl() literal outside variables.css', () => {
+    const files = [
+      ...styledFiles(join(ROOT, 'src')),
+      ...styledFiles(join(ROOT, 'plugins')),
+      ...sourceFiles().filter(f => f.endsWith('.ts'))
+    ]
+    const offenders: string[] = []
+    for (const file of files) {
+      const rel = file.replace(ROOT + '/', '')
+      if (COLOUR_EXCEPTIONS[rel]) continue
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          if (/^\s*(\/\/|\/?\*|<!--)/.test(line)) return
+          if (
+            /(?<![\w-])#[0-9a-fA-F]{3,8}\b(?![\w-])/.test(line) ||
+            /\b(rgba?|hsla?)\(\s*\d/.test(line)
+          ) {
+            offenders.push(`${rel}:${i + 1}  ${line.trim().slice(0, 80)}`)
+          }
+        })
+    }
+    expect(offenders, `Use a token from variables.css:\n${offenders.join('\n')}`).toEqual([])
+  })
+})

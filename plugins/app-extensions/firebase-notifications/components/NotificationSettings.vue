@@ -177,7 +177,7 @@ async function toggleNotifications(event: Event) {
   border-radius: 0;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .setting-header {
@@ -188,7 +188,7 @@ async function toggleNotifications(event: Event) {
 }
 
 .setting-header i {
-  color: var(--color-green-500, #88aa00);
+  color: var(--color-green-500);
   font-size: 1.25rem;
 }
 
@@ -284,7 +284,7 @@ async function toggleNotifications(event: Event) {
 }
 
 input:checked + .slider {
-  background-color: var(--color-green-500, #88aa00);
+  background-color: var(--color-green-500);
 }
 
 input:checked + .slider:before {
@@ -379,11 +379,11 @@ input:disabled + .slider {
 
 .success-message {
   background-color: var(--color-emerald-100);
-  border-left: 4px solid var(--color-green-600, #6d8a00);
+  border-left: 4px solid var(--color-green-600);
   color: var(--color-emerald-800);
 }
 
 .success-message i {
-  color: var(--color-green-600, #6d8a00);
+  color: var(--color-green-600);
 }
 </style>

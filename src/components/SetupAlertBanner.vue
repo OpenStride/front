@@ -182,7 +182,7 @@ onUnmounted(() => {
 }
 
 .setup-banner-dismiss:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
 /* Transition */

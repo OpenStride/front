@@ -319,11 +319,11 @@ const yearText = computed(() =>
 
 .arrow:hover:not(:disabled),
 .arrow:focus-visible {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 .arrow:disabled {
-  color: rgba(255, 255, 255, 0.25);
+  color: color-mix(in srgb, var(--color-white) 25%, transparent);
   cursor: default;
 }
 
@@ -335,7 +335,7 @@ const yearText = computed(() =>
 
 .range {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 
 .foot {
@@ -370,7 +370,7 @@ const yearText = computed(() =>
   width: 0.5rem;
   height: 0.5rem;
   border-radius: var(--radius-round);
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 .dot.active::before {
@@ -444,13 +444,13 @@ const yearText = computed(() =>
 .headline-value small {
   font-size: 1.1rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
   margin-left: 0.35rem;
 }
 
 .compare {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.82);
+  color: color-mix(in srgb, var(--color-white) 82%, transparent);
 }
 
 .figures {
@@ -468,7 +468,7 @@ const yearText = computed(() =>
 
 .figure dt {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 
 .figure dd {
@@ -482,7 +482,7 @@ const yearText = computed(() =>
   list-style: none;
   margin: 0;
   padding: 0.9rem 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid color-mix(in srgb, var(--color-white) 14%, transparent);
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.5rem;
@@ -501,7 +501,7 @@ const yearText = computed(() =>
 .day-value {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.82);
+  color: color-mix(in srgb, var(--color-white) 82%, transparent);
   min-height: 1em;
 }
 
@@ -514,18 +514,18 @@ const yearText = computed(() =>
 }
 
 .day:has(.day-value:empty) .day-bar {
-  background: rgba(255, 255, 255, 0.16);
+  background: color-mix(in srgb, var(--color-white) 16%, transparent);
 }
 
 .day.future .day-bar {
   background: transparent;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.25);
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-white) 25%, transparent);
 }
 
 .day-name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 
 .day.today .day-name {
@@ -535,7 +535,7 @@ const yearText = computed(() =>
 .totals {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: color-mix(in srgb, var(--color-white) 75%, transparent);
 }
 
 .totals strong {

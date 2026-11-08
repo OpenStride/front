@@ -404,7 +404,7 @@ function onSubmit() {
 }
 
 .btn-primary {
-  color: var(--text-on-primary, #fff);
+  color: var(--color-white);
   background: var(--primary-color);
   border-color: var(--primary-color);
 }

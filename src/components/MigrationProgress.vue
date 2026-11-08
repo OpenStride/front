@@ -69,7 +69,7 @@ onUnmounted(() => {
 .migration-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--scrim);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -83,7 +83,7 @@ onUnmounted(() => {
   padding: 40px;
   max-width: 400px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-pop);
 }
 
 .migration-card i {
