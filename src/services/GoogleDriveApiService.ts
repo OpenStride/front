@@ -7,6 +7,7 @@
  * This service bypasses CORS issues by using Google's official JavaScript SDK,
  * which properly handles CORS headers.
  */
+import { logger } from '@/utils/logger'
 
 interface GapiClient {
   load(api: string, callbacks: { callback: () => void; onerror: () => void }): void
@@ -70,7 +71,7 @@ export class GoogleDriveApiService {
   }
 
   private async doInitialize(): Promise<void> {
-    console.log('[GoogleDriveApiService] Initializing gapi.client...')
+    logger.debug('[GoogleDriveApiService] Initializing gapi.client...')
 
     // Load gapi script if not already loaded
     if (!window.gapi) {
@@ -92,7 +93,7 @@ export class GoogleDriveApiService {
     })
 
     this.initialized = true
-    console.log('[GoogleDriveApiService] gapi.client initialized successfully')
+    logger.debug('[GoogleDriveApiService] gapi.client initialized successfully')
   }
 
   /**
@@ -197,7 +198,7 @@ export class GoogleDriveApiService {
     // Ensure gapi is initialized
     await this.initialize()
 
-    console.log(`[GoogleDriveApiService] Fetching file: ${fileId}`)
+    logger.debug(`[GoogleDriveApiService] Fetching file: ${fileId}`)
 
     try {
       // Use gapi.client to fetch file with alt=media, with retry on 5xx
@@ -212,7 +213,7 @@ export class GoogleDriveApiService {
         throw new Error('Empty response from Google Drive API')
       }
 
-      console.log('[GoogleDriveApiService] File fetched successfully')
+      logger.debug('[GoogleDriveApiService] File fetched successfully')
       return response.body
     } catch (error: unknown) {
       console.error('[GoogleDriveApiService] Failed to fetch file:', error)

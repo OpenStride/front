@@ -1,6 +1,7 @@
 import { getToken, type Messaging } from 'firebase/messaging'
 import { getFirebaseMessaging, isFirebaseConfigured } from '../lib/firebase'
 import type { IStorageService, ProviderImportEvent } from '@/types/plugin-context'
+import { logger } from '@/utils/logger'
 
 export interface NotificationState {
   enabled: boolean
@@ -111,7 +112,7 @@ export class NotificationService {
       await this.storage.saveData('fcm_token_timestamp', Date.now())
       await this.storage.saveData('firebase_notifications_enabled', true)
 
-      console.log('[Firebase Notifications] Token obtained:', token)
+      logger.debug('[Firebase Notifications] Token obtained:', token)
 
       // Start listening to events
       await this.startListening()
@@ -131,7 +132,7 @@ export class NotificationService {
 
     await this.storage.saveData('firebase_notifications_enabled', false)
     this.stopListening()
-    console.log('[Firebase Notifications] Disabled')
+    logger.debug('[Firebase Notifications] Disabled')
   }
 
   /**
@@ -161,7 +162,7 @@ export class NotificationService {
     // The payload used to be hand-typed here as `{ providerId, count, activities }`;
     // the event never carried a count or an activity list, so both read as
     // undefined. Typing it in the contract is what makes that impossible.
-    console.log('[Firebase Notifications] Import finished:', event.providerLabel)
+    logger.debug('[Firebase Notifications] Import finished:', event.providerLabel)
 
     // The notification itself comes from the backend pushing to the FCM token;
     // this hook exists so the plugin knows when to expect one.
@@ -206,10 +207,10 @@ export class NotificationService {
     const now = Date.now()
 
     if (now - tokenTimestamp > thirtyDaysMs) {
-      console.log('[Firebase Notifications] Token is older than 30 days, refreshing...')
+      logger.debug('[Firebase Notifications] Token is older than 30 days, refreshing...')
       const result = await this.enable() // Re-enable will get a new token
       if (result.success) {
-        console.log('[Firebase Notifications] Token refreshed successfully')
+        logger.debug('[Firebase Notifications] Token refreshed successfully')
       }
     }
   }

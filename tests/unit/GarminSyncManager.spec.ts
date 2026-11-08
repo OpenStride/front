@@ -203,14 +203,14 @@ describe('GarminSyncManager', () => {
       const getCall = mockFetch.mock.calls.find(c => (c[0] as string).endsWith('/push'))
       expect(getCall).toBeTruthy()
       expect(getCall![0]).toBe('https://proxy.test.com/push')
-      expect((getCall![1] as RequestInit).headers).toEqual(
+      expect((getCall![1] as Parameters<typeof fetch>[1] & object).headers).toEqual(
         expect.objectContaining({ Authorization: 'Bearer test-access-token' })
       )
 
       // Consumed files are deleted via authenticated POST /push/consume
       const consumeCall = mockFetch.mock.calls.find(c => (c[0] as string).endsWith('/push/consume'))
       expect(consumeCall).toBeTruthy()
-      const consumeOpts = consumeCall![1] as RequestInit
+      const consumeOpts = consumeCall![1] as Parameters<typeof fetch>[1] & object
       expect(consumeOpts.method).toBe('POST')
       expect(consumeOpts.headers).toEqual(
         expect.objectContaining({ Authorization: 'Bearer test-access-token' })

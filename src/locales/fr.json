@@ -119,9 +119,7 @@
   "navigation": {
     "home": "Accueil",
     "profile": "Profil",
-    "appExtensions": "Extensions",
-    "statistics": "Tableau de bord",
-    "metricTracker": "Suivi de métriques"
+    "statistics": "Tableau de bord"
   },
   "metricTracker": {
     "title": "Suivi de métriques",
@@ -305,7 +303,6 @@
       "dataSources": "Sources de données",
       "cloudBackup": "Sauvegarde cloud",
       "appExtensions": "Extensions",
-      "sharing": "Partage & Confidentialité",
       "friends": "Amis & partage",
       "mcp": "Assistant IA (MCP)",
       "gear": "Équipement"
@@ -452,10 +449,6 @@
       "hint": "Vous pourrez toujours ajouter d'autres sources ou modifier vos paramètres plus tard dans les Réglages."
     }
   },
-  "errors": {
-    "generic": "Une erreur est survenue. Veuillez réessayer.",
-    "notFound": "Non trouvé."
-  },
   "providers": {
     "recorder": {
       "intro": "Enregistre une course ou une sortie avec le GPS de ton téléphone. Ton tracé ne quitte pas ton appareil.",
@@ -563,63 +556,16 @@
   },
   "migration": {
     "updating": "Mise à jour d'OpenStride",
-    "pleaseWait": "Veuillez patienter, cela peut prendre quelques instants",
-    "success": "Mise à jour réussie",
-    "failed": "Échec de la mise à jour. Veuillez réessayer."
+    "pleaseWait": "Veuillez patienter, cela peut prendre quelques instants"
   },
   "statistics": {
     "title": "Tableau de bord",
-    "dashboard": {
-      "title": "Résumé",
-      "volume": "Volume",
-      "records": "Records",
-      "recordsFoot": "records établis",
-      "vsPrevious": "vs période précédente"
-    },
     "allSports": "Tous les sports",
     "sportFilter": "Filtrer par sport",
     "noData": "Aucune donnée disponible",
     "noDataHint": "Importez des activités pour voir vos statistiques",
-    "summary": {
-      "title": "Totaux",
-      "periodLabel": "Période des totaux",
-      "allSports": "Tous sports confondus : le filtre ne s'applique pas a ces totaux",
-      "periods": {
-        "week": "Cette semaine",
-        "month": "Ce mois",
-        "year": "Cette année"
-      },
-      "metrics": {
-        "distance": "Distance",
-        "duration": "Durée",
-        "totalAscent": "Dénivelé +"
-      }
-    },
-    "trends": {
-      "title": "Tendances",
-      "distance": "Distance (km)",
-      "activities": "Activités",
-      "week": "Semaine",
-      "month": "Mois",
-      "year": "Année",
-      "distanceLabel": "Distance",
-      "weekShort": "S{week} ’{year}"
-    },
-    "distribution": {
-      "title": "Répartition",
-      "durationH": "Durée (h)",
-      "distance": "Distance"
-    },
     "records": {
-      "title": "Records personnels",
-      "distance": "Distance",
-      "time": "Temps",
-      "pace": "Allure",
-      "speed": "Vitesse",
-      "date": "Date",
-      "activity": "Activité",
       "computing": "Calcul des records en cours...",
-      "noRecords": "Aucun record trouvé",
       "noRecordsHint": "Les records sont calculés à partir des données GPS de vos activités",
       "noRecordsPeriodHint": "Aucun record sur la période sélectionnée",
       "periodLabel": "Période des records",
@@ -636,9 +582,6 @@
       "title": "Calendrier d'activité",
       "less": "Moins",
       "more": "Plus",
-      "distance": "Distance",
-      "duration": "Durée",
-      "count": "Activités",
       "activityCount": "aucune activité | {n} activité | {n} activités",
       "activeWeeks": "{active} semaines actives sur les {total} dernières"
     },
@@ -724,8 +667,7 @@
     "form": {
       "distance": "Distance ({unit})",
       "activityCount": "Nombre d'activités",
-      "durationHours": "Durée (heures)",
-      "target": "Objectif"
+      "durationHours": "Durée (heures)"
     },
     "monthNames": {
       "0": "Janvier",
@@ -756,7 +698,6 @@
     "speed": "Vitesse",
     "slope": "Pente",
     "colDistance": "Dist.",
-    "colPace": "Allure",
     "colHeartRate": "FC",
     "colSlope": "Pente"
   },
@@ -773,8 +714,6 @@
     "title": "Confidentialité",
     "isPublic": "Visible par vos amis",
     "isPrivate": "Privée",
-    "public": "Public",
-    "private": "Privé",
     "nowPublic": "Activité rendue publique",
     "nowPrivate": "Activité rendue privée",
     "toggleFailed": "Erreur lors de la modification"
@@ -782,7 +721,6 @@
   "addFriend": {
     "adding": "Ajout de votre ami...",
     "added": "{name} ajouté !",
-    "redirecting": "Redirection vers vos amis...",
     "error": "Erreur",
     "retry": "Réessayer",
     "backToFriends": "Retour aux amis",
@@ -828,7 +766,6 @@
     "addComment": "Ajouter un commentaire...",
     "mutualRequired": "Il doit vous ajouter en retour pour que vous puissiez aimer ou commenter",
     "publishRequired": "Publiez votre profil pour aimer et commenter",
-    "none": "Aucune interaction pour le moment",
     "sending": "Envoi...",
     "publish": "Publier",
     "delete": "Supprimer",
@@ -837,10 +774,8 @@
     "whyBlocked": "Pourquoi je ne peux pas ?",
     "publishAction": "Publier mon profil",
     "reply": "Répondre",
-    "title": "Interactions",
     "retry": "Réessayer",
     "likeCount": "Aucun j’aime | {n} j’aime | {n} j’aime",
-    "commentCount": "Aucun commentaire | {n} commentaire | {n} commentaires",
     "deletedUser": "Utilisateur supprimé",
     "loadFailed": "Impossible de charger les interactions.",
     "you": "vous",
@@ -868,7 +803,6 @@
     "notFound": "Activité introuvable."
   },
   "app": {
-    "refresh": "Actualiser",
     "close": "Fermer",
     "logo": "Logo",
     "forceUpdate": "Cliquer pour forcer la mise à jour",
@@ -1009,11 +943,6 @@
     "completed": "Sauvegarde terminée",
     "failed": "Échec de la sauvegarde"
   },
-  "share": {
-    "publishFirst": "Publiez d’abord vos données depuis votre profil",
-    "linkCopied": "Lien de profil copié",
-    "copyFailed": "Impossible de copier le lien"
-  },
   "landing": {
     "hero": {
       "eyebrow": "Local-first · Open source · Gratuit",
@@ -1134,9 +1063,7 @@
   },
   "customAggregates": {
     "title": "Mes agrégats",
-    "add": "Nouvel agrégat",
     "empty": "Rien de suivi pour le moment. Choisissez une suggestion ci-dessus, ou créez le vôtre.",
-    "pinned": "Épinglé en tête du tableau de bord",
     "edit": "Modifier {name}",
     "delete": "Supprimer {name}",
     "ops": {
@@ -1184,7 +1111,6 @@
       "year": "Année"
     },
     "addCustom": "Créer le mien",
-    "showCurve": "Voir la courbe de {name}",
     "suggestionsLead": "Prêts à l'emploi, d'après ce que vos activités ont enregistré — un clic pour en suivre un :",
     "presets": {
       "climbHeartRate": "Fréquence cardiaque en côte",
@@ -1251,11 +1177,9 @@
     "activity": {
       "label": "Équipement",
       "none": "Aucun",
-      "byDefault": "par défaut",
       "change": "Changer",
       "pick": "Équipement utilisé sur cette sortie",
-      "useDefault": "Revenir au défaut",
-      "alert": "{name} : {status}"
+      "useDefault": "Revenir au défaut"
     },
     "applyPast": "Appliquer à des sorties",
     "terrain": {

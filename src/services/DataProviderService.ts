@@ -1,5 +1,6 @@
 import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 import type { ProviderPlugin } from '@/types/provider'
+import { logger } from '@/utils/logger'
 
 export class DataProviderService {
   private static instance: DataProviderService
@@ -31,7 +32,7 @@ export class DataProviderService {
         .catch(err => console.error('[DataProviderService] Refresh failed:', err))
     }
     window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
-    console.log('[DataProviderService] Started listening to refresh-requested events')
+    logger.debug('[DataProviderService] Started listening to refresh-requested events')
   }
 
   /**
@@ -41,7 +42,7 @@ export class DataProviderService {
     if (this.refreshRequestedListener) {
       window.removeEventListener('openstride:refresh-requested', this.refreshRequestedListener)
       this.refreshRequestedListener = null
-      console.log('[DataProviderService] Stopped listening')
+      logger.debug('[DataProviderService] Stopped listening')
     }
   }
 

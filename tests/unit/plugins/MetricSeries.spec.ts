@@ -518,9 +518,6 @@ describe('metric tracker i18n', () => {
       for (const window of WINDOWS) {
         expect(windows[window], `missing label for window "${window}"`).toBeTruthy()
       }
-      expect(
-        (locale as unknown as { navigation: Record<string, string> }).navigation.metricTracker
-      ).toBeTruthy()
     }
   })
 

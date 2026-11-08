@@ -1,5 +1,6 @@
 import { StoragePluginManager } from '@/services/StoragePluginManager'
 import { IndexedDBService } from '@/services/IndexedDBService'
+import { logger } from '@/utils/logger'
 
 /** A generic record coming from or going to an IndexedDB object store. */
 type StoreRecord = Record<string, unknown>
@@ -78,9 +79,9 @@ export class StorageService {
   }
 
   public async triggerBackup(details: Array<{ store: string; key: string }>): Promise<void> {
-    console.log('🔧 Backup triggered')
+    logger.debug('🔧 Backup triggered')
     if (Date.now() < this.suppressBackupsUntil) {
-      console.log('[StorageService] Backup suppressed (hydration phase)')
+      logger.debug('[StorageService] Backup suppressed (hydration phase)')
       return
     }
     // Filter out internal summary key to prevent feedback loop
@@ -94,7 +95,7 @@ export class StorageService {
     if (this.backupInFlight) {
       this.pendingBackupStores ??= new Set<string>()
       details.forEach(d => this.pendingBackupStores!.add(d.store))
-      console.log('[StorageService] Backup already running, coalescing request')
+      logger.debug('[StorageService] Backup already running, coalescing request')
       return
     }
 
@@ -126,7 +127,7 @@ export class StorageService {
           const db = await IndexedDBService.getInstance()
           const allStores = await db.getObjectStoresNames()
           uniqueStores = Array.from(new Set([...uniqueStores, ...allStores]))
-          console.log('🔁 Full sync triggered due to storage plugin change')
+          logger.debug('🔁 Full sync triggered due to storage plugin change')
         } catch {
           /* ignore */
         }
@@ -140,7 +141,7 @@ export class StorageService {
       if (uniqueStores.length === 0) return
 
       const changed = await this.syncStores(uniqueStores.map(store => ({ store, key: '' })))
-      console.log('✅ Backup completed')
+      logger.debug('✅ Backup completed')
 
       // Emit backup-completed event instead of showing toast directly
       if (changed && Date.now() - this.lastBackupToastAt > 1500) {
@@ -171,7 +172,7 @@ export class StorageService {
     let anyChanges = false
 
     for (const plugin of plugins) {
-      console.log(`🔄 Sync with ${plugin.label}`)
+      logger.debug(`🔄 Sync with ${plugin.label}`)
       for (const store of uniqueStores) {
         const keyFn = (item: StoreRecord) =>
           (item.key as string) ||
@@ -218,13 +219,13 @@ export class StorageService {
               return v
             })
 
-          console.log(
+          logger.debug(
             `[StorageService][diff] store="${store}" local=${localData.length} remote=${remoteData.length} toLocal=${toLocal.length} toRemote=${toRemote.length}`
           )
 
           if (toLocal.length > 0) {
             await dbService.addItemsToStore(store, toLocal, keyFn)
-            console.log(`📥 ${toLocal.length} items added to "${store}" from ${plugin.label}`)
+            logger.debug(`📥 ${toLocal.length} items added to "${store}" from ${plugin.label}`)
             anyChanges = true
           }
 
@@ -239,7 +240,7 @@ export class StorageService {
                 ((b.lastModified as number) || 0) - ((a.lastModified as number) || 0)
             )
             await plugin.writeRemote(store, merged)
-            console.log(`📤 ${toRemote.length} items written to remote store "${store}"`)
+            logger.debug(`📤 ${toRemote.length} items written to remote store "${store}"`)
             anyChanges = true
           }
         } catch (err) {
@@ -258,7 +259,7 @@ export class StorageService {
     try {
       const plugins = await this.pluginManager.getMyStoragePlugins()
       if (!plugins.length) {
-        console.log('[StorageService] importFromRemote: no storage plugins enabled')
+        logger.debug('[StorageService] importFromRemote: no storage plugins enabled')
         return
       }
       const db = await IndexedDBService.getInstance()
@@ -275,7 +276,7 @@ export class StorageService {
       // Suppress backup triggers during hydration window
       this.suppressBackupsUntil = Date.now() + 1500
       for (const plugin of plugins) {
-        console.log(
+        logger.debug(
           `⬇️  Import from remote (${plugin.label}) for stores: ${targetStores.join(', ')}`
         )
         for (const store of targetStores) {
@@ -298,12 +299,12 @@ export class StorageService {
                 toPut.push(r)
               }
             }
-            console.log(
+            logger.debug(
               `[StorageService][import] store="${store}" remote=${remoteData.length} local=${localData.length} toPut=${toPut.length}`
             )
             if (toPut.length) {
               await db.addItemsToStore(store, toPut, keyFn)
-              console.log(`📥 Imported ${toPut.length} remote items into local store "${store}"`)
+              logger.debug(`📥 Imported ${toPut.length} remote items into local store "${store}"`)
             }
           } catch (err) {
             console.warn(

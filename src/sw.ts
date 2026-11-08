@@ -13,6 +13,7 @@ import {
   setupBackgroundMessageHandler,
   setupNotificationClickHandler
 } from '../plugins/app-extensions/firebase-notifications/services/sw-messaging'
+import { logger } from '@/utils/logger'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -65,7 +66,7 @@ registerRoute(
 const messaging = initializeFirebaseMessaging()
 
 if (messaging) {
-  console.log('[Service Worker] Firebase Messaging enabled')
+  logger.debug('[Service Worker] Firebase Messaging enabled')
 
   // Setup background message handler
   setupBackgroundMessageHandler(messaging)
@@ -73,7 +74,7 @@ if (messaging) {
   // Setup notification click handler
   setupNotificationClickHandler()
 } else {
-  console.log('[Service Worker] Firebase Messaging not configured, skipping')
+  logger.debug('[Service Worker] Firebase Messaging not configured, skipping')
 }
 
 // ========================================
@@ -81,13 +82,13 @@ if (messaging) {
 // ========================================
 
 self.addEventListener('install', _event => {
-  console.log('[Service Worker] Installing version', APP_VERSION)
+  logger.debug('[Service Worker] Installing version', APP_VERSION)
   // Prompt mode: wait for user consent via messageSkipWaiting()
   // skipWaiting() will be called via message handler when user accepts update
 })
 
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating version', APP_VERSION)
+  logger.debug('[Service Worker] Activating version', APP_VERSION)
   event.waitUntil(self.clients.claim()) // Take control immediately
 })
 
@@ -101,4 +102,4 @@ self.addEventListener('message', event => {
   }
 })
 
-console.log('[Service Worker] OpenStride SW loaded successfully')
+logger.debug('[Service Worker] OpenStride SW loaded successfully')

@@ -97,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+import { logger } from '@/utils/logger'
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DefaultProviderSetupView from '@/components/providers/DefaultProviderSetup.vue'
@@ -352,7 +353,7 @@ async function disconnectGarmin() {
     await ctx.activity.deleteActivity(activity.id)
   }
   if (garminActivities.length > 0) {
-    console.log(`[GarminSetup] Purged ${garminActivities.length} Garmin activities`)
+    logger.debug(`[GarminSetup] Purged ${garminActivities.length} Garmin activities`)
   }
 
   // Clear plugin data

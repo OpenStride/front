@@ -13,6 +13,7 @@
 </template>
 
 <script setup lang="ts">
+import { logger } from '@/utils/logger'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { ref } from 'vue'
@@ -71,12 +72,12 @@ function onFileChange(e: Event) {
       const zip = await JSZip.loadAsync(ev.target?.result as ArrayBuffer)
       // Liste les fichiers du ZIP
       const fileNames = Object.keys(zip.files)
-      console.log('Fichiers dans le ZIP:', fileNames)
+      logger.debug('Fichiers dans le ZIP:', fileNames)
       // Lire activities.csv à la racine et parser les activités
       if (zip.files['activities.csv']) {
         const csvContent = await zip.files['activities.csv'].async('string')
         const parsed = Papa.parse(csvContent, { header: true })
-        console.log('Colonnes CSV:', parsed.meta.fields)
+        logger.debug('Colonnes CSV:', parsed.meta.fields)
         // Préparer la liste des activités à importer
         const activitiesToImport: Activity[] = []
         const detailsToImport: ActivityDetails[] = []
@@ -136,7 +137,7 @@ function onFileChange(e: Event) {
               continue
             }
           } else {
-            console.log('Activité:', id, 'FIT.gz manquant')
+            logger.debug('Activité:', id, 'FIT.gz manquant')
           }
           // Fusionner les infos CSV et FIT
           const activityRaw = {

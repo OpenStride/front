@@ -1,5 +1,6 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getMessaging, type Messaging } from 'firebase/messaging'
+import { logger } from '@/utils/logger'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,7 +35,7 @@ function initializeFirebase(): { app: FirebaseApp; messaging: Messaging } | null
     if (!app) {
       app = initializeApp(firebaseConfig)
       messaging = getMessaging(app)
-      console.log('[Firebase Notifications] Initialized successfully')
+      logger.debug('[Firebase Notifications] Initialized successfully')
     }
 
     // At this point, both app and messaging are guaranteed to be non-null

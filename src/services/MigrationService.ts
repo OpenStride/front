@@ -13,6 +13,7 @@
 
 import { IndexedDBService } from './IndexedDBService'
 import { compareVersions } from '@/utils/semver'
+import { logger } from '@/utils/logger'
 
 export interface Migration {
   version: string // Target version (e.g., "0.2.0")
@@ -84,7 +85,7 @@ export class MigrationService {
     }
 
     this.migrations.push(migration)
-    console.log(
+    logger.debug(
       `[MigrationService] Registered migration: ${migration.version} - ${migration.description}`
     )
   }
@@ -105,11 +106,11 @@ export class MigrationService {
       .sort((a, b) => compareVersions(a.version, b.version))
 
     if (pending.length === 0) {
-      console.log('[MigrationService] No migrations needed')
+      logger.debug('[MigrationService] No migrations needed')
       return
     }
 
-    console.log(`[MigrationService] Running ${pending.length} migrations...`)
+    logger.debug(`[MigrationService] Running ${pending.length} migrations...`)
 
     this.emitter.dispatchEvent(
       new CustomEvent<MigrationEvent>('migration-started', {
@@ -129,7 +130,7 @@ export class MigrationService {
       const migration = pending[i]
 
       try {
-        console.log(
+        logger.debug(
           `[MigrationService] [${i + 1}/${pending.length}] Running: ${migration.version} - ${migration.description}`
         )
 
@@ -156,16 +157,16 @@ export class MigrationService {
         history.push(record)
         await db.saveData('migration_history', history)
 
-        console.log(`[MigrationService] ✅ Migration ${migration.version} completed`)
+        logger.debug(`[MigrationService] ✅ Migration ${migration.version} completed`)
       } catch (error) {
         console.error(`[MigrationService] ❌ Migration ${migration.version} failed:`, error)
 
         // Attempt rollback if defined
         if (migration.down) {
           try {
-            console.log(`[MigrationService] Attempting rollback for ${migration.version}...`)
+            logger.debug(`[MigrationService] Attempting rollback for ${migration.version}...`)
             await migration.down()
-            console.log(`[MigrationService] ⏪ Rollback successful for ${migration.version}`)
+            logger.debug(`[MigrationService] ⏪ Rollback successful for ${migration.version}`)
           } catch (rollbackError) {
             console.error(`[MigrationService] ❌ Rollback failed:`, rollbackError)
           }
@@ -217,7 +218,7 @@ export class MigrationService {
       })
     )
 
-    console.log('[MigrationService] All migrations completed')
+    logger.debug('[MigrationService] All migrations completed')
   }
 
   /**
@@ -234,7 +235,7 @@ export class MigrationService {
   public async rollback(): Promise<void> {
     const history = await this.getHistory()
     if (history.length === 0) {
-      console.log('[MigrationService] No migrations to rollback')
+      logger.debug('[MigrationService] No migrations to rollback')
       return
     }
 
@@ -249,9 +250,9 @@ export class MigrationService {
     }
 
     try {
-      console.log(`[MigrationService] Rolling back ${lastMigration.version}...`)
+      logger.debug(`[MigrationService] Rolling back ${lastMigration.version}...`)
       await migration.down()
-      console.log(`[MigrationService] ✅ Rollback successful`)
+      logger.debug(`[MigrationService] ✅ Rollback successful`)
 
       // Remove from history
       history.pop()

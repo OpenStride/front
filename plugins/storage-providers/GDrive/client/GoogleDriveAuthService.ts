@@ -2,6 +2,7 @@
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { IPluginStorageService } from '@/types/plugin-context'
 import { generateCodeChallenge, generateRandomString } from './pkceUtils'
+import { logger } from '@/utils/logger'
 
 // OAuth Client type: Web application (exige client_secret même avec PKCE)
 // Compromis serverless : secret exposé côté client mais protégé par redirect URIs
@@ -184,7 +185,7 @@ export class GoogleDriveAuthService {
 
     // Hash and base64-urlencode the secret to use as the challenge
     const code_challenge = await generateCodeChallenge(code_verifier)
-    console.log('redirect_uri', `${window.location.origin}${window.location.pathname}`)
+    logger.debug('redirect_uri', `${window.location.origin}${window.location.pathname}`)
     const url =
       AUTHORIZATION_ENDPOINT +
       '?response_type=code' +

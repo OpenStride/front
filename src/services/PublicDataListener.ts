@@ -18,6 +18,7 @@ import { debounce } from '@/utils/debounce'
 import { getPhotoService } from './PhotoService'
 import { SHARING_KEY, readSharing } from '@/types/sharing'
 import type { FriendServiceEvent } from '@/types/friend'
+import { logger } from '@/utils/logger'
 
 export class PublicDataListener {
   private static instance: PublicDataListener
@@ -73,7 +74,7 @@ export class PublicDataListener {
 
     if (preference !== null && preference !== undefined) return
 
-    console.log('[PublicDataListener] First publish, enabling auto-publish')
+    logger.debug('[PublicDataListener] First publish, enabling auto-publish')
     await this.enableAutoPublish()
   }
 
@@ -89,7 +90,7 @@ export class PublicDataListener {
     const autoPublishEnabled = await db.getData('autoPublishEnabled')
 
     if (!autoPublishEnabled) {
-      console.log('[PublicDataListener] Auto-publish disabled, not starting listener')
+      logger.debug('[PublicDataListener] Auto-publish disabled, not starting listener')
       return
     }
 
@@ -98,7 +99,7 @@ export class PublicDataListener {
     const hasSupport = await publicFileService.hasPublicFileSupport()
 
     if (!hasSupport) {
-      console.log('[PublicDataListener] No storage plugin with public file support, not starting')
+      logger.debug('[PublicDataListener] No storage plugin with public file support, not starting')
       return
     }
 
@@ -114,7 +115,7 @@ export class PublicDataListener {
       const e = evt as CustomEvent<ActivityServiceEvent>
       const { type, activity } = e.detail
 
-      console.log(`[PublicDataListener] Activity ${type}: ${activity.id}`)
+      logger.debug(`[PublicDataListener] Activity ${type}: ${activity.id}`)
 
       // Trigger debounced publish for any activity change
       if (this.debouncedPublish) {
@@ -134,20 +135,20 @@ export class PublicDataListener {
 
     // Also publish when friends list changes (following list update)
     this.friendsChangedListener = () => {
-      console.log('[PublicDataListener] Friends changed, scheduling publish')
+      logger.debug('[PublicDataListener] Friends changed, scheduling publish')
       if (this.debouncedPublish) this.debouncedPublish()
     }
     window.addEventListener('openstride:friends-changed', this.friendsChangedListener)
 
     // Also publish on manual refresh (restores pre-refactoring behavior)
     this.refreshRequestedListener = () => {
-      console.log('[PublicDataListener] Refresh requested, scheduling publish')
+      logger.debug('[PublicDataListener] Refresh requested, scheduling publish')
       if (this.debouncedPublish) this.debouncedPublish()
     }
     window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
 
     this.listening = true
-    console.log(
+    logger.debug(
       '[PublicDataListener] Started listening to ActivityService, friends-changed, and refresh-requested events'
     )
   }
@@ -173,7 +174,7 @@ export class PublicDataListener {
     }
     this.debouncedPublish = null
     this.listening = false
-    console.log('[PublicDataListener] Stopped listening')
+    logger.debug('[PublicDataListener] Stopped listening')
   }
 
   /**
@@ -183,7 +184,7 @@ export class PublicDataListener {
    */
   async publishNow(): Promise<{ success: boolean; error?: string }> {
     if (this.isPublishing) {
-      console.log('[PublicDataListener] Already publishing, skipping')
+      logger.debug('[PublicDataListener] Already publishing, skipping')
       return { success: false, error: 'Already publishing' }
     }
 
@@ -195,7 +196,7 @@ export class PublicDataListener {
       const result = await friendService.publishPublicData()
 
       if (result) {
-        console.log('[PublicDataListener] Published successfully via FriendService')
+        logger.debug('[PublicDataListener] Published successfully via FriendService')
         this.emitter.dispatchEvent(
           new CustomEvent('publish-completed', {
             detail: { manifestUrl: result }

@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { logger } from '@/utils/logger'
 import { useI18n } from 'vue-i18n'
 import { ref, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -94,7 +95,7 @@ const startScanning = async () => {
     html5QrCode = new Html5Qrcode('qr-reader')
 
     const qrCodeSuccessCallback = async (decodedText: string) => {
-      console.log('[QRScanner] Decoded:', decodedText)
+      logger.debug('[QRScanner] Decoded:', decodedText)
 
       // Stop scanning
       await stopScanning()

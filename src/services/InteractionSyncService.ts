@@ -12,6 +12,7 @@ import type {
   InteractionSyncResult,
   InteractionSyncServiceEvent
 } from '@/types/interaction'
+import { logger } from '@/utils/logger'
 
 /**
  * Service for syncing interactions with remote storage.
@@ -77,7 +78,7 @@ export class InteractionSyncService {
       const yearMap = await interactionService.getMyInteractionsByYear()
 
       if (yearMap.size === 0) {
-        console.log('[InteractionSyncService] No interactions to publish')
+        logger.debug('[InteractionSyncService] No interactions to publish')
         const result: InteractionSyncResult = {
           success: true,
           interactionsSynced: 0,
@@ -121,7 +122,7 @@ export class InteractionSyncService {
         return result
       }
 
-      console.log(
+      logger.debug(
         `[InteractionSyncService] Published ${totalInteractions} interactions across ${yearUrls.size} year files`
       )
 
@@ -304,7 +305,7 @@ export class InteractionSyncService {
         )
       }
 
-      console.log(
+      logger.debug(
         `[InteractionSyncService] Synced ${totalSynced} interactions from friend ${friendId}`
       )
 
@@ -342,7 +343,7 @@ export class InteractionSyncService {
     }
 
     const totalSynced = results.reduce((sum, r) => sum + r.interactionsSynced, 0)
-    console.log(
+    logger.debug(
       `[InteractionSyncService] Synced ${totalSynced} interactions from ${results.length} friends`
     )
 
@@ -391,7 +392,7 @@ export class InteractionSyncService {
     if (ShareUrlService.isShareUrl(url)) {
       const unwrapped = ShareUrlService.unwrapManifestUrl(url)
       if (unwrapped) {
-        console.log('[InteractionSyncService] Unwrapped share URL to:', unwrapped)
+        logger.debug('[InteractionSyncService] Unwrapped share URL to:', unwrapped)
         manifestUrl = unwrapped
       }
     }

@@ -15,6 +15,7 @@ import {
 } from '@/services/CustomAggregateService'
 import { applyConflictResolution, mergedRemote, reconcile } from '@/services/TimestampedSync'
 import { debounce } from '@/utils/debounce'
+import { logger } from '@/utils/logger'
 
 /**
  * Events emitted by SyncService
@@ -95,7 +96,7 @@ export class SyncService {
     let totalSynced = 0
 
     try {
-      console.log('[SyncService] 🔄 Starting sync...')
+      logger.debug('[SyncService] 🔄 Starting sync...')
 
       // Emit sync-started event instead of showing toast directly
       this.emitter.dispatchEvent(
@@ -146,7 +147,7 @@ export class SyncService {
 
       // Success
       if (errors.length === 0) {
-        console.log(`[SyncService] ✅ Sync complete: ${totalSynced} activities`)
+        logger.debug(`[SyncService] ✅ Sync complete: ${totalSynced} activities`)
 
         // Emit sync-completed event instead of showing toast directly
         this.emitter.dispatchEvent(
@@ -202,14 +203,14 @@ export class SyncService {
     plugin: StoragePlugin,
     opts: { force?: boolean } = {}
   ): Promise<{ activitiesSynced: number; errors: string[] }> {
-    console.log(`[SyncService] Syncing activities with ${plugin.label}`)
+    logger.debug(`[SyncService] Syncing activities with ${plugin.label}`)
     const errors: string[] = []
     const activityService = await getActivityService()
 
     try {
       // 1. Get unsynced local activities (purely local, no IO)
       const unsyncedActivities = await activityService.getUnsyncedActivities()
-      console.log(`[SyncService] Found ${unsyncedActivities.length} unsynced activities`)
+      logger.debug(`[SyncService] Found ${unsyncedActivities.length} unsynced activities`)
 
       // 1b. Change-token short-circuit: if there is nothing local to push AND the
       // remote hasn't changed since we last saw it, skip the (potentially large)
@@ -221,7 +222,7 @@ export class SyncService {
         remoteTokens &&
         !this.remoteChanged(plugin.id, remoteTokens)
       ) {
-        console.log(`[SyncService] Skip ${plugin.label}: no local changes, remote unchanged`)
+        logger.debug(`[SyncService] Skip ${plugin.label}: no local changes, remote unchanged`)
         return { activitiesSynced: 0, errors: [] }
       }
 
@@ -274,7 +275,7 @@ export class SyncService {
           if (localActivity && !localActivity.deleted) {
             try {
               await activityService.deleteActivity(id)
-              console.log(`[SyncService] Propagated remote soft-delete for ${id}`)
+              logger.debug(`[SyncService] Propagated remote soft-delete for ${id}`)
             } catch {
               // Activity may not exist locally, ignore
             }
@@ -284,7 +285,7 @@ export class SyncService {
         }
       }
 
-      console.log(
+      logger.debug(
         `[SyncService] To push: ${toPush.length}, To pull: ${toPull.length}, Conflicts: ${conflicts.length}`
       )
 
@@ -346,7 +347,7 @@ export class SyncService {
           })
         }
 
-        console.log(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)
+        logger.debug(`[SyncService] Pulled ${toPull.length} activities from ${plugin.label}`)
       }
 
       // 6b. Put back the reader's choices the pulled winners did not carry, as a
@@ -399,7 +400,7 @@ export class SyncService {
           await plugin.writeRemote('activity_details', updatedRemoteDetails)
         }
 
-        console.log(`[SyncService] Pushed ${toPush.length} activities to ${plugin.label}`)
+        logger.debug(`[SyncService] Pushed ${toPush.length} activities to ${plugin.label}`)
 
         // Mark as synced locally
         const pushedIds = toPush.map(a => a.id)
@@ -523,13 +524,13 @@ export class SyncService {
 
       if (toPull.length > 0) {
         await service.applyRemote(toPull)
-        console.log(`[SyncService] Pulled ${toPull.length} ${def.noun} rows from ${plugin.label}`)
+        logger.debug(`[SyncService] Pulled ${toPull.length} ${def.noun} rows from ${plugin.label}`)
       }
 
       if (toPush.length > 0) {
         await plugin.writeRemote(store, mergedRemote(remote, toPush))
         await service.markAsSynced(toPush.map(r => r.id))
-        console.log(`[SyncService] Pushed ${toPush.length} ${def.noun} rows to ${plugin.label}`)
+        logger.debug(`[SyncService] Pushed ${toPush.length} ${def.noun} rows to ${plugin.label}`)
       }
 
       // Re-read after any push so the baseline reflects our own write.
@@ -698,7 +699,7 @@ export class SyncService {
     this.photoUnsubscribe = getPhotoService().onChanged((_id, source) => {
       if (source === 'local' && this.debouncedSync) this.debouncedSync()
     })
-    console.log('[SyncService] Started listening to ActivityService events (debounced 5s)')
+    logger.debug('[SyncService] Started listening to ActivityService events (debounced 5s)')
   }
 
   /**
@@ -712,7 +713,7 @@ export class SyncService {
       this.photoUnsubscribe = null
       this.activityServiceListener = null
       this.debouncedSync = null
-      console.log('[SyncService] Stopped listening')
+      logger.debug('[SyncService] Stopped listening')
     }
   }
 
