@@ -15,7 +15,6 @@ export class AppExtensionPluginManager extends PluginManagerBase<ExtensionPlugin
   protected readonly defaultPlugins = [
     'standard-details',
     'aggregated-details',
-    'profile-sharing',
     'goals',
     'statistics',
     // On by default since it is where a custom aggregate becomes a curve.

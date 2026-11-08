@@ -1,7 +1,8 @@
 <template>
   <div class="profile-panel profile-friends">
-    <!-- "Being followed" belongs with "following": the sharing plugin renders
-         your own profile and QR code here -->
+    <!-- "Being followed" belongs with "following": your own public profile and
+         QR code. Part of the core, like the friends it serves -->
+    <ProfileSharing class="friends-sharing" />
     <component
       v-for="(section, i) in sharingSections"
       :is="section"
@@ -172,6 +173,7 @@ import { ref, computed, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import QRScanner from '@/components/QRScanner.vue'
+import ProfileSharing from '@/components/ProfileSharing.vue'
 import type { Friend } from '@/types/friend'
 import { formatDate, formatRelativeTime } from '@/utils/dateFormat'
 
