@@ -19,15 +19,6 @@
         />
       </div>
 
-      <!-- Like, comment, who liked: one line high on the page, the comments
-           under it when there are some -->
-      <InteractionList
-        v-if="canShowInteractions"
-        :activity-id="interactionActivityId"
-        :activity-owner-id="interactionOwnerId!"
-        :is-mutual-friend="isMutualFriend"
-      />
-
       <!-- Widgets Section (full width) -->
       <div class="widgets-container">
         <component
@@ -48,10 +39,10 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed, defineComponent, h, onMounted, provide } from 'vue'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
-import type { SlotContext } from '@/types/extension'
+import { ACTIVITY_PANEL_FOOTER, type SlotContext } from '@/types/extension'
 import InteractionList from '@/components/InteractionList.vue'
 
 const { t } = useI18n()
@@ -78,6 +69,23 @@ const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top', s
 
 const widgetSlotComponents = computed(() => widgetSlotComponentsRaw.value)
 const topSlotComponents = computed(() => topSlotComponentsRaw.value)
+
+// Like, comment, who liked: under the tiles of the first panel, which the
+// extension drawing that panel renders where it closes
+provide(
+  ACTIVITY_PANEL_FOOTER,
+  defineComponent({
+    name: 'ActivityInteractions',
+    setup: () => () =>
+      canShowInteractions.value
+        ? h(InteractionList, {
+            activityId: interactionActivityId.value,
+            activityOwnerId: interactionOwnerId.value!,
+            isMutualFriend: isMutualFriend.value
+          })
+        : null
+  })
+)
 
 onMounted(loadActivity)
 </script>

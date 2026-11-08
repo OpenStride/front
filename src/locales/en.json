@@ -846,7 +846,8 @@
     "you": "you",
     "likedByOne": "Liked by {name}",
     "likedByTwo": "Liked by {name} and {other}",
-    "likedByMany": "Liked by {name} and {n} other | Liked by {name} and {n} others"
+    "likedByMany": "Liked by {name} and {n} other | Liked by {name} and {n} others",
+    "ownLikeHint": "Your friends can like this outing"
   },
   "friendsList": {
     "empty": "No friend added",

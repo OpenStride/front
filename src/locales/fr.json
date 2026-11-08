@@ -846,7 +846,8 @@
     "you": "vous",
     "likedByOne": "Aimé par {name}",
     "likedByTwo": "Aimé par {name} et {other}",
-    "likedByMany": "Aimé par {name} et {n} autre | Aimé par {name} et {n} autres"
+    "likedByMany": "Aimé par {name} et {n} autre | Aimé par {name} et {n} autres",
+    "ownLikeHint": "Vos amis peuvent aimer cette sortie"
   },
   "friendsList": {
     "empty": "Aucun ami ajouté",

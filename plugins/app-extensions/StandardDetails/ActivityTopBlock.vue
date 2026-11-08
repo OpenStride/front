@@ -93,12 +93,15 @@
       <!-- What other extensions add to the summary — the gear an outing wore —
            closes this panel rather than opening a block of its own. -->
       <component :is="comp" v-for="(comp, i) in summary" :key="`summary-${i}`" :data="data" />
+
+      <!-- Likes and comments, lent by the page: the panel's last line -->
+      <component :is="footer" v-if="footer" />
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, inject, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import ActivityPhotos from './ActivityPhotos.vue'
@@ -110,6 +113,7 @@ import { formatClock } from '@/utils/duration'
 import { formatWeekday } from '@/utils/dateFormat'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
+import { ACTIVITY_PANEL_FOOTER } from '@/types/extension'
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { t } = useI18n()
@@ -120,6 +124,8 @@ const activity = computed(() =>
   ownTitle.value ? { ...props.data.activity, title: ownTitle.value.value } : props.data.activity
 )
 const details = computed(() => props.data.details)
+
+const footer = inject(ACTIVITY_PANEL_FOOTER, null)
 
 const { components: summary } = useSlotExtensions('activity.summary', () => ({
   activity: props.data.activity,
