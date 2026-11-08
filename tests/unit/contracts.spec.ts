@@ -316,7 +316,10 @@ describe('diagnostics go through the logger', () => {
         })
     }
     expect(offenders, `Use logger.debug():\n${offenders.join('\n')}`).toEqual([])
+  })
+})
 
+/**
  * A radius comes from the scale.
  *
  * Fifty-four hardcoded radii and thirty-three Tailwind `rounded*` classes had
