@@ -12,7 +12,6 @@ import fr from '@/locales/fr.json'
  */
 
 const state = vi.hoisted(() => ({
-  pluginEnabled: true,
   myUserId: null as string | null,
   summary: { likeCount: 0, commentCount: 0, hasLiked: false } as Record<string, unknown>
 }))
@@ -22,12 +21,6 @@ const service = vi.hoisted(() => ({
   removeLike: vi.fn(async () => {}),
   addComment: vi.fn(async () => {}),
   emitter: new EventTarget()
-}))
-
-vi.mock('@/services/AppExtensionPluginManager', () => ({
-  AppExtensionPluginManager: {
-    getInstance: () => ({ isPluginEnabled: async () => state.pluginEnabled })
-  }
 }))
 
 vi.mock('@/services/InteractionService', () => ({
@@ -41,13 +34,6 @@ vi.mock('@/services/InteractionService', () => ({
 vi.mock('@/components/MyQrCodeModal.vue', () => ({
   default: { name: 'MyQrCodeModal', props: ['isOpen'], template: '<div />' }
 }))
-
-// onMounted resolves the plugin manager through a dynamic import. Loading that
-// module for the first time costs more ticks than flushPromises() waits, so the
-// first mounts would read sharingPluginActive as false and render nothing —
-// which reads exactly like a broken mock. Warming the registry here removes the
-// race: by mount time the import resolves in a single microtask.
-await import('@/services/AppExtensionPluginManager')
 
 const InteractionBar = (await import('@/components/InteractionBar.vue')).default
 
@@ -77,17 +63,8 @@ async function mountBar(props: Props = {}, locale: 'en' | 'fr' = 'en') {
 describe('InteractionBar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    state.pluginEnabled = true
     state.myUserId = null
     state.summary = { likeCount: 0, commentCount: 0, hasLiked: false }
-  })
-
-  it('stays out of the way when profile sharing is off', async () => {
-    state.pluginEnabled = false
-
-    const wrapper = await mountBar()
-
-    expect(wrapper.find('.interaction-bar').exists()).toBe(false)
   })
 
   it('keeps the buttons pressable when the like cannot go through', async () => {
@@ -245,7 +222,6 @@ describe('InteractionBar', () => {
 describe('InteractionBar likes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    state.pluginEnabled = true
     state.myUserId = 'user_me'
     state.summary = { likeCount: 0, commentCount: 0, hasLiked: false, likers: [] }
   })
@@ -326,7 +302,6 @@ describe('InteractionBar likes', () => {
 describe('InteractionBar on the activity page (compact)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    state.pluginEnabled = true
     state.myUserId = 'user_me'
   })
 

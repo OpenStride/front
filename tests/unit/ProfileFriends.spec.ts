@@ -51,7 +51,7 @@ async function mountIn(locale: 'fr' | 'en', friends: Friend[] = FRIENDS) {
   const wrapper = mount(ProfileFriends, {
     global: {
       plugins: [i18n],
-      stubs: { QRScanner: true, MyQrCodeModal: true, RouterLink: true }
+      stubs: { QRScanner: true, MyQrCodeModal: true, RouterLink: true, ProfileSharing: true }
     }
   })
   await new Promise(r => setTimeout(r, 0))
