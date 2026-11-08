@@ -19,6 +19,16 @@
         />
       </div>
 
+      <!-- Like, comment, who liked: a card of its own, right under the first
+           panel; the comments under that line when there are some -->
+      <InteractionList
+        v-if="canShowInteractions"
+        :activity-id="interactionActivityId"
+        :activity-owner-id="interactionOwnerId!"
+        :is-mutual-friend="isMutualFriend"
+        class="interactions-card"
+      />
+
       <!-- Widgets Section (full width) -->
       <div class="widgets-container">
         <component
@@ -39,10 +49,10 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { computed, defineComponent, h, onMounted, provide } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
-import { ACTIVITY_PANEL_FOOTER, type SlotContext } from '@/types/extension'
+import type { SlotContext } from '@/types/extension'
 import InteractionList from '@/components/InteractionList.vue'
 
 const { t } = useI18n()
@@ -69,23 +79,6 @@ const { components: topSlotComponentsRaw } = useSlotExtensions('activity.top', s
 
 const widgetSlotComponents = computed(() => widgetSlotComponentsRaw.value)
 const topSlotComponents = computed(() => topSlotComponentsRaw.value)
-
-// Like, comment, who liked: under the tiles of the first panel, which the
-// extension drawing that panel renders where it closes
-provide(
-  ACTIVITY_PANEL_FOOTER,
-  defineComponent({
-    name: 'ActivityInteractions',
-    setup: () => () =>
-      canShowInteractions.value
-        ? h(InteractionList, {
-            activityId: interactionActivityId.value,
-            activityOwnerId: interactionOwnerId.value!,
-            isMutualFriend: isMutualFriend.value
-          })
-        : null
-  })
-)
 
 onMounted(loadActivity)
 </script>
@@ -118,6 +111,10 @@ onMounted(loadActivity)
 .top-container {
   display: flex;
   flex-direction: column;
+}
+
+.interactions-card {
+  margin-top: 1.5rem;
 }
 
 .widgets-container {

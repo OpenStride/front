@@ -1,15 +1,7 @@
 // types/extensionPlugin.ts
-import type { Component, InjectionKey } from 'vue'
+import type { Component } from 'vue'
 import type { PluginContext } from './plugin-context'
 import type { Activity, ActivityDetails } from './activity'
-
-/**
- * What the activity page lends the panel that opens it: its likes and
- * comments, so they close that panel rather than float under it. Provided by
- * the page, rendered by whichever extension draws the panel — which so never
- * reaches for a core component itself.
- */
-export const ACTIVITY_PANEL_FOOTER: InjectionKey<Component> = Symbol('activityPanelFooter')
 
 /** What a slot entry gets to decide whether it is worth showing. */
 export interface SlotContext {

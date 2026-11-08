@@ -1,6 +1,6 @@
 <template>
-  <!-- One line high on the page — like, comment, who liked — and the comments
-       under it when there are some. Nothing more when there are none. -->
+  <!-- One line — like, comment, who liked — and the comments under it when
+       there are some. Nothing more when there are none. -->
   <section class="interaction-list" data-test="interaction-list">
     <InteractionBar
       :activity-id="activityId"
@@ -134,8 +134,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
+  /* A card like the graphs below it: square, bordered, lightly raised */
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: var(--shadow-card);
+  padding: 1rem 1.25rem;
   color: var(--color-ink);
 }
 
@@ -150,7 +154,7 @@ onUnmounted(() => {
 
 .comment-item {
   padding: 10px 14px;
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
