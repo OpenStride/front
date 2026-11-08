@@ -154,7 +154,7 @@ export class PublicDataService {
 
     let count = 0
     for (const activity of allActivities) {
-      if (await this.isActivityPublic(activity.id)) count += 1
+      if (!activity.deleted && (await this.isActivityPublic(activity.id))) count += 1
     }
     return count
   }
@@ -166,9 +166,11 @@ export class PublicDataService {
     const db = await IndexedDBService.getInstance()
     const allActivities: Activity[] = await db.getAllData<Activity>('activities')
 
-    // Filter only public activities
+    // Filter only public activities — never a deleted one, kept locally as a
+    // tombstone for sync but gone for its owner
     const publicActivities: Activity[] = []
     for (const activity of allActivities) {
+      if (activity.deleted) continue
       const isPublic = await this.isActivityPublic(activity.id)
       if (isPublic) {
         publicActivities.push(activity)
@@ -222,8 +224,11 @@ export class PublicDataService {
     for (const yearData of yearFiles.values()) {
       totalActivities += yearData.activities.length
       for (const activity of yearData.activities) {
-        totalDistance += activity.distance
-        totalDuration += activity.duration
+        // A session with no distance (strength, yoga…) has none to add: summed
+        // as is, one undefined turned the total into NaN, published as null,
+        // and a friend adding the profile read "0 km".
+        totalDistance += Number.isFinite(activity.distance) ? activity.distance : 0
+        totalDuration += Number.isFinite(activity.duration) ? activity.duration : 0
       }
     }
 

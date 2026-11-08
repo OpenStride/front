@@ -133,12 +133,13 @@ async function saveTitle() {
 }
 
 const polyline = computed<[number, number][]>(() => {
-  // Build from samples (full local activities)
-  if (details.value?.samples?.length) {
-    return details.value.samples
-      .filter(s => typeof s.lat === 'number' && typeof s.lng === 'number')
-      .map(s => [s.lat, s.lng] as [number, number])
-  }
+  // Build from samples (full local activities). A friend's shared samples
+  // carry no position by design, so an empty result falls through to the
+  // published track instead of hiding the map.
+  const fromSamples = (details.value?.samples ?? [])
+    .filter(s => typeof s.lat === 'number' && typeof s.lng === 'number')
+    .map(s => [s.lat, s.lng] as [number, number])
+  if (fromSamples.length) return fromSamples
   // Fallback to mapPolyline (friend activities or minimal data)
   return activity.value?.mapPolyline ?? []
 })

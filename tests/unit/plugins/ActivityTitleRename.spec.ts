@@ -101,3 +101,55 @@ describe('renaming an outing', () => {
     wrapper.unmount()
   })
 })
+
+describe('the map of a friend’s outing', () => {
+  it('falls back to the published track when the shared samples carry no position', () => {
+    const wrapper = mount(ActivityTopBlock, {
+      props: {
+        data: {
+          activity: {
+            id: 'f1',
+            provider: 'friend_42',
+            type: 'running',
+            startTime: 1_700_000_000,
+            distance: 10_000,
+            duration: 3000,
+            mapPolyline: [
+              [45, 4],
+              [45.01, 4.01]
+            ],
+            version: 1,
+            lastModified: 1
+          } as Activity,
+          details: {
+            id: 'f1',
+            samples: [{ time: 0, heartRate: 140 }],
+            version: 1,
+            lastModified: 1
+          }
+        }
+      },
+      global: {
+        stubs: {
+          MapPreview: {
+            props: ['polyline'],
+            template: '<div class="map-stub">{{ polyline.length }}</div>'
+          }
+        },
+        provide: {
+          [PLUGIN_CONTEXT_KEY]: {
+            analyzer: { create: () => ({ elevationChange: () => ({ ascent: 0, descent: 0 }) }) },
+            units: {
+              get system() {
+                return unitSystem.value
+              },
+              format: formatQuantity
+            },
+            activity: {}
+          }
+        }
+      }
+    })
+    expect(wrapper.find('.map-stub').text()).toBe('2')
+  })
+})

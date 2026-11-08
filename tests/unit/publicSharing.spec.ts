@@ -90,6 +90,48 @@ describe('what a public outing carries', () => {
   })
 })
 
+describe('the published totals', () => {
+  it('adds what has a distance, without letting a session with none turn them to nothing', async () => {
+    await db.addItemsToStore(
+      'activities',
+      [
+        {
+          id: 'yoga',
+          provider: 'test',
+          type: 'yoga',
+          startTime: start + 86400,
+          duration: 1800,
+          version: 1,
+          lastModified: 1
+        },
+        {
+          id: 'gone',
+          provider: 'test',
+          type: 'running',
+          startTime: start + 2 * 86400,
+          distance: 5000,
+          duration: 1500,
+          deleted: true,
+          version: 2,
+          lastModified: 2
+        }
+      ],
+      (a: { id: string }) => a.id
+    )
+    const { manifest, yearFiles } = await publish()
+    expect(manifest.stats.totalDistance).toBe(10_000)
+    expect(manifest.stats.totalDuration).toBe(4800)
+    // A deleted outing is never published
+    expect(
+      yearFiles
+        .get(2026)!
+        .activities.map(a => a.id)
+        .sort()
+    ).toEqual(['run', 'yoga'])
+    expect(await PublicDataService.getInstance().countPublicActivities()).toBe(2)
+  })
+})
+
 describe('reading a friend’s shared details', () => {
   it('fetches the year’s file once, on opening, and picks the outing', async () => {
     await db.addItemsToStore(
