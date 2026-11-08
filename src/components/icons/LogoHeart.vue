@@ -2,7 +2,7 @@
   <svg
     class="logo-heart"
     :class="{ 'logo-heart--liked': liked, 'logo-heart--beat': beating }"
-    viewBox="55.5 148 70 73"
+    viewBox="61 148 70 73"
     aria-hidden="true"
     focusable="false"
     @animationend="beating = false"
@@ -24,18 +24,18 @@ const props = defineProps<{ liked: boolean }>()
 /**
  * The logo's outline, in one piece: its leaf and its shield joined, the pulse
  * between them filled in. Taken from src/assets/logo.svg (its layer's local
- * coordinates): the tail on the left, the slanted cut, the point below.
+ * coordinates): the slanted cut, the point below — without the pulse's tail
+ * on the left, a speck at the size of a button.
  */
 const OUTLINE =
-  'M 58.643,185.458 L 66.598,185.03 L 66.598,182.05 ' +
+  'M 66.598,182.05 ' +
   'C 66.78,174.512 73.633,166.567 73.633,166.56 ' +
   'C 73.633,166.56 97.538,180.745 111.467,151.421 ' +
   'C 117.717,154.145 119.219,155.066 123.334,157.301 ' +
   'C 126.147,165.173 124.563,172.718 123.158,178.827 ' +
   'L 122.782,181.888 ' +
   'C 116.79,207.178 93.072,218.571 93.072,218.571 ' +
-  'C 93.072,218.571 67.06,206.759 66.689,186.779 ' +
-  'C 64.087,186.344 58.643,185.458 58.643,185.458 Z'
+  'C 93.072,218.571 67.06,206.759 66.689,186.779 Z'
 
 /** One beat when a like is given — not when the page opens on one already given. */
 const beating = ref(false)
