@@ -1,4 +1,5 @@
 import type { Component } from 'vue'
+import type { PluginRoute } from './pluginRoute'
 import type { PluginContext } from './plugin-context'
 
 export interface ProviderPlugin {
@@ -23,5 +24,12 @@ export interface ProviderPlugin {
   refreshData?: () => Promise<unknown>
   /** If provided, the plugin is only visible when this returns true (e.g. native-only plugins). */
   available?: () => boolean
+  /**
+   * Optional: pages this plugin needs at a fixed address, typically the OAuth
+   * callback its provider redirects to. Unlike an extension's routes they are
+   * reachable whether the plugin is enabled or not: the callback arrives while
+   * the plugin is being connected.
+   */
+  routes?: PluginRoute[]
   context?: PluginContext
 }

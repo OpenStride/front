@@ -72,7 +72,6 @@ import { ref, watch, shallowRef, onMounted, onUnmounted, type Component as VueCo
 import { useI18n } from 'vue-i18n'
 import { allStoragePlugins } from '@/services/StoragePluginRegistry'
 import { StoragePluginManager } from '@/services/StoragePluginManager'
-import { IndexedDBService } from '@/services/IndexedDBService'
 
 const { t } = useI18n()
 
@@ -100,12 +99,8 @@ watch(selectedStorageId, async id => {
       await manager.enablePlugin(id)
       emit('storageSelected', id)
 
-      // Vérifier si déjà connecté (tokens existants)
-      const db = await IndexedDBService.getInstance()
-      const token = await db.getData('gdrive_access_token')
-      if (token) {
-        isConnected.value = true
-      }
+      // Already connected? The plugin knows, the core does not hold its tokens
+      if (await isPluginConnected(id)) isConnected.value = true
     }
   } else {
     setupComponent.value = null
@@ -138,9 +133,7 @@ function startConnectionPolling() {
   if (checkInterval) return
 
   checkInterval = setInterval(async () => {
-    const db = await IndexedDBService.getInstance()
-    const token = await db.getData('gdrive_access_token')
-    if (token) {
+    if (selectedStorageId.value && (await isPluginConnected(selectedStorageId.value))) {
       isConnected.value = true
       stopConnectionPolling()
     }
@@ -152,6 +145,11 @@ function stopConnectionPolling() {
     clearInterval(checkInterval)
     checkInterval = null
   }
+}
+
+async function isPluginConnected(id: string): Promise<boolean> {
+  const plugin = allStoragePlugins.find(p => p.id === id)
+  return (await plugin?.isConnected?.()) ?? false
 }
 
 function selectStorage(id: string) {

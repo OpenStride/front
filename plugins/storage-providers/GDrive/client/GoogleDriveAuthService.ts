@@ -44,6 +44,14 @@ export class GoogleDriveAuthService {
     this.dbService = ctx.storage
   }
 
+  /** Whether a sign-in left tokens behind; no network call. */
+  async hasTokens(): Promise<boolean> {
+    if (!this.dbService) return false
+    const token = await this.dbService.getData<string>('gdrive_access_token')
+    const refresh = await this.dbService.getData<string>('gdrive_refresh_token')
+    return Boolean(token || refresh)
+  }
+
   async getAccessToken(): Promise<string | null> {
     if (!this.dbService) return null
 

@@ -85,12 +85,12 @@ doors") holds this boundary in both directions.
 
 **A plugin may import from the core:**
 
-| | |
-| --- | --- |
-| `@/composables/usePluginContext` (components), `@/services/PluginContextFactory` (other code) | The services, through the context |
-| `@/types/*`, `@/utils/*` | Types and pure helpers |
-| `@/composables/*` | The public composables (`useUnits`, `useActivityMetricsIndex`, `useSlotExtensions`…) |
-| `MapPreview`, `MyQrCodeModal`, `providers/DefaultProviderSetup` | The UI kit: core components a plugin may reuse |
+|                                                                                               |                                                                                      |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `@/composables/usePluginContext` (components), `@/services/PluginContextFactory` (other code) | The services, through the context                                                    |
+| `@/types/*`, `@/utils/*`                                                                      | Types and pure helpers                                                               |
+| `@/composables/*`                                                                             | The public composables (`useUnits`, `useActivityMetricsIndex`, `useSlotExtensions`…) |
+| `MapPreview`, `MyQrCodeModal`, `providers/DefaultProviderSetup`                               | The UI kit: core components a plugin may reuse                                       |
 
 Nothing else from `@/services/`, `@/components/`, `@/views/` or `@/router/`. A type
 a plugin needs lives in `src/types`, not in a service file. A component that
@@ -529,6 +529,35 @@ export default {
 ```
 
 **Note:** Storage plugins should use `PluginContext` for all service access, same as other plugin types.
+
+### Sign-in: callbacks and connection state
+
+A provider that signs in through OAuth owns the whole round trip. The core
+holds no callback page, and it never reads a token.
+
+- **The callback page** belongs to the plugin, declared in `routes`. A data or
+  storage plugin's routes are reachable **whether it is enabled or not**,
+  because the provider redirects back while the plugin is still being
+  connected. The path is the one registered with the provider: changing it
+  there and here is one change.
+
+  ```typescript
+  routes: [
+    {
+      path: '/oauth/my-provider/callback',
+      name: 'MyProviderOAuthCallback',
+      component: async () => (await import('./OAuthCallback.vue')).default
+    }
+  ]
+  ```
+
+  A plugin can also redirect back to its own setup page
+  (`/storage-provider/<id>` or `/data-provider/<id>`) and read the `code` there,
+  as Google Drive does. It then needs no route at all.
+
+- **Connection state:** a storage plugin answers `isConnected()`. The
+  onboarding asks it after the sign-in, instead of guessing which setting
+  holds the token. A plugin without it counts as not connected.
 
 ### App Extension Plugin
 

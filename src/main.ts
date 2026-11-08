@@ -93,6 +93,9 @@ async function bootstrap() {
   // 5. Register plugin routes (each gated on its plugin still being enabled)
   const { registerPluginRoutes } = await import('@/services/ExtensionPluginRegistry')
   registerPluginRoutes(router)
+  // Data and storage plugins' pages (OAuth callbacks), reachable enabled or not
+  const { registerConnectorRoutes } = await import('@/services/ConnectorRoutes')
+  registerConnectorRoutes(router)
 
   // 6. Create PluginContext for dependency injection
   const pluginContext = await createPluginContext()

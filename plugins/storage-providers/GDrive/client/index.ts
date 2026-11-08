@@ -2,6 +2,7 @@
 import type { StoragePlugin } from '@/types/storage'
 import { readRemote, writeRemote } from './GoogleDriveSync'
 import { GoogleDriveFileService } from './GoogleDriveFileService'
+import { GoogleDriveAuthService } from './GoogleDriveAuthService'
 
 const GDriveBackupPlugin: StoragePlugin = {
   id: 'gdrive',
@@ -11,6 +12,11 @@ const GDriveBackupPlugin: StoragePlugin = {
   readRemote: readRemote,
   writeRemote: writeRemote,
   icon: new URL('../assets/logo.png', import.meta.url).href,
+
+  async isConnected(): Promise<boolean> {
+    const auth = await GoogleDriveAuthService.getInstance()
+    return auth.hasTokens()
+  },
 
   // Cheap remote-change detection (no content download) so SyncService can skip
   // full reads when the remote backup file is unchanged. Prefers the Drive

@@ -742,10 +742,6 @@
     "movedHelp": "Vous suivez déjà {name}. Son profil a changé d'adresse — mettez le lien à jour pour continuer à recevoir ses activités.",
     "updateLink": "Mettre à jour le lien"
   },
-  "callback": {
-    "connecting": "Connexion en cours...",
-    "error": "Erreur"
-  },
   "setup": {
     "providerNotFound": "Fournisseur introuvable."
   },

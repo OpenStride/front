@@ -7,8 +7,6 @@ import LandingPage from '@/views/LandingPage.vue'
 import OnboardingFlow from '@/views/onboarding/OnboardingFlow.vue'
 import LegalPage from '@/views/LegalPage.vue'
 import CGUPage from '@/views/CGUPage.vue'
-import Callback from '@/views/Callback.vue'
-import GarminOAuthCallback from '@/views/GarminOAuthCallback.vue'
 import AddFriendPage from '@/views/AddFriendPage.vue'
 import { getActivityService } from '@/services/ActivityService'
 import { IndexedDBService } from '@/services/IndexedDBService'
@@ -19,12 +17,6 @@ const routes = [
   { path: '/onboarding', component: OnboardingFlow },
   { path: '/legal', component: LegalPage },
   { path: '/cgu', component: CGUPage },
-  { path: '/callback', component: Callback },
-  {
-    path: '/oauth/garmin/callback',
-    name: 'GarminOAuthCallback',
-    component: GarminOAuthCallback
-  },
   {
     path: '/add-friend',
     name: 'AddFriend',
