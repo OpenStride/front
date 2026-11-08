@@ -19,6 +19,15 @@
         />
       </div>
 
+      <!-- Like, comment, who liked: one line high on the page, the comments
+           under it when there are some -->
+      <InteractionList
+        v-if="canShowInteractions"
+        :activity-id="interactionActivityId"
+        :activity-owner-id="interactionOwnerId!"
+        :is-mutual-friend="isMutualFriend"
+      />
+
       <!-- Widgets Section (full width) -->
       <div class="widgets-container">
         <component
@@ -30,14 +39,6 @@
         />
       </div>
       <!-- End of Widgets Section -->
-
-      <!-- Interactions Section (friend and own activities) -->
-      <InteractionList
-        v-if="canShowInteractions"
-        :activity-id="interactionActivityId"
-        :activity-owner-id="interactionOwnerId!"
-        :is-mutual-friend="isMutualFriend"
-      />
     </div>
     <div v-else>
       <p>{{ t('activityDetailPage.notFound') }}</p>

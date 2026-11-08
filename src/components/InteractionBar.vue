@@ -2,17 +2,25 @@
   <div
     v-if="
       sharingPluginActive &&
-      (!isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
+      (compact
+        ? !isMyActivity || summary.likeCount > 0 || summary.commentCount > 0
+        : !isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
+    :class="{ 'interaction-bar--compact': compact }"
   >
     <!-- Counters: a card's summary. Under the thread they would repeat its headings. -->
     <div v-if="!inThread" class="interaction-counters">
-      <span v-if="summary.likeCount > 0" class="counter like-counter" data-test="liked-by">
+      <span
+        v-if="summary.likeCount > 0"
+        class="counter like-counter"
+        :title="allLikers"
+        data-test="liked-by"
+      >
         <LogoHeart :liked="true" />
         <span class="liked-by">{{ likedBy }}</span>
       </span>
-      <span v-if="summary.commentCount > 0" class="counter comment-counter">
+      <span v-if="summary.commentCount > 0 && !compact" class="counter comment-counter">
         <i class="fas fa-comment" aria-hidden="true"></i>
         {{ summary.commentCount }}
       </span>
@@ -32,7 +40,9 @@
     </div>
 
     <div v-if="!isMyActivity" class="interaction-actions">
+      <!-- Under the thread, the like is already offered at the top of the page -->
       <button
+        v-if="!inThread"
         @click="toggleLike"
         :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
         :aria-pressed="summary.hasLiked"
@@ -57,7 +67,7 @@
     </div>
 
     <!-- Last comment preview -->
-    <div v-if="summary.lastComment && !inThread" class="last-comment-preview">
+    <div v-if="summary.lastComment && !inThread && !compact" class="last-comment-preview">
       <span class="comment-author">{{ summary.lastComment.authorUsername }}</span>
       <span class="comment-text">{{ truncateText(summary.lastComment.text || '', 80) }}</span>
     </div>
@@ -138,6 +148,11 @@ const props = defineProps<{
    * preview would show again what the thread right above already lists.
    */
   inThread?: boolean
+  /**
+   * One line on the activity page: the buttons and who liked. The comments are
+   * listed right under it by the thread, so no count and no preview here.
+   */
+  compact?: boolean
 }>()
 
 const interactionService = getInteractionService()
@@ -274,6 +289,13 @@ const toggleLike = async () => {
   }
 }
 
+/** Every name, for the line's tooltip: the line itself names one. */
+const allLikers = computed(() =>
+  (summary.value.likers ?? [])
+    .map(l => (l.authorId === myUserId.value ? t('interactions.you') : l.username))
+    .join(', ')
+)
+
 /**
  * "Liked by Alex", "by Alex and Sam", "by Alex and 3 others" — the reader
  * first when they are among them, as "you".
@@ -347,6 +369,27 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* One line: the buttons, then who liked; the rest wraps under it */
+.interaction-bar--compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 10px;
+  padding: 0;
+}
+.interaction-bar--compact .interaction-counters {
+  order: 2;
+}
+.interaction-bar--compact .interaction-actions {
+  order: 1;
+}
+.interaction-bar--compact .comment-input-section,
+.interaction-bar--compact .blocked {
+  order: 3;
+  flex-basis: 100%;
 }
 
 .interaction-counters {
