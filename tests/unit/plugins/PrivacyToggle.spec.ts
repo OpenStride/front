@@ -77,11 +77,12 @@ describe('PrivacyToggle.vue', () => {
 
     // Component should render
     expect(wrapper.vm).toBeDefined()
-    expect(wrapper.find('.privacy-toggle-container').exists()).toBe(true)
+    expect(wrapper.find('[data-test="privacy-toggle"]').exists()).toBe(true)
 
-    // Should show privacy card
-    expect(wrapper.find('.privacy-card').exists()).toBe(true)
-    expect(wrapper.find('.privacy-title').text()).toBe(en.privacy.title)
+    // One line: a switch named for what it does, no card
+    const sw = wrapper.find('[data-test="privacy-switch"]')
+    expect(sw.attributes('role')).toBe('switch')
+    expect(sw.attributes('aria-label')).toBe(en.privacy.title)
   })
 
   it('handles undefined activity gracefully', () => {
@@ -97,7 +98,7 @@ describe('PrivacyToggle.vue', () => {
 
     // Should not crash, but should not render
     expect(wrapper.vm).toBeDefined()
-    expect(wrapper.find('.privacy-toggle-container').exists()).toBe(false)
+    expect(wrapper.find('[data-test="privacy-toggle"]').exists()).toBe(false)
   })
 
   it('handles activity with no id', () => {
@@ -118,7 +119,7 @@ describe('PrivacyToggle.vue', () => {
 
     // Should not crash, but should not render
     expect(wrapper.vm).toBeDefined()
-    expect(wrapper.find('.privacy-toggle-container').exists()).toBe(false)
+    expect(wrapper.find('[data-test="privacy-toggle"]').exists()).toBe(false)
   })
 
   it('loads privacy settings on mount', async () => {
@@ -167,9 +168,10 @@ describe('PrivacyToggle.vue', () => {
     await wrapper.vm.$nextTick()
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Should display public icon
-    expect(wrapper.find('.fa-globe').exists()).toBe(true)
+    // Friends' icon, switch on
+    expect(wrapper.find('.fa-user-group').exists()).toBe(true)
     expect(wrapper.find('.fa-lock').exists()).toBe(false)
+    expect(wrapper.find('[data-test="privacy-switch"]').attributes('aria-checked')).toBe('true')
 
     // Should display public text
     expect(wrapper.text()).toContain(en.privacy.isPublic)
@@ -213,7 +215,7 @@ describe('PrivacyToggle.vue', () => {
     await wrapper.vm.$nextTick()
 
     // Click toggle button
-    const toggleBtn = wrapper.find('.toggle-btn')
+    const toggleBtn = wrapper.find('[data-test="privacy-switch"]')
     await toggleBtn.trigger('click')
 
     // Wait for async operations
@@ -240,7 +242,7 @@ describe('PrivacyToggle.vue', () => {
 
     // Component should be mounted without errors
     expect(wrapper.vm).toBeDefined()
-    expect(wrapper.find('.privacy-toggle-container').exists()).toBe(true)
+    expect(wrapper.find('[data-test="privacy-toggle"]').exists()).toBe(true)
 
     // Unmount should not throw
     expect(() => wrapper.unmount()).not.toThrow()

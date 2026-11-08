@@ -43,7 +43,7 @@ export class PublicDataPublisher {
       const publicFileService = PublicFileService.getInstance()
       const db = await IndexedDBService.getInstance()
 
-      const { manifest, yearFiles } = await publicDataService.generateAllPublicData()
+      const { manifest, yearFiles, detailFiles } = await publicDataService.generateAllPublicData()
 
       const yearUrls = new Map<number, string>()
       const uploadErrors: string[] = []
@@ -76,11 +76,39 @@ export class PublicDataPublisher {
         return null
       }
 
+      // What the reader chose to share beyond the summary, beside each year
+      const detailUrls = new Map<number, string>()
+      for (const [year, details] of detailFiles.entries()) {
+        const url = await publicFileService.writePublicFile(
+          `activity-details-${year}.json`,
+          details
+        )
+        if (!url) {
+          uploadErrors.push(`${year}`)
+          continue
+        }
+        detailUrls.set(year, url)
+        const fileId = publicFileService.extractFileIdFromUrl(url)
+        if (fileId) uploadedFileIds.push(fileId)
+      }
+      if (uploadErrors.length > 0) {
+        this.emitEvent({
+          type: 'publish-error',
+          messageKey: 'friendEvents.publishYearsFailed',
+          messageParams: { years: uploadErrors.join(', ') },
+          messageType: 'error'
+        })
+        await this.rollbackUploadedFiles(publicFileService, uploadedFileIds)
+        return null
+      }
+
       for (const yearEntry of manifest.availableYears) {
         const url = yearUrls.get(yearEntry.year)
         if (url) {
           yearEntry.fileUrl = url
         }
+        const detailsUrl = detailUrls.get(yearEntry.year)
+        if (detailsUrl) yearEntry.detailsUrl = detailsUrl
       }
 
       const interactionSyncService = getInteractionSyncService()

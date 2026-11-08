@@ -51,6 +51,12 @@ export interface PublicManifest {
     fileUrl: string // Public URL for activities-YYYY.json
     activityCount: number
     lastModified: number
+    /**
+     * Public URL for activity-details-YYYY.json: the figures and charts the
+     * owner chose to share (see `SharingSettings`). Fetched only when a friend
+     * opens one of these outings; absent when nothing beyond the summary is shared.
+     */
+    detailsUrl?: string
   }>
   // Interaction years (likes/comments)
   availableInteractionYears?: Array<{
@@ -74,6 +80,18 @@ export interface PublicActivity {
   title?: string
   mapPolyline?: [number, number][] // reduced GPS track
   // NO: detailed samples, heart rate zones, laps, cadence details
+}
+
+/** What one outing shares beyond its summary, per the owner's sharing settings. */
+export interface PublicActivityDetails {
+  stats?: NonNullable<import('./activity').ActivityDetails['stats']>
+  samples?: import('./activity').Sample[]
+}
+
+/** activity-details-YYYY.json */
+export interface YearActivityDetails {
+  year: number
+  activities: Record<string, PublicActivityDetails>
 }
 
 export interface YearActivities {

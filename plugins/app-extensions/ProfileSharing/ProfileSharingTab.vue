@@ -94,6 +94,34 @@
       <p class="card__hint">{{ t('profile.privacyHint') }}</p>
     </div>
 
+    <!-- What a public outing carries. Sport, date, distance and duration always
+         go: a friend's feed card is built from them. The rest is the reader's call. -->
+    <div class="card" data-test="sharing-settings">
+      <p class="card__label">{{ t('sharing.heading') }}</p>
+      <p class="card__hint">{{ t('sharing.lead') }}</p>
+      <label v-for="key in SWITCHES" :key="key" class="toggle">
+        <input
+          type="checkbox"
+          :checked="sharing[key]"
+          :data-test="`share-${key}`"
+          @change="setSwitch(key, ($event.target as HTMLInputElement).checked)"
+        />
+        <span class="toggle__label">{{ t(`sharing.${key}`) }}</span>
+      </label>
+
+      <p class="card__label card__label--sub">{{ t('sharing.charts') }}</p>
+      <label v-for="chart in SHARED_CHARTS" :key="chart" class="toggle">
+        <input
+          type="checkbox"
+          :checked="sharing.charts.includes(chart)"
+          :data-test="`share-chart-${chart}`"
+          @change="setChart(chart, ($event.target as HTMLInputElement).checked)"
+        />
+        <span class="toggle__label">{{ t(`sharing.chart.${chart}`) }}</span>
+      </label>
+      <p class="card__hint">{{ t('sharing.chartsHint') }}</p>
+    </div>
+
     <MyQrCodeModal :is-open="qrOpen" @close="qrOpen = false" />
   </section>
 </template>
@@ -103,6 +131,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
 import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
+import {
+  DEFAULT_SHARING,
+  SHARED_CHARTS,
+  SHARING_KEY,
+  readSharing,
+  type SharedChart,
+  type SharingSettings
+} from '@/types/sharing'
 
 const { t } = useI18n()
 const { storage, notifications, friends } = usePluginContext()
@@ -131,8 +167,41 @@ const loadSummary = async () => {
   summary.value = await friends.getPublicSummary()
 }
 
+// ── What friends see ────────────────────────────────────────────────────────
+type Switch = 'map' | 'title' | 'time' | 'figures'
+const SWITCHES: Switch[] = ['map', 'title', 'time', 'figures']
+const sharing = ref<SharingSettings>({ ...DEFAULT_SHARING })
+
+let republishTimer: ReturnType<typeof setTimeout> | undefined
+
+/**
+ * Saved at once; the published copy follows a moment later, once a run of
+ * clicks has settled, so friends never keep seeing what was just withdrawn.
+ */
+async function saveSharing(next: SharingSettings) {
+  sharing.value = next
+  await storage.saveData(SHARING_KEY, next)
+  if (!publicUrl.value) return
+  clearTimeout(republishTimer)
+  republishTimer = setTimeout(() => {
+    void friends.publishPublicData().catch(() => undefined)
+  }, 1500)
+}
+
+const setSwitch = (key: Switch, on: boolean) => saveSharing({ ...sharing.value, [key]: on })
+
+const setChart = (chart: SharedChart, on: boolean) =>
+  saveSharing({
+    ...sharing.value,
+    charts: on
+      ? [...new Set([...sharing.value.charts, chart])]
+      : sharing.value.charts.filter(c => c !== chart)
+  })
+
 // Toasts for friend events are raised once by the app layout — not here
 onMounted(async () => {
+  sharing.value = readSharing(await storage.getData(SHARING_KEY))
+
   // Load privacy settings
   const privacySetting = await storage.getData<string>('defaultPrivacy')
   defaultPrivacy.value = (privacySetting as 'public' | 'private') || 'private'
@@ -265,6 +334,10 @@ const toggleAutoPublish = async (event: Event) => {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-ink);
+}
+
+.card__label--sub {
+  margin-top: 0.5rem;
 }
 
 .card__hint {

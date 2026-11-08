@@ -768,8 +768,8 @@
   },
   "privacy": {
     "title": "Privacy",
-    "isPublic": "This activity is public",
-    "isPrivate": "This activity is private",
+    "isPublic": "Visible to your friends",
+    "isPrivate": "Private",
     "public": "Public",
     "private": "Private",
     "nowPublic": "Activity made public",
@@ -1259,5 +1259,20 @@
       "apply": "Apply | Apply to {n} outing | Apply to {n} outings",
       "done": "No outing changed | {n} outing changed | {n} outings changed"
     }
+  },
+  "sharing": {
+    "lead": "For your public outings. Sport, date, distance and duration are always visible.",
+    "map": "GPS track",
+    "time": "Start time (otherwise, the day only)",
+    "figures": "Figures: climb, heart rate, calories, max speed",
+    "charts": "Charts",
+    "chartsHint": "Sent lightened (400 points at most per outing), and loaded only when a friend opens the outing.",
+    "chart": {
+      "pace": "Pace, speed and elevation",
+      "heartRate": "Heart rate and zones",
+      "cadence": "Cadence"
+    },
+    "heading": "What your friends see",
+    "title": "Outing title"
   }
 }

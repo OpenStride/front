@@ -6,6 +6,7 @@ import { IndexedDBService } from '@/services/IndexedDBService'
 import { Activity, ActivityDetails, Sample } from '@/types/activity'
 import type { Friend } from '@/types/friend'
 import { ActivityAnalyzer } from '@/services/ActivityAnalyzer'
+import { FriendSyncService } from '@/services/FriendSyncService'
 
 export function useActivityDetails() {
   const route = useRoute()
@@ -83,6 +84,19 @@ export function useActivityDetails() {
           version: 1,
           lastModified: Date.now()
         } as ActivityDetails
+
+        // What the friend shares beyond the summary (figures, chart samples),
+        // fetched now that the outing is opened. Absent, the page shows the summary.
+        const shared = await FriendSyncService.getInstance()
+          .getFriendActivityDetails(queryFriendId, friendActivity.year, friendActivity.activityId)
+          .catch(() => null)
+        if (shared) {
+          activityDetails.value = {
+            ...activityDetails.value,
+            stats: shared.stats,
+            samples: shared.samples ?? []
+          }
+        }
 
         isFriendActivity.value = true
         friendUsername.value = friendActivity.friendUsername
