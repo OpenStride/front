@@ -11,6 +11,8 @@
  */
 
 import { StoragePluginManager } from './StoragePluginManager'
+import { IndexedDBService } from './IndexedDBService'
+import { OWNER_SHARE_KEY, sealJson } from '@/utils/publicCrypto'
 import type { StoragePlugin } from '@/types/storage'
 
 /**
@@ -72,7 +74,18 @@ export class PublicFileService {
       return null
     }
 
-    return await plugin.writePublicFile(filename, content)
+    // Sealed when the reader has a share key: the link alone then reveals
+    // nothing (see `publicCrypto`). Without one, as published before.
+    const db = await IndexedDBService.getInstance()
+    const key = await db.getData<string>(OWNER_SHARE_KEY)
+    return await plugin.writePublicFile(filename, key ? await sealJson(content, key) : content)
+  }
+
+  /** Delete every public file, where the provider can. */
+  public async clearPublicFiles(): Promise<boolean> {
+    const plugin = await this.getPublicFilePlugin()
+    if (!plugin?.clearPublicFiles) return false
+    return await plugin.clearPublicFiles()
   }
 
   /**

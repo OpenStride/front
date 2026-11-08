@@ -12,6 +12,11 @@ export interface Friend {
   lastSyncTime?: number | null // last sync timestamp
   fullySynced?: boolean // true if all years have been synced
   followsMe?: boolean // true if this friend has us in their "following" list (mutual friendship)
+  /**
+   * The key their public files are sealed with, from the `#k=` of the link they
+   * shared. Absent for a profile published unsealed (before encryption existed).
+   */
+  shareKey?: string
 }
 
 export interface FriendActivity {

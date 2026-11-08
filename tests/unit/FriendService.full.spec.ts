@@ -104,7 +104,8 @@ vi.mock('@/services/ShareUrlService', () => ({
       const match = url.match(/url=([^&]+)/)
       return match ? decodeURIComponent(match[1]) : null
     },
-    isShareUrl: (url: string) => url.includes('add-friend?url=')
+    isShareUrl: (url: string) => url.includes('add-friend?url='),
+    keyOf: () => undefined
   }
 }))
 
@@ -138,7 +139,9 @@ vi.mock('@/services/InteractionService', () => ({
 // Mock crypto.subtle for generateFriendId
 const mockDigest = vi.fn().mockResolvedValue(new Uint8Array(32).buffer)
 vi.stubGlobal('crypto', {
-  subtle: { digest: mockDigest }
+  subtle: { digest: mockDigest },
+  // A first publication draws its share key
+  getRandomValues: <T extends Uint8Array>(bytes: T) => bytes
 })
 
 import { FriendService } from '@/services/FriendService'
