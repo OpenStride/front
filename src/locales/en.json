@@ -1280,6 +1280,9 @@
       "cadence": "Cadence"
     },
     "heading": "What your friends see",
-    "title": "Outing title"
+    "title": "Outing title",
+    "zone": "Hide the start and finish of the track:",
+    "zoneNone": "no",
+    "zoneMetres": "{m} m"
   }
 }

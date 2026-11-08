@@ -99,15 +99,31 @@
     <div class="card" data-test="sharing-settings">
       <p class="card__label">{{ t('sharing.heading') }}</p>
       <p class="card__hint">{{ t('sharing.lead') }}</p>
-      <label v-for="key in SWITCHES" :key="key" class="toggle">
-        <input
-          type="checkbox"
-          :checked="sharing[key]"
-          :data-test="`share-${key}`"
-          @change="setSwitch(key, ($event.target as HTMLInputElement).checked)"
-        />
-        <span class="toggle__label">{{ t(`sharing.${key}`) }}</span>
-      </label>
+      <template v-for="key in SWITCHES" :key="key">
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="sharing[key]"
+            :data-test="`share-${key}`"
+            @change="setSwitch(key, ($event.target as HTMLInputElement).checked)"
+          />
+          <span class="toggle__label">{{ t(`sharing.${key}`) }}</span>
+        </label>
+        <!-- Under the track: how much of each end stays home -->
+        <label v-if="key === 'map' && sharing.map" class="zone" data-test="privacy-zone">
+          <span class="card__hint">{{ t('sharing.zone') }}</span>
+          <select
+            class="select select--inline"
+            :value="sharing.privacyZone"
+            data-test="privacy-zone-select"
+            @change="setZone(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option v-for="m in PRIVACY_ZONES" :key="m" :value="m">
+              {{ m === 0 ? t('sharing.zoneNone') : t('sharing.zoneMetres', { m }) }}
+            </option>
+          </select>
+        </label>
+      </template>
 
       <p class="card__label card__label--sub">{{ t('sharing.charts') }}</p>
       <label v-for="chart in SHARED_CHARTS" :key="chart" class="toggle">
@@ -133,6 +149,7 @@ import { usePluginContext } from '@/composables/usePluginContext'
 import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import {
   DEFAULT_SHARING,
+  PRIVACY_ZONES,
   SHARED_CHARTS,
   SHARING_KEY,
   readSharing,
@@ -189,6 +206,8 @@ async function saveSharing(next: SharingSettings) {
 }
 
 const setSwitch = (key: Switch, on: boolean) => saveSharing({ ...sharing.value, [key]: on })
+
+const setZone = (metres: number) => saveSharing({ ...sharing.value, privacyZone: metres })
 
 const setChart = (chart: SharedChart, on: boolean) =>
   saveSharing({
@@ -334,6 +353,18 @@ const toggleAutoPublish = async (event: Event) => {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-ink);
+}
+
+.zone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1.6875rem;
+}
+
+.select.select--inline {
+  width: auto;
+  padding: 0.375rem 0.5rem;
 }
 
 .card__label--sub {

@@ -25,6 +25,11 @@ export const CHART_FIELDS: Record<SharedChart, (keyof Sample)[]> = {
 export interface SharingSettings {
   /** The GPS track. */
   map: boolean
+  /**
+   * Metres of track withheld at each end, so the start and finish — home, most
+   * often — do not travel with it. 0 shares the whole track.
+   */
+  privacyZone: number
   title: boolean
   /** Exact start time; off, the outing is placed at noon of its day. */
   time: boolean
@@ -36,11 +41,15 @@ export interface SharingSettings {
 /** As before these settings existed: nothing more than was already published. */
 export const DEFAULT_SHARING: SharingSettings = {
   map: true,
+  privacyZone: 0,
   title: true,
   time: true,
   figures: false,
   charts: []
 }
+
+/** The choices offered, in metres. */
+export const PRIVACY_ZONES = [0, 200, 500, 1000]
 
 /** Settings key. Replicated with the other settings: it is a preference. */
 export const SHARING_KEY = 'sharingSettings'
@@ -61,6 +70,9 @@ export function readSharing(stored: unknown): SharingSettings {
   const s = (stored && typeof stored === 'object' ? stored : {}) as Partial<SharingSettings>
   return {
     map: s.map ?? DEFAULT_SHARING.map,
+    privacyZone: PRIVACY_ZONES.includes(s.privacyZone as number)
+      ? (s.privacyZone as number)
+      : DEFAULT_SHARING.privacyZone,
     title: s.title ?? DEFAULT_SHARING.title,
     time: s.time ?? DEFAULT_SHARING.time,
     figures: s.figures ?? DEFAULT_SHARING.figures,
@@ -96,4 +108,34 @@ export function shareSamples(samples: Sample[], charts: SharedChart[]): Sample[]
     out.push(point)
   }
   return out
+}
+
+/** Metres between two [lat, lng] points (haversine). */
+function metresBetween(a: [number, number], b: [number, number]): number {
+  const R = 6_371_000
+  const rad = (d: number) => (d * Math.PI) / 180
+  const dLat = rad(b[0] - a[0])
+  const dLng = rad(b[1] - a[1])
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+/**
+ * The track without its first and last `zone` metres, measured along it: the
+ * part that leads to a door. A track too short to keep anything between the two
+ * zones is not shared at all — what would remain would point straight at both.
+ */
+export function trimTrack(
+  track: [number, number][] | undefined,
+  zone: number
+): [number, number][] | undefined {
+  if (!track || track.length < 2 || zone <= 0) return track
+  const along: number[] = [0]
+  for (let i = 1; i < track.length; i++)
+    along.push(along[i - 1] + metresBetween(track[i - 1], track[i]))
+  const total = along[along.length - 1]
+  if (total <= 2 * zone) return undefined
+  const kept = track.filter((_, i) => along[i] >= zone && along[i] <= total - zone)
+  return kept.length >= 2 ? kept : undefined
 }

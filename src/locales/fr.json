@@ -1280,6 +1280,9 @@
       "cadence": "Cadence"
     },
     "heading": "Ce que voient vos amis",
-    "title": "Titre de la sortie"
+    "title": "Titre de la sortie",
+    "zone": "Masquer le début et la fin du tracé :",
+    "zoneNone": "non",
+    "zoneMetres": "{m} m"
   }
 }

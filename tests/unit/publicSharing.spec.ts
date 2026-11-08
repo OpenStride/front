@@ -72,6 +72,14 @@ describe('what a public outing carries', () => {
     expect(new Date(run.startTime * 1000).getDate()).toBe(7)
   })
 
+  it('keeps the start and finish of the track home with a privacy zone', async () => {
+    await db.saveData('sharingSettings', { privacyZone: 200 })
+    // The stored track is 2 points ~15 km apart: what is left between the zones
+    // is too little to keep, so the whole track stays home
+    const [run] = (await publish()).yearFiles.get(2026)!.activities
+    expect(run.mapPolyline).toBeUndefined()
+  })
+
   it('puts figures and chart samples in a separate file, without a position', async () => {
     await db.saveData('sharingSettings', { figures: true, charts: ['heartRate'] })
     const { detailFiles } = await publish()
