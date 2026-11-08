@@ -832,7 +832,8 @@
     "like": "J'aime",
     "liked": "Aimé",
     "whyBlocked": "Pourquoi je ne peux pas ?",
-    "publishAction": "Publier mon profil"
+    "publishAction": "Publier mon profil",
+    "reply": "Répondre"
   },
   "friendsList": {
     "empty": "Aucun ami ajouté",

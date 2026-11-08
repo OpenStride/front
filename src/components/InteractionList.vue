@@ -81,6 +81,7 @@
       :activity-owner-id="activityOwnerId"
       :show-warning="true"
       :is-mutual-friend="isMutualFriend"
+      allow-reply
       class="interaction-bar-section"
     />
   </div>

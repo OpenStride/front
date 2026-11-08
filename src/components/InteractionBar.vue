@@ -1,7 +1,8 @@
 <template>
   <div
     v-if="
-      sharingPluginActive && (!isMyActivity || summary.likeCount > 0 || summary.commentCount > 0)
+      sharingPluginActive &&
+      (!isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
   >
@@ -17,7 +18,19 @@
       </span>
     </div>
 
-    <!-- Action buttons (hidden on your own activity — you can't like/comment it) -->
+    <!-- On your own activity: no like, but a reply where the thread is shown -->
+    <div v-if="isMyActivity && allowReply" class="interaction-actions">
+      <button
+        :class="['action-btn', 'comment-btn', { blocked: !canComment }]"
+        :title="t('interactions.reply')"
+        data-test="reply-btn"
+        @click="onComment"
+      >
+        <i class="far fa-comment" aria-hidden="true"></i>
+        <span class="btn-label">{{ t('interactions.reply') }}</span>
+      </button>
+    </div>
+
     <div v-if="!isMyActivity" class="interaction-actions">
       <button
         @click="toggleLike"
@@ -76,7 +89,7 @@
     <!-- Why the buttons do nothing, and the one thing that fixes it. A disabled
          button and a sentence left the reader with no way forward. -->
     <div
-      v-else-if="!canInteract && (showWarning || blockedShown)"
+      v-else-if="!isMyActivity && !canInteract && (showWarning || blockedShown)"
       class="blocked"
       data-test="interaction-blocked"
     >
@@ -117,6 +130,8 @@ const props = defineProps<{
   activityOwnerId: string
   showWarning?: boolean
   isMutualFriend?: boolean // true if friendship is mutual (required for interactions)
+  /** Offer a reply on one's own activity: where the whole thread is shown, not on a card. */
+  allowReply?: boolean
 }>()
 
 const interactionService = getInteractionService()
@@ -175,8 +190,16 @@ const revealBlocked = () => {
   showCommentInput.value = false
 }
 
+/**
+ * A comment needs a published profile; on someone else's activity a mutual
+ * friendship too, on one's own (a reply) nothing more.
+ */
+const canComment = computed(() =>
+  isMyActivity.value ? props.allowReply === true && myUserId.value !== null : canInteract.value
+)
+
 const onComment = () => {
-  if (!canInteract.value) return revealBlocked()
+  if (!canComment.value) return revealBlocked()
   showCommentInput.value = !showCommentInput.value
 }
 
@@ -229,7 +252,7 @@ const toggleLike = async () => {
 
 const submitComment = async () => {
   const text = commentText.value.trim()
-  if (!text || submitting.value || !canInteract.value) return
+  if (!text || submitting.value || !canComment.value) return
 
   submitting.value = true
   try {

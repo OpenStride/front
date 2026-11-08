@@ -252,39 +252,42 @@ export class InteractionSyncService {
 
       let totalSynced = 0
 
+      // The friend's own replies on their activities come along, so a thread one
+      // took part in reads both ways. They are stored under the owner id the
+      // activity page asks for: the stable id when known (see `useActivityDetails`).
+      const ownerKey = friend.userId ?? manifest.profile.userId
+      const ownerViewedAs = friend.userId || friendId
+
+      const toInteraction = (entry: InteractionEntry, activityOwnerId: string): Interaction => ({
+        id: `${entry.authorId}_${entry.type}_${entry.activityId}_${entry.timestamp}`,
+        type: entry.type,
+        activityId: entry.activityId,
+        activityOwnerId,
+        authorId: entry.authorId,
+        authorUsername: entry.authorUsername,
+        text: entry.text,
+        timestamp: entry.timestamp,
+        lastModified: Date.now()
+      })
+
       // Fetch each year's interactions
       for (const yearEntry of manifest.availableInteractionYears) {
         const yearData = await this.fetchInteractionYearFile(yearEntry.fileUrl)
         if (!yearData) continue
 
-        // Debug logs for ID mismatch investigation
-        console.log(
-          '[InteractionSyncService] Looking for interactions keyed by myUserId:',
-          myUserId
+        // Interactions that concern me (on my activities)
+        const onMine = (yearData.interactions[myUserId] ?? []).map(entry =>
+          toInteraction(entry, myUserId)
         )
-        console.log(
-          '[InteractionSyncService] Available keys in yearData.interactions:',
-          Object.keys(yearData.interactions)
-        )
+        // The owner's replies on their own activities
+        const replies = ownerKey
+          ? (yearData.interactions[ownerKey] ?? [])
+              .filter(entry => entry.type === 'comment' && entry.authorId === ownerKey)
+              .map(entry => toInteraction(entry, ownerViewedAs))
+          : []
 
-        // Extract interactions that concern me (on my activities)
-        const myInteractions = yearData.interactions[myUserId]
-        if (!myInteractions || myInteractions.length === 0) continue
-
-        // Convert to full Interaction objects
-        const interactions: Interaction[] = myInteractions.map(entry => ({
-          id: `${entry.authorId}_${entry.type}_${entry.activityId}_${entry.timestamp}`,
-          type: entry.type,
-          activityId: entry.activityId,
-          activityOwnerId: myUserId,
-          authorId: entry.authorId,
-          authorUsername: entry.authorUsername,
-          text: entry.text,
-          timestamp: entry.timestamp,
-          lastModified: Date.now()
-        }))
-
-        // Store in IndexedDB
+        const interactions = [...onMine, ...replies]
+        if (interactions.length === 0) continue
         await interactionService.storeRemoteInteractions(interactions)
         totalSynced += interactions.length
       }
