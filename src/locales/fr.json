@@ -1036,10 +1036,6 @@
       "label": "Suivi d'une métrique",
       "description": "Suivez l'évolution d'une seule métrique dans le temps, par sortie ou par période."
     },
-    "profile-sharing": {
-      "label": "Partage et confidentialité",
-      "description": "Gère vos réglages de partage et la publication de votre profil public."
-    },
     "standard-details": {
       "label": "Détail des activités",
       "description": "Graphiques de fréquence cardiaque, cadence, vitesse et zones pour chaque sortie."

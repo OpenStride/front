@@ -210,7 +210,7 @@ UI injection: `useSlotExtensions` + `ActivityDetails.vue`.
 - ✅ **Statistics**: Trends, distribution, personal records, calendar heatmap
 - ✅ **MetricTracker**: One metric's evolution over time
 - ✅ **Goals**: Training goals and progress
-- ✅ **ProfileSharing** / **ActivityPrivacy**: What friends see, per activity
+- ✅ **ActivityPrivacy**: What friends see, per activity (profile sharing itself is core: `src/components/ProfileSharing.vue`, in the Friends tab)
 - ✅ **MCP**: Model Context Protocol endpoint for the user's own data
 
 ---
