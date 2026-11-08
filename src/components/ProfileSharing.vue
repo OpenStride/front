@@ -177,6 +177,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
+import { logger } from '@/utils/logger'
 import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
 import {
   DEFAULT_SHARING,
@@ -306,7 +307,7 @@ const publishData = async () => {
       autoPublish.value = await friends.isAutoPublishEnabled()
     }
   } catch (error) {
-    console.error('[ProfileSharingTab] Error publishing data:', error)
+    logger.error('[ProfileSharing] Error publishing data:', error)
   } finally {
     publishing.value = false
   }
