@@ -43,7 +43,14 @@ const SYNC_SERVICE_OWNED_STORES = ['activities', 'activity_details', 'custom_agg
  * local makes every device compute its own, which `rebuildAll` and the empty
  * check in the summary section already do.
  */
-const LOCAL_ONLY_STORES = ['activity_metrics', 'aggregatedData']
+const LOCAL_ONLY_STORES = [
+  'activity_metrics',
+  'aggregatedData',
+  // Photos are not derived, but images have no place in a JSON backup: they
+  // stay on the device until sync uploads them as files of their own.
+  'activity_photos',
+  'photo_blobs'
+]
 
 export class StorageService {
   private static instance: StorageService

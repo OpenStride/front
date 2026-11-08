@@ -8,6 +8,7 @@ import type {
 } from './aggregation'
 import type { CustomAggregate } from './customAggregate'
 import type { Gear, GearInput } from './gear'
+import type { ActivityPhoto, PhotoAddResult, PhotoSize } from './photo'
 import type { CustomAggregateInput } from '@/services/CustomAggregateService'
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
 
@@ -358,6 +359,22 @@ export interface IGearService {
 }
 
 /**
+ * The photos of the reader's own outings. Images are resized and stripped of
+ * their EXIF block (GPS included) on the way in; see `@/types/photo`.
+ */
+export interface IPhotoService {
+  /** An outing's photos, in the order they were taken. */
+  list(activityId: string): Promise<ActivityPhoto[]>
+  /** Add picked files; past the outing's maximum they are refused, not dropped silently. */
+  add(activityId: string, files: File[]): Promise<PhotoAddResult>
+  /** The image of a photo, or null once it is gone. */
+  blob(photoId: string, size: PhotoSize): Promise<Blob | null>
+  remove(photoId: string): Promise<boolean>
+  /** Subscribe to an outing's photos changing; returns the unsubscribe. */
+  onChanged(handler: (activityId: string) => void): () => void
+}
+
+/**
  * Plugin Context - Injected into plugins
  *
  * This is the main dependency injection container for plugins.
@@ -371,6 +388,7 @@ export interface PluginContext {
   aggregation: IAggregationService
   aggregates: ICustomAggregateService
   gear: IGearService
+  photos: IPhotoService
   friends: IFriendService
   analyzer: IAnalyzerFactory
   sync: ISyncService

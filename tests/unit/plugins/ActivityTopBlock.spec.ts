@@ -9,6 +9,7 @@ import { formatQuantity, unitSystem } from '@/composables/useUnits'
 const global = {
   provide: {
     [PLUGIN_CONTEXT_KEY]: {
+      photos: { list: async () => [], blob: async () => null, onChanged: () => () => undefined },
       analyzer: {
         create: () => ({
           elevationChange: () => ({ ascent: 0, descent: 0 }),

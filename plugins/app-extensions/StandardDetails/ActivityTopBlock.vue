@@ -41,10 +41,24 @@
             >
               <i class="fas fa-pen" aria-hidden="true"></i>
             </button>
+            <button
+              v-if="canRename"
+              type="button"
+              class="atb__rename-btn"
+              :aria-label="t('photos.add')"
+              :title="t('photos.add')"
+              data-test="photo-add"
+              @click="photoStrip?.pick()"
+            >
+              <i class="fas fa-camera" aria-hidden="true"></i>
+            </button>
           </div>
           <div v-if="formattedDate" class="atb__date">{{ formattedDate }}</div>
         </div>
       </header>
+
+      <!-- The outing's photos, under its name, as they were taken -->
+      <ActivityPhotos ref="photoStrip" :activity-id="activity.id" :can-edit="canRename" />
 
       <!-- Bloc « encre » : les 4 métriques principales (allure surlignée) -->
       <div class="atb__block">
@@ -82,6 +96,7 @@
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
+import ActivityPhotos from './ActivityPhotos.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
@@ -109,6 +124,8 @@ const { components: summary } = useSlotExtensions('activity.summary', () => ({
 const displayTitle = computed(() => activity.value.title || formatSportType(activity.value.type))
 /** Only one's own outings: a friend's name is theirs. */
 const canRename = computed(() => !activity.value.provider?.startsWith('friend_'))
+
+const photoStrip = ref<InstanceType<typeof ActivityPhotos> | null>(null)
 
 const editingTitle = ref(false)
 const titleDraft = ref('')

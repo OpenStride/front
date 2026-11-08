@@ -64,6 +64,19 @@ export class FakeDB {
     return this.stores[store]?.find((item: any) => item.id === id) || null
   }
 
+  async getAllFromIndex(store: string, index: string, key: unknown): Promise<any[]> {
+    return (this.stores[store] || []).filter((item: any) => item[index] === key)
+  }
+
+  async deleteFromStore(store: string, key: unknown): Promise<void> {
+    this.stores[store] = (this.stores[store] || []).filter((item: any) => item.id !== key)
+  }
+
+  async deleteMultipleFromStore(store: string, keys: unknown[]): Promise<void> {
+    const gone = new Set(keys)
+    this.stores[store] = (this.stores[store] || []).filter((item: any) => !gone.has(item.id))
+  }
+
   async exportDB(storeName: string): Promise<any[]> {
     return [...(this.stores[storeName] || [])]
   }
