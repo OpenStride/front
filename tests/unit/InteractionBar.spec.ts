@@ -58,6 +58,7 @@ type Props = {
   isMutualFriend?: boolean
   allowReply?: boolean
   inThread?: boolean
+  compact?: boolean
 }
 
 async function mountBar(props: Props = {}, locale: 'en' | 'fr' = 'en') {
@@ -313,5 +314,46 @@ describe('InteractionBar likes', () => {
     }
     const wrapper = await mountBar({ isMutualFriend: true }, 'fr')
     expect(wrapper.get('[data-test="liked-by"]').text()).toBe('Aimé par vous et 2 autres')
+  })
+})
+
+describe('InteractionBar on the activity page (compact)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    state.pluginEnabled = true
+    state.myUserId = 'user_me'
+  })
+
+  it('keeps the like in view on one’s own outing, as a count that does nothing', async () => {
+    state.summary = { likeCount: 0, commentCount: 0, hasLiked: false, likers: [] }
+    const wrapper = await mountBar(
+      { activityOwnerId: 'user_me', compact: true, allowReply: true } as Props,
+      'fr'
+    )
+    const own = wrapper.get('[data-test="own-like"]')
+    expect(own.text()).toContain('0')
+    expect(own.element.tagName).toBe('SPAN')
+    expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(false)
+    // Nothing to reply to yet
+    expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(false)
+  })
+
+  it('shows the count and the reply once friends have spoken', async () => {
+    state.summary = {
+      likeCount: 2,
+      commentCount: 1,
+      hasLiked: false,
+      likers: [
+        { authorId: 'u1', username: 'Alex' },
+        { authorId: 'u2', username: 'Sam' }
+      ]
+    }
+    const wrapper = await mountBar(
+      { activityOwnerId: 'user_me', compact: true, allowReply: true } as Props,
+      'fr'
+    )
+    expect(wrapper.get('[data-test="own-like"]').text()).toContain('2')
+    expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="liked-by"]').text()).toBe('Aimé par Alex et Sam')
   })
 })

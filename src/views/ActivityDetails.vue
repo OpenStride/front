@@ -19,13 +19,14 @@
         />
       </div>
 
-      <!-- Like, comment, who liked: one line high on the page, the comments
-           under it when there are some -->
+      <!-- Like, comment, who liked: a card of its own, right under the first
+           panel; the comments under that line when there are some -->
       <InteractionList
         v-if="canShowInteractions"
         :activity-id="interactionActivityId"
         :activity-owner-id="interactionOwnerId!"
         :is-mutual-friend="isMutualFriend"
+        class="interactions-card"
       />
 
       <!-- Widgets Section (full width) -->
@@ -110,6 +111,10 @@ onMounted(loadActivity)
 .top-container {
   display: flex;
   flex-direction: column;
+}
+
+.interactions-card {
+  margin-top: 1.5rem;
 }
 
 .widgets-container {

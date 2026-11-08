@@ -2,9 +2,7 @@
   <div
     v-if="
       sharingPluginActive &&
-      (compact
-        ? !isMyActivity || summary.likeCount > 0 || summary.commentCount > 0
-        : !isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
+      (compact || !isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
     :class="{ 'interaction-bar--compact': compact }"
@@ -27,8 +25,21 @@
     </div>
 
     <!-- On your own activity: no like, but a reply where the thread is shown -->
-    <div v-if="isMyActivity && allowReply" class="interaction-actions">
+    <div v-if="isMyActivity && (allowReply || compact)" class="interaction-actions">
+      <!-- One's own outing: the like is there all the same, as a count. Nobody
+           likes their own run, but seeing where friends' likes land reassures. -->
+      <span
+        v-if="compact"
+        class="action-btn like-btn like-btn--own"
+        :title="t('interactions.ownLikeHint')"
+        data-test="own-like"
+      >
+        <LogoHeart :liked="summary.likeCount > 0" />
+        <span class="btn-label">{{ t('interactions.like') }}</span>
+        <span class="own-like-count">{{ summary.likeCount }}</span>
+      </span>
       <button
+        v-if="allowReply && (!compact || summary.commentCount > 0)"
         :class="['action-btn', 'comment-btn', { blocked: !canComment }]"
         :title="t('interactions.reply')"
         data-test="reply-btn"
@@ -453,6 +464,20 @@ onUnmounted(() => {
 }
 
 .like-btn.liked {
+  color: var(--color-ink);
+}
+
+/* Not a button: a count that keeps the like's place on one's own outing */
+.like-btn--own {
+  cursor: default;
+}
+.action-btn.like-btn--own:hover:not(:disabled) {
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+}
+.own-like-count {
+  font-family: var(--font-mono);
+  font-weight: 600;
   color: var(--color-ink);
 }
 
