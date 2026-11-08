@@ -834,7 +834,13 @@
     "liked": "Liked",
     "whyBlocked": "Why can I not do this?",
     "publishAction": "Publish my profile",
-    "reply": "Reply"
+    "reply": "Reply",
+    "title": "Interactions",
+    "retry": "Retry",
+    "likeCount": "No likes | {n} like | {n} likes",
+    "commentCount": "No comments | {n} comment | {n} comments",
+    "deletedUser": "Deleted user",
+    "loadFailed": "Could not load the interactions."
   },
   "friendsList": {
     "empty": "No friend added",

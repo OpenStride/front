@@ -2,7 +2,7 @@
   <div class="interaction-list">
     <h3 class="section-title">
       <i class="fas fa-comments" aria-hidden="true"></i>
-      Interactions
+      {{ t('interactions.title') }}
     </h3>
 
     <!-- Loading state -->
@@ -17,7 +17,7 @@
       <p>{{ error }}</p>
       <button class="retry-btn" data-test="retry-interactions" @click="loadInteractions">
         <i class="fas fa-sync" aria-hidden="true"></i>
-        Réessayer
+        {{ t('interactions.retry') }}
       </button>
     </div>
 
@@ -25,11 +25,11 @@
     <div v-if="!loading && !error && likes.length > 0" class="likes-section">
       <div class="subsection-header">
         <i class="fas fa-heart" aria-hidden="true"></i>
-        <span>{{ likes.length }} {{ likes.length === 1 ? 'like' : 'likes' }}</span>
+        <span>{{ t('interactions.likeCount', likes.length) }}</span>
       </div>
       <div class="likes-list">
         <span v-for="(like, index) in likes" :key="like.id" class="like-author">
-          {{ like.authorUsername || 'Utilisateur supprimé'
+          {{ like.authorUsername || t('interactions.deletedUser')
           }}{{ index < likes.length - 1 ? ', ' : '' }}
         </span>
       </div>
@@ -39,16 +39,14 @@
     <div v-if="!loading && !error && comments.length > 0" class="comments-section">
       <div class="subsection-header">
         <i class="fas fa-comment" aria-hidden="true"></i>
-        <span
-          >{{ comments.length }} {{ comments.length === 1 ? 'commentaire' : 'commentaires' }}</span
-        >
+        <span>{{ t('interactions.commentCount', comments.length) }}</span>
       </div>
 
       <div class="comments-list">
         <div v-for="comment in comments" :key="comment.id" class="comment-item">
           <div class="comment-header">
             <span class="comment-author">{{
-              comment.authorUsername || 'Utilisateur supprimé'
+              comment.authorUsername || t('interactions.deletedUser')
             }}</span>
             <span class="comment-time">{{ formatRelativeTime(comment.timestamp) }}</span>
             <button
@@ -82,6 +80,7 @@
       :show-warning="true"
       :is-mutual-friend="isMutualFriend"
       allow-reply
+      in-thread
       class="interaction-bar-section"
     />
   </div>
@@ -129,7 +128,7 @@ const loadInteractions = async () => {
     )
   } catch (err) {
     console.error('[InteractionList] Error loading interactions:', err)
-    error.value = 'Impossible de charger les interactions.'
+    error.value = t('interactions.loadFailed')
   } finally {
     loading.value = false
   }
