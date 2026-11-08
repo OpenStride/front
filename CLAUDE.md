@@ -52,6 +52,14 @@ Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts
 | `ctx.analyzer`      | `create(samples)` returns `{ bestSegments() }`                                        |
 | `ctx.sync`          | `syncNow({ force })`                                                                  |
 | `ctx.units`         | `format(dimension, si)`, `convert(dimension, si)`, `system` -- SI in, display out     |
+| `ctx.aggregates`    | `list()`, `create()`, `update()`, `remove()` -- the reader's custom aggregates        |
+| `ctx.gear`          | `list()`, `create()`, `update()`, `remove()`, `onChanged()`                           |
+| `ctx.photos`        | `list(activityId)`, `add()`, `blob(id, size)`, `remove()`, `onChanged()`              |
+| `ctx.providers`     | `onActivitiesImported(handler)` -- a data provider finished an import                 |
+
+`src/types/plugin-context.ts` is the reference. The doors between a plugin and
+the core (context, types, utils, public composables, a short UI kit) are held
+by a contract test -- see `docs/PLUGIN_GUIDELINES.md`.
 
 ### Creating a New Plugin
 
@@ -120,6 +128,10 @@ now checked by a test rather than by goodwill:
   `@/utils/cssVar` in a canvas, `color-mix()` over a token for a transparency.
 - **Diagnostics go through the logger.** `logger.debug()` from `@/utils/logger`,
   never `console.log`: it is silent in production.
+- **The core and the plugins meet at known doors.** The core never imports a
+  plugin by name (it discovers them); a plugin reaches core services only
+  through the `PluginContext`, plus types, utils, public composables and the UI
+  kit listed in the test.
 
 ### Design (see docs/DESIGN_GUIDELINES.md)
 

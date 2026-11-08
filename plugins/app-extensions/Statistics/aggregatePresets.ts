@@ -1,5 +1,5 @@
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
-import type { CustomAggregateInput } from '@/services/CustomAggregateService'
+import type { CustomAggregateInput } from '@/types/customAggregate'
 import type { SampleField } from '@/types/sampleFields'
 
 /**

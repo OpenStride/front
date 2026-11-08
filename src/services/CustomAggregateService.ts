@@ -1,13 +1,9 @@
 import { IndexedDBService } from './IndexedDBService'
-import type { CustomAggregate } from '@/types/customAggregate'
+import type { CustomAggregate, CustomAggregateInput } from '@/types/customAggregate'
 
 export const CUSTOM_AGGREGATES_STORE = 'custom_aggregates'
 
-/** Fields the caller provides; the rest is bookkeeping this service owns. */
-export type CustomAggregateInput = Omit<
-  CustomAggregate,
-  'id' | 'version' | 'lastModified' | 'synced' | 'deleted'
->
+export type { CustomAggregateInput }
 
 export interface CustomAggregateServiceEvent {
   type: 'aggregates-changed'

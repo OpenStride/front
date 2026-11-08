@@ -45,7 +45,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import type { Activity, ActivityDetails } from '@/types/activity'
-import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import type { SegmentSample } from '@/types/analysis'
 import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 

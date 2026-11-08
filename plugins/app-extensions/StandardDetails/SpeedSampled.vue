@@ -85,7 +85,7 @@ import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
 import { getSportProfile } from '@/types/sport'
 import type { Activity, ActivityDetails, Sample } from '@/types/activity'
-import type { SegmentSample } from '@/services/ActivityAnalyzer'
+import type { SegmentSample } from '@/types/analysis'
 import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 

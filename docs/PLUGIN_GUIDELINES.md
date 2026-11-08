@@ -59,17 +59,47 @@ const ctx = await getPluginContext()
 
 ```typescript
 export interface PluginContext {
-  activity: IActivityService // CRUD operations on activities
-  storage: IStorageService // Settings and plugin-specific data
-  notifications: INotificationService // User-facing notifications
+  activity: IActivityService // CRUD on activities, setGear / setSport / setTitle
+  storage: IPluginStorageService // Settings and plugin-specific data
+  notifications: INotificationService // User-facing notifications (t('key') only)
   plugins: IPluginManager // Check/enable other plugins
   aggregation: IAggregationService // Read aggregated stats
-  friends: IFriendService // Public data & friend management
-  analyzer: IAnalyzerFactory // Activity analysis (best segments)
+  aggregates: ICustomAggregateService // The reader's custom aggregates
+  gear: IGearService // Shoes, bikes: list, create, update, remove
+  photos: IPhotoService // An outing's photos: list, add, blob, remove
+  friends: IFriendService // Public data, sharing, a friend's shared photos
+  analyzer: IAnalyzerFactory // Activity analysis (best segments, elevation)
   sync: ISyncService // Trigger a sync
   units: IUnitsService // SI values -> the user's unit system
+  providers: IDataProviderEvents // Imports finished by a data provider
 }
 ```
+
+`src/types/plugin-context.ts` is the reference: every method is documented
+there.
+
+### The doors between a plugin and the core
+
+A test (`tests/unit/contracts.spec.ts`, "the core and the plugins meet at known
+doors") holds this boundary in both directions.
+
+**A plugin may import from the core:**
+
+| | |
+| --- | --- |
+| `@/composables/usePluginContext` (components), `@/services/PluginContextFactory` (other code) | The services, through the context |
+| `@/types/*`, `@/utils/*` | Types and pure helpers |
+| `@/composables/*` | The public composables (`useUnits`, `useActivityMetricsIndex`, `useSlotExtensions`…) |
+| `MapPreview`, `MyQrCodeModal`, `providers/DefaultProviderSetup` | The UI kit: core components a plugin may reuse |
+
+Nothing else from `@/services/`, `@/components/`, `@/views/` or `@/router/`. A type
+a plugin needs lives in `src/types`, not in a service file. A component that
+should join the UI kit is added to `PLUGIN_UI_KIT` in the contract, deliberately.
+
+**The core never imports a plugin by name.** It discovers them
+(`import.meta.glob`) and talks to them through their interface
+(`ProviderPlugin`, `StoragePlugin`, `ExtensionPlugin`). A core that names a
+plugin cannot run without it.
 
 ### Available Services
 
