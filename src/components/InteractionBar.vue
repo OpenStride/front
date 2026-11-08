@@ -21,23 +21,10 @@
       </span>
     </div>
 
-    <!-- The like, on one's own outing too: odd, but it reassures. A comment on
-         someone else's; a reply on one's own, where the thread is shown. -->
+    <!-- A comment on someone else's outing, a reply on one's own where the
+         thread is shown; then the like — on one's own outing too: odd, but it
+         reassures. Last, so it sits beside "Liked by…" on the compact line. -->
     <div class="interaction-actions">
-      <button
-        v-if="!inThread"
-        @click="toggleLike"
-        :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
-        :aria-pressed="summary.hasLiked"
-        :title="canInteract ? t('interactions.like') : t('interactions.whyBlocked')"
-        data-test="like-btn"
-      >
-        <LogoHeart :liked="summary.hasLiked" />
-        <span class="btn-label">{{
-          summary.hasLiked ? t('interactions.liked') : t('interactions.like')
-        }}</span>
-      </button>
-
       <button
         v-if="!isMyActivity"
         @click="onComment"
@@ -58,6 +45,20 @@
       >
         <i class="far fa-comment" aria-hidden="true"></i>
         <span class="btn-label">{{ t('interactions.reply') }}</span>
+      </button>
+
+      <button
+        v-if="!inThread"
+        @click="toggleLike"
+        :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
+        :aria-pressed="summary.hasLiked"
+        :title="canInteract ? t('interactions.like') : t('interactions.whyBlocked')"
+        data-test="like-btn"
+      >
+        <LogoHeart :liked="summary.hasLiked" />
+        <span class="btn-label">{{
+          summary.hasLiked ? t('interactions.liked') : t('interactions.like')
+        }}</span>
       </button>
     </div>
 
