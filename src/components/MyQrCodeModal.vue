@@ -83,7 +83,7 @@ const close = () => emit('close')
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(30, 30, 46, 0.55);
+  background: var(--scrim);
 }
 
 .qr-panel {
@@ -150,7 +150,7 @@ const close = () => emit('close')
   justify-content: center;
   gap: 0.5rem;
   padding: 0.7rem 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-green-500);
   color: var(--color-white);
   font-size: 0.9rem;

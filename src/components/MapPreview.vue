@@ -3,6 +3,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -63,9 +64,6 @@ onMounted(() => {
   drawRoute(lat, lon)
 })
 
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
-
 /**
  * (Re)draw everything that comes from `polyline`. Split out of `onMounted` so a
  * route that arrives — or grows — after mount still reaches the map: the live
@@ -79,9 +77,9 @@ function drawRoute(lat: number, lon: number): void {
 
   if (props.polyline && props.polyline.length > 1) {
     const latlngs = props.polyline
-    const green = cssVar('--color-green-500', '#5f8f1a')
-    const ink = cssVar('--color-ink', '#1e1e2e')
-    const white = cssVar('--color-white', '#ffffff')
+    const green = cssVar('--color-green-500')
+    const ink = cssVar('--color-ink')
+    const white = cssVar('--color-white')
 
     // White casing under the route for contrast on the map
     routeLayers.push(

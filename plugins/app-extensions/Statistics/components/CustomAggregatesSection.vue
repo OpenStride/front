@@ -277,7 +277,7 @@ onUnmounted(() => {
   height: 4px;
   overflow: hidden;
   background: var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
 
 .progress-fill {
@@ -302,11 +302,11 @@ onUnmounted(() => {
   cursor: pointer;
   background: var(--background-color);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: var(--radius-sm);
 }
 
 .btn-icon--on {
-  color: var(--text-on-primary, #fff);
+  color: var(--color-white);
   background: var(--primary-color);
   border-color: var(--primary-color);
 }

@@ -70,12 +70,12 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--color-green-500) 95%, transparent);
   color: var(--color-white);
   padding: 16px;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
   backdrop-filter: blur(6px) saturate(140%);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
   pointer-events: auto;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 
 .toast-content {
@@ -111,7 +111,7 @@ onUnmounted(() => {
 .btn-update,
 .btn-later {
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   font-size: 14px;
@@ -128,7 +128,7 @@ onUnmounted(() => {
 
 .btn-update:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-white) 30%, transparent);
   background: var(--color-green-50);
 }
 
@@ -137,16 +137,16 @@ onUnmounted(() => {
 }
 
 .btn-later {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   color: var(--color-white);
 }
 
 .btn-later:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 .btn-later:active {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 
 .fade-in-enter-active,

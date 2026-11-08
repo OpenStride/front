@@ -155,7 +155,7 @@ watch(
   gap: 0.5rem;
   padding: 0.7rem 1rem;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;

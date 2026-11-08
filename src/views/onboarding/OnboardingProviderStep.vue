@@ -16,7 +16,7 @@
           v-for="provider in installableProviderPlugins"
           :key="provider.id"
           @click="selectProvider(provider.id)"
-          class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
+          class="flex items-center justify-between bg-gray-50 p-4 rounded-md border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
         >
           <div class="flex items-center space-x-4">
             <img v-if="provider.icon" :src="provider.icon" :alt="provider.label" class="w-8 h-8" />
@@ -28,9 +28,7 @@
               </p>
             </div>
           </div>
-          <button
-            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-          >
+          <button class="btn btn--primary">
             {{ t('common.select') }}
           </button>
         </li>
@@ -39,15 +37,12 @@
 
     <!-- Setup component embarqué (si provider sélectionné) -->
     <div v-else class="provider-setup">
-      <button
-        @click="selectedProviderId = null"
-        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
+      <button @click="selectedProviderId = null" class="btn btn--quiet mb-4">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         {{ t('onboarding.provider.backButton') }}
       </button>
 
-      <div class="bg-white p-6 rounded shadow">
+      <div class="bg-white p-6 shadow">
         <component v-if="setupComponent" :is="setupComponent" />
       </div>
     </div>
@@ -55,7 +50,7 @@
     <!-- Message de détection d'activités -->
     <div
       v-if="hasActivities"
-      class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded"
+      class="mt-6 flex items-center gap-3 bg-green-50 border border-green-600 text-green-800 p-4 rounded-md"
     >
       <i class="fas fa-check-circle text-2xl" aria-hidden="true"></i>
       <p class="font-medium">{{ t('onboarding.provider.success') }}</p>

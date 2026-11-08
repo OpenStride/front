@@ -134,7 +134,7 @@ function onSave() {
 .goal-edit-form {
   border: 2px dashed var(--color-green-400);
   background: var(--color-green-50);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.8rem;
   margin-bottom: 0.5rem;
 }
@@ -153,7 +153,7 @@ function onSave() {
   flex: 1;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   font-size: 0.9rem;
   color: var(--text-color);
@@ -170,7 +170,7 @@ function onSave() {
   flex: 1;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   min-width: 0;
 }
@@ -194,7 +194,7 @@ function onSave() {
 .btn-confirm,
 .btn-cancel {
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.7rem;
   font-size: 0.9rem;
   cursor: pointer;

@@ -38,7 +38,7 @@ defineEmits<{
 
 .filter-btn {
   padding: 0.3rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-green-200);
   background: var(--bg-color);
   color: var(--text-color);

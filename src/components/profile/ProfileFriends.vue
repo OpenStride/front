@@ -381,13 +381,13 @@ const formatFriendDate = (timestamp: number): string =>
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s;
 }
 
 .friend-card:hover {
-  box-shadow: 0 4px 10px rgba(30, 30, 46, 0.09);
+  box-shadow: var(--shadow-card);
 }
 
 .friend-avatar {
@@ -399,7 +399,7 @@ const formatFriendDate = (timestamp: number): string =>
 .avatar-placeholder {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   object-fit: cover;
 }
 
@@ -533,7 +533,7 @@ const formatFriendDate = (timestamp: number): string =>
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -543,11 +543,11 @@ const formatFriendDate = (timestamp: number): string =>
 
 .modal-content {
   background: var(--color-white);
-  border-radius: 0.75rem;
+  border-radius: 0;
   padding: 1.5rem;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-pop);
 }
 
 .modal-content h3 {
@@ -571,7 +571,7 @@ const formatFriendDate = (timestamp: number): string =>
 .confirm-btn {
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;

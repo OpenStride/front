@@ -887,7 +887,7 @@ watch(
 .swatch.dot-pale {
   width: 0.6rem;
   height: 0.6rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-round);
 }
 
 .swatch.dot {

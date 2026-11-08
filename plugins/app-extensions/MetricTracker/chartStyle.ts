@@ -1,21 +1,15 @@
-/**
- * The chart styling the app shares — the dashboard draws the same way — read
- * at draw time, because a canvas cannot resolve `var()`.
- */
-export function cssVar(name: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
-}
+import { cssVar } from '@/utils/cssVar'
+export { cssVar }
 
 export function axisTicks() {
   return {
     font: { family: cssVar('--font-mono', 'monospace'), size: 10 },
-    color: cssVar('--text-faint', '#8c8c84')
+    color: cssVar('--text-faint')
   }
 }
 
 export function gridLines() {
-  return { color: cssVar('--border-subtle', '#e6e6e0') }
+  return { color: cssVar('--border-subtle') }
 }
 
 export function tooltipStyle() {
@@ -36,7 +30,7 @@ export function hatch(color: string): CanvasPattern | string {
   canvas.height = size
   const ctx = canvas.getContext('2d')
   if (!ctx) return color
-  ctx.fillStyle = cssVar('--surface', '#ffffff')
+  ctx.fillStyle = cssVar('--surface')
   ctx.fillRect(0, 0, size, size)
   ctx.strokeStyle = color
   ctx.lineWidth = 3

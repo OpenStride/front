@@ -104,7 +104,7 @@ async function handleToggle(pluginId: string) {
   padding: 0.875rem 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
 }
 
@@ -159,7 +159,7 @@ async function handleToggle(pluginId: string) {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: var(--color-gray-300);
   transition: background 0.2s;
 }
@@ -171,9 +171,9 @@ async function handleToggle(pluginId: string) {
   left: 0.125rem;
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
-  box-shadow: 0 1px 2px rgba(30, 30, 46, 0.25);
+  box-shadow: var(--shadow-card);
   transition: transform 0.2s;
 }
 

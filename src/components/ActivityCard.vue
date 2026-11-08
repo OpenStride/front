@@ -296,7 +296,7 @@ const showDetails = () => {
     transform 0.18s ease;
 }
 .acard:hover {
-  box-shadow: 0 14px 34px -18px rgba(30, 30, 46, 0.28);
+  box-shadow: var(--shadow-float);
 }
 
 .acard__click {
@@ -445,7 +445,7 @@ const showDetails = () => {
   width: 3px;
   height: 3px;
   margin-top: -1.5px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: currentColor;
   opacity: 0.5;
 }

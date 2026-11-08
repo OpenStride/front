@@ -118,7 +118,7 @@ async function importWorkouts() {
   text-align: center;
 }
 .intro {
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-gray-600);
   font-size: 0.9rem;
   margin-bottom: 1.2rem;
 }
@@ -133,10 +133,10 @@ async function importWorkouts() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.2rem;
-  background: var(--color-green-600, #88aa00);
-  color: var(--color-white, #fff);
+  background: var(--color-green-600);
+  color: var(--color-white);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -146,27 +146,27 @@ async function importWorkouts() {
   cursor: not-allowed;
 }
 .connected {
-  color: var(--color-emerald-700, #047857);
+  color: var(--color-emerald-700);
   font-size: 0.9rem;
 }
 .bar {
   width: 100%;
   height: 6px;
-  background: var(--color-gray-200, #e5e7eb);
-  border-radius: 999px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .bar__fill {
   height: 100%;
-  background: var(--color-green-500, #88aa00);
+  background: var(--color-green-500);
   transition: width 0.2s;
 }
 .ok {
   margin-top: 1rem;
-  color: var(--color-emerald-700, #047857);
+  color: var(--color-emerald-700);
 }
 .err {
   margin-top: 1rem;
-  color: var(--color-red-600, #dc2626);
+  color: var(--color-red-600);
 }
 </style>

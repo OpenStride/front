@@ -154,7 +154,7 @@ onUnmounted(() => {
   padding: 0.3125rem 0.875rem;
   background: var(--color-yellow-500);
   color: var(--color-white);
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
@@ -176,13 +176,13 @@ onUnmounted(() => {
   background: none;
   color: var(--color-yellow-800);
   cursor: pointer;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   transition: background 0.2s;
   font-size: 0.875rem;
 }
 
 .setup-banner-dismiss:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
 /* Transition */

@@ -133,7 +133,7 @@ function closeOrReturnToSetup() {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--color-gray-50, #f9fafb);
+  background: var(--color-gray-50);
   font-family:
     system-ui,
     -apple-system,
@@ -144,8 +144,8 @@ function closeOrReturnToSetup() {
   text-align: center;
   padding: 2rem;
   background: var(--color-white);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   max-width: 320px;
 }
 
@@ -157,7 +157,7 @@ function closeOrReturnToSetup() {
 
 .status span,
 .status p {
-  color: var(--color-gray-700, #374151);
+  color: var(--color-gray-700);
   font-size: 1rem;
   margin: 0;
 }
@@ -165,18 +165,18 @@ function closeOrReturnToSetup() {
 .status .hint {
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: var(--color-gray-500, #6b7280);
+  color: var(--color-gray-500);
 }
 
 .status.success i {
-  color: var(--color-green-500, #88aa00);
+  color: var(--color-green-500);
 }
 
 .status.error i {
-  color: var(--color-red-500, #ef4444);
+  color: var(--color-red-500);
 }
 
 .status.warning i {
-  color: var(--color-yellow-500, #f59e0b);
+  color: var(--color-yellow-500);
 }
 </style>

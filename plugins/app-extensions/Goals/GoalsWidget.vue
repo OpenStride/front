@@ -210,9 +210,9 @@ onUnmounted(() => {
 
 <style scoped>
 .goals-widget {
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--color-white) 92%, transparent);
   border-radius: 0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
   padding: 1.2rem 1.4rem;
   margin-bottom: 0.5rem;
 }
@@ -233,7 +233,7 @@ onUnmounted(() => {
 .add-btn {
   background: var(--color-green-50);
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   font-size: 0.9rem;
   color: var(--color-green-600);
@@ -254,7 +254,7 @@ onUnmounted(() => {
 .nav-btn {
   background: none;
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   font-size: 0.8rem;
   color: var(--color-green-600);
@@ -283,7 +283,7 @@ onUnmounted(() => {
   background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 3px 10px;
   font-size: 0.75rem;
   cursor: pointer;

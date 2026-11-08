@@ -820,11 +820,24 @@
   "zipImport": {
     "title": "Importer un export ZIP d'activités",
     "importing": "Import en cours...",
-    "done": "Import terminé !"
+    "done": "Import terminé !",
+    "select": "Sélectionne ton archive (.zip)"
   },
   "gdrive": {
     "checking": "Vérification de la connexion à Google Drive...",
-    "verifying": "Vérification en cours..."
+    "verifying": "Vérification en cours...",
+    "backupPresent": "Fichier de sauvegarde présent sur Google Drive.",
+    "createBackup": "Créer un fichier de sauvegarde",
+    "connected": "La connexion est active",
+    "refresh": "Actualiser",
+    "refreshing": "Actualisation…",
+    "refreshed": "Actualisé",
+    "reconnect": "Se reconnecter",
+    "disconnect": "Se déconnecter",
+    "resyncing": "Resynchronisation…",
+    "forceResync": "Forcer une resynchronisation complète",
+    "forceResyncHint": "Ignore l'optimisation et relit l'intégralité des données distantes.",
+    "connect": "Se connecter"
   },
   "legal": {
     "privacyPolicy": "Politique de confidentialité",

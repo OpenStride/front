@@ -2,7 +2,11 @@
 <template>
   <div class="zip-import-provider">
     <h3>{{ t('zipImport.title') }}</h3>
-    <input type="file" accept=".zip" @change="onFileChange" />
+    <label class="filepick" :class="{ 'filepick--busy': importing }">
+      <i class="fas fa-file-zipper" aria-hidden="true"></i>
+      <span>{{ t('zipImport.select') }}</span>
+      <input type="file" accept=".zip" :disabled="importing" @change="onFileChange" />
+    </label>
     <div v-if="importing">
       <span>{{ t('zipImport.importing') }}</span>
       <span v-if="totalToImport > 0"> ({{ importedCount }}/{{ totalToImport }})</span>

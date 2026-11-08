@@ -54,7 +54,7 @@ button {
   font-size: 16px;
   font-weight: bold;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   /* ✅ Border-radius léger */
   cursor: pointer;
   transition:
@@ -69,12 +69,12 @@ button {
 
 /* ✅ Focus : contour visible pour accessibilité */
 button:focus {
-  outline: 2px solid rgba(0, 123, 255, 0.5);
+  outline: 2px solid color-mix(in srgb, var(--color-green-500) 50%, transparent);
 }
 
 input {
   border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .center {
@@ -88,4 +88,91 @@ input {
   position: fixed;
   bottom: 20px;
   left: 0;
+}
+
+/* ===== Buttons =====
+   One shape, three weights, for the whole app: filled for the act a screen
+   exists for, quiet for everything else, outlined for a per-item action inside
+   a list. A component styling its own button is the exception, not the rule. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--primary {
+  background: var(--color-green-600);
+  color: var(--color-white);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-green-700);
+}
+
+.btn--quiet {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--color-ink);
+}
+
+.btn--quiet:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.btn--outline {
+  background: transparent;
+  border-color: var(--color-green-600);
+  color: var(--color-green-700);
+}
+
+.btn--outline:hover {
+  background: var(--color-green-600);
+  color: var(--color-white);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== File picker =====
+   A native <input type="file"> renders differently on every browser and
+   says "No file chosen" in English: it hides inside a dashed drop zone. */
+.filepick {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  border: 2px dashed var(--color-gray-300);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.filepick:hover {
+  border-color: var(--color-green-500);
+}
+.filepick--busy {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.filepick input {
+  display: none;
 }

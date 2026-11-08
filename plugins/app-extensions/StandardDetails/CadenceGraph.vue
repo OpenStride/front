@@ -23,7 +23,7 @@
       <div
         v-if="tooltip.visible"
         :style="tooltip.style"
-        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded-sm border border-gray-200 transition-opacity duration-150"
       >
         <div>
           <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { useI18n } from 'vue-i18n'
 import { computed, watch, ref, onMounted, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
@@ -49,9 +50,6 @@ import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
-
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 /* ===== Props ===== */
 const props = defineProps<{
@@ -199,8 +197,8 @@ function drawCanvas() {
   const totalDist = props.data.activity.distance || 1
 
   /* === Grille horizontale (cadence) === */
-  ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
-  ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.strokeStyle = cssVar('--color-gray-200')
+  ctx.fillStyle = cssVar('--color-gray-400')
   ctx.font = axisFont
   for (let c = Math.floor(minC / 10) * 10; c <= maxC + 10; c += 10) {
     const y = plotTop + ((c - minC) / (maxC - minC || 1)) * plotHeight
@@ -240,7 +238,7 @@ function drawCanvas() {
   const rangeE = maxVE - minVE || 1
 
   ctx.beginPath()
-  ctx.strokeStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.strokeStyle = cssVar('--color-gray-400')
   ctx.lineWidth = 1
   let xCur = pxMargin
   for (let i = 0; i < raw.length; i++) {
@@ -257,7 +255,7 @@ function drawCanvas() {
   ctx.stroke()
   ctx.lineTo(xCur, baseline)
   ctx.lineTo(pxMargin, baseline)
-  ctx.fillStyle = cssVar('--color-gray-100', '#f3f4f6')
+  ctx.fillStyle = cssVar('--color-gray-100')
   ctx.fill()
 
   /* === Barres de cadence === */

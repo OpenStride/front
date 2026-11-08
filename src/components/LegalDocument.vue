@@ -77,7 +77,7 @@ const notice = computed(() => {
   margin-bottom: 1.5rem;
   border: 1px solid var(--color-green-200);
   border-left: 3px solid var(--color-green-500);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-green-50);
   font-size: 0.9rem;
 }

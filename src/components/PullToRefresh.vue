@@ -78,7 +78,7 @@ const iconStyle = computed(() =>
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-round);
   background: var(--surface);
   box-shadow: var(--shadow-card);
   border: 1px solid var(--border-subtle);

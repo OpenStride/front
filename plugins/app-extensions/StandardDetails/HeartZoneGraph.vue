@@ -20,9 +20,9 @@
               [{{ zone.fcMin }}–{{ zone.fcMax }} bpm]
             </span>
           </div>
-          <div class="relative h-4 bg-gray-100 rounded overflow-hidden">
+          <div class="relative h-4 bg-gray-100 rounded-sm overflow-hidden">
             <div
-              class="h-full rounded"
+              class="h-full rounded-sm"
               :style="{ width: zone.percentage + '%', backgroundColor: zone.color }"
             ></div>
           </div>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { Activity, ActivityDetails } from '@/types/activity'
@@ -46,9 +47,6 @@ import { formatClock } from '@/utils/duration'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
-
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { storage } = usePluginContext()
@@ -80,35 +78,35 @@ const zoneThresholds = computed(() => [
     zone: 5,
     min: 0.9,
     max: 1.1,
-    color: cssVar('--color-orange-700', '#b75e38'),
+    color: cssVar('--color-orange-700'),
     label: t('heartZones.vo2max')
   },
   {
     zone: 4,
     min: 0.8,
     max: 0.9,
-    color: cssVar('--color-orange-300', '#f49268'),
+    color: cssVar('--color-orange-400'),
     label: t('heartZones.threshold')
   },
   {
     zone: 3,
     min: 0.7,
     max: 0.8,
-    color: cssVar('--color-cyan-500', '#00bbd3'),
+    color: cssVar('--color-cyan-500'),
     label: t('heartZones.tempo')
   },
   {
     zone: 2,
     min: 0.6,
     max: 0.7,
-    color: cssVar('--color-green-500', '#88aa00'),
+    color: cssVar('--color-green-500'),
     label: t('heartZones.endurance')
   },
   {
     zone: 1,
     min: 0.5,
     max: 0.6,
-    color: cssVar('--color-gray-100', '#f3f4f6'),
+    color: cssVar('--color-gray-100'),
     label: t('heartZones.recovery')
   }
 ])

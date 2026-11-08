@@ -96,7 +96,7 @@ const onDismiss = () => dismiss()
   flex-direction: column;
   gap: 14px;
   padding: 18px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   color: var(--color-ink);
@@ -157,7 +157,7 @@ const onDismiss = () => dismiss()
   gap: 8px;
   padding: 12px 18px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-green-600);
   color: var(--color-white);
   font-size: 15px;
@@ -195,7 +195,7 @@ const onDismiss = () => dismiss()
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-green-600);
   color: var(--color-white);
   font-family: var(--font-mono);

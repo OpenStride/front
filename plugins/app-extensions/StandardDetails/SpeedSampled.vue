@@ -23,7 +23,7 @@
       <div
         v-if="tooltip.visible"
         :style="tooltip.style"
-        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded-sm border border-gray-200 transition-opacity duration-150"
       >
         <div>
           <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
@@ -53,8 +53,8 @@
         <span class="w-16">{{ formatDistance(segmentMark(s, i)) }}</span>
 
         <!-- Barre horizontale représ. la pace -->
-        <div class="flex-1 h-3 bg-gray-100 rounded mx-1 overflow-hidden">
-          <div class="h-full bg-green-500 rounded" :style="{ width: paceBarWidth(s) + '%' }" />
+        <div class="flex-1 h-3 bg-gray-100 rounded-sm mx-1 overflow-hidden">
+          <div class="h-full bg-green-500 rounded-sm" :style="{ width: paceBarWidth(s) + '%' }" />
         </div>
 
         <!-- Pace numérique -->
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { useI18n } from 'vue-i18n'
 import { computed, watch, onMounted, ref, onBeforeUnmount } from 'vue'
 import { usePluginContext } from '@/composables/usePluginContext'
@@ -89,9 +90,6 @@ import { distanceLabel } from './distanceLabel'
 import GraphCard from './GraphCard.vue'
 
 const { t } = useI18n()
-
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 
@@ -275,10 +273,10 @@ function drawCanvas() {
   const baseline = plotTop + plotHeight
 
   // === Grille et axes ===
-  ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
+  ctx.strokeStyle = cssVar('--color-gray-200')
   ctx.lineWidth = 1
   ctx.font = axisFont
-  ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.fillStyle = cssVar('--color-gray-400')
 
   // Axis values, in whatever this chart plots. `axisLow` is the value drawn at
   // the top: the fastest pace, or the highest speed.
@@ -296,10 +294,10 @@ function drawCanvas() {
   const firstTick = Math.floor(lo / STEP) * STEP - STEP
   const lastTick = Math.ceil(hi / STEP) * STEP + STEP
 
-  ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
+  ctx.strokeStyle = cssVar('--color-gray-200')
   ctx.lineWidth = 1
   ctx.font = axisFont
-  ctx.fillStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.fillStyle = cssVar('--color-gray-400')
 
   for (let tick = firstTick; tick <= lastTick; tick += STEP) {
     const y = plotTop + ((tick - axisLow) / (axisHigh - axisLow || 1)) * plotHeight
@@ -326,7 +324,7 @@ function drawCanvas() {
   const stepDisplay = niceBase * mag // ex. 5 km
 
   /* 3) tracé des traits --------------------------------------- */
-  ctx.strokeStyle = cssVar('--color-gray-200', '#e5e7eb')
+  ctx.strokeStyle = cssVar('--color-gray-200')
   ctx.lineWidth = 1
 
   const metersPerDisplayUnit = 1 / units.convert('distance', 1).value
@@ -365,7 +363,7 @@ function drawCanvas() {
   const visRange = maxVisElev - minVisElev
 
   ctx.beginPath()
-  ctx.strokeStyle = cssVar('--color-gray-400', '#9ca3af')
+  ctx.strokeStyle = cssVar('--color-gray-400')
   ctx.lineWidth = 1
 
   let x = pxMargin
@@ -386,7 +384,7 @@ function drawCanvas() {
 
   ctx.lineTo(x, baseline)
   ctx.lineTo(pxMargin, baseline)
-  ctx.fillStyle = cssVar('--color-gray-100', '#f3f4f6')
+  ctx.fillStyle = cssVar('--color-gray-100')
   ctx.fill()
 
   // === Barres vitesse ===

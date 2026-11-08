@@ -123,7 +123,7 @@ function draw() {
   chart = null
   if (!canvas.value) return
 
-  const green = cssVar('--color-green-600', '#4d7314')
+  const green = cssVar('--color-green-600')
   chart = new Chart(canvas.value, {
     type: 'line',
     data: {
@@ -138,7 +138,7 @@ function draw() {
           data: points.value.values,
           borderColor: green,
           // The same line as the metric tracker's: green, over a pale fill.
-          backgroundColor: cssVar('--color-green-100', '#e6f0cf'),
+          backgroundColor: cssVar('--color-green-100'),
           pointBackgroundColor: green,
           pointBorderWidth: 0,
           // To the bottom of the chart, whichever way the axis runs.

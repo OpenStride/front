@@ -174,10 +174,10 @@ async function toggleNotifications(event: Event) {
 <style scoped>
 .notification-settings {
   background-color: var(--color-white);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .setting-header {
@@ -188,7 +188,7 @@ async function toggleNotifications(event: Event) {
 }
 
 .setting-header i {
-  color: var(--color-green-500, #88aa00);
+  color: var(--color-green-500);
   font-size: 1.25rem;
 }
 
@@ -206,7 +206,7 @@ async function toggleNotifications(event: Event) {
   padding: 0.75rem;
   background-color: var(--color-yellow-100);
   border-left: 4px solid var(--color-yellow-500);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--color-yellow-800);
   font-size: 0.875rem;
 }
@@ -268,7 +268,7 @@ async function toggleNotifications(event: Event) {
   bottom: 0;
   background-color: var(--color-gray-300);
   transition: 0.3s;
-  border-radius: 24px;
+  border-radius: var(--radius-sm);
 }
 
 .slider:before {
@@ -280,11 +280,11 @@ async function toggleNotifications(event: Event) {
   bottom: 3px;
   background-color: var(--color-white);
   transition: 0.3s;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
 }
 
 input:checked + .slider {
-  background-color: var(--color-green-500, #88aa00);
+  background-color: var(--color-green-500);
 }
 
 input:checked + .slider:before {
@@ -300,7 +300,7 @@ input:disabled + .slider {
 .status-info {
   padding: 1rem;
   background-color: var(--color-gray-50);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -320,7 +320,7 @@ input:disabled + .slider {
 
 .status-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -348,7 +348,7 @@ input:disabled + .slider {
 .token-display {
   background-color: var(--color-white);
   padding: 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-family: 'Courier New', monospace;
   font-size: 0.75rem;
   color: var(--color-gray-700);
@@ -363,7 +363,7 @@ input:disabled + .slider {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
 }
 
@@ -379,11 +379,11 @@ input:disabled + .slider {
 
 .success-message {
   background-color: var(--color-emerald-100);
-  border-left: 4px solid var(--color-green-600, #6d8a00);
+  border-left: 4px solid var(--color-green-600);
   color: var(--color-emerald-800);
 }
 
 .success-message i {
-  color: var(--color-green-600, #6d8a00);
+  color: var(--color-green-600);
 }
 </style>

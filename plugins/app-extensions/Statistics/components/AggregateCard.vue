@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
@@ -141,8 +142,7 @@ function draw() {
 
   if (!canvas.value) return
 
-  const style = getComputedStyle(document.documentElement)
-  const green500 = style.getPropertyValue('--color-green-500').trim() || '#88aa00'
+  const green500 = cssVar('--color-green-500')
 
   chart = new Chart(canvas.value, {
     type: 'line',
@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
   padding: 0.9rem 1rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 0;
 }
 
 .agg__head {
@@ -273,11 +273,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   background: var(--background-color);
   border: 1px solid var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .chip--on {
-  color: var(--text-on-primary, #fff);
+  color: var(--color-white);
   background: var(--primary-color);
   border-color: var(--primary-color);
 }

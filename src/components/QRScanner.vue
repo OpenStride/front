@@ -194,7 +194,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -204,12 +204,12 @@ onUnmounted(() => {
 
 .scanner-container {
   background: var(--color-white);
-  border-radius: 1rem;
+  border-radius: 0;
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-pop);
 }
 
 .scanner-header {
@@ -282,7 +282,7 @@ onUnmounted(() => {
   background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 1rem;
   transition: background 0.2s;
@@ -312,7 +312,7 @@ onUnmounted(() => {
 #qr-reader {
   width: 100%;
   max-width: 350px;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -336,7 +336,7 @@ onUnmounted(() => {
 .url-input {
   padding: 0.75rem;
   border: 1px solid var(--color-gray-300);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-family: monospace;
 }
@@ -364,7 +364,7 @@ onUnmounted(() => {
   background: var(--color-gray-100);
   color: var(--color-gray-700);
   border: 1px solid var(--color-gray-300);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.875rem;
 }

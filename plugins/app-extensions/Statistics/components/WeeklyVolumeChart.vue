@@ -140,7 +140,7 @@ function draw() {
     type: 'line' as const,
     label: t('statistics.volume.average'),
     data: weeks.value.map(() => average.value),
-    borderColor: cssVar('--color-ink-soft', '#55554f'),
+    borderColor: cssVar('--color-ink-soft'),
     borderDash: [6, 4],
     borderWidth: 1.5,
     pointRadius: 0,

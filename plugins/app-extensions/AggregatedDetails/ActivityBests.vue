@@ -1,5 +1,5 @@
 <template>
-  <div v-if="bestRows.length > 0" class="bg-white rounded-lg shadow p-4">
+  <div v-if="bestRows.length > 0" class="bg-white shadow p-4">
     <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
       <i class="fas fa-chart-line text-green-500" aria-hidden="true"></i>
       {{ t('bests.title') }}
@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { cssVar } from '@/utils/cssVar'
 import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -110,11 +111,10 @@ const fmtSpeed = (mps: number) => (mps ? units.format('speed', mps).text : '—'
 
 /* ===== Badge couleur selon distance ========================== */
 function badgeColor(d: number): string {
-  const s = getComputedStyle(document.documentElement)
-  if (d <= 2_000) return s.getPropertyValue('--color-cyan-500').trim() || '#00bbd3'
-  if (d <= 10_000) return s.getPropertyValue('--color-green-500').trim() || '#88aa00'
-  if (d <= 21_097) return s.getPropertyValue('--color-orange-400').trim() || '#f49268'
-  return s.getPropertyValue('--color-orange-700').trim() || '#b75e38'
+  if (d <= 2_000) return cssVar('--color-cyan-500')
+  if (d <= 10_000) return cssVar('--color-green-500')
+  if (d <= 21_097) return cssVar('--color-orange-400')
+  return cssVar('--color-orange-700')
 }
 
 /* ===== Calcul & filtrage ===================================== */

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4 p-4 bg-white shadow max-w-xl mx-auto rounded">
+  <div class="gdrive-setup space-y-4 p-4 bg-white shadow max-w-xl mx-auto">
     <div class="flex items-center space-x-2">
       <img src="../assets/logo.png" alt="Google Drive" class="w-8 h-8" />
       <h1 class="text-2xl font-bold">Google Drive</h1>
@@ -11,66 +11,52 @@
     <div v-else-if="isConnected == 1" class="mt-6 space-y-4">
       <div v-if="backupFilePresent == 1" class="text-sm text-gray-600">
         <p>
-          <i class="fas fa-check-circle" aria-hidden="true"></i> fichier de sauvegarde présent sur
-          Google Drive.
+          <i class="fas fa-check-circle" aria-hidden="true"></i> {{ t('gdrive.backupPresent') }}
         </p>
       </div>
       <div v-if="backupFilePresent == 0" class="text-sm text-gray-600">
         <p>{{ t('gdrive.verifying') }}</p>
       </div>
       <div v-else-if="backupFilePresent == -1" class="text-sm text-gray-600">
-        <button
-          @click="createBackupFile"
-          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-        >
-          Créer un fichier de sauvegarde
+        <button @click="createBackupFile" class="btn btn--primary">
+          {{ t('gdrive.createBackup') }}
         </button>
       </div>
 
       <p class="text-sm text-gray-600">
-        <i class="fas fa-check-circle" aria-hidden="true"></i> La connexion est active
+        <i class="fas fa-check-circle" aria-hidden="true"></i> {{ t('gdrive.connected') }}
       </p>
       <div class="text-center space-y-2">
         <!-- 1ère ligne : Refresh & Reconnect côte à côte -->
         <div class="flex justify-center gap-2">
-          <button
-            @click="onRefresh"
-            :disabled="isRefreshing"
-            :class="[
-              'inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg shadow-sm transition',
-              isRefreshing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700',
-              !isRefreshing && isRefreshed ? 'bg-green-600' : ''
-            ]"
-            class="text-white"
-          >
+          <button @click="onRefresh" :disabled="isRefreshing" class="btn btn--primary">
             <i
               class="fas fa-refresh"
               :class="{ 'animate-spin': isRefreshing }"
               aria-hidden="true"
             ></i>
             <span>
-              {{ isRefreshing ? 'Refreshing…' : isRefreshed ? 'Refreshed' : 'Refresh' }}
+              {{
+                isRefreshing
+                  ? t('gdrive.refreshing')
+                  : isRefreshed
+                    ? t('gdrive.refreshed')
+                    : t('gdrive.refresh')
+              }}
             </span>
           </button>
 
-          <button
-            @click="oauthSignIn"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition"
-          >
+          <button @click="oauthSignIn" class="btn btn--quiet">
             <i class="fas fa-plug" aria-hidden="true"></i>
-            Reconnect
+            {{ t('gdrive.reconnect') }}
           </button>
         </div>
 
         <!-- 2ᵉ ligne : Disconnect centré sous les 2 premiers -->
         <div>
-          <button
-            v-if="isConnected"
-            @click="disconnectGoogleDrive"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 transition"
-          >
+          <button v-if="isConnected" @click="disconnectGoogleDrive" class="btn btn--quiet">
             <i class="fas fa-unlink" aria-hidden="true"></i>
-            Disconnect
+            {{ t('gdrive.disconnect') }}
           </button>
         </div>
 
@@ -82,22 +68,18 @@
             class="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition"
           >
             <i class="fas fa-rotate" :class="{ 'animate-spin': isForcing }" aria-hidden="true"></i>
-            <span>{{
-              isForcing ? 'Resynchronisation…' : 'Forcer une resynchronisation complète'
-            }}</span>
+            <span>{{ isForcing ? t('gdrive.resyncing') : t('gdrive.forceResync') }}</span>
           </button>
           <p class="text-xs text-gray-400 mt-1">
-            Ignore l'optimisation et relit l'intégralité des données distantes.
+            {{ t('gdrive.forceResyncHint') }}
           </p>
         </div>
       </div>
     </div>
     <div v-else-if="isConnected == -1" class="mt-6 text-center space-y-4">
-      <button
-        @click="oauthSignIn"
-        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-      >
-        Connexion
+      <button @click="oauthSignIn" class="btn btn--primary">
+        <i class="fas fa-plug" aria-hidden="true"></i>
+        {{ t('gdrive.connect') }}
       </button>
     </div>
   </div>
