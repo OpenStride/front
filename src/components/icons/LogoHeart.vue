@@ -7,26 +7,35 @@
     focusable="false"
     @animationend="beating = false"
   >
-    <path class="logo-heart__leaf" :d="LEAF" />
-    <path class="logo-heart__shield" :d="SHIELD" />
+    <path :d="OUTLINE" />
   </svg>
 </template>
 
 <script setup lang="ts">
 /**
  * The logo itself, as the sign of a like: its leaf, its dark shield and the
- * pulse between them. Liked, filled with the like colour; not yet, drawn in
- * the colour of the text around it.
+ * pulse between them, as one silhouette. Liked, filled with the like colour;
+ * not yet, drawn in the colour of the text around it.
  */
 import { ref, watch } from 'vue'
 
 const props = defineProps<{ liked: boolean }>()
 
-// Drawn in src/assets/logo.svg (its layer's local coordinates), copied as is
-const LEAF =
-  'm 73.632854,166.56023 c 0,0 23.90519,14.18495 37.834046,-15.13891 6.25005,2.72389 7.75233,3.64451 11.86701,5.88004 2.81258,7.87141 1.22926,15.41662 -0.17581,21.52578 -8.50384,0.0533 -17.9707,-0.0282 -17.9707,-0.0282 l -12.629956,16.38056 -14.62817,-22.18457 -7.05156,9.06589 c 0,0 -2.322293,0.0577 -4.279785,-0.0188 0.182481,-7.53726 7.034975,-15.48009 7.034975,-15.48009 z'
-const SHIELD =
-  'm 58.642859,185.4581 13.828655,-0.73353 5.18378,-6.53557 14.83857,23.31618 14.406376,-19.54587 c 0,0 8.65614,-0.0483 15.88209,-0.0718 -5.9927,25.29082 -29.710306,36.68309 -29.710306,36.68309 0,0 -26.012258,-11.81157 -26.382924,-31.79145 -2.602519,-0.43516 -8.046241,-1.32124 -8.046241,-1.32124 z'
+/**
+ * The logo's outline, in one piece: its leaf and its shield joined, the pulse
+ * between them filled in. Taken from src/assets/logo.svg (its layer's local
+ * coordinates): the tail on the left, the slanted cut, the point below.
+ */
+const OUTLINE =
+  'M 58.643,185.458 L 66.598,185.03 L 66.598,182.05 ' +
+  'C 66.78,174.512 73.633,166.567 73.633,166.56 ' +
+  'C 73.633,166.56 97.538,180.745 111.467,151.421 ' +
+  'C 117.717,154.145 119.219,155.066 123.334,157.301 ' +
+  'C 126.147,165.173 124.563,172.718 123.158,178.827 ' +
+  'L 122.782,181.888 ' +
+  'C 116.79,207.178 93.072,218.571 93.072,218.571 ' +
+  'C 93.072,218.571 67.06,206.759 66.689,186.779 ' +
+  'C 64.087,186.344 58.643,185.458 58.643,185.458 Z'
 
 /** One beat when a like is given — not when the page opens on one already given. */
 const beating = ref(false)

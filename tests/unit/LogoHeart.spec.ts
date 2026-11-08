@@ -3,9 +3,9 @@ import { mount } from '@vue/test-utils'
 import LogoHeart from '@/components/icons/LogoHeart.vue'
 
 describe('LogoHeart', () => {
-  it('is the logo: its leaf and its shield, hidden from screen readers', () => {
+  it("is the logo's outline in one piece, hidden from screen readers", () => {
     const wrapper = mount(LogoHeart, { props: { liked: false } })
-    expect(wrapper.findAll('path')).toHaveLength(2)
+    expect(wrapper.findAll('path')).toHaveLength(1)
     expect(wrapper.attributes('aria-hidden')).toBe('true')
     expect(wrapper.classes()).not.toContain('logo-heart--liked')
   })
