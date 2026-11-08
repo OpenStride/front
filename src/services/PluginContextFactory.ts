@@ -4,6 +4,7 @@ import { IndexedDBService } from './IndexedDBService'
 import { ToastService } from './ToastService'
 import { aggregationService } from './AggregationService'
 import { FriendService } from './FriendService'
+import { FriendSyncService } from './FriendSyncService'
 import { PublicFileService } from './PublicFileService'
 import { getPublicDataListener } from './PublicDataListener'
 import { PublicDataPublisher } from './PublicDataPublisher'
@@ -150,6 +151,8 @@ export async function createPluginContext(): Promise<PluginContext> {
       getPublicSummary: () => PublicDataPublisher.getInstance().getPublicSummary(),
       isSealed: () => PublicDataPublisher.getInstance().isSealed(),
       rotatePublicLink: () => PublicDataPublisher.getInstance().rotatePublicLink(),
+      getSharedPhoto: (friendId, url) =>
+        FriendSyncService.getInstance().getSharedPhoto(friendId, url),
       isAutoPublishEnabled: () => getPublicDataListener().isAutoPublishEnabled(),
       setAutoPublish: enabled =>
         enabled

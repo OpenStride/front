@@ -1292,7 +1292,8 @@
     "seal": "Chiffrer et changer mon lien",
     "rotate": "Changer mon lien",
     "rotateHint": "Vos fichiers publics sont recréés à une nouvelle adresse, avec une nouvelle clé : l'ancien lien n'ouvre plus rien. Vos amis devront scanner votre nouveau QR code pour continuer à vous suivre.",
-    "rotateConfirm": "Changer votre lien ? L'ancien n'ouvrira plus rien, et chacun de vos amis devra scanner le nouveau QR code pour continuer à voir vos sorties."
+    "rotateConfirm": "Changer votre lien ? L'ancien n'ouvrira plus rien, et chacun de vos amis devra scanner le nouveau QR code pour continuer à voir vos sorties.",
+    "photos": "Photos (sans leur position GPS)"
   },
   "photos": {
     "add": "Ajouter des photos",

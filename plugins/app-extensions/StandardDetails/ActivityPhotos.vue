@@ -111,20 +111,43 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePluginContext } from '@/composables/usePluginContext'
-import { MAX_PHOTOS_PER_ACTIVITY, type ActivityPhoto } from '@/types/photo'
+import { MAX_PHOTOS_PER_ACTIVITY, type PhotoSize } from '@/types/photo'
+import type { PublicPhoto } from '@/types/friend'
 
-const props = defineProps<{ activityId: string; canEdit: boolean }>()
+const props = defineProps<{
+  activityId: string
+  canEdit: boolean
+  /** A friend's outing: the photos they share, read from their public files. */
+  shared?: { friendId: string; photos: PublicPhoto[] }
+}>()
 const { t } = useI18n()
 const ctx = usePluginContext()
 
-const photos = ref<ActivityPhoto[]>([])
+/** What the strip needs of a photo, whoever it belongs to. */
+interface Shown {
+  id: string
+}
+
+const photos = ref<Shown[]>([])
+
+/** The reader's own photos from the device, a friend's from their public files. */
+async function listPhotos(): Promise<Shown[]> {
+  return props.shared ? props.shared.photos : ctx.photos.list(props.activityId)
+}
+
+function imageOf(id: string, size: PhotoSize): Promise<Blob | null> {
+  if (!props.shared) return ctx.photos.blob(id, size)
+  const photo = props.shared.photos.find(p => p.id === id)
+  if (!photo) return Promise.resolve(null)
+  return ctx.friends.getSharedPhoto(props.shared.friendId, photo[size])
+}
 /** Object URLs of the thumbnails, by photo id; revoked when a photo leaves. */
 const thumbs = ref<Record<string, string>>({})
 const busy = ref(false)
 const input = ref<HTMLInputElement | null>(null)
 
 async function load() {
-  const list = await ctx.photos.list(props.activityId)
+  const list = await listPhotos()
   const live = new Set(list.map(p => p.id))
   const kept: Record<string, string> = {}
   for (const [id, url] of Object.entries(thumbs.value)) {
@@ -137,7 +160,7 @@ async function load() {
   photos.value = list
   for (const photo of list) {
     if (thumbs.value[photo.id]) continue
-    const blob = await ctx.photos.blob(photo.id, 'thumb')
+    const blob = await imageOf(photo.id, 'thumb')
     if (blob && photos.value.some(p => p.id === photo.id) && !thumbs.value[photo.id]) {
       thumbs.value = { ...thumbs.value, [photo.id]: URL.createObjectURL(blob) }
     }
@@ -211,7 +234,7 @@ watch(current, async (photo, previous) => {
   if (fullUrl.value) URL.revokeObjectURL(fullUrl.value)
   fullUrl.value = null
   if (!photo) return
-  const blob = await ctx.photos.blob(photo.id, 'full')
+  const blob = await imageOf(photo.id, 'full')
   if (blob && current.value?.id === photo.id) fullUrl.value = URL.createObjectURL(blob)
   if (!previous) {
     await nextTick()
@@ -230,9 +253,11 @@ let unsubscribe: (() => void) | null = null
 
 onMounted(() => {
   void load()
-  unsubscribe = ctx.photos.onChanged(id => {
-    if (id === props.activityId && !busy.value) void load()
-  })
+  if (!props.shared) {
+    unsubscribe = ctx.photos.onChanged(id => {
+      if (id === props.activityId && !busy.value) void load()
+    })
+  }
   window.addEventListener('keydown', onKey)
 })
 

@@ -32,6 +32,7 @@ export interface FriendActivity {
   type: string // 'run' | 'bike' | 'hike' etc
   title?: string // optional activity title
   mapPolyline?: [number, number][] // reduced GPS track (80% of points)
+  photos?: PublicPhoto[] // the photos the friend shares, when they do
   // Metadata
   lastModified?: number // for IndexedDB sync
   fetchedAt: number // when this was fetched
@@ -84,7 +85,28 @@ export interface PublicActivity {
   type: string
   title?: string
   mapPolyline?: [number, number][] // reduced GPS track
+  /** The outing's photos, when its owner shares them (`SharingSettings.photos`). */
+  photos?: PublicPhoto[]
   // NO: detailed samples, heart rate zones, laps, cadence details
+}
+
+/**
+ * A shared photo: two public files, sealed like every other one, each holding
+ * a `PublicImage`. Listed in the year file rather than the details file, so a
+ * friend's feed can show it without opening the outing.
+ */
+export interface PublicPhoto {
+  id: string
+  thumb: string
+  full: string
+  width: number
+  height: number
+}
+
+/** The content of a shared photo's file: the image, as base64. */
+export interface PublicImage {
+  mime: string
+  data: string
 }
 
 /** What one outing shares beyond its summary, per the owner's sharing settings. */

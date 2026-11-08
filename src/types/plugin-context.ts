@@ -228,6 +228,11 @@ export interface IFriendService {
    * Whoever held the old link opens nothing; friends follow again from the new one.
    */
   rotatePublicLink(): Promise<string | null>
+  /**
+   * A photo a friend shares (`PublicPhoto.thumb` or `.full`), opened with
+   * their key; null when it cannot be read.
+   */
+  getSharedPhoto(friendId: string, url: string): Promise<Blob | null>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
 }

@@ -50,12 +50,25 @@ l'utilisateur, sur son propre quota (le scope `drive.file` actuel suffit).
   appareil qui synchronise, puis `remote` est vidé (une version plus loin).
 - Ajouter ou supprimer une photo déclenche la sync automatique (5 s).
 
-### 3. Partage aux amis
+### 3. Partage aux amis — fait
 
-- Une ligne « Photos » dans « Ce que voient vos amis », désactivée par défaut.
-- Versions moyennes publiées chiffrées avec la clé du lien (`publicCrypto`,
-  à étendre aux octets), adresses listées dans le fichier de détails que l'ami
-  ne charge qu'à l'ouverture de la sortie.
+- Une ligne « Photos (sans leur position GPS) » dans « Ce que voient vos
+  amis », désactivée par défaut.
+- `PublicPhotoPublisher` : chaque photo d'une sortie publique devient deux
+  fichiers publics (miniature et image), le JPEG en base64 dans une enveloppe
+  JSON, scellés avec la clé du lien par `writePublicFile` comme le reste. Une
+  photo n'est envoyée qu'une fois (`publishedPhotos` dans les réglages) ; une
+  nouvelle clé (lien changé) la renvoie.
+- Les liens sont listés sur la sortie dans le fichier annuel
+  (`PublicActivity.photos`), pas dans le fichier de détails : le flux d'un ami
+  les affiche sans ouvrir la sortie.
+- Une fois le nouveau manifeste en ligne, les fichiers des photos retirées
+  (supprimées, sortie passée privée, partage coupé) sont effacés.
+- Ajouter ou supprimer une photo republie (si les photos sont partagées).
+- Côté ami : une sortie déjà reçue se met à jour quand ses photos (ou son
+  titre) changent ; les images s'ouvrent avec la clé de l'ami
+  (`ctx.friends.getSharedPhoto`), une fois par session. Carte du flux et page
+  de la sortie, en lecture seule.
 
 ### 4. (Optionnel) Import Google Photos
 
