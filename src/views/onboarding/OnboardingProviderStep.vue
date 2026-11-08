@@ -28,9 +28,7 @@
               </p>
             </div>
           </div>
-          <button
-            class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700 transition-colors"
-          >
+          <button class="btn btn--primary">
             {{ t('common.select') }}
           </button>
         </li>
@@ -39,10 +37,7 @@
 
     <!-- Setup component embarqué (si provider sélectionné) -->
     <div v-else class="provider-setup">
-      <button
-        @click="selectedProviderId = null"
-        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-sm text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
+      <button @click="selectedProviderId = null" class="btn btn--quiet mb-4">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         {{ t('onboarding.provider.backButton') }}
       </button>
