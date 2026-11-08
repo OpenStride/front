@@ -69,7 +69,6 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 // Computed properties for filtering
-const likes = computed(() => interactions.value.filter(i => i.type === 'like'))
 
 const comments = computed(() =>
   interactions.value.filter(i => i.type === 'comment').sort((a, b) => b.timestamp - a.timestamp)
