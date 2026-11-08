@@ -31,10 +31,7 @@
       </div>
     </div>
 
-    <button
-      @click="$emit('complete')"
-      class="bg-green-600 text-white px-8 py-4 rounded-sm text-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center gap-3 mb-6"
-    >
+    <button @click="$emit('complete')" class="btn btn--primary mb-6">
       <i class="fas fa-running" aria-hidden="true"></i>
       {{ t('onboarding.complete.viewActivities') }}
     </button>

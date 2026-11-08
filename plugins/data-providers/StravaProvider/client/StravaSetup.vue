@@ -261,26 +261,6 @@ async function onFileChange(e: Event) {
   font-weight: 500;
   white-space: nowrap;
 }
-.filepick {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1.1rem;
-  border: 2px dashed var(--color-gray-300);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-.filepick:hover {
-  border-color: var(--color-green-500);
-}
-.filepick--busy {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.filepick input {
-  display: none;
-}
 .status {
   margin-top: 1rem;
   color: var(--color-gray-600);

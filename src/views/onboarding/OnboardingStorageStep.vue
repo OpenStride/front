@@ -9,10 +9,7 @@
 
     <!-- Bouton skip proéminent -->
     <div class="bg-gray-50 p-6 rounded-md border border-gray-200 mb-6">
-      <button
-        @click="$emit('skip')"
-        class="w-full bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-      >
+      <button @click="$emit('skip')" class="btn btn--primary btn--block">
         <i class="fas fa-forward" aria-hidden="true"></i>
         {{ t('onboarding.storage.skipButton') }}
       </button>
@@ -45,9 +42,7 @@
               </p>
             </div>
           </div>
-          <button
-            class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700 transition-colors"
-          >
+          <button class="btn btn--primary">
             {{ t('common.select') }}
           </button>
         </li>
@@ -56,10 +51,7 @@
 
     <!-- Setup component embarqué -->
     <div v-else class="storage-setup">
-      <button
-        @click="selectedStorageId = null"
-        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-sm text-sm font-medium hover:bg-gray-50 transition-colors"
-      >
+      <button @click="selectedStorageId = null" class="btn btn--quiet mb-4">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         {{ t('onboarding.storage.backButton') }}
       </button>
@@ -68,11 +60,7 @@
         <component v-if="setupComponent" :is="setupComponent" />
       </div>
 
-      <button
-        v-if="isConnected"
-        @click="$emit('next')"
-        class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-      >
+      <button v-if="isConnected" @click="$emit('next')" class="btn btn--primary btn--block mt-6">
         {{ t('common.continue') }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
       </button>
     </div>
