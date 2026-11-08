@@ -104,8 +104,7 @@ export default defineConfig({
       'workbox-precaching',
       'workbox-routing',
       'workbox-strategies',
-      'workbox-expiration',
-      'firebase/messaging/sw'
+      'workbox-expiration'
     ]
   },
   test: {

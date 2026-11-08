@@ -809,14 +809,6 @@
     "profileSections": "Profile sections",
     "providerLogo": "Provider logo"
   },
-  "notifications": {
-    "title": "Push notifications",
-    "unsupported": "Your browser does not support push notifications",
-    "notConfigured": "Firebase is not configured. See the plugin README.",
-    "enable": "Enable notifications",
-    "status": "Status:",
-    "token": "FCM token:"
-  },
   "zipImport": {
     "title": "Import an activity ZIP export",
     "importing": "Importing...",
@@ -1055,10 +1047,6 @@
     "statistics": {
       "label": "Dashboard",
       "description": "Your metrics in one place: trends, distributions, personal records and an activity calendar."
-    },
-    "firebase-notifications": {
-      "label": "Push notifications",
-      "description": "Get notified when new activities are imported."
     },
     "gear": {
       "label": "Gear",

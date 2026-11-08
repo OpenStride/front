@@ -448,10 +448,6 @@ const PLUGIN_UI_KIT = [
   'components/MyQrCodeModal.vue',
   'components/providers/DefaultProviderSetup.vue'
 ]
-// Doors still being closed, each with the work that removes it
-const CORE_TO_PLUGIN_EXCEPTIONS: Record<string, string> = {
-  'src/sw.ts': 'the service worker hook (being replaced by a plugin extension point)'
-}
 
 describe('the core and the plugins meet at known doors', () => {
   const importsOf = (content: string) =>
@@ -461,7 +457,6 @@ describe('the core and the plugins meet at known doors', () => {
     const offenders: string[] = []
     for (const file of walk(join(ROOT, 'src'))) {
       const rel = file.replace(ROOT + '/', '')
-      if (CORE_TO_PLUGIN_EXCEPTIONS[rel]) continue
       for (const spec of importsOf(readFileSync(file, 'utf8'))) {
         if (spec.startsWith('@plugins/') || /(^|\/)plugins\//.test(spec)) {
           offenders.push(`${rel}  ${spec}`)

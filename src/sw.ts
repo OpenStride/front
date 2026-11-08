@@ -1,18 +1,15 @@
 /// <reference lib="webworker" />
 /**
  * OpenStride Service Worker
- * Combines Workbox (PWA caching) with Firebase Messaging (push notifications)
+ * Workbox (PWA caching) and the update handshake. It imports nothing from
+ * plugins: push notifications, when they come back, will be a core push
+ * handler fed by a plugin (see docs/plans/GARMIN_PUSH.md)
  */
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
-import {
-  initializeFirebaseMessaging,
-  setupBackgroundMessageHandler,
-  setupNotificationClickHandler
-} from '../plugins/app-extensions/firebase-notifications/services/sw-messaging'
 import { logger } from '@/utils/logger'
 
 declare const self: ServiceWorkerGlobalScope
@@ -59,26 +56,7 @@ registerRoute(
 )
 
 // ========================================
-// 2. Firebase Messaging Setup
-// ========================================
-
-// Initialize Firebase Messaging if configured
-const messaging = initializeFirebaseMessaging()
-
-if (messaging) {
-  logger.debug('[Service Worker] Firebase Messaging enabled')
-
-  // Setup background message handler
-  setupBackgroundMessageHandler(messaging)
-
-  // Setup notification click handler
-  setupNotificationClickHandler()
-} else {
-  logger.debug('[Service Worker] Firebase Messaging not configured, skipping')
-}
-
-// ========================================
-// 3. Service Worker Lifecycle
+// 2. Service Worker Lifecycle
 // ========================================
 
 self.addEventListener('install', _event => {
@@ -93,7 +71,7 @@ self.addEventListener('activate', event => {
 })
 
 // ========================================
-// 4. Message Handling (from app)
+// 3. Message Handling (from app)
 // ========================================
 
 self.addEventListener('message', event => {

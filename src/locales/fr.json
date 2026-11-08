@@ -809,14 +809,6 @@
     "profileSections": "Sections du profil",
     "providerLogo": "Logo du fournisseur"
   },
-  "notifications": {
-    "title": "Notifications push",
-    "unsupported": "Votre navigateur ne supporte pas les notifications push",
-    "notConfigured": "Firebase n'est pas configuré. Consultez le README du plugin.",
-    "enable": "Activer les notifications",
-    "status": "Statut :",
-    "token": "Token FCM :"
-  },
   "zipImport": {
     "title": "Importer un export ZIP d'activités",
     "importing": "Import en cours...",
@@ -1055,10 +1047,6 @@
     "statistics": {
       "label": "Tableau de bord",
       "description": "Vos métriques au même endroit : tendances, répartitions, records personnels et calendrier d’activité."
-    },
-    "firebase-notifications": {
-      "label": "Notifications push",
-      "description": "Recevez une notification quand de nouvelles activités sont importées."
     },
     "gear": {
       "label": "Équipement",
