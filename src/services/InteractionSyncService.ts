@@ -278,10 +278,11 @@ export class InteractionSyncService {
         const onMine = (yearData.interactions[myUserId] ?? []).map(entry =>
           toInteraction(entry, myUserId)
         )
-        // The owner's replies on their own activities
+        // The owner's own words on their activities: replies, and the like
+        // they may give their own outing
         const replies = ownerKey
           ? (yearData.interactions[ownerKey] ?? [])
-              .filter(entry => entry.type === 'comment' && entry.authorId === ownerKey)
+              .filter(entry => entry.authorId === ownerKey)
               .map(entry => toInteraction(entry, ownerViewedAs))
           : []
 

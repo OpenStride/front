@@ -179,7 +179,7 @@ export class InteractionService {
   // ========== LIKE OPERATIONS ==========
 
   /**
-   * Add a like to a friend's activity
+   * Add a like to a friend's activity, or to one's own
    */
   public async addLike(activityId: string, activityOwnerId: string): Promise<Interaction | null> {
     const db = await IndexedDBService.getInstance()
@@ -191,14 +191,9 @@ export class InteractionService {
       return null
     }
 
-    // Prevent liking own activities
-    if (activityOwnerId === authorId) {
-      console.warn('[InteractionService] Cannot like own activity')
-      return null
-    }
-
-    // Check mutual friendship
-    if (!(await this.isMutualFriend(activityOwnerId))) {
+    // One's own outing can be liked — odd, but it reassures. Anywhere else, the
+    // owner has to read our files: a mutual friendship.
+    if (activityOwnerId !== authorId && !(await this.isMutualFriend(activityOwnerId))) {
       console.warn('[InteractionService] Cannot like: not mutual friends')
       return null
     }
