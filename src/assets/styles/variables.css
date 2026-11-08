@@ -13,6 +13,9 @@
   --color-lime: #cdf05c; /* accent SUR encre uniquement */
   --color-lime-soft: #a6d95a;
 
+  /* — Le j'aime : la forme du logo, d'une seule couleur — */
+  --color-like: #e23d6d;
+
   /* — Surfaces (gris chaud) — */
   --surface-app: #ececea; /* fond de page */
   --surface: #ffffff; /* cartes */

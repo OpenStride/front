@@ -59,6 +59,8 @@ export interface InteractionSummary {
   likeCount: number
   commentCount: number
   hasLiked: boolean // current user has liked
+  /** Who liked, most recent first: the names a card shows ("Liked by Alex and 3 others"). */
+  likers?: { authorId: string; username: string }[]
   lastComment?: Interaction // most recent comment (for preview)
 }
 

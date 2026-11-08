@@ -842,7 +842,11 @@
     "likeCount": "No likes | {n} like | {n} likes",
     "commentCount": "No comments | {n} comment | {n} comments",
     "deletedUser": "Deleted user",
-    "loadFailed": "Could not load the interactions."
+    "loadFailed": "Could not load the interactions.",
+    "you": "you",
+    "likedByOne": "Liked by {name}",
+    "likedByTwo": "Liked by {name} and {other}",
+    "likedByMany": "Liked by {name} and {n} other | Liked by {name} and {n} others"
   },
   "friendsList": {
     "empty": "No friend added",

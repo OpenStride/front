@@ -435,6 +435,7 @@ export class InteractionService {
       likeCount: likes.length,
       commentCount: comments.length,
       hasLiked: authorId ? likes.some(l => l.authorId === authorId) : false,
+      likers: likes.map(l => ({ authorId: l.authorId, username: l.authorUsername })),
       lastComment: comments.length > 0 ? comments[0] : undefined
     }
   }

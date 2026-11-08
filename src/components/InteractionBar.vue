@@ -8,9 +8,9 @@
   >
     <!-- Counters: a card's summary. Under the thread they would repeat its headings. -->
     <div v-if="!inThread" class="interaction-counters">
-      <span v-if="summary.likeCount > 0" class="counter like-counter">
-        <i class="fas fa-heart" aria-hidden="true"></i>
-        {{ summary.likeCount }}
+      <span v-if="summary.likeCount > 0" class="counter like-counter" data-test="liked-by">
+        <LogoHeart :liked="true" />
+        <span class="liked-by">{{ likedBy }}</span>
       </span>
       <span v-if="summary.commentCount > 0" class="counter comment-counter">
         <i class="fas fa-comment" aria-hidden="true"></i>
@@ -35,11 +35,11 @@
       <button
         @click="toggleLike"
         :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
-        :disabled="loading"
+        :aria-pressed="summary.hasLiked"
         :title="canInteract ? t('interactions.like') : t('interactions.whyBlocked')"
         data-test="like-btn"
       >
-        <i :class="summary.hasLiked ? 'fas fa-heart' : 'far fa-heart'" aria-hidden="true"></i>
+        <LogoHeart :liked="summary.hasLiked" />
         <span class="btn-label">{{
           summary.hasLiked ? t('interactions.liked') : t('interactions.like')
         }}</span>
@@ -121,6 +121,7 @@ import { useI18n } from 'vue-i18n'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import MyQrCodeModal from '@/components/MyQrCodeModal.vue'
+import LogoHeart from '@/components/icons/LogoHeart.vue'
 import type { InteractionSummary, InteractionServiceEvent } from '@/types/interaction'
 
 const { t } = useI18n()
@@ -236,24 +237,61 @@ const checkCanInteract = async () => {
 }
 
 // Actions
+/**
+ * The like shows at once: waiting for the write (and the publish behind it)
+ * made the button feel dead. Put back as it was if the service refuses.
+ */
 const toggleLike = async () => {
   if (!canInteract.value) return revealBlocked()
   if (loading.value) return
 
+  const before = summary.value
+  const me = { authorId: myUserId.value!, username: t('interactions.you') }
+  const liking = !before.hasLiked
+  summary.value = {
+    ...before,
+    hasLiked: liking,
+    likeCount: before.likeCount + (liking ? 1 : -1),
+    likers: liking
+      ? [me, ...(before.likers ?? [])]
+      : (before.likers ?? []).filter(l => l.authorId !== me.authorId)
+  }
+
   loading.value = true
   try {
-    if (summary.value.hasLiked) {
-      await interactionService.removeLike(props.activityId, props.activityOwnerId)
+    if (liking) {
+      const added = await interactionService.addLike(props.activityId, props.activityOwnerId)
+      if (!added) throw new Error('Like refused')
     } else {
-      await interactionService.addLike(props.activityId, props.activityOwnerId)
+      await interactionService.removeLike(props.activityId, props.activityOwnerId)
     }
     await loadSummary()
   } catch (error) {
     console.error('[InteractionBar] Error toggling like:', error)
+    summary.value = before
   } finally {
     loading.value = false
   }
 }
+
+/**
+ * "Liked by Alex", "by Alex and Sam", "by Alex and 3 others" — the reader
+ * first when they are among them, as "you".
+ */
+const likedBy = computed(() => {
+  const likers = summary.value.likers ?? []
+  const names = likers.map(l =>
+    l.authorId === myUserId.value ? t('interactions.you') : l.username
+  )
+  const mine = likers.findIndex(l => l.authorId === myUserId.value)
+  if (mine > 0) names.unshift(...names.splice(mine, 1))
+  const count = Math.max(summary.value.likeCount, names.length)
+  if (!names.length) return t('interactions.likeCount', count)
+  if (count === 1) return t('interactions.likedByOne', { name: names[0] })
+  if (count === 2 && names.length >= 2)
+    return t('interactions.likedByTwo', { name: names[0], other: names[1] })
+  return t('interactions.likedByMany', { name: names[0], n: count - 1 }, count - 1)
+})
 
 const submitComment = async () => {
   const text = commentText.value.trim()
@@ -329,8 +367,9 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-.like-counter i {
-  color: var(--color-green-600);
+.like-counter {
+  font-family: var(--font-main);
+  color: var(--color-ink-soft);
 }
 
 .comment-counter i {
@@ -371,13 +410,11 @@ onUnmounted(() => {
 }
 
 .like-btn.liked {
-  color: var(--color-green-700);
-  border-color: var(--color-green-200);
-  background: var(--color-green-50);
+  color: var(--color-ink);
 }
 
-.like-btn.liked i {
-  color: var(--color-green-600);
+.like-btn .logo-heart {
+  font-size: 15px;
 }
 
 .btn-label {
