@@ -358,7 +358,7 @@ const toggleAutoPublish = async (event: Event) => {
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
 }
 
@@ -463,7 +463,7 @@ const toggleAutoPublish = async (event: Event) => {
   color: var(--color-ink);
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .select:focus {
@@ -507,7 +507,7 @@ const toggleAutoPublish = async (event: Event) => {
   gap: 0.5rem;
   padding: 0.625rem 1rem;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;

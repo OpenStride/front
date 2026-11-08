@@ -1,5 +1,5 @@
 <template>
-  <div v-if="bestRows.length > 0" class="bg-white rounded-lg shadow p-4">
+  <div v-if="bestRows.length > 0" class="bg-white shadow p-4">
     <h3 class="text-xl font-semibold mb-5 flex items-center gap-2">
       <i class="fas fa-chart-line text-green-500" aria-hidden="true"></i>
       {{ t('bests.title') }}

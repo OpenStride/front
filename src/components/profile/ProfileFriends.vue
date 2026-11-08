@@ -380,7 +380,7 @@ const formatFriendDate = (timestamp: number): string =>
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s;
 }
@@ -398,7 +398,7 @@ const formatFriendDate = (timestamp: number): string =>
 .avatar-placeholder {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   object-fit: cover;
 }
 
@@ -542,7 +542,7 @@ const formatFriendDate = (timestamp: number): string =>
 
 .modal-content {
   background: var(--color-white);
-  border-radius: 0.75rem;
+  border-radius: 0;
   padding: 1.5rem;
   max-width: 400px;
   width: 100%;
@@ -570,7 +570,7 @@ const formatFriendDate = (timestamp: number): string =>
 .confirm-btn {
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;

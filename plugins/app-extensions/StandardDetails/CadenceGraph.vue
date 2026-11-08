@@ -23,7 +23,7 @@
       <div
         v-if="tooltip.visible"
         :style="tooltip.style"
-        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded-sm border border-gray-200 transition-opacity duration-150"
       >
         <div>
           <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}

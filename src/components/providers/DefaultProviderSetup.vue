@@ -25,7 +25,7 @@
       <button
         @click="$emit('connect')"
         :disabled="isLoading"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-sm shadow-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-plug'" aria-hidden="true"></i>
         <template v-if="isLoading">

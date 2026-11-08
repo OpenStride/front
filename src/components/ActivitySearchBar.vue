@@ -163,7 +163,7 @@ function onInput(e: Event) {
   font-weight: 600;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   display: flex;
   align-items: center;
   justify-content: center;

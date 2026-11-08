@@ -8,10 +8,10 @@
     </p>
 
     <!-- Bouton skip proéminent -->
-    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
+    <div class="bg-gray-50 p-6 rounded-md border border-gray-200 mb-6">
       <button
         @click="$emit('skip')"
-        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+        class="w-full bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
         <i class="fas fa-forward" aria-hidden="true"></i>
         {{ t('onboarding.storage.skipButton') }}
@@ -33,7 +33,7 @@
           v-for="storage in allStoragePlugins"
           :key="storage.id"
           @click="selectStorage(storage.id)"
-          class="flex items-center justify-between bg-gray-50 p-4 rounded border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
+          class="flex items-center justify-between bg-gray-50 p-4 rounded-md border border-gray-200 hover:bg-white hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
         >
           <div class="flex items-center space-x-4">
             <img v-if="storage.icon" :src="storage.icon" :alt="storage.label" class="w-8 h-8" />
@@ -46,7 +46,7 @@
             </div>
           </div>
           <button
-            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700 transition-colors"
           >
             {{ t('common.select') }}
           </button>
@@ -58,20 +58,20 @@
     <div v-else class="storage-setup">
       <button
         @click="selectedStorageId = null"
-        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors"
+        class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-sm text-sm font-medium hover:bg-gray-50 transition-colors"
       >
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         {{ t('onboarding.storage.backButton') }}
       </button>
 
-      <div class="bg-white p-6 rounded shadow">
+      <div class="bg-white p-6 shadow">
         <component v-if="setupComponent" :is="setupComponent" />
       </div>
 
       <button
         v-if="isConnected"
         @click="$emit('next')"
-        class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+        class="mt-6 w-full bg-green-600 text-white px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >
         {{ t('common.continue') }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
       </button>

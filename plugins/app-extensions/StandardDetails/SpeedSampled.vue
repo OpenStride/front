@@ -23,7 +23,7 @@
       <div
         v-if="tooltip.visible"
         :style="tooltip.style"
-        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded-sm border border-gray-200 transition-opacity duration-150"
       >
         <div>
           <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
@@ -53,8 +53,8 @@
         <span class="w-16">{{ formatDistance(segmentMark(s, i)) }}</span>
 
         <!-- Barre horizontale représ. la pace -->
-        <div class="flex-1 h-3 bg-gray-100 rounded mx-1 overflow-hidden">
-          <div class="h-full bg-green-500 rounded" :style="{ width: paceBarWidth(s) + '%' }" />
+        <div class="flex-1 h-3 bg-gray-100 rounded-sm mx-1 overflow-hidden">
+          <div class="h-full bg-green-500 rounded-sm" :style="{ width: paceBarWidth(s) + '%' }" />
         </div>
 
         <!-- Pace numérique -->

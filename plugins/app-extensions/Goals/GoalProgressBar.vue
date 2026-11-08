@@ -126,7 +126,7 @@ const formattedTarget = computed(() => display(props.progress.goal.targetValue))
   color: var(--color-green-800);
   background: var(--color-green-100);
   padding: 1px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .goal-frequency {
@@ -134,7 +134,7 @@ const formattedTarget = computed(() => display(props.progress.goal.targetValue))
   color: var(--color-green-700);
   background: var(--color-green-50);
   padding: 1px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .goal-delete-btn {
@@ -143,7 +143,7 @@ const formattedTarget = computed(() => display(props.progress.goal.targetValue))
   color: var(--color-green-600);
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   opacity: 0.5;
   transition: opacity 0.2s;
@@ -189,14 +189,14 @@ const formattedTarget = computed(() => display(props.progress.goal.targetValue))
 .bar-track {
   height: 8px;
   background: var(--color-green-100);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-green-400), var(--color-green-500));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.4s ease;
 }
 

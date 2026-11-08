@@ -126,7 +126,7 @@ const tiles = computed(() =>
 
 .toggle-btn {
   padding: 0.3rem 0.8rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-green-200);
   background: var(--bg-color);
   color: var(--text-color);

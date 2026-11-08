@@ -144,7 +144,7 @@ function closeOrReturnToSetup() {
   text-align: center;
   padding: 2rem;
   background: var(--color-white);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   max-width: 320px;
 }

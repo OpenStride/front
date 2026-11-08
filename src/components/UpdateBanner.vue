@@ -70,7 +70,7 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--color-green-500) 95%, transparent);
   color: var(--color-white);
   padding: 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px) saturate(140%);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
@@ -111,7 +111,7 @@ onUnmounted(() => {
 .btn-update,
 .btn-later {
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   font-size: 14px;

@@ -150,7 +150,7 @@ const close = () => emit('close')
   justify-content: center;
   gap: 0.5rem;
   padding: 0.7rem 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-green-500);
   color: var(--color-white);
   font-size: 0.9rem;

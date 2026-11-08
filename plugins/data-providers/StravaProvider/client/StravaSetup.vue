@@ -267,7 +267,7 @@ async function onFileChange(e: Event) {
   gap: 0.6rem;
   padding: 0.9rem 1.1rem;
   border: 2px dashed var(--color-gray-300, #d1d5db);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -290,7 +290,7 @@ async function onFileChange(e: Event) {
   margin-top: 0.5rem;
   height: 6px;
   background: var(--color-gray-200, #e5e7eb);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .bar__fill {

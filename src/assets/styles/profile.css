@@ -54,7 +54,7 @@
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
 }
 
@@ -66,7 +66,7 @@
   padding: 0.875rem 1rem;
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   box-shadow: var(--shadow-card);
 }
 
@@ -139,7 +139,7 @@
   color: var(--color-ink);
   background: var(--surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .profile-panel input[type='text']:focus,
@@ -160,7 +160,7 @@
   gap: 0.5rem;
   padding: 0.625rem 1rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;

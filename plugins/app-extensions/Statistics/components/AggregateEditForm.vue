@@ -302,7 +302,7 @@ function onSubmit() {
   padding: 1rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 0;
 }
 
 .form-row {
@@ -325,7 +325,7 @@ function onSubmit() {
   color: var(--text-color);
   background: var(--background-color);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: var(--radius-sm);
 }
 
 .form-input.grow {
@@ -351,7 +351,7 @@ function onSubmit() {
   padding: 0.75rem;
   margin: 0;
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: var(--radius-md);
 }
 
 .filters legend {
@@ -400,7 +400,7 @@ function onSubmit() {
   font-size: 0.9rem;
   cursor: pointer;
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: var(--radius-sm);
 }
 
 .btn-primary {

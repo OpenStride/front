@@ -123,8 +123,4 @@ onMounted(loadActivity)
   flex-direction: column;
   gap: 1.5rem;
 }
-
-.widgets-container :deep(.rounded-lg) {
-  border-radius: 0 !important;
-}
 </style>

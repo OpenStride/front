@@ -445,7 +445,7 @@ const showDetails = () => {
   width: 3px;
   height: 3px;
   margin-top: -1.5px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: currentColor;
   opacity: 0.5;
 }

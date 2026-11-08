@@ -269,7 +269,7 @@ function goToFriends() {
   width: 84px;
   height: 84px;
   margin: 0 auto 1rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-round);
   overflow: hidden;
   background: var(--surface-muted);
   display: flex;
@@ -401,7 +401,7 @@ function goToFriends() {
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;

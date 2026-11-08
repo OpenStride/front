@@ -233,7 +233,7 @@ onUnmounted(() => {
 .add-btn {
   background: var(--color-green-50);
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   font-size: 0.9rem;
   color: var(--color-green-600);
@@ -254,7 +254,7 @@ onUnmounted(() => {
 .nav-btn {
   background: none;
   border: 1px solid var(--color-green-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   font-size: 0.8rem;
   color: var(--color-green-600);
@@ -283,7 +283,7 @@ onUnmounted(() => {
   background: var(--color-green-500);
   color: var(--color-white);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 3px 10px;
   font-size: 0.75rem;
   cursor: pointer;

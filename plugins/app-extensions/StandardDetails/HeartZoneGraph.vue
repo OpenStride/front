@@ -20,9 +20,9 @@
               [{{ zone.fcMin }}–{{ zone.fcMax }} bpm]
             </span>
           </div>
-          <div class="relative h-4 bg-gray-100 rounded overflow-hidden">
+          <div class="relative h-4 bg-gray-100 rounded-sm overflow-hidden">
             <div
-              class="h-full rounded"
+              class="h-full rounded-sm"
               :style="{ width: zone.percentage + '%', backgroundColor: zone.color }"
             ></div>
           </div>

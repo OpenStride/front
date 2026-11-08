@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
   padding: 0.9rem 1rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 0;
 }
 
 .agg__head {
@@ -273,7 +273,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   background: var(--background-color);
   border: 1px solid var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .chip--on {
