@@ -297,3 +297,73 @@ describe('durations are formatted through the shared helper', () => {
     )
   })
 })
+
+/**
+ * A radius comes from the scale.
+ *
+ * Fifty-four hardcoded radii and thirty-three Tailwind `rounded*` classes had
+ * drifted in — 4, 6, 8, 10, 12, 20, 24 px, rems, a `var(--border-radius)` that
+ * was never defined — so a select sat at 6 px beside a toggle at 999 px, and
+ * the profile's cards were rounded where every other content card is square.
+ * The scale (`--radius-sm` control, `--radius-md` inner surface, square
+ * content card, `--radius-pill` chip, `--radius-round` circle) is now the only
+ * way to round a corner.
+ */
+function styledFiles(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (entry.name !== 'node_modules') styledFiles(full, out)
+    } else if (/\.(vue|css)$/.test(entry.name) && entry.name !== 'variables.css') {
+      out.push(full)
+    }
+  }
+  return out
+}
+
+describe('corners are rounded from the scale', () => {
+  const files = [...styledFiles(join(ROOT, 'src')), ...styledFiles(join(ROOT, 'plugins'))]
+
+  it('no border-radius outside the --radius-* tokens (or 0)', () => {
+    const offenders: string[] = []
+    for (const file of files) {
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          const m = /border(?:-[a-z]+)*-radius\s*:\s*([^;]+);/.exec(line)
+          if (!m) return
+          const parts = m[1]
+            .replace(/!important/, '')
+            .trim()
+            .split(/\s+/)
+          const ok = parts.every(
+            p => p === '0' || /^var\(--radius-(sm|md|lg|xl|2xl|pill|round)\)$/.test(p)
+          )
+          if (!ok) offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${line.trim()}`)
+        })
+    }
+    expect(offenders, `Use a --radius-* token:\n${offenders.join('\n')}`).toEqual([])
+  })
+
+  it('no Tailwind radius class off the scale', () => {
+    const offenders: string[] = []
+    for (const file of files.filter(f => f.endsWith('.vue'))) {
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          // Classes only, not prose: a comment saying "rounded" is no corner
+          if (/^\s*(\/\/|\/?\*|<!--)/.test(line)) return
+          if (!/class/.test(line) && !/['"`][^'"`]*\brounded/.test(line)) return
+          for (const cls of line.match(/\brounded(?:-[a-z0-9]+)*\b/g) ?? []) {
+            if (!/^rounded-(none|sm|md|full)$/.test(cls)) {
+              offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${cls}`)
+            }
+          }
+        })
+    }
+    expect(
+      offenders,
+      `Use rounded-sm, rounded-md or rounded-full:\n${offenders.join('\n')}`
+    ).toEqual([])
+  })
+})

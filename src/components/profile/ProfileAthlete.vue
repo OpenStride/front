@@ -277,7 +277,7 @@ const saveAthleteProfile = async () => {
   align-self: center;
   width: 6rem;
   height: 6rem;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   object-fit: cover;
   border: 1px solid var(--border-subtle);
 }

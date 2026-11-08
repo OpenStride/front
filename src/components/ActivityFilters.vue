@@ -443,7 +443,7 @@ function onDateTo(e: Event) {
   gap: 0.4rem;
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-white);
   color: var(--color-gray-500);
   font-size: 0.8rem;

@@ -136,7 +136,7 @@ async function importWorkouts() {
   background: var(--color-green-600, #88aa00);
   color: var(--color-white, #fff);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -153,7 +153,7 @@ async function importWorkouts() {
   width: 100%;
   height: 6px;
   background: var(--color-gray-200, #e5e7eb);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .bar__fill {

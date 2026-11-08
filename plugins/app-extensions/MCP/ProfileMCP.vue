@@ -313,7 +313,7 @@ function formatDistance(meters: number): string {
   place-items: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-green-600);
   color: var(--color-white);
   font-family: var(--font-mono);

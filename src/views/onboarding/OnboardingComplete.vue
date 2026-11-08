@@ -7,7 +7,7 @@
     <h2 class="text-3xl font-bold mb-3">{{ t('onboarding.complete.title') }}</h2>
     <p class="text-gray-600 text-lg mb-8">{{ t('onboarding.complete.subtitle') }}</p>
 
-    <div class="bg-gray-50 rounded-lg p-6 mb-8 max-w-md mx-auto">
+    <div class="bg-gray-50 rounded-md p-6 mb-8 max-w-md mx-auto">
       <div class="flex items-center justify-center gap-3 mb-4">
         <i class="fas fa-database text-green-600 text-2xl" aria-hidden="true"></i>
         <span class="text-lg font-medium">{{
@@ -33,7 +33,7 @@
 
     <button
       @click="$emit('complete')"
-      class="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center gap-3 mb-6"
+      class="bg-green-600 text-white px-8 py-4 rounded-sm text-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center gap-3 mb-6"
     >
       <i class="fas fa-running" aria-hidden="true"></i>
       {{ t('onboarding.complete.viewActivities') }}

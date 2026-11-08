@@ -369,7 +369,7 @@ const yearText = computed(() =>
   content: '';
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-round);
   background: rgba(255, 255, 255, 0.3);
 }
 

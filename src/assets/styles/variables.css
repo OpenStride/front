@@ -57,7 +57,8 @@
   --radius-lg: 16px; /* blocs métriques */
   --radius-xl: 24px;
   --radius-2xl: 30px; /* grandes surfaces / cadre mobile */
-  --radius-pill: 999px;
+  --radius-pill: 999px; /* pastilles (chips) seulement */
+  --radius-round: 50%; /* un rond : avatar, point, pastille numérotée */
 
   /* — Typo mono & graisse (mêmes noms que Tailwind, d'où leur place ici) — */
   --font-mono: 'JetBrains Mono', ui-monospace, monospace; /* chiffres / métriques */

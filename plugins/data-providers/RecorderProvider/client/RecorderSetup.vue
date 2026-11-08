@@ -270,7 +270,7 @@ onUnmounted(async () => {
   gap: 0.4rem;
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--color-gray-300, #d1d5db);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   cursor: pointer;
   font-size: 0.85rem;
@@ -287,7 +287,7 @@ onUnmounted(async () => {
   gap: 0.5rem;
   padding: 0.8rem 1.4rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
   color: var(--color-white, #fff);
@@ -310,7 +310,7 @@ onUnmounted(async () => {
 }
 .map {
   height: 240px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 1rem;
 }

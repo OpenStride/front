@@ -149,7 +149,7 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   margin-bottom: 1rem;
   background: var(--background-color);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 0;
 }
 
 .lead {
@@ -181,7 +181,7 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   cursor: pointer;
   background: var(--card-background);
   border: 1px dashed var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .suggestion:hover {
@@ -210,7 +210,7 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   padding: 0.55rem 0.7rem;
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
 }
 
 .row__text {
@@ -256,7 +256,7 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   width: 2.2rem;
   height: 1.2rem;
   background: var(--border-color);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   transition: background 0.15s ease;
 }
 
@@ -267,7 +267,7 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   margin: 0.15rem;
   content: '';
   background: var(--card-background);
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   transition: transform 0.15s ease;
 }
 
@@ -290,6 +290,6 @@ function show(field: CustomAggregate['measure']['field'], si: number): string {
   cursor: pointer;
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: var(--radius-sm);
 }
 </style>

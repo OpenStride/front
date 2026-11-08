@@ -92,7 +92,7 @@ const goToFriends = () => router.push('/?who=friends')
 .action-btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;

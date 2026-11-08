@@ -574,7 +574,7 @@ onUnmounted(() => {
   margin-top: 1.5rem;
   padding: 1rem;
   background: var(--color-gray-50, #f9fafb);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   text-align: center;
 }
 
@@ -597,7 +597,7 @@ onUnmounted(() => {
   background: var(--color-green-500, #88aa00);
   color: var(--color-white);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   cursor: pointer;
   transition: background-color 0.2s;

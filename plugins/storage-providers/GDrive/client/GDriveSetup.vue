@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4 p-4 bg-white shadow max-w-xl mx-auto rounded">
+  <div class="space-y-4 p-4 bg-white shadow max-w-xl mx-auto">
     <div class="flex items-center space-x-2">
       <img src="../assets/logo.png" alt="Google Drive" class="w-8 h-8" />
       <h1 class="text-2xl font-bold">Google Drive</h1>
@@ -21,7 +21,7 @@
       <div v-else-if="backupFilePresent == -1" class="text-sm text-gray-600">
         <button
           @click="createBackupFile"
-          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          class="px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50"
         >
           Créer un fichier de sauvegarde
         </button>
@@ -37,7 +37,7 @@
             @click="onRefresh"
             :disabled="isRefreshing"
             :class="[
-              'inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg shadow-sm transition',
+              'inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-sm shadow-sm transition',
               isRefreshing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700',
               !isRefreshing && isRefreshed ? 'bg-green-600' : ''
             ]"
@@ -55,7 +55,7 @@
 
           <button
             @click="oauthSignIn"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-sm shadow-sm hover:bg-green-700 transition"
           >
             <i class="fas fa-plug" aria-hidden="true"></i>
             Reconnect
@@ -67,7 +67,7 @@
           <button
             v-if="isConnected"
             @click="disconnectGoogleDrive"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 transition"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-sm shadow-sm hover:bg-gray-300 transition"
           >
             <i class="fas fa-unlink" aria-hidden="true"></i>
             Disconnect
@@ -95,7 +95,7 @@
     <div v-else-if="isConnected == -1" class="mt-6 text-center space-y-4">
       <button
         @click="oauthSignIn"
-        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+        class="px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50"
       >
         Connexion
       </button>
