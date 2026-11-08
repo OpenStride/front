@@ -111,15 +111,11 @@ vi.mock('@/services/ShareUrlService', () => ({
   }
 }))
 
-// Mock GoogleDriveApiService
+// Mock the public readers: what a friend's links answer
 const mockFetchJsonFromUrl = vi.fn()
-vi.mock('@/services/GoogleDriveApiService', () => ({
-  GoogleDriveApiService: {
-    getInstance: () => ({
-      isGoogleDriveUrl: (url: string) => url.includes('drive.google.com'),
-      fetchJsonFromUrl: mockFetchJsonFromUrl
-    })
-  }
+vi.mock('@/services/PublicReaders', () => ({
+  fetchPublicJson: (url: string) => mockFetchJsonFromUrl(url),
+  isPublicUrl: () => true
 }))
 
 // Mock InteractionSyncService
@@ -281,7 +277,7 @@ describe('FriendService', () => {
       const manifest = createPublicManifest({
         profile: { username: 'Alice', bio: 'Runner', userId: 'alice-id' }
       })
-      // fetchManifest uses fetchJson which uses GoogleDriveApiService
+      // fetchManifest reads through the public readers
       mockFetchJsonFromUrl.mockResolvedValue(manifest)
 
       const friend = await service.addFriendByUrl(

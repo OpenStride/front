@@ -28,6 +28,11 @@ const GDriveBackupPlugin: StoragePlugin = {
     return meta.md5 || meta.modifiedTime || null
   },
 
+  // Friends' public files: these hosts, read anonymously by a reader that knows
+  // nothing of the account (loaded only when such a link is read)
+  publicHosts: ['drive.google.com', 'docs.google.com'],
+  publicReader: async () => (await import('./publicReader')).createPublicReader(),
+
   // Public file sharing support
   supportsPublicFiles: true,
 

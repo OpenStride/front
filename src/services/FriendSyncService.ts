@@ -1,6 +1,6 @@
 import { IndexedDBService } from './IndexedDBService'
 import { PublicKeyRing } from './PublicKeyRing'
-import { GoogleDriveApiService } from './GoogleDriveApiService'
+import { fetchPublicJson } from './PublicReaders'
 import { getInteractionService } from './InteractionService'
 import { getInteractionSyncService } from './InteractionSyncService'
 import type {
@@ -46,29 +46,12 @@ export class FriendSyncService {
   }
 
   /**
-   * Generic fetch method for JSON data
+   * A friend's published JSON, read through whichever storage plugin hosts it,
+   * then opened here with the key the friend shared.
    */
   public async fetchJson<T>(url: string, errorContext: string): Promise<T | null> {
     try {
-      const gdrive = GoogleDriveApiService.getInstance()
-
-      if (gdrive.isGoogleDriveUrl(url)) {
-        logger.debug('[FriendSyncService] Using GoogleDriveApiService for Google Drive URL')
-        // Sealed files are opened here, with the key their owner shared
-        return await PublicKeyRing.open<T>(url, await gdrive.fetchJsonFromUrl<unknown>(url))
-      }
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { Accept: 'application/json' }
-      })
-
-      if (!response.ok) {
-        console.error(`[FriendSyncService] ${errorContext}: ${response.status}`)
-        return null
-      }
-
-      return await PublicKeyRing.open<T>(url, await response.json())
+      return await PublicKeyRing.open<T>(url, await fetchPublicJson(url))
     } catch (error) {
       console.error(`[FriendSyncService] ${errorContext}:`, error)
       return null

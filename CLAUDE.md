@@ -71,6 +71,9 @@ by a contract test -- see `docs/PLUGIN_GUIDELINES.md`.
 6. Handle missing data gracefully (not all activities have HR, power, etc.)
 
 See `docs/PLUGIN_GUIDELINES.md` for complete guide with examples.
+A new storage provider (Dropbox, OneDrive…) needs no core change: see *Writing a new
+storage plugin* there — its anonymous `publicReader.ts` is what lets someone without
+that provider follow a friend who publishes on it.
 
 ### Core Services
 

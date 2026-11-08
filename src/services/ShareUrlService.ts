@@ -10,6 +10,8 @@
  *
  * Supports backward compatibility with both formats.
  */
+import { isPublicUrl } from './PublicReaders'
+
 export class ShareUrlService {
   /**
    * Get the configured base URL for the app
@@ -110,32 +112,11 @@ export class ShareUrlService {
   }
 
   /**
-   * Validate that a manifest URL is from an allowed Google Drive domain
-   * Prevents open redirect attacks and ensures URL points to Google Drive
-   *
-   * @param url URL to validate
-   * @returns true if URL is a valid Google Drive URL
-   *
-   * @example
-   * isValidManifestUrl('https://drive.google.com/uc?id=ABC')  // true
-   * isValidManifestUrl('https://evil.com/manifest.json')       // false
+   * Whether a manifest URL is on a host some storage plugin publishes to —
+   * Google Drive today, whichever provider is bundled tomorrow. Anything else
+   * is refused, so a share link cannot point the app at an arbitrary server.
    */
   static isValidManifestUrl(url: string): boolean {
-    try {
-      const parsed = new URL(url)
-
-      // Allow Google Drive domains for production
-      const allowedHosts = ['drive.google.com', 'docs.google.com']
-
-      // In development, also allow localhost for testing
-      if (import.meta.env.DEV) {
-        allowedHosts.push('localhost', '127.0.0.1')
-      }
-
-      return allowedHosts.includes(parsed.hostname)
-    } catch {
-      // Invalid URL format
-      return false
-    }
+    return isPublicUrl(url)
   }
 }
