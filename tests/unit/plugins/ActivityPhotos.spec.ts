@@ -155,3 +155,42 @@ describe('ActivityPhotos', () => {
     expect(photos.remove).not.toHaveBeenCalled()
   })
 })
+
+describe("ActivityPhotos on a friend's outing", () => {
+  it('shows the photos they share, read from their public files, with nothing to edit', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    const getSharedPhoto = vi.fn(async () => new Blob(['img'], { type: 'image/jpeg' }))
+    const photos = { list: vi.fn(), blob: vi.fn(), onChanged: vi.fn() }
+    const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+    const shared = {
+      friendId: 'f1',
+      photos: [
+        { id: 'p1', thumb: 'https://x/t1', full: 'https://x/f1', width: 2048, height: 1536 },
+        { id: 'p2', thumb: 'https://x/t2', full: 'https://x/f2', width: 2048, height: 1536 }
+      ]
+    }
+    const wrapper = mount(ActivityPhotos, {
+      attachTo: document.body,
+      props: { activityId: 'run', canEdit: false, shared },
+      global: {
+        plugins: [i18n],
+        provide: { [PLUGIN_CONTEXT_KEY]: { photos, friends: { getSharedPhoto } } }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-test="photo-thumb"] img')).toHaveLength(2)
+    expect(getSharedPhoto).toHaveBeenCalledWith('f1', 'https://x/t1')
+    expect(photos.list).not.toHaveBeenCalled()
+    expect(photos.onChanged).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-test="photo-add-more"]').exists()).toBe(false)
+
+    await wrapper.findAll('[data-test="photo-thumb"]')[1].trigger('click')
+    await flushPromises()
+    expect(getSharedPhoto).toHaveBeenCalledWith('f1', 'https://x/f2')
+    expect(document.querySelector('[data-test="photo-delete"]')).toBeNull()
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+})

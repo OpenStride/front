@@ -66,6 +66,8 @@ export function useActivityDetails() {
           type: friendActivity.type,
           title: friendActivity.title,
           mapPolyline: friendActivity.mapPolyline,
+          // The photos they share, which the outing's page shows
+          ...(friendActivity.photos?.length ? { photos: friendActivity.photos } : {}),
           provider: `friend_${friendActivity.friendId}`,
           version: 1,
           lastModified: Date.now()

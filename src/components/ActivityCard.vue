@@ -189,10 +189,16 @@ const hasMap = computed(
   () => Array.isArray(props.activity.mapPolyline) && props.activity.mapPolyline.length > 1
 )
 
-// The reader's own photos; a friend's are not shared yet
-const { thumbs: photoThumbs, count: photoCount } = useActivityPhotoThumbs(() =>
-  props.friendUsername || props.activity.provider?.startsWith('friend_') ? null : props.activity.id
-)
+// The reader's own photos, or those a friend shares
+const { thumbs: photoThumbs, count: photoCount } = useActivityPhotoThumbs(() => {
+  const shared = props.activity as Activity & Partial<FriendActivity>
+  if (props.friendUsername || props.activity.provider?.startsWith('friend_')) {
+    return friendId.value && shared.photos?.length
+      ? { kind: 'friend', friendId: friendId.value, photos: shared.photos }
+      : null
+  }
+  return { kind: 'own', activityId: props.activity.id }
+})
 const hasHero = computed(() => hasMap.value || photoThumbs.value.length > 0)
 
 // Extract friendId for interactions

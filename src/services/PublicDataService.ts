@@ -22,7 +22,13 @@ function noonOf(startTime: number): number {
   d.setHours(12, 0, 0, 0)
   return startTime < 1e11 ? Math.floor(d.getTime() / 1000) : d.getTime()
 }
-import type { PublicManifest, PublicActivity, YearActivities, Friend } from '@/types/friend'
+import type {
+  PublicManifest,
+  PublicActivity,
+  PublicPhoto,
+  YearActivities,
+  Friend
+} from '@/types/friend'
 
 export class PublicDataService {
   private static instance: PublicDataService
@@ -83,8 +89,13 @@ export class PublicDataService {
   /**
    * Convert Activity to PublicActivity format (sanitized)
    */
-  private toPublicActivity(activity: Activity, sharing: SharingSettings): PublicActivity {
+  private toPublicActivity(
+    activity: Activity,
+    sharing: SharingSettings,
+    photos?: PublicPhoto[]
+  ): PublicActivity {
     return {
+      ...(sharing.photos && photos?.length ? { photos } : {}),
       id: activity.id,
       startTime: sharing.time ? activity.startTime : noonOf(activity.startTime),
       duration: activity.duration,
@@ -159,10 +170,24 @@ export class PublicDataService {
     return count
   }
 
+  /** The ids of the activities a friend receives — the publisher's own predicate. */
+  public async listPublicActivityIds(): Promise<string[]> {
+    const db = await IndexedDBService.getInstance()
+    const allActivities: Activity[] = await db.getAllData<Activity>('activities')
+    const ids: string[] = []
+    for (const activity of allActivities) {
+      if (!activity.deleted && (await this.isActivityPublic(activity.id))) ids.push(activity.id)
+    }
+    return ids
+  }
+
   /**
-   * Generate public activities grouped by year
+   * Generate public activities grouped by year. `photos` holds the links of
+   * the photos already published, by outing (see `PublicPhotoPublisher`).
    */
-  public async generateYearFiles(): Promise<Map<number, YearActivities>> {
+  public async generateYearFiles(
+    photos?: Map<string, PublicPhoto[]>
+  ): Promise<Map<number, YearActivities>> {
     const db = await IndexedDBService.getInstance()
     const allActivities: Activity[] = await db.getAllData<Activity>('activities')
 
@@ -186,7 +211,7 @@ export class PublicDataService {
       if (!yearMap.has(year)) {
         yearMap.set(year, [])
       }
-      yearMap.get(year)!.push(this.toPublicActivity(activity, sharing))
+      yearMap.get(year)!.push(this.toPublicActivity(activity, sharing, photos?.get(activity.id)))
     }
 
     // Convert to YearActivities format
@@ -273,12 +298,12 @@ export class PublicDataService {
   /**
    * Main method: Generate all public data ready for publishing
    */
-  public async generateAllPublicData(): Promise<{
+  public async generateAllPublicData(photos?: Map<string, PublicPhoto[]>): Promise<{
     manifest: PublicManifest
     yearFiles: Map<number, YearActivities>
     detailFiles: Map<number, YearActivityDetails>
   }> {
-    const yearFiles = await this.generateYearFiles()
+    const yearFiles = await this.generateYearFiles(photos)
     const manifest = await this.generateManifest(yearFiles)
     const detailFiles = await this.generateDetailFiles(yearFiles, await this.getSharingSettings())
 

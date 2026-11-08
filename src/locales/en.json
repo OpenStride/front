@@ -1292,7 +1292,8 @@
     "seal": "Encrypt and change my link",
     "rotate": "Change my link",
     "rotateHint": "Your public files are recreated at a new address with a new key: the old link opens nothing any more. Your friends will scan your new QR code to keep following you.",
-    "rotateConfirm": "Change your link? The old one will open nothing, and each of your friends will have to scan the new QR code to keep seeing your outings."
+    "rotateConfirm": "Change your link? The old one will open nothing, and each of your friends will have to scan the new QR code to keep seeing your outings.",
+    "photos": "Photos (without their GPS location)"
   },
   "photos": {
     "add": "Add photos",

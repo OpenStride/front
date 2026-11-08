@@ -36,6 +36,8 @@ export interface SharingSettings {
   /** The summary figures: climb, heart rates, calories, max speed, cadence. */
   figures: boolean
   charts: SharedChart[]
+  /** The outing's photos, re-encoded without their location. */
+  photos: boolean
 }
 
 /** As before these settings existed: nothing more than was already published. */
@@ -45,7 +47,8 @@ export const DEFAULT_SHARING: SharingSettings = {
   title: true,
   time: true,
   figures: false,
-  charts: []
+  charts: [],
+  photos: false
 }
 
 /** The choices offered, in metres. */
@@ -78,7 +81,8 @@ export function readSharing(stored: unknown): SharingSettings {
     figures: s.figures ?? DEFAULT_SHARING.figures,
     charts: Array.isArray(s.charts)
       ? s.charts.filter((c): c is SharedChart => SHARED_CHARTS.includes(c as SharedChart))
-      : []
+      : [],
+    photos: s.photos === true
   }
 }
 

@@ -58,7 +58,12 @@
       </header>
 
       <!-- The outing's photos, under its name, as they were taken -->
-      <ActivityPhotos ref="photoStrip" :activity-id="activity.id" :can-edit="canRename" />
+      <ActivityPhotos
+        ref="photoStrip"
+        :activity-id="activity.id"
+        :can-edit="canRename"
+        :shared="sharedPhotos"
+      />
 
       <!-- Bloc « encre » : les 4 métriques principales (allure surlignée) -->
       <div class="atb__block">
@@ -98,6 +103,7 @@ import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import ActivityPhotos from './ActivityPhotos.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
+import type { PublicPhoto } from '@/types/friend'
 import { formatSportType, getSportIcon } from '@/utils/sportLabels'
 import { distanceDimension, primaryMetricSpec } from '@/utils/activityMetrics'
 import { formatClock } from '@/utils/duration'
@@ -126,6 +132,13 @@ const displayTitle = computed(() => activity.value.title || formatSportType(acti
 const canRename = computed(() => !activity.value.provider?.startsWith('friend_'))
 
 const photoStrip = ref<InstanceType<typeof ActivityPhotos> | null>(null)
+/** On a friend's outing, the photos they share, listed in their public file. */
+const sharedPhotos = computed(() => {
+  const provider = activity.value.provider ?? ''
+  if (!provider.startsWith('friend_')) return undefined
+  const photos = (props.data.activity as Activity & { photos?: PublicPhoto[] }).photos ?? []
+  return { friendId: provider.slice('friend_'.length), photos }
+})
 
 const editingTitle = ref(false)
 const titleDraft = ref('')

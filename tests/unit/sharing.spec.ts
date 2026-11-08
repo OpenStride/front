@@ -22,8 +22,12 @@ describe('sharing settings', () => {
       title: true,
       time: true,
       figures: false,
-      charts: []
+      charts: [],
+      // Photos are never shared until the reader says so
+      photos: false
     })
+    expect(readSharing({ photos: true }).photos).toBe(true)
+    expect(readSharing({ photos: 'yes' }).photos).toBe(false)
     expect(readSharing({ map: false, charts: ['heartRate', 'bogus'] })).toMatchObject({
       map: false,
       title: true,

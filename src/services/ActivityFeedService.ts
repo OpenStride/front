@@ -10,12 +10,14 @@
 import { IndexedDBService } from '@/services/IndexedDBService'
 import { toMs } from '@/utils/timeRange'
 import type { Activity } from '@/types/activity'
-import type { FriendActivity } from '@/types/friend'
+import type { FriendActivity, PublicPhoto } from '@/types/friend'
 
 export interface FeedActivity extends Activity {
   source: 'own' | 'friend'
   friendId?: string
   friendUsername?: string
+  /** On a friend's outing, the photos they share. */
+  photos?: PublicPhoto[]
 }
 
 export class ActivityFeedService {
@@ -55,6 +57,7 @@ export class ActivityFeedService {
       type: activity.type,
       title: activity.title,
       mapPolyline: activity.mapPolyline,
+      ...(activity.photos?.length ? { photos: activity.photos } : {}),
       source: 'friend' as const,
       friendId: activity.friendId,
       friendUsername: activity.friendUsername,

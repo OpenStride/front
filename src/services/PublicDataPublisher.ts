@@ -4,6 +4,7 @@ import { PublicFileService } from './PublicFileService'
 import { ShareUrlService } from './ShareUrlService'
 import { OWNER_SHARE_KEY, generateShareKey } from '@/utils/publicCrypto'
 import { getInteractionSyncService } from './InteractionSyncService'
+import { getPublicPhotoPublisher } from './PublicPhotoPublisher'
 import type { FriendServiceEvent } from '@/types/friend'
 
 /**
@@ -51,7 +52,14 @@ export class PublicDataPublisher {
         await db.saveData(OWNER_SHARE_KEY, generateShareKey())
       }
 
-      const { manifest, yearFiles, detailFiles } = await publicDataService.generateAllPublicData()
+      // The photos first, when shared: the year files list their links
+      const sharing = await publicDataService.getSharingSettings()
+      const photoLinks = sharing.photos
+        ? await getPublicPhotoPublisher().publish(await publicDataService.listPublicActivityIds())
+        : new Map()
+
+      const { manifest, yearFiles, detailFiles } =
+        await publicDataService.generateAllPublicData(photoLinks)
 
       const yearUrls = new Map<number, string>()
       const uploadErrors: string[] = []
@@ -146,6 +154,14 @@ export class PublicDataPublisher {
       }
 
       await db.saveData('myPublicUrl', manifestUrl)
+
+      // Now that no file lists them any more: the photos withdrawn since
+      try {
+        const kept = new Set([...photoLinks.values()].flat().map(p => p.id))
+        await getPublicPhotoPublisher().prune(kept)
+      } catch (error) {
+        console.warn('[PublicDataPublisher] Could not remove withdrawn photos:', error)
+      }
       // With auto-publish off, this is the only way to tell a fresh profile
       // from one frozen three months ago.
       await db.saveData('myPublicPublishedAt', Date.now())
@@ -242,6 +258,8 @@ export class PublicDataPublisher {
     }
     await db.saveData(OWNER_SHARE_KEY, generateShareKey())
     await db.deleteData('myPublicUrl')
+    // Their files went with the rest: published again, under the new key
+    await getPublicPhotoPublisher().forget()
     return this.publishPublicData()
   }
 

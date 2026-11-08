@@ -1,17 +1,22 @@
 import { onMounted, onUnmounted, ref, type Ref } from 'vue'
 import { getPhotoService } from '@/services/PhotoService'
+import { FriendSyncService } from '@/services/FriendSyncService'
+import type { PublicPhoto } from '@/types/friend'
 
 export interface PhotoThumb {
   id: string
   url: string
 }
 
+/** Whose photos a card shows: the reader's own, or what a friend shares. */
+export type PhotoSource =
+  { kind: 'own'; activityId: string } | { kind: 'friend'; friendId: string; photos: PublicPhoto[] }
+
 /**
  * The first thumbnails of an outing's photos, for a feed card, as object URLs
- * released when the card goes. `activityId` null (a friend's outing, whose
- * photos are not shared yet) reads nothing.
+ * released when the card goes. A null source reads nothing.
  */
-export function useActivityPhotoThumbs(activityId: () => string | null, limit = 3) {
+export function useActivityPhotoThumbs(source: () => PhotoSource | null, limit = 3) {
   const thumbs: Ref<PhotoThumb[]> = ref([])
   const count = ref(0)
   let unsubscribe: (() => void) | null = null
@@ -21,30 +26,41 @@ export function useActivityPhotoThumbs(activityId: () => string | null, limit = 
   }
 
   const load = async () => {
-    const id = activityId()
-    if (!id) return
+    const from = source()
+    if (!from) return
     try {
-      const service = getPhotoService()
-      const photos = await service.list(id)
+      const list: { id: string; image: () => Promise<Blob | null> }[] =
+        from.kind === 'own'
+          ? (await getPhotoService().list(from.activityId)).map(p => ({
+              id: p.id,
+              image: () => getPhotoService().blob(p.id, 'thumb')
+            }))
+          : from.photos.map(p => ({
+              id: p.id,
+              image: () => FriendSyncService.getInstance().getSharedPhoto(from.friendId, p.thumb)
+            }))
       const next: PhotoThumb[] = []
-      for (const photo of photos.slice(0, limit)) {
-        const blob = await service.blob(photo.id, 'thumb')
+      for (const photo of list.slice(0, limit)) {
+        const blob = await photo.image()
         if (blob) next.push({ id: photo.id, url: URL.createObjectURL(blob) })
       }
       release()
       thumbs.value = next
-      count.value = photos.length
+      count.value = list.length
     } catch {
       // No photo store (tests, or a database still opening): the card goes without
     }
   }
 
   onMounted(() => {
-    if (!activityId()) return
+    const from = source()
+    if (!from) return
     void load()
-    unsubscribe = getPhotoService().onChanged(changed => {
-      if (changed === activityId()) void load()
-    })
+    if (from.kind === 'own') {
+      unsubscribe = getPhotoService().onChanged(changed => {
+        if (changed === from.activityId) void load()
+      })
+    }
   })
 
   onUnmounted(() => {

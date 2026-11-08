@@ -15,6 +15,8 @@ import { PublicFileService } from './PublicFileService'
 import { IndexedDBService } from './IndexedDBService'
 import { FriendService } from './FriendService'
 import { debounce } from '@/utils/debounce'
+import { getPhotoService } from './PhotoService'
+import { SHARING_KEY, readSharing } from '@/types/sharing'
 import type { FriendServiceEvent } from '@/types/friend'
 
 export class PublicDataListener {
@@ -23,6 +25,7 @@ export class PublicDataListener {
   private friendsChangedListener: ((evt: Event) => void) | null = null
   private refreshRequestedListener: ((evt: Event) => void) | null = null
   private firstPublishListener: ((evt: Event) => void) | null = null
+  private photoUnsubscribe: (() => void) | null = null
   private debouncedPublish: (() => void) | null = null
   private isPublishing = false
   private listening = false
@@ -121,6 +124,14 @@ export class PublicDataListener {
 
     activityService.emitter.addEventListener('activity-changed', this.activityServiceListener)
 
+    // A photo added or deleted here, when photos are shared. One that a sync
+    // brought was published by the device it was taken on.
+    this.photoUnsubscribe = getPhotoService().onChanged(async (_id, source) => {
+      if (source !== 'local' || !this.debouncedPublish) return
+      const db = await IndexedDBService.getInstance()
+      if (readSharing(await db.getData(SHARING_KEY)).photos) this.debouncedPublish?.()
+    })
+
     // Also publish when friends list changes (following list update)
     this.friendsChangedListener = () => {
       console.log('[PublicDataListener] Friends changed, scheduling publish')
@@ -150,6 +161,8 @@ export class PublicDataListener {
       activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener)
       this.activityServiceListener = null
     }
+    this.photoUnsubscribe?.()
+    this.photoUnsubscribe = null
     if (this.friendsChangedListener) {
       window.removeEventListener('openstride:friends-changed', this.friendsChangedListener)
       this.friendsChangedListener = null

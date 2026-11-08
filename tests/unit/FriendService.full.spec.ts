@@ -76,7 +76,9 @@ const mockGenerateAllPublicData = vi.fn()
 vi.mock('@/services/PublicDataService', () => ({
   PublicDataService: {
     getInstance: () => ({
-      generateAllPublicData: mockGenerateAllPublicData
+      generateAllPublicData: mockGenerateAllPublicData,
+      getSharingSettings: async () => ({ photos: false }),
+      listPublicActivityIds: async () => []
     })
   }
 }))

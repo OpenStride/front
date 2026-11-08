@@ -237,8 +237,8 @@ async function rotateLink() {
 }
 
 // ── What friends see ────────────────────────────────────────────────────────
-type Switch = 'map' | 'title' | 'time' | 'figures'
-const SWITCHES: Switch[] = ['map', 'title', 'time', 'figures']
+type Switch = 'map' | 'title' | 'time' | 'figures' | 'photos'
+const SWITCHES: Switch[] = ['map', 'title', 'time', 'figures', 'photos']
 const sharing = ref<SharingSettings>({ ...DEFAULT_SHARING })
 
 let republishTimer: ReturnType<typeof setTimeout> | undefined

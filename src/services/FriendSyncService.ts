@@ -12,8 +12,10 @@ import type {
   PublicActivity,
   YearActivities,
   FriendSyncResult,
-  FriendServiceEvent
+  FriendServiceEvent,
+  PublicImage
 } from '@/types/friend'
+import { base64ToBytes } from '@/utils/base64'
 
 /**
  * Handles fetching and syncing friend data.
@@ -22,6 +24,8 @@ import type {
 export class FriendSyncService {
   private static instance: FriendSyncService
   public emitter = new EventTarget()
+  /** Shared photos fetched this session, by URL. */
+  private sharedPhotos = new Map<string, Promise<Blob | null>>()
 
   private constructor() {
     /* singleton */
@@ -173,13 +177,64 @@ export class FriendSyncService {
    */
   private async getExistingFriendActivityKeys(
     friendId: string
-  ): Promise<{ ids: Set<string>; startTimes: Set<number> }> {
+  ): Promise<{ ids: Set<string>; startTimes: Set<number>; byId: Map<string, FriendActivity> }> {
     const db = await IndexedDBService.getInstance()
     const allActivities = (await db.getAllData('friend_activities')) as FriendActivity[]
     const forFriend = allActivities.filter(a => a.friendId === friendId)
     return {
       ids: new Set(forFriend.map(a => a.id)),
-      startTimes: new Set(forFriend.map(a => a.startTime))
+      startTimes: new Set(forFriend.map(a => a.startTime)),
+      byId: new Map(forFriend.map(a => [a.id, a]))
+    }
+  }
+
+  /**
+   * Outings already stored whose owner has changed what they share since —
+   * photos added or removed, a new name. Only new outings used to be written,
+   * so a photo added the day after a run never reached a friend who had it.
+   */
+  private changedActivities(
+    incoming: FriendActivity[],
+    stored: Map<string, FriendActivity>
+  ): FriendActivity[] {
+    const key = (a: FriendActivity) => JSON.stringify([a.title ?? null, a.photos ?? []])
+    return incoming.filter(a => {
+      const before = stored.get(a.id)
+      return before !== undefined && key(before) !== key(a)
+    })
+  }
+
+  /**
+   * A photo a friend shares, opened with their key; null when it cannot be
+   * read. Kept for the session: a feed and a page showing the same photo
+   * download it once.
+   */
+  public getSharedPhoto(friendId: string, url: string): Promise<Blob | null> {
+    let pending = this.sharedPhotos.get(url)
+    if (!pending) {
+      pending = this.fetchSharedPhoto(friendId, url)
+      this.sharedPhotos.set(url, pending)
+      // A failure is not remembered: the next view tries again
+      void pending.then(blob => {
+        if (!blob) this.sharedPhotos.delete(url)
+      })
+    }
+    return pending
+  }
+
+  private async fetchSharedPhoto(friendId: string, url: string): Promise<Blob | null> {
+    const db = await IndexedDBService.getInstance()
+    const friend = (await db.getDataFromStore('friends', friendId)) as Friend | null
+    if (!friend) return null
+    PublicKeyRing.remember(url, friend.shareKey)
+    const image = await this.fetchJson<PublicImage>(url, 'Failed to fetch shared photo')
+    if (!image?.data) return null
+    try {
+      return new Blob([base64ToBytes(image.data).buffer as ArrayBuffer], {
+        type: image.mime || 'image/jpeg'
+      })
+    } catch {
+      return null
     }
   }
 
@@ -268,6 +323,7 @@ export class FriendSyncService {
         type: activity.type,
         title: activity.title,
         mapPolyline: activity.mapPolyline,
+        ...(activity.photos?.length ? { photos: activity.photos } : {}),
         fetchedAt: Date.now(),
         lastModified: Date.now()
       }))
@@ -280,6 +336,10 @@ export class FriendSyncService {
       if (newActivities.length > 0) {
         await db.addItemsToStore('friend_activities', newActivities, a => a.id)
         totalAdded = newActivities.length
+      }
+      const changed = this.changedActivities(friendActivities, existing.byId)
+      if (changed.length > 0) {
+        await db.addItemsToStore('friend_activities', changed, a => a.id)
       }
 
       friend.lastSyncTime = Date.now()
@@ -365,6 +425,7 @@ export class FriendSyncService {
         type: activity.type,
         title: activity.title,
         mapPolyline: activity.mapPolyline,
+        ...(activity.photos?.length ? { photos: activity.photos } : {}),
         fetchedAt: Date.now(),
         lastModified: Date.now()
       }))
@@ -377,6 +438,10 @@ export class FriendSyncService {
       if (newActivities.length > 0) {
         await db.addItemsToStore('friend_activities', newActivities, a => a.id)
         totalAdded = newActivities.length
+      }
+      const changed = this.changedActivities(friendActivities, existing.byId)
+      if (changed.length > 0) {
+        await db.addItemsToStore('friend_activities', changed, a => a.id)
       }
 
       friend.lastSyncTime = Date.now()
