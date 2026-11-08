@@ -33,6 +33,18 @@ describe('commenting one’s own activity', () => {
   })
 })
 
+describe('liking one’s own activity', () => {
+  it('is allowed: no friendship to check, and it is published like any like', async () => {
+    const like = await getInteractionService().addLike('act1', 'user_me')
+    expect(like).toMatchObject({ type: 'like', authorId: 'user_me', activityOwnerId: 'user_me' })
+    expect(await getInteractionService().hasLiked('act1', 'user_me')).toBe(true)
+  })
+
+  it('still asks a mutual friendship on someone else’s', async () => {
+    expect(await getInteractionService().addLike('act1', 'user_stranger')).toBeNull()
+  })
+})
+
 describe('a friend’s replies reach the thread one took part in', () => {
   it('stores the owner’s replies on their activities, beside what concerns me', async () => {
     await db.addItemsToStore(
@@ -63,8 +75,11 @@ describe('a friend’s replies reach the thread one took part in', () => {
       interactions: {
         // Camille's like on one of my activities
         user_me: [entry({ type: 'like', activityId: 'mine', text: undefined, timestamp: 2 })],
-        // Camille's reply on her own run, where I commented
-        user_camille: [entry({ text: 'Merci !', timestamp: 3 })],
+        // Camille's reply on her own run, where I commented, and her own like on it
+        user_camille: [
+          entry({ text: 'Merci !', timestamp: 3 }),
+          entry({ type: 'like', text: undefined, timestamp: 5 })
+        ],
         // Camille's comment on someone else's activity: none of my business
         user_other: [entry({ activityId: 'other', text: 'Bravo', timestamp: 4 })]
       }
@@ -74,9 +89,12 @@ describe('a friend’s replies reach the thread one took part in', () => {
 
     expect(result.success).toBe(true)
     const stored = (await db.getAllData('interactions')) as Interaction[]
-    expect(stored.map(i => [i.activityId, i.activityOwnerId, i.text]).sort()).toEqual([
-      ['mine', 'user_me', undefined],
-      ['run1', 'user_camille', 'Merci !']
-    ])
+    expect(stored.map(i => [i.type, i.activityId, i.activityOwnerId, i.text ?? '']).sort()).toEqual(
+      [
+        ['comment', 'run1', 'user_camille', 'Merci !'],
+        ['like', 'mine', 'user_me', ''],
+        ['like', 'run1', 'user_camille', '']
+      ]
+    )
   })
 })

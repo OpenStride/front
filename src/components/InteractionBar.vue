@@ -1,9 +1,6 @@
 <template>
   <div
-    v-if="
-      sharingPluginActive &&
-      (compact || !isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
-    "
+    v-if="sharingPluginActive"
     class="interaction-bar"
     :class="{ 'interaction-bar--compact': compact }"
   >
@@ -24,34 +21,9 @@
       </span>
     </div>
 
-    <!-- On your own activity: no like, but a reply where the thread is shown -->
-    <div v-if="isMyActivity && (allowReply || compact)" class="interaction-actions">
-      <!-- One's own outing: the like is there all the same, as a count. Nobody
-           likes their own run, but seeing where friends' likes land reassures. -->
-      <span
-        v-if="compact"
-        class="action-btn like-btn like-btn--own"
-        :title="t('interactions.ownLikeHint')"
-        data-test="own-like"
-      >
-        <LogoHeart :liked="summary.likeCount > 0" />
-        <span class="btn-label">{{ t('interactions.like') }}</span>
-        <span class="own-like-count">{{ summary.likeCount }}</span>
-      </span>
-      <button
-        v-if="allowReply && (!compact || summary.commentCount > 0)"
-        :class="['action-btn', 'comment-btn', { blocked: !canComment }]"
-        :title="t('interactions.reply')"
-        data-test="reply-btn"
-        @click="onComment"
-      >
-        <i class="far fa-comment" aria-hidden="true"></i>
-        <span class="btn-label">{{ t('interactions.reply') }}</span>
-      </button>
-    </div>
-
-    <div v-if="!isMyActivity" class="interaction-actions">
-      <!-- Under the thread, the like is already offered at the top of the page -->
+    <!-- The like, on one's own outing too: odd, but it reassures. A comment on
+         someone else's; a reply on one's own, where the thread is shown. -->
+    <div class="interaction-actions">
       <button
         v-if="!inThread"
         @click="toggleLike"
@@ -67,6 +39,7 @@
       </button>
 
       <button
+        v-if="!isMyActivity"
         @click="onComment"
         :class="['action-btn', 'comment-btn', { blocked: !canInteract }]"
         :title="canInteract ? t('interactions.comment') : t('interactions.whyBlocked')"
@@ -74,6 +47,17 @@
       >
         <i class="far fa-comment" aria-hidden="true"></i>
         <span class="btn-label">{{ t('interactions.comment') }}</span>
+      </button>
+
+      <button
+        v-else-if="allowReply && (!compact || summary.commentCount > 0)"
+        :class="['action-btn', 'comment-btn', { blocked: !canComment }]"
+        :title="t('interactions.reply')"
+        data-test="reply-btn"
+        @click="onComment"
+      >
+        <i class="far fa-comment" aria-hidden="true"></i>
+        <span class="btn-label">{{ t('interactions.reply') }}</span>
       </button>
     </div>
 
@@ -110,7 +94,7 @@
     <!-- Why the buttons do nothing, and the one thing that fixes it. A disabled
          button and a sentence left the reader with no way forward. -->
     <div
-      v-else-if="!isMyActivity && !canInteract && (showWarning || blockedShown)"
+      v-else-if="!canInteract && (showWarning || blockedShown)"
       class="blocked"
       data-test="interaction-blocked"
     >
@@ -254,12 +238,12 @@ const checkCanInteract = async () => {
   // 1. User is published (has userId)
   // 2. It's not their own activity
   // 3. Friendship is mutual (if viewing friend's activity)
+  // A published profile is where a like is written; on someone else's outing
+  // a mutual friendship too, since they only read their friends' files. One's
+  // own outing needs nothing more.
   const isPublished = userId !== null
-  const isNotOwnActivity = userId !== props.activityOwnerId
-  // For own activities, mutual friendship check doesn't apply
-  // For friend activities, require mutual friendship
   const mutualOk = isMyActivity.value || props.isMutualFriend === true
-  canInteract.value = isPublished && isNotOwnActivity && mutualOk
+  canInteract.value = isPublished && mutualOk
 }
 
 // Actions
@@ -464,20 +448,6 @@ onUnmounted(() => {
 }
 
 .like-btn.liked {
-  color: var(--color-ink);
-}
-
-/* Not a button: a count that keeps the like's place on one's own outing */
-.like-btn--own {
-  cursor: default;
-}
-.action-btn.like-btn--own:hover:not(:disabled) {
-  border-color: var(--border-subtle);
-  color: var(--text-muted);
-}
-.own-like-count {
-  font-family: var(--font-mono);
-  font-weight: 600;
   color: var(--color-ink);
 }
 

@@ -166,27 +166,33 @@ describe('InteractionBar', () => {
     expect(wrapper.find('.comment-input-section').exists()).toBe(true)
   })
 
-  it('offers no actions on your own activity, only the counts', async () => {
+  it('lets you like your own activity, with the counts beside it', async () => {
     state.myUserId = 'user_me'
     state.summary = { likeCount: 3, commentCount: 1, hasLiked: false }
 
     const wrapper = await mountBar({ activityOwnerId: 'user_me' })
 
-    expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(true)
+    // Nothing to comment on one's own card: the reply lives with the thread
+    expect(wrapper.find('[data-test="comment-btn"]').exists()).toBe(false)
     expect(wrapper.get('.like-counter').text()).toContain('3')
     expect(wrapper.get('.comment-counter').text()).toContain('1')
   })
 
-  it('hides an empty bar on your own activity', async () => {
+  it('likes your own activity without any friendship to check', async () => {
     state.myUserId = 'user_me'
+    state.summary = { likeCount: 0, commentCount: 0, hasLiked: false, likers: [] }
 
-    const wrapper = await mountBar({ activityOwnerId: 'user_me' })
+    const wrapper = await mountBar({ activityOwnerId: 'user_me' }, 'fr')
+    await wrapper.get('[data-test="like-btn"]').trigger('click')
+    await flushPromises()
 
-    expect(wrapper.find('.interaction-bar').exists()).toBe(false)
+    expect(service.addLike).toHaveBeenCalledWith('act1', 'user_me')
+    expect(wrapper.find('[data-test="interaction-blocked"]').exists()).toBe(false)
   })
 
   describe('replying on one’s own activity', () => {
-    it('offers a reply, never a like, where the thread is shown', async () => {
+    it('offers a reply beside the like, where the thread is shown', async () => {
       state.myUserId = 'user_me'
       const wrapper = await mountBar({
         activityOwnerId: 'user_me',
@@ -194,7 +200,7 @@ describe('InteractionBar', () => {
         showWarning: true
       })
 
-      expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(true)
       // No "add you back" warning: there is nobody to be friends with on one's own
       expect(wrapper.text()).not.toContain(en.interactions.mutualRequired)
       await wrapper.find('[data-test="reply-btn"]').trigger('click')
@@ -324,21 +330,17 @@ describe('InteractionBar on the activity page (compact)', () => {
     state.myUserId = 'user_me'
   })
 
-  it('keeps the like in view on one’s own outing, as a count that does nothing', async () => {
+  it('offers the like on one’s own outing, and no reply while nobody has written', async () => {
     state.summary = { likeCount: 0, commentCount: 0, hasLiked: false, likers: [] }
     const wrapper = await mountBar(
-      { activityOwnerId: 'user_me', compact: true, allowReply: true } as Props,
+      { activityOwnerId: 'user_me', compact: true, allowReply: true },
       'fr'
     )
-    const own = wrapper.get('[data-test="own-like"]')
-    expect(own.text()).toContain('0')
-    expect(own.element.tagName).toBe('SPAN')
-    expect(wrapper.find('[data-test="like-btn"]').exists()).toBe(false)
-    // Nothing to reply to yet
+    expect(wrapper.get('[data-test="like-btn"]').text()).toContain('J’aime'.replace('’', "'"))
     expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(false)
   })
 
-  it('shows the count and the reply once friends have spoken', async () => {
+  it('shows who liked and the reply once friends have spoken', async () => {
     state.summary = {
       likeCount: 2,
       commentCount: 1,
@@ -349,10 +351,9 @@ describe('InteractionBar on the activity page (compact)', () => {
       ]
     }
     const wrapper = await mountBar(
-      { activityOwnerId: 'user_me', compact: true, allowReply: true } as Props,
+      { activityOwnerId: 'user_me', compact: true, allowReply: true },
       'fr'
     )
-    expect(wrapper.get('[data-test="own-like"]').text()).toContain('2')
     expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(true)
     expect(wrapper.get('[data-test="liked-by"]').text()).toBe('Aimé par Alex et Sam')
   })
