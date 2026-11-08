@@ -13,6 +13,10 @@
   --color-lime: #cdf05c; /* accent SUR encre uniquement */
   --color-lime-soft: #a6d95a;
 
+  /* — Les deux teintes du logo, pour ce qui le reprend (le cœur des j'aime) — */
+  --color-logo-leaf: #88aa00;
+  --color-logo-ink: #333333;
+
   /* — Surfaces (gris chaud) — */
   --surface-app: #ececea; /* fond de page */
   --surface: #ffffff; /* cartes */

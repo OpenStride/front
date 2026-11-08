@@ -842,7 +842,11 @@
     "likeCount": "Aucun j’aime | {n} j’aime | {n} j’aime",
     "commentCount": "Aucun commentaire | {n} commentaire | {n} commentaires",
     "deletedUser": "Utilisateur supprimé",
-    "loadFailed": "Impossible de charger les interactions."
+    "loadFailed": "Impossible de charger les interactions.",
+    "you": "vous",
+    "likedByOne": "Aimé par {name}",
+    "likedByTwo": "Aimé par {name} et {other}",
+    "likedByMany": "Aimé par {name} et {n} autre | Aimé par {name} et {n} autres"
   },
   "friendsList": {
     "empty": "Aucun ami ajouté",

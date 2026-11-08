@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
 }))
 
 const service = vi.hoisted(() => ({
-  addLike: vi.fn(async () => {}),
+  addLike: vi.fn(async (): Promise<unknown> => ({ id: 'like1' })),
   removeLike: vi.fn(async () => {}),
   addComment: vi.fn(async () => {}),
   emitter: new EventTarget()
@@ -232,5 +232,86 @@ describe('InteractionBar', () => {
       expect(inThread.find('.interaction-counters').exists()).toBe(false)
       expect(inThread.find('[data-test="reply-btn"]').exists()).toBe(true)
     })
+  })
+})
+
+describe('InteractionBar likes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    state.pluginEnabled = true
+    state.myUserId = 'user_me'
+    state.summary = { likeCount: 0, commentCount: 0, hasLiked: false, likers: [] }
+  })
+
+  it('shows the like at once, before the service has answered', async () => {
+    let answer: (v: unknown) => void = () => undefined
+    service.addLike.mockImplementationOnce(() => new Promise(resolve => (answer = resolve)))
+    const wrapper = await mountBar({ isMutualFriend: true }, 'fr')
+
+    await wrapper.get('[data-test="like-btn"]').trigger('click')
+
+    const button = wrapper.get('[data-test="like-btn"]')
+    expect(button.attributes('aria-pressed')).toBe('true')
+    expect(button.text()).toContain('Aimé')
+    expect(wrapper.get('[data-test="liked-by"]').text()).toBe('Aimé par vous')
+    answer({ id: 'like1' })
+    await flushPromises()
+  })
+
+  it('puts the button back when the like is refused', async () => {
+    service.addLike.mockResolvedValueOnce(null)
+    const wrapper = await mountBar({ isMutualFriend: true })
+
+    await wrapper.get('[data-test="like-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="like-btn"]').attributes('aria-pressed')).toBe('false')
+    expect(wrapper.find('[data-test="liked-by"]').exists()).toBe(false)
+  })
+
+  it('names who liked: one, two, then the first and how many others', async () => {
+    const likers = (names: string[]) =>
+      names.map((username, i) => ({ authorId: `u${i}`, username }))
+
+    state.summary = { likeCount: 1, commentCount: 0, hasLiked: false, likers: likers(['Alex']) }
+    expect((await mountBar({}, 'fr')).get('[data-test="liked-by"]').text()).toBe('Aimé par Alex')
+
+    state.summary = {
+      likeCount: 2,
+      commentCount: 0,
+      hasLiked: false,
+      likers: likers(['Alex', 'Sam'])
+    }
+    expect((await mountBar({}, 'fr')).get('[data-test="liked-by"]').text()).toBe(
+      'Aimé par Alex et Sam'
+    )
+
+    state.summary = {
+      likeCount: 4,
+      commentCount: 0,
+      hasLiked: false,
+      likers: likers(['Alex', 'Sam', 'Lou', 'Max'])
+    }
+    expect((await mountBar({}, 'fr')).get('[data-test="liked-by"]').text()).toBe(
+      'Aimé par Alex et 3 autres'
+    )
+    expect((await mountBar({}, 'en')).get('[data-test="liked-by"]').text()).toBe(
+      'Liked by Alex and 3 others'
+    )
+  })
+
+  it('puts the reader first, as "you"', async () => {
+    state.summary = {
+      likeCount: 3,
+      commentCount: 0,
+      hasLiked: true,
+      likers: [
+        { authorId: 'u1', username: 'Alex' },
+        { authorId: 'user_me', username: 'Côme' },
+        { authorId: 'u2', username: 'Sam' }
+      ]
+    }
+    const wrapper = await mountBar({ isMutualFriend: true }, 'fr')
+    expect(wrapper.get('[data-test="liked-by"]').text()).toBe('Aimé par vous et 2 autres')
   })
 })

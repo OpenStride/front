@@ -24,7 +24,7 @@
     <!-- Likes section -->
     <div v-if="!loading && !error && likes.length > 0" class="likes-section">
       <div class="subsection-header">
-        <i class="fas fa-heart" aria-hidden="true"></i>
+        <LogoHeart :liked="true" />
         <span>{{ t('interactions.likeCount', likes.length) }}</span>
       </div>
       <div class="likes-list">
@@ -91,6 +91,7 @@ import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import InteractionBar from './InteractionBar.vue'
+import LogoHeart from './icons/LogoHeart.vue'
 import type { Interaction, InteractionServiceEvent } from '@/types/interaction'
 import { formatRelativeTime } from '@/utils/dateFormat'
 
