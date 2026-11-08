@@ -2,9 +2,12 @@
   <div
     v-if="
       sharingPluginActive &&
-      (!isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
+      (likesOnly
+        ? !isMyActivity || summary.likeCount > 0
+        : !isMyActivity || allowReply || summary.likeCount > 0 || summary.commentCount > 0)
     "
     class="interaction-bar"
+    :class="{ 'interaction-bar--likes': likesOnly }"
   >
     <!-- Counters: a card's summary. Under the thread they would repeat its headings. -->
     <div v-if="!inThread" class="interaction-counters">
@@ -12,14 +15,14 @@
         <LogoHeart :liked="true" />
         <span class="liked-by">{{ likedBy }}</span>
       </span>
-      <span v-if="summary.commentCount > 0" class="counter comment-counter">
+      <span v-if="summary.commentCount > 0 && !likesOnly" class="counter comment-counter">
         <i class="fas fa-comment" aria-hidden="true"></i>
         {{ summary.commentCount }}
       </span>
     </div>
 
     <!-- On your own activity: no like, but a reply where the thread is shown -->
-    <div v-if="isMyActivity && allowReply" class="interaction-actions">
+    <div v-if="isMyActivity && allowReply && !likesOnly" class="interaction-actions">
       <button
         :class="['action-btn', 'comment-btn', { blocked: !canComment }]"
         :title="t('interactions.reply')"
@@ -32,7 +35,9 @@
     </div>
 
     <div v-if="!isMyActivity" class="interaction-actions">
+      <!-- Under the thread, the like is already offered at the top of the page -->
       <button
+        v-if="!inThread"
         @click="toggleLike"
         :class="['action-btn', 'like-btn', { liked: summary.hasLiked, blocked: !canInteract }]"
         :aria-pressed="summary.hasLiked"
@@ -46,6 +51,7 @@
       </button>
 
       <button
+        v-if="!likesOnly"
         @click="onComment"
         :class="['action-btn', 'comment-btn', { blocked: !canInteract }]"
         :title="canInteract ? t('interactions.comment') : t('interactions.whyBlocked')"
@@ -57,7 +63,7 @@
     </div>
 
     <!-- Last comment preview -->
-    <div v-if="summary.lastComment && !inThread" class="last-comment-preview">
+    <div v-if="summary.lastComment && !inThread && !likesOnly" class="last-comment-preview">
       <span class="comment-author">{{ summary.lastComment.authorUsername }}</span>
       <span class="comment-text">{{ truncateText(summary.lastComment.text || '', 80) }}</span>
     </div>
@@ -138,6 +144,12 @@ const props = defineProps<{
    * preview would show again what the thread right above already lists.
    */
   inThread?: boolean
+  /**
+   * Only the likes: who liked, and the button. The activity page shows it right
+   * under its first panel, where a like is seen; the thread at the bottom keeps
+   * the comments.
+   */
+  likesOnly?: boolean
 }>()
 
 const interactionService = getInteractionService()
@@ -347,6 +359,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Likes only: who liked and the button, side by side */
+.interaction-bar--likes {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.interaction-bar--likes .blocked {
+  flex-basis: 100%;
 }
 
 .interaction-counters {

@@ -19,6 +19,18 @@
         />
       </div>
 
+      <!-- The likes, where they are seen: right under the first panel. The
+           comments stay in the thread at the bottom. -->
+      <InteractionBar
+        v-if="canShowInteractions"
+        likes-only
+        :activity-id="interactionActivityId"
+        :activity-owner-id="interactionOwnerId!"
+        :is-mutual-friend="isMutualFriend"
+        class="likes-row"
+        data-test="activity-likes"
+      />
+
       <!-- Widgets Section (full width) -->
       <div class="widgets-container">
         <component
@@ -52,6 +64,7 @@ import { useSlotExtensions } from '@/composables/useSlotExtensions'
 import { useActivityDetails } from '@/composables/useActivityDetails'
 import type { SlotContext } from '@/types/extension'
 import InteractionList from '@/components/InteractionList.vue'
+import InteractionBar from '@/components/InteractionBar.vue'
 
 const { t } = useI18n()
 
@@ -109,6 +122,10 @@ onMounted(loadActivity)
 .top-container {
   display: flex;
   flex-direction: column;
+}
+
+.likes-row {
+  padding: 14px 22px 0;
 }
 
 .widgets-container {
