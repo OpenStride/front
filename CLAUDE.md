@@ -112,6 +112,14 @@ now checked by a test rather than by goodwill:
 - **A duration is formatted once.** `@/utils/duration` owns the arithmetic.
   Six copies of the clock format existed at once, disagreeing on the edges, and
   one of them wrapped back to zero past 24 h.
+- **A corner is rounded from the scale.** No `border-radius` outside the
+  `--radius-*` tokens (or `0`), no Tailwind `rounded` class other than
+  `rounded-none/sm/md/full`. Fifty-four hardcoded radii had drifted in.
+- **A colour comes from the palette.** No hex, `rgb()` or `hsl()` literal outside
+  `variables.css`: `var(--x)` in CSS (no fallback), `cssVar('--x')` from
+  `@/utils/cssVar` in a canvas, `color-mix()` over a token for a transparency.
+- **Diagnostics go through the logger.** `logger.debug()` from `@/utils/logger`,
+  never `console.log`: it is silent in production.
 
 ### Design (see docs/DESIGN_GUIDELINES.md)
 
@@ -119,10 +127,14 @@ now checked by a test rather than by goodwill:
 - **ALWAYS** use Font Awesome 6 (Free) -- NEVER use emojis in production code
 - **ALWAYS** add `aria-hidden="true"` to icon elements
 - **ALWAYS** take a radius from the `--radius-*` scale -- NEVER a hardcoded `px`. A
-  control (select, input, toggle) is `--radius-sm`, an inner surface is
-  `--radius-md`, a content card is square, and `--radius-pill` belongs to chips
-  alone. Two controls sitting next to each other share a radius: a pill beside a
-  5px toggle reads as a foreign component
+  control (select, input, toggle, button) is `--radius-sm`, an inner surface is
+  `--radius-md`, a content card is square, `--radius-pill` belongs to chips
+  alone and `--radius-round` to circles (avatars, dots). Two controls sitting next
+  to each other share a radius: a pill beside a 5px toggle reads as a foreign
+  component
+- **ALWAYS** use the global `.btn` family (`btn--primary`, `btn--quiet`,
+  `btn--outline`, `btn--block`) before styling a button of your own, and
+  `.filepick` for a file input -- never a native `<input type="file">` in view
 
 ### Sports & units (see docs/SPORT_AND_UNITS.md)
 
