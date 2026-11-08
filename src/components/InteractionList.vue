@@ -1,89 +1,47 @@
 <template>
-  <div class="interaction-list">
-    <h3 class="section-title">
-      <i class="fas fa-comments" aria-hidden="true"></i>
-      {{ t('interactions.title') }}
-    </h3>
-
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
-      <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-      <span>{{ t('common.loading') }}</span>
-    </div>
-
-    <!-- Error state -->
-    <div v-else-if="error" class="error-state">
-      <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-      <p>{{ error }}</p>
-      <button class="retry-btn" data-test="retry-interactions" @click="loadInteractions">
-        <i class="fas fa-sync" aria-hidden="true"></i>
-        {{ t('interactions.retry') }}
-      </button>
-    </div>
-
-    <!-- Likes section -->
-    <div v-if="!loading && !error && likes.length > 0" class="likes-section">
-      <div class="subsection-header">
-        <LogoHeart :liked="true" />
-        <span>{{ t('interactions.likeCount', likes.length) }}</span>
-      </div>
-      <div class="likes-list">
-        <span v-for="(like, index) in likes" :key="like.id" class="like-author">
-          {{ like.authorUsername || t('interactions.deletedUser')
-          }}{{ index < likes.length - 1 ? ', ' : '' }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Comments section -->
-    <div v-if="!loading && !error && comments.length > 0" class="comments-section">
-      <div class="subsection-header">
-        <i class="fas fa-comment" aria-hidden="true"></i>
-        <span>{{ t('interactions.commentCount', comments.length) }}</span>
-      </div>
-
-      <div class="comments-list">
-        <div v-for="comment in comments" :key="comment.id" class="comment-item">
-          <div class="comment-header">
-            <span class="comment-author">{{
-              comment.authorUsername || t('interactions.deletedUser')
-            }}</span>
-            <span class="comment-time">{{ formatRelativeTime(comment.timestamp) }}</span>
-            <button
-              v-if="comment.authorId === myUserId"
-              @click="deleteComment(comment.id)"
-              class="delete-btn"
-              :title="t('interactions.delete')"
-              :disabled="deleting === comment.id"
-            >
-              <i class="fas fa-trash-alt" aria-hidden="true"></i>
-            </button>
-          </div>
-          <p class="comment-text">{{ comment.text }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty state -->
-    <div
-      v-if="!loading && !error && likes.length === 0 && comments.length === 0"
-      class="empty-state"
-    >
-      <i class="far fa-comment-dots" aria-hidden="true"></i>
-      <p>{{ t('interactions.none') }}</p>
-    </div>
-
-    <!-- Interaction bar at bottom -->
+  <!-- One line high on the page — like, comment, who liked — and the comments
+       under it when there are some. Nothing more when there are none. -->
+  <section class="interaction-list" data-test="interaction-list">
     <InteractionBar
       :activity-id="activityId"
       :activity-owner-id="activityOwnerId"
       :show-warning="true"
       :is-mutual-friend="isMutualFriend"
       allow-reply
-      in-thread
-      class="interaction-bar-section"
+      compact
     />
-  </div>
+
+    <div v-if="error" class="error-state">
+      <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+      <span>{{ error }}</span>
+      <button class="retry-btn" data-test="retry-interactions" @click="loadInteractions">
+        <i class="fas fa-sync" aria-hidden="true"></i>
+        {{ t('interactions.retry') }}
+      </button>
+    </div>
+
+    <ul v-if="!error && comments.length > 0" class="comments-list" data-test="comments">
+      <li v-for="comment in comments" :key="comment.id" class="comment-item">
+        <div class="comment-header">
+          <span class="comment-author">{{
+            comment.authorUsername || t('interactions.deletedUser')
+          }}</span>
+          <span class="comment-time">{{ formatRelativeTime(comment.timestamp) }}</span>
+          <button
+            v-if="comment.authorId === myUserId"
+            @click="deleteComment(comment.id)"
+            class="delete-btn"
+            :title="t('interactions.delete')"
+            :aria-label="t('interactions.delete')"
+            :disabled="deleting === comment.id"
+          >
+            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="comment-text">{{ comment.text }}</p>
+      </li>
+    </ul>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -91,7 +49,6 @@ import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getInteractionService } from '@/services/InteractionService'
 import InteractionBar from './InteractionBar.vue'
-import LogoHeart from './icons/LogoHeart.vue'
 import type { Interaction, InteractionServiceEvent } from '@/types/interaction'
 import { formatRelativeTime } from '@/utils/dateFormat'
 
@@ -175,77 +132,25 @@ onUnmounted(() => {
 
 <style scoped>
 .interaction-list {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0;
-  padding: 18px 20px;
-  margin-top: 1.25rem;
-  color: var(--color-ink);
-}
-
-.section-title {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-condensed);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-ink);
-  margin: 0 0 16px;
-}
-
-.section-title i {
-  color: var(--color-green-600);
-  font-size: 14px;
-}
-
-.likes-section,
-.comments-section {
-  margin-bottom: 16px;
-}
-
-.subsection-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-condensed);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: 8px;
-}
-
-.subsection-header i {
-  font-size: 13px;
-}
-
-.likes-section .subsection-header i,
-.comments-section .subsection-header i {
-  color: var(--color-green-600);
-}
-
-.likes-list {
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.like-author {
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 22px 0;
   color: var(--color-ink);
 }
 
 .comments-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .comment-item {
-  padding: 12px 14px;
-  background: var(--surface-2);
+  padding: 10px 14px;
+  background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
@@ -254,7 +159,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .comment-author {
@@ -299,86 +204,25 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 2rem 1rem;
-  color: var(--text-faint);
-  font-size: 14px;
-}
-
-.loading-state i {
-  color: var(--color-green-600);
-}
-
 .error-state {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem;
+  flex-wrap: wrap;
   gap: 8px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.error-state i {
-  font-size: 1.5rem;
-  color: var(--color-orange-500);
-}
-
-.error-state p {
-  margin: 0;
   font-size: 14px;
   color: var(--text-muted);
 }
 
 .retry-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 0.25rem;
-  padding: 8px 14px;
-  background: none;
-  border: 1px solid var(--color-green-500);
-  color: var(--color-green-700);
-  border-radius: var(--radius-md);
-  font-family: var(--font-condensed);
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--color-ink);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.retry-btn:hover {
-  background: var(--color-green-50);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1rem;
-  color: var(--text-faint);
-}
-
-.empty-state i {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  color: var(--color-green-400);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.interaction-bar-section {
-  border-top: 1px solid var(--border-subtle);
-  margin-top: 16px;
-  padding-top: 14px;
 }
 </style>
