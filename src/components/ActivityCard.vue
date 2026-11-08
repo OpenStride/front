@@ -9,8 +9,30 @@
     >
       <!-- Héro : uniquement s'il y a un tracé. Une nage en bassin ou une séance
            de renfo n'a pas de GPS : lui réserver 186 px de vide n'apprend rien. -->
-      <div v-if="hasMap" class="acard__hero">
-        <MapPreview class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
+      <div v-if="hasHero" class="acard__hero">
+        <MapPreview v-if="hasMap" class="acard__map" :polyline="activity.mapPolyline" theme="osm" />
+        <!-- No track: the first photo takes the hero instead -->
+        <img v-else class="acard__cover" :src="photoThumbs[0].url" alt="" data-test="card-cover" />
+
+        <!-- Over the map, the first few photos, the way the outing's page opens -->
+        <div
+          v-if="hasMap && photoThumbs.length"
+          class="acard__photos"
+          role="img"
+          :aria-label="t('photos.count', { n: photoCount }, photoCount)"
+          data-test="card-photos"
+        >
+          <img
+            v-for="thumb in photoThumbs"
+            :key="thumb.id"
+            class="acard__photo"
+            :src="thumb.url"
+            alt=""
+          />
+          <span v-if="photoCount > photoThumbs.length" class="acard__photo-more" aria-hidden="true"
+            >+{{ photoCount - photoThumbs.length }}</span
+          >
+        </div>
 
         <div v-if="friendUsername" class="acard__friend">
           <i class="fas fa-user" aria-hidden="true"></i>
@@ -29,7 +51,7 @@
             <div class="acard__kicker">
               <span>{{ formatSportType(activity.type) }}</span>
               <!-- Without a hero these have nowhere to sit, so they move here. -->
-              <template v-if="!hasMap">
+              <template v-if="!hasHero">
                 <span class="acard__meta">{{ shortDate }}</span>
                 <span v-if="friendUsername" class="acard__meta">
                   <i class="fas fa-user" aria-hidden="true"></i> {{ friendUsername }}
@@ -98,6 +120,7 @@ import { formatClock } from '@/utils/duration'
 import { formatWeekday } from '@/utils/dateFormat'
 import { useUnits } from '@/composables/useUnits'
 import { DERIVED, useActivityMetricsIndex } from '@/composables/useActivityMetricsIndex'
+import { useActivityPhotoThumbs } from '@/composables/useActivityPhotoThumbs'
 
 const props = defineProps<{
   activity: Activity
@@ -165,6 +188,12 @@ const iconClass = computed(() => getSportIcon(props.activity.type))
 const hasMap = computed(
   () => Array.isArray(props.activity.mapPolyline) && props.activity.mapPolyline.length > 1
 )
+
+// The reader's own photos; a friend's are not shared yet
+const { thumbs: photoThumbs, count: photoCount } = useActivityPhotoThumbs(() =>
+  props.friendUsername || props.activity.provider?.startsWith('friend_') ? null : props.activity.id
+)
+const hasHero = computed(() => hasMap.value || photoThumbs.value.length > 0)
 
 // Extract friendId for interactions
 const friendId = computed(() => {
@@ -284,6 +313,36 @@ const showDetails = () => {
 .acard__map {
   width: 100%;
   height: 100%;
+}
+.acard__cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.acard__photos {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.acard__photo {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--color-white);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  box-shadow: var(--shadow-card);
+}
+.acard__photo-more {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-size: 12px;
+  font-weight: 600;
 }
 .acard__datechip {
   position: absolute;

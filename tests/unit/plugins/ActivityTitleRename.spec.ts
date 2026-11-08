@@ -36,7 +36,8 @@ function mountBlock(fields: Partial<Activity> = {}) {
             },
             format: formatQuantity
           },
-          activity: { setTitle }
+          activity: { setTitle },
+          photos: { list: async () => [], blob: async () => null, onChanged: () => () => undefined }
         }
       }
     }
@@ -145,7 +146,12 @@ describe('the map of a friend’s outing', () => {
               },
               format: formatQuantity
             },
-            activity: {}
+            activity: {},
+            photos: {
+              list: async () => [],
+              blob: async () => null,
+              onChanged: () => () => undefined
+            }
           }
         }
       }

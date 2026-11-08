@@ -1293,5 +1293,19 @@
     "rotate": "Change my link",
     "rotateHint": "Your public files are recreated at a new address with a new key: the old link opens nothing any more. Your friends will scan your new QR code to keep following you.",
     "rotateConfirm": "Change your link? The old one will open nothing, and each of your friends will have to scan the new QR code to keep seeing your outings."
+  },
+  "photos": {
+    "add": "Add photos",
+    "adding": "Adding photos…",
+    "open": "Photo {n} of {total}",
+    "viewer": "Photo {n} of {total}",
+    "delete": "Delete photo",
+    "confirmDelete": "Delete this photo?",
+    "close": "Close",
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "failed": "This photo could not be read. | {n} photos could not be read.",
+    "refused": "At most {max} photos per activity: the rest were not added.",
+    "count": "{n} photo | {n} photos"
   }
 }

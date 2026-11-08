@@ -41,6 +41,7 @@ function makeData(
 
 // The widget formats through the plugin context, as plugins must.
 const pluginContext = {
+  photos: { list: async () => [], blob: async () => null, onChanged: () => () => undefined },
   analyzer: {
     create: (samples: { elevation?: number }[]) => ({
       // The real computation, so the fallback path is genuinely exercised.

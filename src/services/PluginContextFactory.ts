@@ -16,6 +16,7 @@ import { SyncService } from './SyncService'
 import { DataProviderService } from './DataProviderService'
 import { getCustomAggregateService } from './CustomAggregateService'
 import { getGearService } from './GearService'
+import { getPhotoService } from './PhotoService'
 import { useSampleCapabilities } from '@/composables/useSampleCapabilities'
 import {
   convertQuantity,
@@ -36,6 +37,10 @@ export async function createPluginContext(): Promise<PluginContext> {
   const storageService = await IndexedDBService.getInstance()
   // Plugins may format before any component has mounted.
   await ensureUnitsLoaded()
+
+  // Created now rather than on first use: it is what clears an outing's photos
+  // when the outing is deleted, and has to be listening by then.
+  getPhotoService()
 
   return {
     activity: activityService,
@@ -127,6 +132,14 @@ export async function createPluginContext(): Promise<PluginContext> {
         emitter.addEventListener('gear-changed', listener)
         return () => emitter.removeEventListener('gear-changed', listener)
       }
+    },
+
+    photos: {
+      list: activityId => getPhotoService().list(activityId),
+      add: (activityId, files) => getPhotoService().add(activityId, files),
+      blob: (photoId, size) => getPhotoService().blob(photoId, size),
+      remove: photoId => getPhotoService().remove(photoId),
+      onChanged: handler => getPhotoService().onChanged(handler)
     },
 
     friends: {

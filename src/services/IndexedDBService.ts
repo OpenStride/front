@@ -80,13 +80,13 @@ export class IndexedDBService implements IStorageService {
 
   private initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('OpenStrideDB', 13)
+      const request = indexedDB.open('OpenStrideDB', 14)
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v13`)
+        console.log(`[IndexedDBService] Migration from v${oldVersion} to v14`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -138,6 +138,14 @@ export class IndexedDBService implements IStorageService {
           // The reader's gear (v13). Hand-written like custom_aggregates, so it
           // syncs through SyncService for the same reasons.
           { name: 'gear', options: { keyPath: 'id' } },
+          // Photos of the reader's outings (v14): a small row per photo, found
+          // by its outing, and the images apart so a listing never loads them.
+          {
+            name: 'activity_photos',
+            options: { keyPath: 'id' },
+            indices: [{ name: 'activityId', keyPath: 'activityId', unique: false }]
+          },
+          { name: 'photo_blobs', options: { keyPath: 'id' } },
           { name: 'friends', options: { keyPath: 'id' } },
           { name: 'friend_activities', options: { keyPath: 'id' } },
           {
@@ -285,6 +293,23 @@ export class IndexedDBService implements IStorageService {
       const request = store.getAll()
 
       request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  /** Every record of `storeName` whose `indexName` equals `key`. */
+  public getAllFromIndex<T = unknown>(
+    storeName: string,
+    indexName: string,
+    key: IDBValidKey
+  ): Promise<T[]> {
+    if (!this.db) throw new Error('DB not initialized')
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db!.transaction(storeName, 'readonly')
+      const request = tx.objectStore(storeName).index(indexName).getAll(key)
+
+      request.onsuccess = () => resolve(request.result as T[])
       request.onerror = () => reject(request.error)
     })
   }
