@@ -1,4 +1,5 @@
 import { IndexedDBService } from './IndexedDBService'
+import { PublicKeyRing } from './PublicKeyRing'
 import { PublicFileService } from './PublicFileService'
 import { getInteractionService } from './InteractionService'
 import { GoogleDriveApiService } from './GoogleDriveApiService'
@@ -348,7 +349,7 @@ export class InteractionSyncService {
 
       // Use GoogleDriveApiService for Google Drive URLs (bypasses CORS)
       if (gdrive.isGoogleDriveUrl(url)) {
-        return await gdrive.fetchJsonFromUrl<T>(url)
+        return await PublicKeyRing.open<T>(url, await gdrive.fetchJsonFromUrl<unknown>(url))
       }
 
       // Standard fetch for other URLs
@@ -362,7 +363,7 @@ export class InteractionSyncService {
         return null
       }
 
-      return await response.json()
+      return await PublicKeyRing.open<T>(url, await response.json())
     } catch (error) {
       console.error('[InteractionSyncService] Fetch error:', error)
       return null

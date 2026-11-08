@@ -51,6 +51,12 @@ export interface StoragePlugin {
   getPublicFileUrl?(filename: string): Promise<string | null>
 
   /**
+   * Optional: delete every file of the public folder. Changing one's share
+   * link needs the old files gone, so the old link opens nothing.
+   */
+  clearPublicFiles?(): Promise<boolean>
+
+  /**
    * Optional: extract file ID from a public URL
    * Provider-specific URL parsing
    */

@@ -926,7 +926,8 @@
     "refreshActivities": "{friends} friend(s) synced, {activities} activity(ies)",
     "refreshInteractions": "{friends} friend(s) synced, {interactions} interaction(s)",
     "refreshFull": "{friends} friend(s) synced, {activities} activity(ies), {interactions} interaction(s)",
-    "profileMoved": "{name}'s profile has moved, link updated"
+    "profileMoved": "{name}'s profile has moved, link updated",
+    "rotateFailed": "Could not empty the old public folder: link unchanged."
   },
   "myQr": {
     "title": "My QR code",
@@ -1283,6 +1284,12 @@
     "title": "Outing title",
     "zone": "Hide the start and finish of the track:",
     "zoneNone": "no",
-    "zoneMetres": "{m} m"
+    "zoneMetres": "{m} m",
+    "sealed": "Encrypted: only your link, key included, opens your profile.",
+    "notSealed": "Not encrypted: anyone with the link sees your outings, and your storage can read them.",
+    "seal": "Encrypt and change my link",
+    "rotate": "Change my link",
+    "rotateHint": "Your public files are recreated at a new address with a new key: the old link opens nothing any more. Your friends will scan your new QR code to keep following you.",
+    "rotateConfirm": "Change your link? The old one will open nothing, and each of your friends will have to scan the new QR code to keep seeing your outings."
   }
 }

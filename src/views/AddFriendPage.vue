@@ -140,6 +140,7 @@ const published = ref(false)
 const friendName = ref('')
 const errorMessage = ref('')
 const manifestUrl = ref<string | null>(null)
+const shareKey = ref<string | undefined>(undefined)
 
 onMounted(async () => {
   await processDeepLink()
@@ -163,6 +164,8 @@ async function processDeepLink() {
     }
 
     manifestUrl.value = manifestParam
+    // The key of a sealed profile rides in the fragment, never sent to a server
+    shareKey.value = new URLSearchParams(route.hash.replace(/^#/, '')).get('k') ?? undefined
 
     if (!ShareUrlService.isValidManifestUrl(manifestUrl.value)) {
       console.error('[AddFriendPage] Invalid manifest URL domain')
@@ -171,7 +174,7 @@ async function processDeepLink() {
       return
     }
 
-    const result = await friendService.previewFriend(manifestUrl.value)
+    const result = await friendService.previewFriend(manifestUrl.value, shareKey.value)
 
     if (!result) {
       error.value = true
@@ -199,7 +202,7 @@ async function confirmAdd() {
   adding.value = true
 
   try {
-    const friend = await friendService.addFriendByUrl(manifestUrl.value)
+    const friend = await friendService.addFriendByUrl(manifestUrl.value, undefined, shareKey.value)
 
     if (!friend) {
       error.value = true

@@ -2,6 +2,7 @@ import { IndexedDBService } from './IndexedDBService'
 import { PublicDataService } from './PublicDataService'
 import { PublicFileService } from './PublicFileService'
 import { ShareUrlService } from './ShareUrlService'
+import { OWNER_SHARE_KEY, generateShareKey } from '@/utils/publicCrypto'
 import { getInteractionSyncService } from './InteractionSyncService'
 import type { FriendServiceEvent } from '@/types/friend'
 
@@ -42,6 +43,13 @@ export class PublicDataPublisher {
       const publicDataService = PublicDataService.getInstance()
       const publicFileService = PublicFileService.getInstance()
       const db = await IndexedDBService.getInstance()
+
+      // A first publication is sealed from the start. A profile already
+      // published without a key stays readable by the friends who hold its
+      // link, until its owner changes the link (`rotatePublicLink`).
+      if (!(await db.getData('myPublicUrl')) && !(await db.getData(OWNER_SHARE_KEY))) {
+        await db.saveData(OWNER_SHARE_KEY, generateShareKey())
+      }
 
       const { manifest, yearFiles, detailFiles } = await publicDataService.generateAllPublicData()
 
@@ -141,7 +149,7 @@ export class PublicDataPublisher {
       // With auto-publish off, this is the only way to tell a fresh profile
       // from one frozen three months ago.
       await db.saveData('myPublicPublishedAt', Date.now())
-      const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl)
+      const shareUrl = ShareUrlService.wrapManifestUrl(manifestUrl, await this.getShareKey())
 
       this.emitEvent({
         type: 'publish-completed',
@@ -194,12 +202,47 @@ export class PublicDataPublisher {
       const manifestUrl = ShareUrlService.unwrapManifestUrl(storedUrl)
       if (manifestUrl) {
         await db.saveData('myPublicUrl', manifestUrl)
-        return ShareUrlService.wrapManifestUrl(manifestUrl)
+        return ShareUrlService.wrapManifestUrl(manifestUrl, await this.getShareKey())
       }
       return null
     }
 
-    return ShareUrlService.wrapManifestUrl(storedUrl)
+    return ShareUrlService.wrapManifestUrl(storedUrl, await this.getShareKey())
+  }
+
+  /** The key the reader's public files are sealed with, if they are. */
+  private async getShareKey(): Promise<string | undefined> {
+    const db = await IndexedDBService.getInstance()
+    return (await db.getData<string>(OWNER_SHARE_KEY)) ?? undefined
+  }
+
+  /** Whether the reader's public files are sealed (see `publicCrypto`). */
+  public async isSealed(): Promise<boolean> {
+    return !!(await this.getShareKey())
+  }
+
+  /**
+   * A new link, sealed with a new key, and the old one emptied.
+   *
+   * Every public file is deleted then written again, so they come back at new
+   * addresses: whoever held the old link, or a copy of the old files' URLs,
+   * opens nothing. Friends follow again from the new link. This is also how a
+   * profile published before encryption becomes sealed.
+   */
+  public async rotatePublicLink(): Promise<string | null> {
+    const db = await IndexedDBService.getInstance()
+    const publicFileService = PublicFileService.getInstance()
+    if (!(await publicFileService.clearPublicFiles())) {
+      this.emitEvent({
+        type: 'publish-error',
+        messageKey: 'friendEvents.rotateFailed',
+        messageType: 'error'
+      })
+      return null
+    }
+    await db.saveData(OWNER_SHARE_KEY, generateShareKey())
+    await db.deleteData('myPublicUrl')
+    return this.publishPublicData()
   }
 
   /**

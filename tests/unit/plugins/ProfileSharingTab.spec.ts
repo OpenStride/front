@@ -16,7 +16,9 @@ function contextWith(summary: { activityCount: number; publishedAt: number | nul
       isAutoPublishEnabled: async () => false,
       setAutoPublish: vi.fn(),
       publishPublicData: vi.fn(async () => null),
-      getPublicSummary: async () => summary
+      getPublicSummary: async () => summary,
+      isSealed: vi.fn(async () => true),
+      rotatePublicLink: vi.fn(async () => 'https://openstride.org/add-friend?manifest=new#k=K2')
     }
   }
 }
@@ -152,5 +154,45 @@ describe('ProfileSharingTab.vue — what friends see', () => {
     await vi.advanceTimersByTimeAsync(1500)
     expect(ctx.friends.publishPublicData).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
+  })
+})
+
+describe('ProfileSharingTab.vue — the link', () => {
+  async function mountLink(sealed: boolean) {
+    const ctx = contextWith({ activityCount: 3, publishedAt: Date.now() })
+    ctx.friends.isSealed = vi.fn(async () => sealed)
+    const i18n = createI18n({ legacy: false, locale: 'en', messages: { fr, en } })
+    const wrapper = mount(ProfileSharingTab, {
+      global: {
+        plugins: [i18n],
+        provide: { [PLUGIN_CONTEXT_KEY]: ctx },
+        stubs: { MyQrCodeModal: true, RouterLink: true }
+      }
+    })
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+    return { wrapper, ctx }
+  }
+
+  it('says plainly when the profile is not encrypted, and offers to encrypt it', async () => {
+    const { wrapper } = await mountLink(false)
+    expect(wrapper.find('[data-test="not-sealed"]').text()).toContain(en.sharing.notSealed)
+    expect(wrapper.find('[data-test="rotate-button"]').text()).toContain(en.sharing.seal)
+  })
+
+  it('changes the link only once the reader confirmed what it costs', async () => {
+    const { wrapper, ctx } = await mountLink(true)
+    expect(wrapper.find('[data-test="sealed"]').exists()).toBe(true)
+
+    const confirm = vi.fn().mockReturnValueOnce(false)
+    vi.stubGlobal('confirm', confirm)
+    await wrapper.find('[data-test="rotate-button"]').trigger('click')
+    expect(ctx.friends.rotatePublicLink).not.toHaveBeenCalled()
+
+    confirm.mockReturnValueOnce(true)
+    await wrapper.find('[data-test="rotate-button"]').trigger('click')
+    await new Promise(r => setTimeout(r, 0))
+    expect(ctx.friends.rotatePublicLink).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
   })
 })

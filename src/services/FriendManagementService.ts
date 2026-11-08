@@ -1,6 +1,7 @@
 import { IndexedDBService } from './IndexedDBService'
 import { ShareUrlService } from './ShareUrlService'
 import { FriendSyncService } from './FriendSyncService'
+import { PublicKeyRing } from './PublicKeyRing'
 import type { Friend, FriendActivity, FriendServiceEvent, PublicManifest } from '@/types/friend'
 
 /**
@@ -69,7 +70,10 @@ export class FriendManagementService {
    * Adding a friend writes to the device and republishes the following list, so
    * the user gets to see who they are about to follow first.
    */
-  public async previewFriend(publicUrl: string): Promise<{
+  public async previewFriend(
+    publicUrl: string,
+    key: string | undefined = ShareUrlService.keyOf(publicUrl)
+  ): Promise<{
     manifestUrl: string
     manifest: PublicManifest
     alreadyAdded: Friend | null
@@ -78,6 +82,8 @@ export class FriendManagementService {
     const manifestUrl = this.resolveManifestUrl(publicUrl)
     if (!manifestUrl) return null
 
+    // A sealed profile opens with the key its link carried (see `publicCrypto`)
+    PublicKeyRing.remember(manifestUrl, key)
     const manifest = await FriendSyncService.getInstance().fetchManifest(manifestUrl)
     if (!manifest) return null
 
@@ -113,7 +119,11 @@ export class FriendManagementService {
   /**
    * Add a friend by their public manifest URL
    */
-  public async addFriendByUrl(publicUrl: string, customUsername?: string): Promise<Friend | null> {
+  public async addFriendByUrl(
+    publicUrl: string,
+    customUsername?: string,
+    key: string | undefined = ShareUrlService.keyOf(publicUrl)
+  ): Promise<Friend | null> {
     try {
       const resolved = this.resolveManifestUrl(publicUrl)
       if (!resolved) {
@@ -125,6 +135,7 @@ export class FriendManagementService {
         return null
       }
       const manifestUrl = resolved
+      PublicKeyRing.remember(manifestUrl, key)
 
       const syncService = FriendSyncService.getInstance()
       const manifest = await syncService.fetchManifest(manifestUrl)
@@ -152,6 +163,14 @@ export class FriendManagementService {
 
       const existingFriend = await db.getDataFromStore('friends', friendId).catch(() => null)
       if (existingFriend) {
+        // The same link with a key we did not have: keep it, the profile is sealed now
+        if (key && (existingFriend as Friend).shareKey !== key) {
+          await db.addItemsToStore(
+            'friends',
+            [{ ...(existingFriend as Friend), shareKey: key, lastModified: Date.now() }],
+            f => f.id
+          )
+        }
         this.emitEvent({
           type: 'friend-error',
           friend: existingFriend as Friend,
@@ -168,6 +187,8 @@ export class FriendManagementService {
         const updated: Friend = {
           ...moved,
           publicUrl: manifestUrl,
+          // A changed link comes with a new key: the old one opens nothing now
+          shareKey: key,
           username: customUsername || manifest.profile.username,
           profilePhoto: manifest.profile.profilePhoto,
           bio: manifest.profile.bio,
@@ -194,6 +215,7 @@ export class FriendManagementService {
         profilePhoto: manifest.profile.profilePhoto,
         bio: manifest.profile.bio,
         publicUrl: manifestUrl,
+        shareKey: key,
         addedAt: Date.now(),
         lastFetched: Date.now(),
         lastModified: Date.now(),

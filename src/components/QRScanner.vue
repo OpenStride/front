@@ -66,6 +66,7 @@ import { useRouter } from 'vue-router'
 import { Html5Qrcode } from 'html5-qrcode'
 import { FriendService } from '@/services/FriendService'
 import { ToastService } from '@/services/ToastService'
+import { ShareUrlService } from '@/services/ShareUrlService'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -144,7 +145,13 @@ const openConfirmation = (url: string) => {
   }
 
   close()
-  router.push({ path: '/add-friend', query: { manifest: manifestUrl } })
+  // The key of a sealed profile stays in the fragment, as the link carried it
+  const key = ShareUrlService.keyOf(url.trim())
+  router.push({
+    path: '/add-friend',
+    query: { manifest: manifestUrl },
+    hash: key ? `#k=${key}` : undefined
+  })
 }
 
 const switchToManual = () => {

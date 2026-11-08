@@ -28,6 +28,19 @@
         {{ t('profile.nothingShared') }}
       </p>
 
+      <!-- Whether the link alone opens the profile, said plainly, with the one
+           action that changes it. -->
+      <p v-if="sealed" class="status__line" data-test="sealed">
+        <i class="fas fa-lock status__icon" aria-hidden="true"></i>
+        <span>{{ t('sharing.sealed') }}</span>
+      </p>
+      <div v-else class="status__warn" data-test="not-sealed">
+        <p class="status__line">
+          <i class="fas fa-lock-open status__icon" aria-hidden="true"></i>
+          <span>{{ t('sharing.notSealed') }}</span>
+        </p>
+      </div>
+
       <button @click="qrOpen = true" class="btn btn--quiet" data-test="show-my-qr">
         <i class="fas fa-qrcode" aria-hidden="true"></i>
         {{ t('profile.shareMyProfile') }}
@@ -64,6 +77,24 @@
             : t('profile.publishData')
       }}
     </button>
+
+    <!-- A new link: the old one opens nothing any more. Rare, deliberate, and
+         it costs every friend a new scan — hence the confirmation that says so. -->
+    <div v-if="publicUrl" class="card" data-test="rotate-link">
+      <p class="card__label">{{ sealed ? t('sharing.rotate') : t('sharing.seal') }}</p>
+      <p class="card__hint">{{ t('sharing.rotateHint') }}</p>
+      <button
+        type="button"
+        class="btn"
+        :class="sealed ? 'btn--quiet' : 'btn--primary'"
+        :disabled="rotating || publishing"
+        data-test="rotate-button"
+        @click="rotateLink"
+      >
+        <i class="fas fa-rotate" aria-hidden="true"></i>
+        {{ rotating ? t('profile.publishing') : sealed ? t('sharing.rotate') : t('sharing.seal') }}
+      </button>
+    </div>
 
     <!-- Keeping the published copy fresh is the whole point of publishing: a
          profile frozen on the day it was created is what friends see otherwise. -->
@@ -184,6 +215,27 @@ const loadSummary = async () => {
   summary.value = await friends.getPublicSummary()
 }
 
+// ── The link ────────────────────────────────────────────────────────────────
+const sealed = ref(true)
+const rotating = ref(false)
+
+async function rotateLink() {
+  if (!window.confirm(t('sharing.rotateConfirm'))) return
+  rotating.value = true
+  try {
+    const url = await friends.rotatePublicLink()
+    if (url) {
+      publicUrl.value = url
+      sealed.value = true
+      await loadSummary()
+      // The new QR code, at once: it is the next thing to send
+      qrOpen.value = true
+    }
+  } finally {
+    rotating.value = false
+  }
+}
+
 // ── What friends see ────────────────────────────────────────────────────────
 type Switch = 'map' | 'title' | 'time' | 'figures'
 const SWITCHES: Switch[] = ['map', 'title', 'time', 'figures']
@@ -228,6 +280,7 @@ onMounted(async () => {
   // Load public URL if available
   publicUrl.value = await friends.getMyPublicUrl()
   if (publicUrl.value) await loadSummary()
+  sealed.value = await friends.isSealed()
 
   canPublish.value = await friends.canPublish()
   checkingSupport.value = false
@@ -307,6 +360,11 @@ const toggleAutoPublish = async (event: Event) => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
+}
+
+.status__warn .status__line,
+.status__warn .status__icon {
+  color: var(--color-orange-700);
 }
 
 .status__line {
