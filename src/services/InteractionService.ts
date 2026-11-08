@@ -6,6 +6,7 @@ import type {
   InteractionSummary
 } from '@/types/interaction'
 import type { Friend } from '@/types/friend'
+import { logger } from '@/utils/logger'
 
 const COMMENT_MAX_LENGTH = 280
 
@@ -92,7 +93,7 @@ export class InteractionService {
 
     // Store permanently
     await db.saveData('myUserId', userId)
-    console.log('[InteractionService] Generated and stored stable userId:', userId)
+    logger.debug('[InteractionService] Generated and stored stable userId:', userId)
 
     return userId
   }
@@ -165,7 +166,7 @@ export class InteractionService {
         const result = await syncService.publishInteractions()
 
         if (result.success) {
-          console.log(
+          logger.debug(
             `[InteractionService] Auto-published ${result.interactionsSynced} interactions`
           )
         }
@@ -229,7 +230,7 @@ export class InteractionService {
     // Auto-publish after adding like
     this.triggerAutoPublish()
 
-    console.log(
+    logger.debug(
       `[InteractionService] Like added on activity ${activityId} (mutual friend confirmed)`
     )
     return interaction
@@ -267,7 +268,7 @@ export class InteractionService {
     // Auto-publish after removing like
     this.triggerAutoPublish()
 
-    console.log(`[InteractionService] Like removed from activity ${activityId}`)
+    logger.debug(`[InteractionService] Like removed from activity ${activityId}`)
   }
 
   /**
@@ -349,7 +350,7 @@ export class InteractionService {
     // Auto-publish after adding comment
     this.triggerAutoPublish()
 
-    console.log(
+    logger.debug(
       `[InteractionService] Comment added on activity ${activityId} (mutual friend confirmed)`
     )
     return interaction
@@ -392,7 +393,7 @@ export class InteractionService {
       activityId: interaction.activityId
     })
 
-    console.log(`[InteractionService] Comment ${interactionId} deleted`)
+    logger.debug(`[InteractionService] Comment ${interactionId} deleted`)
   }
 
   // ========== QUERY OPERATIONS ==========
@@ -475,7 +476,7 @@ export class InteractionService {
     const db = await IndexedDBService.getInstance()
     await db.addItemsToStore('interactions', interactions, i => i.id)
 
-    console.log(`[InteractionService] Stored ${interactions.length} remote interactions`)
+    logger.debug(`[InteractionService] Stored ${interactions.length} remote interactions`)
   }
 
   /**
@@ -508,7 +509,7 @@ export class InteractionService {
         activityId: interaction.activityId
       })
     }
-    console.log(`[InteractionService] Removed ${withdrawn.length} interactions taken back`)
+    logger.debug(`[InteractionService] Removed ${withdrawn.length} interactions taken back`)
     return withdrawn.length
   }
 

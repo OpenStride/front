@@ -16,6 +16,7 @@ import type {
   PublicImage
 } from '@/types/friend'
 import { base64ToBytes } from '@/utils/base64'
+import { logger } from '@/utils/logger'
 
 /**
  * Handles fetching and syncing friend data.
@@ -52,7 +53,7 @@ export class FriendSyncService {
       const gdrive = GoogleDriveApiService.getInstance()
 
       if (gdrive.isGoogleDriveUrl(url)) {
-        console.log('[FriendSyncService] Using GoogleDriveApiService for Google Drive URL')
+        logger.debug('[FriendSyncService] Using GoogleDriveApiService for Google Drive URL')
         // Sealed files are opened here, with the key their owner shared
         return await PublicKeyRing.open<T>(url, await gdrive.fetchJsonFromUrl<unknown>(url))
       }
@@ -101,7 +102,7 @@ export class FriendSyncService {
       await db.addItemsToStore('friends', [friend], f => f.id)
 
       if (followsMe) {
-        console.log(
+        logger.debug(
           `[FriendSyncService] Mutual friendship discovered: ${friend.username} follows me back!`
         )
         this.emitEvent({
@@ -347,7 +348,7 @@ export class FriendSyncService {
       await db.addItemsToStore('friends', [friend], f => f.id)
 
       const duration = performance.now() - startTime
-      console.log(
+      logger.debug(
         `[FriendSyncService] Quick sync completed: ${totalAdded} new activities (${duration.toFixed(0)}ms)`
       )
 
@@ -450,7 +451,7 @@ export class FriendSyncService {
       await db.addItemsToStore('friends', [friend], f => f.id)
 
       const duration = performance.now() - startTime
-      console.log(
+      logger.debug(
         `[FriendSyncService] Full sync completed: ${totalAdded} new activities from ${allActivities.length} total (${duration.toFixed(0)}ms)`
       )
 
@@ -511,7 +512,7 @@ export class FriendSyncService {
   public async refreshAllFriends(friends: Friend[]): Promise<FriendSyncResult[]> {
     const removed = await this.deduplicateFriendActivities()
     if (removed > 0) {
-      console.log(`[FriendSyncService] Cleaned up ${removed} duplicate friend activities`)
+      logger.debug(`[FriendSyncService] Cleaned up ${removed} duplicate friend activities`)
     }
 
     const results: FriendSyncResult[] = []

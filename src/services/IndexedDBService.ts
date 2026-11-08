@@ -1,4 +1,5 @@
 import type { IStorageService } from '@/types/plugin-context'
+import { logger } from '@/utils/logger'
 
 /**
  * IndexedDB service for local data storage
@@ -13,11 +14,11 @@ export class IndexedDBService implements IStorageService {
 
   public static async getInstance(): Promise<IndexedDBService> {
     if (!IndexedDBService.instance) {
-      console.log('[IndexedDBService] Initialisation de la DB...')
+      logger.debug('[IndexedDBService] Initialisation de la DB...')
       const service = new IndexedDBService()
       await service.initDB()
       IndexedDBService.instance = service
-      console.log('[IndexedDBService] Instance prête ✅')
+      logger.debug('[IndexedDBService] Instance prête ✅')
     }
     return IndexedDBService.instance
   }
@@ -63,7 +64,7 @@ export class IndexedDBService implements IStorageService {
       const deleteRequest = indexedDB.deleteDatabase('OpenStrideDB')
 
       deleteRequest.onsuccess = () => {
-        console.log('[IndexedDBService] ✅ Database deleted successfully')
+        logger.debug('[IndexedDBService] ✅ Database deleted successfully')
         resolve()
       }
 
@@ -86,7 +87,7 @@ export class IndexedDBService implements IStorageService {
         const db = (event.target as IDBOpenDBRequest).result
         const oldVersion = event.oldVersion
 
-        console.log(`[IndexedDBService] Migration from v${oldVersion} to v14`)
+        logger.debug(`[IndexedDBService] Migration from v${oldVersion} to v14`)
 
         // Migration from v8 to v9: SIMPLIFIED - just recreate stores
         // Users can re-import data from Google Drive or providers
@@ -174,7 +175,7 @@ export class IndexedDBService implements IStorageService {
 
       request.onsuccess = (event: Event) => {
         this.db = (event.target as IDBOpenDBRequest).result
-        console.log('✅ IndexedDB initialisée !')
+        logger.debug('✅ IndexedDB initialisée !')
         resolve()
       }
 

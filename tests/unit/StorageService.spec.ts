@@ -61,9 +61,9 @@ describe('StorageService.syncStores', () => {
     mgr.setPlugins([])
   })
 
-  it.skip('ne fait rien si aucun plugin actif', async () => {
+  it('ne fait rien si aucun plugin actif', async () => {
     const svc = StorageService.getInstance()
-    await expect(svc.syncStores([{ store: 'activities', key: '' }])).resolves.toBeUndefined()
+    await expect(svc.syncStores([{ store: 'activities', key: '' }])).resolves.toBe(false)
   })
 
   it('pousse des éléments locaux vers un plugin distant vide', async () => {

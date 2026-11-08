@@ -5,6 +5,7 @@
 
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getMessaging, onBackgroundMessage, type Messaging } from 'firebase/messaging/sw'
+import { logger } from '@/utils/logger'
 
 // Type declaration for Service Worker global scope
 declare const self: ServiceWorkerGlobalScope
@@ -36,7 +37,7 @@ export function initializeFirebaseMessaging(): Messaging | null {
     if (!messagingInstance) {
       const app: FirebaseApp = initializeApp(firebaseConfig)
       messagingInstance = getMessaging(app)
-      console.log('[SW Firebase] Messaging initialized')
+      logger.debug('[SW Firebase] Messaging initialized')
     }
 
     return messagingInstance
@@ -51,7 +52,7 @@ export function initializeFirebaseMessaging(): Messaging | null {
  */
 export function setupBackgroundMessageHandler(messaging: Messaging): void {
   onBackgroundMessage(messaging, payload => {
-    console.log('[SW Firebase] Background message received:', payload)
+    logger.debug('[SW Firebase] Background message received:', payload)
 
     const notificationTitle = payload.notification?.title || 'OpenStride'
     const notificationOptions = {
@@ -77,7 +78,7 @@ export function setupBackgroundMessageHandler(messaging: Messaging): void {
  */
 export function setupNotificationClickHandler(): void {
   self.addEventListener('notificationclick', event => {
-    console.log('[SW Firebase] Notification clicked:', event.notification.tag)
+    logger.debug('[SW Firebase] Notification clicked:', event.notification.tag)
 
     event.notification.close()
 

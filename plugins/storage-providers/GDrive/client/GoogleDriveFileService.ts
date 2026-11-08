@@ -4,6 +4,7 @@
 // afin d'eviter les multiples fetch pour les fichiers et dossiers de la même session
 
 import { GoogleDriveAuthService } from './GoogleDriveAuthService'
+import { logger } from '@/utils/logger'
 
 const DRIVE_API_ENDPOINT = 'https://www.googleapis.com/drive/v3/files'
 const DRIVE_UPLOAD_ENDPOINT = 'https://www.googleapis.com/upload/drive/v3/files'
@@ -107,7 +108,7 @@ export class GoogleDriveFileService {
 
     // ✅ Créer le fichier s'il n'existe pas
     const newFileId = await this.createBackupFile(filename, accessToken)
-    console.log('Backup file created:', newFileId)
+    logger.debug('Backup file created:', newFileId)
     if (newFileId) this.backupFileIds.set(filename, newFileId)
     return newFileId
   }
@@ -168,10 +169,10 @@ export class GoogleDriveFileService {
     if (response.ok) {
       const data = await response.json()
       if (data.files && data.files.length > 0) {
-        console.log('Backup file found:', data.files[0].id, data.files[0])
+        logger.debug('Backup file found:', data.files[0].id, data.files[0])
         return data.files[0].id
       } else {
-        console.log('No backup file found in the specified folder.')
+        logger.debug('No backup file found in the specified folder.')
       }
     } else {
       console.error('Error listing files:', await response.text())
@@ -225,7 +226,7 @@ export class GoogleDriveFileService {
     })
 
     if (response.ok) {
-      console.log('Backup file updated successfully.')
+      logger.debug('Backup file updated successfully.')
     } else {
       console.error('Error writing to backup file:', await response.text())
     }

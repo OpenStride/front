@@ -67,7 +67,7 @@ describe('SpeedSampled widget', () => {
     })
     // attendre onMounted
     await Promise.resolve()
-    expect(wrapper.text()).toContain(en.graphs.colPace)
+    expect(wrapper.text()).toContain(en.graphs.pace)
     // Vérifie colonnes header (Dist., Pace, FC, Pente)
     expect(wrapper.text()).toMatch(/Dist\./)
     expect(wrapper.text()).toMatch(/Pace/i)

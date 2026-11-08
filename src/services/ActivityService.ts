@@ -4,6 +4,7 @@ import { FriendActivity } from '@/types/friend'
 import { IndexedDBService } from './IndexedDBService'
 import { applyActivityFilters, filterFacets } from '@/utils/activityFilters'
 import type { IActivityService } from '@/types/plugin-context'
+import { logger } from '@/utils/logger'
 
 /**
  * Events emitted by ActivityService
@@ -110,7 +111,7 @@ export class ActivityService implements IActivityService {
           })
         )
 
-        console.log(`[ActivityService] Saved activity ${activity.id} with details`)
+        logger.debug(`[ActivityService] Saved activity ${activity.id} with details`)
         resolve()
       }
 
@@ -187,7 +188,7 @@ export class ActivityService implements IActivityService {
           )
         }
 
-        console.log(`[ActivityService] Saved ${savedActivities.length} activities with details`)
+        logger.debug(`[ActivityService] Saved ${savedActivities.length} activities with details`)
         resolve()
       }
 
@@ -242,7 +243,7 @@ export class ActivityService implements IActivityService {
       })
     )
 
-    console.log(`[ActivityService] Updated activity ${id} (version ${updatedActivity.version})`)
+    logger.debug(`[ActivityService] Updated activity ${id} (version ${updatedActivity.version})`)
   }
 
   /**
@@ -348,7 +349,7 @@ export class ActivityService implements IActivityService {
       })
     )
 
-    console.log(`[ActivityService] Soft deleted activity ${id}`)
+    logger.debug(`[ActivityService] Soft deleted activity ${id}`)
   }
 
   /**
@@ -486,7 +487,7 @@ export class ActivityService implements IActivityService {
       }
 
       tx.oncomplete = () => {
-        console.log(`[ActivityService] Marked ${activityIds.length} activities as synced`)
+        logger.debug(`[ActivityService] Marked ${activityIds.length} activities as synced`)
         resolve()
       }
 

@@ -261,7 +261,8 @@ export const garminProxy = onRequest(
             getBucket()
               .file(f)
               .delete()
-              .catch(() => {})
+              // Already gone is what was asked for
+              .catch(() => undefined)
           )
         )
 

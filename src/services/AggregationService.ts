@@ -8,6 +8,7 @@ import type {
   AggregationPeriod
 } from '@/types/aggregation'
 import { getISOWeekKey, getMonthKey, periodKey } from '@/utils/dateKeys'
+import { logger } from '@/utils/logger'
 
 // Re-export for backward compatibility (existing consumers importing from AggregationService)
 export { getISOWeekKey, getMonthKey }
@@ -91,7 +92,7 @@ export class AggregationService {
   async loadConfigFromSettings() {
     const db = await IndexedDBService.getInstance()
     const cfg = await db.getData<{ metrics: AggregationMetricDefinition[] }>('aggregationConfig')
-    console.log(`[AggregationService] Loaded config: ${cfg?.metrics?.length ?? 0} metrics`)
+    logger.debug(`[AggregationService] Loaded config: ${cfg?.metrics?.length ?? 0} metrics`)
     if (cfg && Array.isArray(cfg.metrics)) {
       this.metrics = cfg.metrics
     } else {
@@ -99,7 +100,7 @@ export class AggregationService {
       this.metrics = []
       await db.saveData('aggregationConfig', { metrics: this.metrics })
     }
-    console.log(`[AggregationService] ${this.metrics.length} metrics in use`)
+    logger.debug(`[AggregationService] ${this.metrics.length} metrics in use`)
   }
 
   /**
@@ -125,7 +126,7 @@ export class AggregationService {
     }
 
     activityService.emitter.addEventListener('activity-changed', this.activityServiceListener)
-    console.log('[AggregationService] Started listening to ActivityService events')
+    logger.debug('[AggregationService] Started listening to ActivityService events')
   }
 
   /**
@@ -136,7 +137,7 @@ export class AggregationService {
       const activityService = await getActivityService()
       activityService.emitter.removeEventListener('activity-changed', this.activityServiceListener)
       this.activityServiceListener = null
-      console.log('[AggregationService] Stopped listening to ActivityService events')
+      logger.debug('[AggregationService] Stopped listening to ActivityService events')
     }
   }
 
@@ -358,7 +359,7 @@ export class AggregationService {
   ): Promise<AggregatedRecord[]> {
     const db = await IndexedDBService.getInstance()
     const all = await db.getAllData<AggregatedRecord>('aggregatedData')
-    console.log(
+    logger.debug(
       `[AggregationService] getAggregated metricId=${metricId} periodType=${periodType} found`,
       all.length,
       'records'
@@ -428,7 +429,7 @@ export class AggregationService {
     return this.serialize(async () => {
       const db = await IndexedDBService.getInstance()
       const live = activities.filter(a => a && !a.deleted)
-      console.log(
+      logger.debug(
         '[AggregationService] rebuildAll activities:',
         live.length,
         'details:',

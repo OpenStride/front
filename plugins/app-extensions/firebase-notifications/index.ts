@@ -1,5 +1,6 @@
 import type { ExtensionPlugin } from '@/types/extension'
 import { NotificationService } from './services/NotificationService'
+import { logger } from '@/utils/logger'
 
 /**
  * Firebase Push Notifications Plugin
@@ -19,7 +20,7 @@ async function ensureInitialized(): Promise<void> {
   if (notificationService) {
     const success = await notificationService.initialize()
     if (success) {
-      console.log('[Firebase Notifications Plugin] Initialized successfully')
+      logger.debug('[Firebase Notifications Plugin] Initialized successfully')
       initialized = true
     } else {
       console.warn('[Firebase Notifications Plugin] Initialization failed')

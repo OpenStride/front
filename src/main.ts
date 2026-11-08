@@ -14,6 +14,7 @@ import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
 import { createPluginContext } from '@/services/PluginContextFactory'
 import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
+import { logger } from '@/utils/logger'
 
 import '@/assets/styles/global.css'
 import 'leaflet/dist/leaflet.css'
@@ -28,7 +29,7 @@ async function bootstrap() {
   const newVersion = __APP_VERSION__
 
   if (currentVersion !== newVersion) {
-    console.log(`[Bootstrap] Version change: ${currentVersion} → ${newVersion}`)
+    logger.debug(`[Bootstrap] Version change: ${currentVersion} → ${newVersion}`)
 
     const migrationService = getMigrationService()
 
@@ -47,13 +48,13 @@ async function bootstrap() {
         lastUpdateCheck: Date.now()
       })
 
-      console.log(`[Bootstrap] ✅ Migrated to ${newVersion}`)
+      logger.debug(`[Bootstrap] ✅ Migrated to ${newVersion}`)
     } catch (error) {
       console.error('[Bootstrap] ❌ Migration failed:', error)
       // Continue anyway (graceful degradation)
     }
   } else {
-    console.log(`[Bootstrap] Version ${currentVersion} - no migrations needed`)
+    logger.debug(`[Bootstrap] Version ${currentVersion} - no migrations needed`)
   }
 
   // 3. Load user locale or detect from browser

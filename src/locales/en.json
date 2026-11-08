@@ -119,9 +119,7 @@
   "navigation": {
     "home": "Home",
     "profile": "Profile",
-    "appExtensions": "App Extensions",
-    "statistics": "Dashboard",
-    "metricTracker": "Metric Tracker"
+    "statistics": "Dashboard"
   },
   "metricTracker": {
     "title": "Metric Tracker",
@@ -305,7 +303,6 @@
       "dataSources": "Data Sources",
       "cloudBackup": "Cloud Backup",
       "appExtensions": "App Extensions",
-      "sharing": "Share & Privacy",
       "friends": "Friends & sharing",
       "mcp": "AI Assistant (MCP)",
       "gear": "Gear"
@@ -452,10 +449,6 @@
       "hint": "You can always add other sources or change your settings later in Settings."
     }
   },
-  "errors": {
-    "generic": "An error occurred. Please try again.",
-    "notFound": "Not found."
-  },
   "providers": {
     "recorder": {
       "intro": "Record a run or ride with your phone's GPS. Your track never leaves your device.",
@@ -563,63 +556,16 @@
   },
   "migration": {
     "updating": "Updating OpenStride",
-    "pleaseWait": "Please wait, this may take a few moments",
-    "success": "Update completed successfully",
-    "failed": "Update failed. Please try again."
+    "pleaseWait": "Please wait, this may take a few moments"
   },
   "statistics": {
     "title": "Dashboard",
-    "dashboard": {
-      "title": "Summary",
-      "volume": "Volume",
-      "records": "Records",
-      "recordsFoot": "records held",
-      "vsPrevious": "vs previous period"
-    },
     "allSports": "All sports",
     "sportFilter": "Filter by sport",
     "noData": "No data available",
     "noDataHint": "Import activities to see your statistics",
-    "summary": {
-      "title": "Totals",
-      "periodLabel": "Totals period",
-      "allSports": "All sports: the filter does not apply to these totals",
-      "periods": {
-        "week": "This week",
-        "month": "This month",
-        "year": "This year"
-      },
-      "metrics": {
-        "distance": "Distance",
-        "duration": "Duration",
-        "totalAscent": "Ascent"
-      }
-    },
-    "trends": {
-      "title": "Trends",
-      "distance": "Distance (km)",
-      "activities": "Activities",
-      "week": "Week",
-      "month": "Month",
-      "year": "Year",
-      "distanceLabel": "Distance",
-      "weekShort": "W{week} ’{year}"
-    },
-    "distribution": {
-      "title": "Distribution",
-      "durationH": "Duration (h)",
-      "distance": "Distance"
-    },
     "records": {
-      "title": "Personal Records",
-      "distance": "Distance",
-      "time": "Time",
-      "pace": "Pace",
-      "speed": "Speed",
-      "date": "Date",
-      "activity": "Activity",
       "computing": "Computing records...",
-      "noRecords": "No records found",
       "noRecordsHint": "Records are computed from GPS data in your activities",
       "noRecordsPeriodHint": "No record in the selected period",
       "periodLabel": "Records period",
@@ -636,9 +582,6 @@
       "title": "Activity Calendar",
       "less": "Less",
       "more": "More",
-      "distance": "Distance",
-      "duration": "Duration",
-      "count": "Activities",
       "activityCount": "no activity | {n} activity | {n} activities",
       "activeWeeks": "{active} active weeks out of the last {total}"
     },
@@ -724,8 +667,7 @@
     "form": {
       "distance": "Distance ({unit})",
       "activityCount": "Number of activities",
-      "durationHours": "Duration (hours)",
-      "target": "Target"
+      "durationHours": "Duration (hours)"
     },
     "monthNames": {
       "0": "January",
@@ -756,7 +698,6 @@
     "speed": "Speed",
     "slope": "Slope",
     "colDistance": "Dist.",
-    "colPace": "Pace",
     "colHeartRate": "HR",
     "colSlope": "Slope"
   },
@@ -773,8 +714,6 @@
     "title": "Privacy",
     "isPublic": "Visible to your friends",
     "isPrivate": "Private",
-    "public": "Public",
-    "private": "Private",
     "nowPublic": "Activity made public",
     "nowPrivate": "Activity made private",
     "toggleFailed": "Could not change the privacy"
@@ -782,7 +721,6 @@
   "addFriend": {
     "adding": "Adding your friend...",
     "added": "{name} added!",
-    "redirecting": "Redirecting to your friends...",
     "error": "Error",
     "retry": "Try again",
     "backToFriends": "Back to friends",
@@ -828,7 +766,6 @@
     "addComment": "Add a comment...",
     "mutualRequired": "They have to add you back before you can like or comment",
     "publishRequired": "Publish your profile to like and comment",
-    "none": "No interactions yet",
     "sending": "Sending...",
     "publish": "Post",
     "delete": "Delete",
@@ -837,10 +774,8 @@
     "whyBlocked": "Why can I not do this?",
     "publishAction": "Publish my profile",
     "reply": "Reply",
-    "title": "Interactions",
     "retry": "Retry",
     "likeCount": "No likes | {n} like | {n} likes",
-    "commentCount": "No comments | {n} comment | {n} comments",
     "deletedUser": "Deleted user",
     "loadFailed": "Could not load the interactions.",
     "you": "you",
@@ -868,7 +803,6 @@
     "notFound": "Activity not found."
   },
   "app": {
-    "refresh": "Refresh",
     "close": "Close",
     "logo": "Logo",
     "forceUpdate": "Click to force an update",
@@ -1022,11 +956,6 @@
     "completed": "Backup finished",
     "failed": "Backup failed"
   },
-  "share": {
-    "publishFirst": "Publish your data from your profile first",
-    "linkCopied": "Profile link copied",
-    "copyFailed": "Could not copy the link"
-  },
   "landing": {
     "hero": {
       "eyebrow": "Local-first · Open source · Free",
@@ -1147,9 +1076,7 @@
   },
   "customAggregates": {
     "title": "My aggregates",
-    "add": "New aggregate",
     "empty": "Nothing followed yet. Pick a suggestion above, or build your own.",
-    "pinned": "Pinned to the top of the dashboard",
     "edit": "Edit {name}",
     "delete": "Delete {name}",
     "ops": {
@@ -1197,7 +1124,6 @@
       "year": "Year"
     },
     "addCustom": "Build my own",
-    "showCurve": "Show the curve for {name}",
     "suggestionsLead": "Ready-made, from what your activities recorded — one click to follow one:",
     "presets": {
       "climbHeartRate": "Heart rate on climbs",
@@ -1264,11 +1190,9 @@
     "activity": {
       "label": "Gear",
       "none": "None",
-      "byDefault": "default",
       "change": "Change",
       "pick": "Gear used on this outing",
-      "useDefault": "Back to default",
-      "alert": "{name}: {status}"
+      "useDefault": "Back to default"
     },
     "applyPast": "Apply to outings",
     "terrain": {

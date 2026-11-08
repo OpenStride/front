@@ -139,9 +139,6 @@ describe('the notification keys resolve in both locales', () => {
     'sync.failed',
     'backup.completed',
     'backup.failed',
-    'share.publishFirst',
-    'share.linkCopied',
-    'share.copyFailed',
     'privacy.nowPublic',
     'privacy.nowPrivate',
     'privacy.toggleFailed'
@@ -295,6 +292,30 @@ describe('durations are formatted through the shared helper', () => {
     expect(offenders, `Use formatClock() from @/utils/duration:\n${offenders.join('\n')}`).toEqual(
       []
     )
+  })
+})
+
+/**
+ * Diagnostics go through the logger.
+ *
+ * A hundred and seventy `console.log` calls narrated every sync and every render
+ * to anyone opening the console in production. `logger.debug` (`@/utils/logger`)
+ * speaks in development and tests, and in production only when asked.
+ */
+describe('diagnostics go through the logger', () => {
+  it('no console.log outside @/utils/logger', () => {
+    const offenders: string[] = []
+    for (const file of sourceFiles()) {
+      if (file.endsWith(join('utils', 'logger.ts'))) continue
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, i) => {
+          if (/\bconsole\.log\(/.test(line) && !/^\s*(\/\/|\/?\*)/.test(line)) {
+            offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}`)
+          }
+        })
+    }
+    expect(offenders, `Use logger.debug():\n${offenders.join('\n')}`).toEqual([])
   })
 })
 

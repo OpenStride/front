@@ -18,7 +18,15 @@ export async function generateCodeChallenge(verifier: string): Promise<string> {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-function parseTokenResponse(data: any): GarminTokens {
+/** What Garmin's token endpoint answers, as far as we read it. */
+interface GarminTokenResponse {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+  refresh_token_expires_in?: number | null
+}
+
+function parseTokenResponse(data: GarminTokenResponse): GarminTokens {
   const now = Date.now()
   const FALLBACK_REFRESH_EXPIRES = 90 * 24 * 60 * 60 * 1000 // 90 days
 

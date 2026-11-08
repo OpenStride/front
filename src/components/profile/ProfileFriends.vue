@@ -166,6 +166,7 @@
 </template>
 
 <script setup lang="ts">
+import { logger } from '@/utils/logger'
 import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted } from 'vue'
 import { FriendService } from '@/services/FriendService'
@@ -241,7 +242,7 @@ const syncAllActivities = async (friendId: string) => {
     const result = await friendService.syncFriendActivitiesAll(friendId)
 
     if (result.success) {
-      console.log(
+      logger.debug(
         `[ProfileFriends] Full sync completed: ${result.activitiesAdded} new, ${result.totalActivities} total`
       )
     } else {

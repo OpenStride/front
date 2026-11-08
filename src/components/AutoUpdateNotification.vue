@@ -3,6 +3,7 @@
 </template>
 
 <script setup lang="ts">
+import { logger } from '@/utils/logger'
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
@@ -19,7 +20,7 @@ const handleUpdateInstalling = () => {
     timeout: 3000
   })
 
-  console.log('[AutoUpdateNotification] Update installing, reload imminent...')
+  logger.debug('[AutoUpdateNotification] Update installing, reload imminent...')
 }
 
 onMounted(() => {

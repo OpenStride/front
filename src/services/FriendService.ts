@@ -2,6 +2,7 @@ import { PublicDataPublisher } from './PublicDataPublisher'
 import { FriendSyncService } from './FriendSyncService'
 import { FriendManagementService } from './FriendManagementService'
 import type { Friend, FriendSyncResult, FriendServiceEvent } from '@/types/friend'
+import { logger } from '@/utils/logger'
 
 /**
  * FriendService — Thin facade delegating to focused services.
@@ -55,7 +56,7 @@ export class FriendService {
         .catch(err => console.error('[FriendService] Refresh failed:', err))
     }
     window.addEventListener('openstride:refresh-requested', this.refreshRequestedListener)
-    console.log('[FriendService] Started listening to refresh-requested events')
+    logger.debug('[FriendService] Started listening to refresh-requested events')
   }
 
   /**
@@ -65,7 +66,7 @@ export class FriendService {
     if (this.refreshRequestedListener) {
       window.removeEventListener('openstride:refresh-requested', this.refreshRequestedListener)
       this.refreshRequestedListener = null
-      console.log('[FriendService] Stopped listening')
+      logger.debug('[FriendService] Stopped listening')
     }
   }
 

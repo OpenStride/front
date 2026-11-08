@@ -11,6 +11,7 @@
  */
 
 import { Workbox } from 'workbox-window'
+import { logger } from '@/utils/logger'
 
 export interface PWAUpdateEvent {
   type:
@@ -52,12 +53,12 @@ export class PWAUpdateService {
   public async initialize(): Promise<void> {
     // Only in production and if service worker is supported
     if (!('serviceWorker' in navigator)) {
-      console.log('[PWAUpdateService] Service Worker not supported')
+      logger.debug('[PWAUpdateService] Service Worker not supported')
       return
     }
 
     if (import.meta.env.DEV) {
-      console.log('[PWAUpdateService] Dev mode - update detection disabled')
+      logger.debug('[PWAUpdateService] Dev mode - update detection disabled')
       return
     }
 
@@ -74,7 +75,7 @@ export class PWAUpdateService {
 
       // Listen for waiting service worker (prompt mode)
       this.wb.addEventListener('waiting', event => {
-        console.log('[PWAUpdateService] New service worker waiting, showing prompt')
+        logger.debug('[PWAUpdateService] New service worker waiting, showing prompt')
 
         this.newWorker = event.sw || null
         this.updateAvailable = true
@@ -93,15 +94,15 @@ export class PWAUpdateService {
 
       // New service worker installed (prompt mode)
       this.wb.addEventListener('installed', event => {
-        console.log('[PWAUpdateService] Service worker installed')
+        logger.debug('[PWAUpdateService] Service worker installed')
 
         if (!event.isUpdate) {
-          console.log('[PWAUpdateService] First install, no reload needed')
+          logger.debug('[PWAUpdateService] First install, no reload needed')
           return
         }
 
         // Update installed, waiting for user consent
-        console.log('[PWAUpdateService] Update installed, waiting for user consent')
+        logger.debug('[PWAUpdateService] Update installed, waiting for user consent')
       })
 
       // New service worker has taken control (after user accepted)
@@ -109,11 +110,11 @@ export class PWAUpdateService {
         if (!this.hadController) {
           // First visit: the worker just claimed a page that already runs the
           // version it would reload into. Nothing to swap.
-          console.log('[PWAUpdateService] First control of this page, no reload needed')
+          logger.debug('[PWAUpdateService] First control of this page, no reload needed')
           return
         }
 
-        console.log('[PWAUpdateService] New service worker controlling, reloading...')
+        logger.debug('[PWAUpdateService] New service worker controlling, reloading...')
 
         this.emitter.dispatchEvent(
           new CustomEvent<PWAUpdateEvent>('update-ready', {
@@ -127,20 +128,20 @@ export class PWAUpdateService {
 
       // Service worker activated
       this.wb.addEventListener('activated', event => {
-        console.log('[PWAUpdateService] Service worker activated')
+        logger.debug('[PWAUpdateService] Service worker activated')
 
         if (!event.isUpdate) {
-          console.log('[PWAUpdateService] First install')
+          logger.debug('[PWAUpdateService] First install')
           return
         }
 
         // Update activated (user already accepted)
-        console.log('[PWAUpdateService] Update activated successfully')
+        logger.debug('[PWAUpdateService] Update activated successfully')
       })
 
       // Register the service worker
       await this.wb.register()
-      console.log('[PWAUpdateService] Initialized successfully')
+      logger.debug('[PWAUpdateService] Initialized successfully')
     } catch (error) {
       console.error('[PWAUpdateService] Initialization error:', error)
       this.emitter.dispatchEvent(
@@ -160,19 +161,19 @@ export class PWAUpdateService {
    */
   public async checkForUpdate(): Promise<boolean> {
     if (!this.wb) {
-      console.log('[PWAUpdateService] Workbox not initialized')
+      logger.debug('[PWAUpdateService] Workbox not initialized')
       return false
     }
 
     try {
       const registration = await navigator.serviceWorker.getRegistration()
       if (!registration) {
-        console.log('[PWAUpdateService] No service worker registration found')
+        logger.debug('[PWAUpdateService] No service worker registration found')
         return false
       }
 
       await registration.update()
-      console.log('[PWAUpdateService] Update check complete')
+      logger.debug('[PWAUpdateService] Update check complete')
 
       if (!this.updateAvailable) {
         this.emitter.dispatchEvent(
@@ -207,7 +208,7 @@ export class PWAUpdateService {
       return
     }
 
-    console.log('[PWAUpdateService] User accepted update, activating...')
+    logger.debug('[PWAUpdateService] User accepted update, activating...')
 
     // Emit update-installing event (toast notification)
     this.emitter.dispatchEvent(
@@ -230,7 +231,7 @@ export class PWAUpdateService {
    * Just dismisses the notification, update remains available
    */
   public deferUpdate(): void {
-    console.log('[PWAUpdateService] Update deferred by user')
+    logger.debug('[PWAUpdateService] Update deferred by user')
     // Store flag in localStorage to remember user deferred
     localStorage.setItem('pwa_update_deferred', Date.now().toString())
   }
@@ -282,20 +283,20 @@ export class PWAUpdateService {
    * Used when user clicks on version in footer
    */
   public async forceUpdateAndClearCache(): Promise<void> {
-    console.log('[PWAUpdateService] Force update and cache clear requested')
+    logger.debug('[PWAUpdateService] Force update and cache clear requested')
 
     // 1. Clear all caches
     if ('caches' in window) {
       const cacheNames = await caches.keys()
       await Promise.all(cacheNames.map(name => caches.delete(name)))
-      console.log(`[PWAUpdateService] Cleared ${cacheNames.length} caches`)
+      logger.debug(`[PWAUpdateService] Cleared ${cacheNames.length} caches`)
     }
 
     // 2. Unregister service workers
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations()
       await Promise.all(registrations.map(r => r.unregister()))
-      console.log(`[PWAUpdateService] Unregistered ${registrations.length} service workers`)
+      logger.debug(`[PWAUpdateService] Unregistered ${registrations.length} service workers`)
     }
 
     // 3. Force reload (bypass cache)

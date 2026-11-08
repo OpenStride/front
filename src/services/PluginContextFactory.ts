@@ -159,9 +159,15 @@ export async function createPluginContext(): Promise<PluginContext> {
           ? getPublicDataListener().enableAutoPublish()
           : getPublicDataListener().disableAutoPublish(),
       onEvent: (event, handler) =>
-        FriendService.getInstance().emitter.addEventListener(event, handler as EventListener),
+        FriendService.getInstance().emitter.addEventListener(
+          event,
+          handler as (event: Event) => void
+        ),
       offEvent: (event, handler) =>
-        FriendService.getInstance().emitter.removeEventListener(event, handler as EventListener)
+        FriendService.getInstance().emitter.removeEventListener(
+          event,
+          handler as (event: Event) => void
+        )
     },
 
     analyzer: {

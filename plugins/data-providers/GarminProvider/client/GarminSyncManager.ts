@@ -11,6 +11,7 @@ import { getValidAccessToken } from './garminAuth'
 import { getPluginContext } from '@/services/PluginContextFactory'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import pluginEnv from './env'
+import { logger } from '@/utils/logger'
 
 const proxyUrl = pluginEnv.proxyUrl
 
@@ -54,7 +55,7 @@ export class GarminSyncManager {
   async startInitialImportAsync(): Promise<void> {
     // Don't start if already running (atomic check)
     if (this.isRunning) {
-      console.log('[GarminSync] Import already running, skipping')
+      logger.debug('[GarminSync] Import already running, skipping')
       return
     }
 
@@ -65,12 +66,12 @@ export class GarminSyncManager {
 
     // Reset stale "syncing" state (browser was closed during previous import)
     if (state.status === 'syncing') {
-      console.log('[GarminSync] Detected stale sync state, resetting to idle')
+      logger.debug('[GarminSync] Detected stale sync state, resetting to idle')
       await updateSyncState({ status: 'idle' })
     }
 
     if (state.initialImportDone) {
-      console.log('[GarminSync] Initial import already done, skipping')
+      logger.debug('[GarminSync] Initial import already done, skipping')
       this.isRunning = false
       return
     }
@@ -115,7 +116,7 @@ export class GarminSyncManager {
       // Months not yet started
       const notStarted = months.filter(m => !state.backfillAskedMonths.includes(m))
 
-      console.log(
+      logger.debug(
         `[GarminSync] Status: ${fullyDone.length} done, ${pendingSync.length} pending sync, ${notStarted.length} not started`
       )
 
@@ -124,7 +125,7 @@ export class GarminSyncManager {
 
       // First: sync pending months (backfill already asked, just need to fetch)
       for (const month of pendingSync) {
-        console.log(`[GarminSync] ${month} - Resuming (backfill already asked)...`)
+        logger.debug(`[GarminSync] ${month} - Resuming (backfill already asked)...`)
 
         // Emit progress event
         syncEmitter.dispatchEvent(
@@ -137,7 +138,7 @@ export class GarminSyncManager {
           const { start, end } = this.getMonthRange(month)
 
           // Fetch with backfill=1 to retrieve data (standard API limited to 24h)
-          console.log(`[GarminSync] ${month} - Fetching activities...`)
+          logger.debug(`[GarminSync] ${month} - Fetching activities...`)
           const count = await this.fetchAndSaveActivities(start, end, true) // useBackfill=true
           totalCount += count
 
@@ -147,9 +148,9 @@ export class GarminSyncManager {
             await updateSyncState({
               backfillSyncedMonths: [...currentState.backfillSyncedMonths, month]
             })
-            console.log(`[GarminSync] ${month} done: ${count} activities`)
+            logger.debug(`[GarminSync] ${month} done: ${count} activities`)
           } else {
-            console.log(`[GarminSync] ${month} returned 0 activities, will retry later`)
+            logger.debug(`[GarminSync] ${month} returned 0 activities, will retry later`)
           }
 
           await this.sleep(15000) // 15s between months
@@ -162,7 +163,7 @@ export class GarminSyncManager {
 
       // Then: process new months (backfill=1 both triggers webhooks AND returns data)
       for (const month of notStarted) {
-        console.log(`[GarminSync] Importing ${month}...`)
+        logger.debug(`[GarminSync] Importing ${month}...`)
 
         // Emit progress event
         syncEmitter.dispatchEvent(
@@ -181,7 +182,7 @@ export class GarminSyncManager {
           })
 
           // Single call with backfill=1: triggers webhooks AND returns available data
-          console.log(`[GarminSync] ${month} - Fetching with backfill...`)
+          logger.debug(`[GarminSync] ${month} - Fetching with backfill...`)
           const count = await this.fetchAndSaveActivities(start, end, true)
           totalCount += count
 
@@ -191,9 +192,9 @@ export class GarminSyncManager {
             await updateSyncState({
               backfillSyncedMonths: [...currentState.backfillSyncedMonths, month]
             })
-            console.log(`[GarminSync] ${month} done: ${count} activities`)
+            logger.debug(`[GarminSync] ${month} done: ${count} activities`)
           } else {
-            console.log(`[GarminSync] ${month} returned 0 activities, will retry later`)
+            logger.debug(`[GarminSync] ${month} returned 0 activities, will retry later`)
           }
 
           // Longer delay between chunks to respect Garmin API rate limits (100 req/min)
@@ -220,7 +221,7 @@ export class GarminSyncManager {
 
       if (!allMonthsSynced) {
         const missingSynced = months.filter(m => !finalState.backfillSyncedMonths.includes(m))
-        console.log(`[GarminSync] Not all months synced yet. Missing: ${missingSynced.join(', ')}`)
+        logger.debug(`[GarminSync] Not all months synced yet. Missing: ${missingSynced.join(', ')}`)
       }
 
       // Emit completion event for toast notification
@@ -234,7 +235,7 @@ export class GarminSyncManager {
         })
       )
 
-      console.log(`[GarminSync] Initial import complete: ${totalCount} activities total`)
+      logger.debug(`[GarminSync] Initial import complete: ${totalCount} activities total`)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       await updateSyncState({
@@ -266,7 +267,7 @@ export class GarminSyncManager {
       return 0
     }
 
-    console.log('[GarminSync] Daily refresh: polling for push data')
+    logger.debug('[GarminSync] Daily refresh: polling for push data')
 
     // Ids, not saves: one outing is pushed twice (summary, then details), and
     // it is also the one the pull below completes. Counting rows would report
@@ -276,7 +277,7 @@ export class GarminSyncManager {
     await this.fetchRecentDetails(seen)
     await updateSyncState({ lastSyncDate: Date.now() })
 
-    console.log(`[GarminSync] Daily refresh complete: ${seen.size} activities`)
+    logger.debug(`[GarminSync] Daily refresh complete: ${seen.size} activities`)
     return seen.size
   }
 
@@ -320,7 +321,7 @@ export class GarminSyncManager {
     const startSeconds = Math.floor(start.getTime() / 1000)
     const endSeconds = Math.floor(now.getTime() / 1000)
 
-    console.log(`[GarminSync] Fetching last ${days} days via backfill`)
+    logger.debug(`[GarminSync] Fetching last ${days} days via backfill`)
 
     // Trigger backfill for the date range (best effort, don't block on error)
     try {
@@ -330,9 +331,9 @@ export class GarminSyncManager {
       })
 
       if (res.status === 202) {
-        console.log('[GarminSync] Backfill accepted, waiting for push...')
+        logger.debug('[GarminSync] Backfill accepted, waiting for push...')
       } else if (res.status === 409) {
-        console.log('[GarminSync] Backfill already done, checking for push data...')
+        logger.debug('[GarminSync] Backfill already done, checking for push data...')
       } else {
         const text = await res.text()
         console.warn(`[GarminSync] Backfill returned ${res.status}: ${text.substring(0, 200)}`)
@@ -342,12 +343,12 @@ export class GarminSyncManager {
     }
 
     // Poll for push data (whether backfill just triggered or was already done)
-    console.log('[GarminSync] Polling for push data...')
+    logger.debug('[GarminSync] Polling for push data...')
     await this.sleep(5000)
     const count = await this.pollAndConsumeCallbacks(5) // 5 retries, 5s between each
 
     await updateSyncState({ lastSyncDate: Date.now() })
-    console.log(`[GarminSync] Fetched ${count} activities for last ${days} days`)
+    logger.debug(`[GarminSync] Fetched ${count} activities for last ${days} days`)
     return count
   }
 
@@ -404,7 +405,7 @@ export class GarminSyncManager {
 
       // 409 = duplicate backfill already processed, poll callbacks from ping notifications
       if (res.status === 409 && errorBody.includes('duplicate backfill')) {
-        console.log('[GarminSync] Backfill already done, polling callbacks')
+        logger.debug('[GarminSync] Backfill already done, polling callbacks')
         return this.pollAndConsumeCallbacks(3, collector)
       }
 
@@ -451,7 +452,7 @@ export class GarminSyncManager {
     // the data later to our /ping endpoint. There is no inline data to parse — we
     // must poll the push bucket to consume what Garmin has delivered so far.
     if (useBackfill && (res.status === 202 || !text || text.trim() === '')) {
-      console.log('[GarminSync] Backfill accepted (async), polling push data...')
+      logger.debug('[GarminSync] Backfill accepted (async), polling push data...')
       await this.sleep(5000)
       return this.pollAndConsumeCallbacks(5, collector)
     }
@@ -565,15 +566,15 @@ export class GarminSyncManager {
         // Otherwise wait for Garmin's async backfill push to land.
         if (waited < maxRetries - 1) {
           waited++
-          console.log(`[GarminSync] No push data yet, retry ${waited}/${maxRetries} in 5s`)
+          logger.debug(`[GarminSync] No push data yet, retry ${waited}/${maxRetries} in 5s`)
           await this.sleep(5000)
           continue
         }
-        console.log('[GarminSync] No push data available after retries')
+        logger.debug('[GarminSync] No push data available after retries')
         break
       }
 
-      console.log(`[GarminSync] Draining ${entries.length} push entries`)
+      logger.debug(`[GarminSync] Draining ${entries.length} push entries`)
       const consumedFiles: string[] = []
 
       for (const entry of entries) {

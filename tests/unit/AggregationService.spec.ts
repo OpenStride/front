@@ -488,7 +488,7 @@ describe('AggregationService', () => {
   })
 
   describe('startListening / stopListening', () => {
-    it.skip('should listen to ActivityService events', async () => {
+    it('should listen to ActivityService events', async () => {
       const metrics: AggregationMetricDefinition[] = [
         {
           id: 'total-distance',
@@ -504,38 +504,30 @@ describe('AggregationService', () => {
       await db.saveData('aggregationConfig', { metrics })
       await service.loadConfigFromSettings()
 
-      const { getActivityService } = await import('@/services/ActivityService')
-      const activityService = await getActivityService()
-
+      // The emitter the service actually subscribes to — not a second lookup of
+      // the activity service, which a test cannot be sure resolves to the same one
+      const subscribe = vi.spyOn(EventTarget.prototype, 'addEventListener')
       await service.startListening()
-
-      // Small delay to ensure listener is fully attached
-      await new Promise(resolve => setTimeout(resolve, 10))
+      const call = subscribe.mock.calls.find(([type]) => type === 'activity-changed')
+      const emitter = subscribe.mock.contexts[subscribe.mock.calls.indexOf(call!)] as EventTarget
+      subscribe.mockRestore()
+      expect(emitter).toBeDefined()
 
       const activity = createActivity({
         id: 'test-1',
         startTime: new Date('2026-01-15T08:00:00Z').getTime(),
         distance: 5000
       })
-
       const details = createActivityDetails('test-1', 10)
 
-      // Simulate ActivityService event
-      activityService.emitter.dispatchEvent(
-        new CustomEvent('activity-changed', {
-          detail: {
-            type: 'saved',
-            activity,
-            details
-          }
-        })
+      emitter.dispatchEvent(
+        new CustomEvent('activity-changed', { detail: { type: 'saved', activity, details } })
       )
-
-      // Wait longer for async processing (event handling + DB writes)
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await vi.waitFor(async () => {
+        expect(await service.getAggregated('total-distance', 'week')).toHaveLength(1)
+      })
 
       const weekRecords = await service.getAggregated('total-distance', 'week')
-      expect(weekRecords).toHaveLength(1)
       expect(weekRecords[0].value).toBe(5000)
     })
 
