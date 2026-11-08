@@ -123,10 +123,12 @@ vi.mock('@/services/GoogleDriveApiService', () => ({
 }))
 
 // Mock InteractionSyncService
+const mockPublishInteractions = vi.fn().mockResolvedValue({ success: true, interactionsSynced: 0 })
+const mockInteractionYears = vi.fn().mockResolvedValue([])
 vi.mock('@/services/InteractionSyncService', () => ({
   getInteractionSyncService: () => ({
-    publishInteractions: vi.fn().mockResolvedValue({ success: true, interactionsSynced: 0 }),
-    getInteractionYearsForManifest: vi.fn().mockResolvedValue([]),
+    publishInteractions: mockPublishInteractions,
+    getInteractionYearsForManifest: mockInteractionYears,
     syncAllFriendsInteractions: vi.fn().mockResolvedValue([])
   })
 }))
@@ -183,6 +185,33 @@ describe('FriendService', () => {
       expect(mockWritePublicFile).toHaveBeenCalledTimes(2) // 1 year + manifest
       expect(mockWritePublicFile).toHaveBeenCalledWith('activities-2026.json', expect.any(Object))
       expect(mockWritePublicFile).toHaveBeenCalledWith('manifest.json', expect.any(Object))
+    })
+
+    it('keeps the interaction years listed when their upload fails this round', async () => {
+      // A friend reads a missing year as everything in it taken back
+      const manifest = createPublicManifest()
+      mockGenerateAllPublicData.mockResolvedValue({
+        manifest,
+        yearFiles: new Map([[2026, createYearActivities(2026, 1)]]),
+        detailFiles: new Map()
+      })
+      mockWritePublicFile
+        .mockResolvedValueOnce('https://drive.google.com/uc?id=year-2026&export=download')
+        .mockResolvedValueOnce('https://drive.google.com/uc?id=manifest-1&export=download')
+      mockPublishInteractions.mockResolvedValueOnce({
+        success: false,
+        interactionsSynced: 0,
+        errors: ['upload failed']
+      })
+      const years = [
+        { year: 2026, fileUrl: 'https://drive.google.com/uc?id=i-2026', lastModified: 1 }
+      ]
+      mockInteractionYears.mockResolvedValueOnce(years)
+
+      await service.publishPublicData()
+
+      const written = mockWritePublicFile.mock.calls.find(c => c[0] === 'manifest.json')![1]
+      expect(written.availableInteractionYears).toEqual(years)
     })
 
     it('rolls back uploaded files when a year file upload fails', async () => {

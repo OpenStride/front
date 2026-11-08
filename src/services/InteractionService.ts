@@ -484,6 +484,40 @@ export class InteractionService {
   }
 
   /**
+   * Remove what `authorId` stored here on these activity owners' outings and no
+   * longer publishes: a like taken back, a comment deleted. Each removal is
+   * announced like a local one, so the open page and the cards update.
+   * Returns how many went.
+   */
+  public async removeWithdrawnInteractions(
+    authorId: string,
+    activityOwnerIds: string[],
+    published: Set<string>
+  ): Promise<number> {
+    const db = await IndexedDBService.getInstance()
+    const owners = new Set(activityOwnerIds)
+    const all = (await db.getAllData('interactions')) as Interaction[]
+    const withdrawn = all.filter(
+      i => i.authorId === authorId && owners.has(i.activityOwnerId) && !published.has(i.id)
+    )
+    if (withdrawn.length === 0) return 0
+
+    await db.deleteMultipleFromStore(
+      'interactions',
+      withdrawn.map(i => i.id)
+    )
+    for (const interaction of withdrawn) {
+      this.emitEvent({
+        type: 'interaction-removed',
+        interaction,
+        activityId: interaction.activityId
+      })
+    }
+    console.log(`[InteractionService] Removed ${withdrawn.length} interactions taken back`)
+    return withdrawn.length
+  }
+
+  /**
    * Get all interactions on my activities (from friends)
    * Used to display likes/comments others left on my activities
    */
