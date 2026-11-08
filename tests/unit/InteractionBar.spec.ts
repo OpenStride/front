@@ -57,6 +57,7 @@ type Props = {
   showWarning?: boolean
   isMutualFriend?: boolean
   allowReply?: boolean
+  inThread?: boolean
 }
 
 async function mountBar(props: Props = {}, locale: 'en' | 'fr' = 'en') {
@@ -207,6 +208,29 @@ describe('InteractionBar', () => {
       state.myUserId = 'user_me'
       const wrapper = await mountBar({ activityOwnerId: 'user_me' })
       expect(wrapper.find('[data-test="reply-btn"]').exists()).toBe(false)
+    })
+  })
+
+  describe('under the full thread', () => {
+    it('does not repeat the count nor the last comment the thread already shows', async () => {
+      state.myUserId = 'user_me'
+      state.summary = {
+        likeCount: 0,
+        commentCount: 1,
+        hasLiked: false,
+        lastComment: { authorUsername: 'Emokee', text: 'Ça a tenu !' }
+      }
+      const onCard = await mountBar({ activityOwnerId: 'user_me', allowReply: true })
+      expect(onCard.find('.last-comment-preview').exists()).toBe(true)
+
+      const inThread = await mountBar({
+        activityOwnerId: 'user_me',
+        allowReply: true,
+        inThread: true
+      })
+      expect(inThread.find('.last-comment-preview').exists()).toBe(false)
+      expect(inThread.find('.interaction-counters').exists()).toBe(false)
+      expect(inThread.find('[data-test="reply-btn"]').exists()).toBe(true)
     })
   })
 })

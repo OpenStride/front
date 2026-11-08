@@ -6,8 +6,8 @@
     "
     class="interaction-bar"
   >
-    <!-- Counters -->
-    <div class="interaction-counters">
+    <!-- Counters: a card's summary. Under the thread they would repeat its headings. -->
+    <div v-if="!inThread" class="interaction-counters">
       <span v-if="summary.likeCount > 0" class="counter like-counter">
         <i class="fas fa-heart" aria-hidden="true"></i>
         {{ summary.likeCount }}
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Last comment preview -->
-    <div v-if="summary.lastComment" class="last-comment-preview">
+    <div v-if="summary.lastComment && !inThread" class="last-comment-preview">
       <span class="comment-author">{{ summary.lastComment.authorUsername }}</span>
       <span class="comment-text">{{ truncateText(summary.lastComment.text || '', 80) }}</span>
     </div>
@@ -132,6 +132,11 @@ const props = defineProps<{
   isMutualFriend?: boolean // true if friendship is mutual (required for interactions)
   /** Offer a reply on one's own activity: where the whole thread is shown, not on a card. */
   allowReply?: boolean
+  /**
+   * Under the full thread (the activity page): the counters and the last-comment
+   * preview would show again what the thread right above already lists.
+   */
+  inThread?: boolean
 }>()
 
 const interactionService = getInteractionService()

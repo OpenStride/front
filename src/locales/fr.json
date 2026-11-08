@@ -833,7 +833,13 @@
     "liked": "Aimé",
     "whyBlocked": "Pourquoi je ne peux pas ?",
     "publishAction": "Publier mon profil",
-    "reply": "Répondre"
+    "reply": "Répondre",
+    "title": "Interactions",
+    "retry": "Réessayer",
+    "likeCount": "Aucun j’aime | {n} j’aime | {n} j’aime",
+    "commentCount": "Aucun commentaire | {n} commentaire | {n} commentaires",
+    "deletedUser": "Utilisateur supprimé",
+    "loadFailed": "Impossible de charger les interactions."
   },
   "friendsList": {
     "empty": "Aucun ami ajouté",
