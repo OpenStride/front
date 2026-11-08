@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import type { PluginRoute } from './pluginRoute'
+import type { PublicReader } from './publicReader'
 import type { PluginContext } from './plugin-context'
 
 export interface StoragePlugin {
@@ -31,6 +32,23 @@ export interface StoragePlugin {
    * Return null if unavailable (SyncService then falls back to a full read).
    */
   getRemoteChangeToken?(store: string): Promise<string | null>
+
+  // ========== READING FRIENDS' PUBLIC FILES ==========
+  /**
+   * Optional: the hosts this provider's public links live on, e.g.
+   * `['drive.google.com']`. A share link is accepted only if its manifest is on
+   * one of them, and a URL on them is read through `publicReader`.
+   */
+  publicHosts?: string[]
+
+  /**
+   * Optional: how to read a public link on `publicHosts` without an account,
+   * when a plain `fetch` cannot (CORS, an API key). Loaded only when such a
+   * link is read, from any bundled plugin whether enabled or not. Omitted, the
+   * core reads those links with a plain `fetch`. See `PublicReader`, and the
+   * isolation rules in docs/PLUGIN_GUIDELINES.md.
+   */
+  publicReader?: () => Promise<PublicReader>
 
   // ========== PUBLIC FILE SHARING CAPABILITIES ==========
   /**

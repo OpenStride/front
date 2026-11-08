@@ -480,4 +480,30 @@ describe('the core and the plugins meet at known doors', () => {
     }
     expect(offenders, `Go through the PluginContext:\n${offenders.join('\n')}`).toEqual([])
   })
+
+  /**
+   * A storage plugin's public reader runs for people who never connected that
+   * provider, to read a friend's files. It must stand alone: an import of the
+   * plugin's sign-in or file service, of a core service or of the
+   * PluginContext would drag the account side along — and with it a token, a
+   * prompt, or a failure for someone with no account there.
+   */
+  it("a public reader stands alone, apart from its plugin's account side", () => {
+    const readers = walk(join(ROOT, 'plugins/storage-providers')).filter(f =>
+      /\/publicReader\.ts$/.test(f)
+    )
+    expect(readers.length).toBeGreaterThan(0)
+
+    const offenders: string[] = []
+    for (const file of readers) {
+      const rel = file.replace(ROOT + '/', '')
+      for (const spec of importsOf(readFileSync(file, 'utf8'))) {
+        if (!/^@\/(utils|types)\//.test(spec)) offenders.push(`${rel}  ${spec}`)
+      }
+    }
+    expect(
+      offenders,
+      `A public reader imports only utils and types:\n${offenders.join('\n')}`
+    ).toEqual([])
+  })
 })

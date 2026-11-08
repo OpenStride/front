@@ -559,6 +559,94 @@ holds no callback page, and it never reads a token.
   onboarding asks it after the sign-in, instead of guessing which setting
   holds the token. A plugin without it counts as not connected.
 
+### Writing a new storage plugin (Dropbox, OneDrive, WebDAV…)
+
+Google Drive (`plugins/storage-providers/GDrive/`) is the reference. A new
+provider needs **no change in the core**: drop the folder in place and the
+registry finds it. If adding one tempts you to edit `src/`, that edit belongs
+behind an optional field of `StoragePlugin` (`src/types/storage.ts`) instead,
+so the next provider gets it too.
+
+#### Two sides in one plugin
+
+A storage plugin serves two kinds of people, and keeps them apart.
+
+| Side                                  | Who uses it                                                                                    | What it may touch                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Account** (`index.ts` and the rest) | The user who connected this provider: backup, sync, publishing their profile, photos           | Its sign-in, tokens, the `PluginContext`                                  |
+| **Public reader** (`publicReader.ts`) | Anyone following a friend who publishes there, **with or without an account on this provider** | Nothing but `@/utils/*` and `@/types/*`. No sign-in, no token, no context |
+
+The core loads the public reader of **every bundled storage plugin, enabled or
+not**: someone without Dropbox must still see a friend who publishes on
+Dropbox. That is why the reader has to stand alone. A contract test
+(`a public reader stands alone…` in `tests/unit/contracts.spec.ts`) fails the
+build if `publicReader.ts` imports anything else.
+
+The reader never sees the share key either. It returns the file as stored, and
+the core opens sealed files with the friend's key (`PublicKeyRing`).
+
+#### What to implement
+
+| Field                                                                                                                  | Required                        | Used for                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `id`, `label`, `icon`, `setupComponent`                                                                                | yes                             | The provider list and its setup page (`/storage-provider/<id>`)                                |
+| `readRemote(store)`, `writeRemote(store, rows)`                                                                        | yes                             | Backup and multi-device sync of each store (`SyncService` merges, the plugin only moves JSON)  |
+| `isConnected()`                                                                                                        | strongly                        | The onboarding, after sign-in                                                                  |
+| `routes`                                                                                                               | if OAuth needs a fixed callback | See _Sign-in_ above                                                                            |
+| `getRemoteChangeToken(store)`                                                                                          | no                              | Skips a full download when nothing changed (an etag, a revision, a checksum)                   |
+| `supportsPublicFiles`, `writePublicFile`, `getPublicFileUrl`, `clearPublicFiles`, `extractFileIdFromUrl`, `deleteFile` | to publish a profile to friends | Files **anyone with the link** can read. `writePublicFile` returns that link                   |
+| `writeFile`, `readFile`, `deleteFile`                                                                                  | for photos                      | Private binary files (the user's photos), never public                                         |
+| `publicHosts`                                                                                                          | to be followed                  | The hosts of the links `writePublicFile` returns. A share link is accepted only on one of them |
+| `publicReader`                                                                                                         | only if a plain `fetch` fails   | Reading those links anonymously (CORS, an API key). Without it the core uses `fetch`           |
+
+#### The public reader, step by step
+
+1. Note the host of the links your `writePublicFile` returns, e.g.
+   `dl.dropboxusercontent.com` for a Dropbox shared link opened with `?dl=1`,
+   and list it in `publicHosts`.
+2. Try a plain `fetch` of such a link from the browser. If it returns the JSON
+   with CORS headers, stop there: no reader is needed.
+3. Otherwise write `client/publicReader.ts`:
+
+   ```typescript
+   // plugins/storage-providers/Dropbox/client/publicReader.ts
+   import type { PublicReader } from '@/types/publicReader'
+
+   class DropboxPublicReader implements PublicReader {
+     async fetchJson(url: string): Promise<unknown> {
+       // Anonymous: no token, no PluginContext. Throw when it cannot be read.
+       const res = await fetch(toDirectDownload(url))
+       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+       return res.json()
+     }
+   }
+
+   export function createPublicReader(): PublicReader {
+     return new DropboxPublicReader()
+   }
+   ```
+
+4. Declare it **lazily**, so its code loads only when a friend's link on those
+   hosts is read:
+
+   ```typescript
+   // client/index.ts
+   publicHosts: ['dl.dropboxusercontent.com'],
+   publicReader: async () => (await import('./publicReader')).createPublicReader(),
+   ```
+
+#### Checklist
+
+- [ ] `readRemote` / `writeRemote` round-trip every store (`SyncService` sends
+      `activities`, `activity_details`, `settings`, `gear`, `activity_photos`…)
+- [ ] `deleteFile` treats "already gone" (404) as success
+- [ ] Public files are readable by anyone with the link, and private files are never public
+- [ ] `publicHosts` matches the host of the links `writePublicFile` returns
+- [ ] `publicReader.ts`, if any, imports only `@/utils/*` and `@/types/*`
+- [ ] Following a friend works in a browser where this provider was **never connected**
+- [ ] Tokens stay inside the plugin. The core asks `isConnected()` and never reads a token
+- [ ] Notifications through `ctx.notifications.notify(t('…'))`, never `ToastService`
+
 ### App Extension Plugin
 
 **Structure:**

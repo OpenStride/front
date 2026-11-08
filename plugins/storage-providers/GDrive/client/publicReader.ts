@@ -1,13 +1,16 @@
 /**
- * GoogleDriveApiService
+ * Reads a friend's public Google Drive files — anonymously.
  *
- * Handles anonymous access to public Google Drive files using gapi.client
- * with an API key (no OAuth required for reading public files).
+ * Loaded by the core for anyone following a friend who publishes on Drive,
+ * including people who never connected a Drive of their own. So this file
+ * stands alone: no sign-in, no token, no PluginContext, nothing from the
+ * account side of the plugin (tests/unit/contracts.spec.ts holds it to that).
+ * It fetches; the core opens sealed files with the key, which never comes here.
  *
- * This service bypasses CORS issues by using Google's official JavaScript SDK,
- * which properly handles CORS headers.
+ * gapi.client with an API key is what gets past Drive's CORS on `alt=media`.
  */
 import { logger } from '@/utils/logger'
+import type { PublicReader } from '@/types/publicReader'
 
 interface GapiClient {
   load(api: string, callbacks: { callback: () => void; onerror: () => void }): void
@@ -27,21 +30,13 @@ declare global {
   }
 }
 
-export class GoogleDriveApiService {
-  private static instance: GoogleDriveApiService
+class GoogleDrivePublicReader implements PublicReader {
   private initialized = false
   private initPromise: Promise<void> | null = null
   private apiKey: string
 
-  private constructor() {
+  constructor() {
     this.apiKey = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY || ''
-  }
-
-  public static getInstance(): GoogleDriveApiService {
-    if (!GoogleDriveApiService.instance) {
-      GoogleDriveApiService.instance = new GoogleDriveApiService()
-    }
-    return GoogleDriveApiService.instance
   }
 
   /**
@@ -71,7 +66,7 @@ export class GoogleDriveApiService {
   }
 
   private async doInitialize(): Promise<void> {
-    logger.debug('[GoogleDriveApiService] Initializing gapi.client...')
+    logger.debug('[GDrive public reader] Initializing gapi.client...')
 
     // Load gapi script if not already loaded
     if (!window.gapi) {
@@ -93,7 +88,7 @@ export class GoogleDriveApiService {
     })
 
     this.initialized = true
-    logger.debug('[GoogleDriveApiService] gapi.client initialized successfully')
+    logger.debug('[GDrive public reader] gapi.client initialized successfully')
   }
 
   /**
@@ -144,20 +139,8 @@ export class GoogleDriveApiService {
 
       return null
     } catch (error) {
-      console.error('[GoogleDriveApiService] Invalid URL:', error)
+      console.error('[GDrive public reader] Invalid URL:', error)
       return null
-    }
-  }
-
-  /**
-   * Check if a URL is a Google Drive URL
-   */
-  public isGoogleDriveUrl(url: string): boolean {
-    try {
-      const urlObj = new URL(url)
-      return ['drive.google.com', 'docs.google.com'].includes(urlObj.hostname)
-    } catch {
-      return false
     }
   }
 
@@ -178,7 +161,7 @@ export class GoogleDriveApiService {
         }
         const delay = 1000 * Math.pow(2, attempt) // 1s, 2s
         console.warn(
-          `[GoogleDriveApiService] Request failed with ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
+          `[GDrive public reader] Request failed with ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
         )
         await new Promise(resolve => setTimeout(resolve, delay))
       }
@@ -198,7 +181,7 @@ export class GoogleDriveApiService {
     // Ensure gapi is initialized
     await this.initialize()
 
-    logger.debug(`[GoogleDriveApiService] Fetching file: ${fileId}`)
+    logger.debug(`[GDrive public reader] Fetching file: ${fileId}`)
 
     try {
       // Use gapi.client to fetch file with alt=media, with retry on 5xx
@@ -213,10 +196,10 @@ export class GoogleDriveApiService {
         throw new Error('Empty response from Google Drive API')
       }
 
-      logger.debug('[GoogleDriveApiService] File fetched successfully')
+      logger.debug('[GDrive public reader] File fetched successfully')
       return response.body
     } catch (error: unknown) {
-      console.error('[GoogleDriveApiService] Failed to fetch file:', error)
+      console.error('[GDrive public reader] Failed to fetch file:', error)
 
       const err = error as Record<string, unknown>
       // Provide helpful error messages
@@ -239,37 +222,20 @@ export class GoogleDriveApiService {
     }
   }
 
-  /**
-   * Fetch and parse JSON file from Google Drive
-   *
-   * @param fileId Google Drive file ID
-   * @returns Parsed JSON object
-   */
-  public async fetchJsonFile<T = unknown>(fileId: string): Promise<T> {
-    const content = await this.fetchFileContent(fileId)
+  /** The JSON at a public Drive link (`?id=…`, `/d/…`), as stored. */
+  public async fetchJson(url: string): Promise<unknown> {
+    const fileId = this.extractFileId(url)
+    if (!fileId) throw new Error('Could not extract file ID from Google Drive URL')
 
+    const content = await this.fetchFileContent(fileId)
     try {
       return JSON.parse(content)
-    } catch (error) {
-      console.error('[GoogleDriveApiService] Failed to parse JSON:', error)
+    } catch {
       throw new Error('Invalid JSON file')
     }
   }
+}
 
-  /**
-   * Fetch JSON from Google Drive URL
-   * Automatically extracts file ID and fetches content
-   *
-   * @param url Google Drive URL
-   * @returns Parsed JSON object
-   */
-  public async fetchJsonFromUrl<T = unknown>(url: string): Promise<T> {
-    const fileId = this.extractFileId(url)
-
-    if (!fileId) {
-      throw new Error('Could not extract file ID from Google Drive URL')
-    }
-
-    return this.fetchJsonFile<T>(fileId)
-  }
+export function createPublicReader(): PublicReader {
+  return new GoogleDrivePublicReader()
 }

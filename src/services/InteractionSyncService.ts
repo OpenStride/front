@@ -2,7 +2,7 @@ import { IndexedDBService } from './IndexedDBService'
 import { PublicKeyRing } from './PublicKeyRing'
 import { PublicFileService } from './PublicFileService'
 import { getInteractionService } from './InteractionService'
-import { GoogleDriveApiService } from './GoogleDriveApiService'
+import { fetchPublicJson } from './PublicReaders'
 import { ShareUrlService } from './ShareUrlService'
 import type { Friend, PublicManifest } from '@/types/friend'
 import type {
@@ -352,30 +352,10 @@ export class InteractionSyncService {
 
   // ========== HELPERS ==========
 
-  /**
-   * Fetch JSON from URL, using GoogleDriveApiService for Google Drive URLs
-   */
+  /** A friend's published JSON, read through its storage plugin, then opened. */
   private async fetchJson<T>(url: string): Promise<T | null> {
     try {
-      const gdrive = GoogleDriveApiService.getInstance()
-
-      // Use GoogleDriveApiService for Google Drive URLs (bypasses CORS)
-      if (gdrive.isGoogleDriveUrl(url)) {
-        return await PublicKeyRing.open<T>(url, await gdrive.fetchJsonFromUrl<unknown>(url))
-      }
-
-      // Standard fetch for other URLs
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { Accept: 'application/json' }
-      })
-
-      if (!response.ok) {
-        console.error(`[InteractionSyncService] Fetch failed: ${response.status}`)
-        return null
-      }
-
-      return await PublicKeyRing.open<T>(url, await response.json())
+      return await PublicKeyRing.open<T>(url, await fetchPublicJson(url))
     } catch (error) {
       console.error('[InteractionSyncService] Fetch error:', error)
       return null
