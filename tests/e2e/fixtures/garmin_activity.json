@@ -17,39 +17,12 @@
       "averageRunCadenceInStepsPerMinute": 160
     },
     "samples": [
-      {
-        "startTimeInSeconds": 1699976400,
-        "totalDistanceInMeters": 0,
-        "latitudeInDegree": 48.85,
-        "longitudeInDegree": 2.35,
-        "elevationInMeters": 100,
-        "heartRate": 140,
-        "stepsPerMinute": 160,
-        "speedMetersPerSecond": 2.7
-      },
-      {
-        "startTimeInSeconds": 1699976430,
-        "totalDistanceInMeters": 100,
-        "latitudeInDegree": 48.8501,
-        "longitudeInDegree": 2.3501,
-        "elevationInMeters": 100.5,
-        "heartRate": 141,
-        "stepsPerMinute": 160,
-        "speedMetersPerSecond": 2.7
-      },
-      {
-        "startTimeInSeconds": 1699976460,
-        "totalDistanceInMeters": 200,
-        "latitudeInDegree": 48.8502,
-        "longitudeInDegree": 2.3502,
-        "elevationInMeters": 101,
-        "heartRate": 142,
-        "stepsPerMinute": 160,
-        "speedMetersPerSecond": 2.7
-      }
+      {"startTimeInSeconds":1699976400,"totalDistanceInMeters":0,"latitudeInDegree":48.85,"longitudeInDegree":2.35,"elevationInMeters":100,"heartRate":140,"stepsPerMinute":160,"speedMetersPerSecond":2.7},
+      {"startTimeInSeconds":1699976430,"totalDistanceInMeters":100,"latitudeInDegree":48.8501,"longitudeInDegree":2.3501,"elevationInMeters":100.5,"heartRate":141,"stepsPerMinute":160,"speedMetersPerSecond":2.7},
+      {"startTimeInSeconds":1699976460,"totalDistanceInMeters":200,"latitudeInDegree":48.8502,"longitudeInDegree":2.3502,"elevationInMeters":101,"heartRate":142,"stepsPerMinute":160,"speedMetersPerSecond":2.7}
     ],
     "laps": [
-      { "startTimeInSeconds": 1699976400, "durationInSeconds": 900, "totalDistanceInMeters": 2500 }
+      {"startTimeInSeconds":1699976400,"durationInSeconds":900,"totalDistanceInMeters":2500}
     ]
   }
 ]
