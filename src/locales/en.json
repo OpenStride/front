@@ -1044,10 +1044,6 @@
       "label": "Single metric tracker",
       "description": "Follow how one metric evolves over time, per outing or per period."
     },
-    "profile-sharing": {
-      "label": "Sharing and privacy",
-      "description": "Manages your sharing settings and the publication of your public profile."
-    },
     "standard-details": {
       "label": "Activity detail",
       "description": "Heart rate, cadence, speed graphs and zones for each outing."

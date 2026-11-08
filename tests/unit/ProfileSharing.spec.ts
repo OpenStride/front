@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
-import ProfileSharingTab from '@plugins/app-extensions/ProfileSharing/ProfileSharingTab.vue'
+import ProfileSharing from '@/components/ProfileSharing.vue'
 import { PLUGIN_CONTEXT_KEY } from '@/composables/usePluginContext'
 import fr from '@/locales/fr.json'
 import en from '@/locales/en.json'
@@ -28,7 +28,7 @@ async function mountWith(
   locale: 'fr' | 'en' = 'fr'
 ) {
   const i18n = createI18n({ legacy: false, locale, messages: { fr, en } })
-  const wrapper = mount(ProfileSharingTab, {
+  const wrapper = mount(ProfileSharing, {
     global: {
       plugins: [i18n],
       provide: { [PLUGIN_CONTEXT_KEY]: contextWith(summary) },
@@ -40,7 +40,7 @@ async function mountWith(
   return wrapper
 }
 
-describe('ProfileSharingTab.vue', () => {
+describe('ProfileSharing.vue', () => {
   /**
    * A 256px QR canvas used to open this section, and the same code — same
    * component, same link, same copy button — sat one tap away behind "My QR
@@ -95,7 +95,7 @@ describe('ProfileSharingTab.vue', () => {
   }
 })
 
-describe('ProfileSharingTab.vue — what friends see', () => {
+describe('ProfileSharing.vue — what friends see', () => {
   async function mountSharing(saved: unknown) {
     const settings = new Map<string, unknown>([['sharingSettings', saved]])
     const ctx = contextWith({ activityCount: 3, publishedAt: Date.now() })
@@ -106,7 +106,7 @@ describe('ProfileSharingTab.vue — what friends see', () => {
       }
     } as never
     const i18n = createI18n({ legacy: false, locale: 'en', messages: { fr, en } })
-    const wrapper = mount(ProfileSharingTab, {
+    const wrapper = mount(ProfileSharing, {
       global: {
         plugins: [i18n],
         provide: { [PLUGIN_CONTEXT_KEY]: ctx },
@@ -157,12 +157,12 @@ describe('ProfileSharingTab.vue — what friends see', () => {
   })
 })
 
-describe('ProfileSharingTab.vue — the link', () => {
+describe('ProfileSharing.vue — the link', () => {
   async function mountLink(sealed: boolean) {
     const ctx = contextWith({ activityCount: 3, publishedAt: Date.now() })
     ctx.friends.isSealed = vi.fn(async () => sealed)
     const i18n = createI18n({ legacy: false, locale: 'en', messages: { fr, en } })
-    const wrapper = mount(ProfileSharingTab, {
+    const wrapper = mount(ProfileSharing, {
       global: {
         plugins: [i18n],
         provide: { [PLUGIN_CONTEXT_KEY]: ctx },
