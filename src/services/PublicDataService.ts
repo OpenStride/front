@@ -8,6 +8,7 @@ import {
   SHARING_KEY,
   readSharing,
   shareSamples,
+  trimTrack,
   type SharingSettings
 } from '@/types/sharing'
 
@@ -90,7 +91,9 @@ export class PublicDataService {
       distance: activity.distance,
       type: activity.type,
       title: sharing.title ? activity.title : undefined,
-      mapPolyline: sharing.map ? this.reduceGPSTrack(activity.mapPolyline) : undefined
+      mapPolyline: sharing.map
+        ? this.reduceGPSTrack(trimTrack(activity.mapPolyline, sharing.privacyZone))
+        : undefined
     }
   }
 

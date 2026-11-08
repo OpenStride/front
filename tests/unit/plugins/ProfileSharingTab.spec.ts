@@ -129,6 +129,15 @@ describe('ProfileSharingTab.vue — what friends see', () => {
     expect(checked(wrapper, 'share-chart-heartRate')).toBe(false)
   })
 
+  it('offers a privacy zone under the track, and only while the track is shared', async () => {
+    const { wrapper, settings } = await mountSharing(undefined)
+    await wrapper.find('[data-test="privacy-zone-select"]').setValue('500')
+    expect(settings.get('sharingSettings')).toMatchObject({ privacyZone: 500 })
+
+    await wrapper.find('[data-test="share-map"]').setValue(false)
+    expect(wrapper.find('[data-test="privacy-zone"]').exists()).toBe(false)
+  })
+
   it('saves each choice, then republishes once the clicks have settled', async () => {
     const { wrapper, settings, ctx } = await mountSharing(undefined)
     vi.useFakeTimers()
