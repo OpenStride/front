@@ -12,9 +12,16 @@
           <i class="fas fa-external-link-alt" aria-hidden="true"></i>
         </a>
       </li>
+      <li>{{ t('providers.strava.step1Path') }}</li>
       <li>{{ t('providers.strava.step2') }}</li>
       <li>{{ t('providers.strava.step3') }}</li>
     </ol>
+    <!-- On a phone, a strava.com link tends to open the Strava app, which has no
+         export: saying so beats a link that seems not to work. -->
+    <p class="hint">
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      {{ t('providers.strava.mobileHint') }}
+    </p>
 
     <label class="filepick" :class="{ 'filepick--busy': importing }">
       <i class="fas fa-file-zipper" aria-hidden="true"></i>
@@ -52,7 +59,12 @@ import { adaptStravaExport, csvDateToEpoch, type StravaCsvRow } from './adapter'
 import { collectStravaGear, gearName, namesOf, type StravaGearCsvRow } from './gear'
 import { parseTrackFile } from './parseTrack'
 
-const EXPORT_URL = 'https://www.strava.com/athlete/delete_your_account'
+/**
+ * The account settings, where the export starts. Linked rather than the export
+ * page itself (`/athlete/delete_your_account`), whose address Strava has moved
+ * before: "My Account" is the stable door, and the step below names the rest.
+ */
+const EXPORT_URL = 'https://www.strava.com/account'
 
 const { t } = useI18n()
 const ctx = usePluginContext()
@@ -223,6 +235,20 @@ async function onFileChange(e: Event) {
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
+.hint {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.hint i {
+  margin-top: 0.2rem;
+  color: var(--text-faint);
+}
+
 .steps {
   margin: 0 0 1.2rem 1.1rem;
   padding: 0;
