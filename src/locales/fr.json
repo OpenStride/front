@@ -12,7 +12,8 @@
     "elevationDown": "Dénivelé -",
     "maxSpeed": "Vitesse max",
     "hrAvgMax": "FC moy./max",
-    "elevationUpDown": "Dénivelé +/-"
+    "elevationUpDown": "Dénivelé +/-",
+    "rename": "Renommer la sortie"
   },
   "sports": {
     "running": "Course à pied",

@@ -359,6 +359,22 @@ describe('ActivityService', () => {
     })
   })
 
+  describe('setTitle', () => {
+    it('renames, dated, and gives the default label back when emptied', async () => {
+      await service.saveActivityWithDetails(
+        createActivity({ id: 'a', title: 'Morning Run', version: 1 }),
+        createActivityDetails('a')
+      )
+      await service.setTitle('a', '  Sortie au lac ')
+      const named = await service.getActivity('a')
+      expect(named).toMatchObject({ title: 'Sortie au lac', version: 2, synced: false })
+      expect(named!.titleSetAt).toBeGreaterThan(0)
+
+      await service.setTitle('a', '   ')
+      expect((await service.getActivity('a'))!.title).toBeUndefined()
+    })
+  })
+
   describe('setSport', () => {
     it('corrects the sport, dated, on every activity given', async () => {
       await service.saveActivityWithDetails(
