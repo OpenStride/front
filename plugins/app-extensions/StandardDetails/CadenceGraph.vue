@@ -16,22 +16,24 @@
     </template>
 
     <!-- ===== Graphique ===== -->
-    <canvas ref="canvas" width="800" height="400"></canvas>
-
-    <!-- ===== Infobulle ===== -->
-    <div
-      v-if="tooltip.visible"
-      :style="tooltip.style"
-      class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
-    >
-      <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
-      </div>
-      <div>
-        <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
-      </div>
-      <div v-if="showSlope && tooltip.slope !== null">
-        <strong>{{ t('graphs.slope') }} :</strong> {{ tooltip.slope.toFixed(1) }} %
+    <!-- The tooltip is placed in this box, not on the screen: it scrolls with
+         the chart instead of staying where the finger was. -->
+    <div class="relative">
+      <canvas ref="canvas" width="800" height="400"></canvas>
+      <div
+        v-if="tooltip.visible"
+        :style="tooltip.style"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+      >
+        <div>
+          <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
+        </div>
+        <div>
+          <strong>{{ t('graphs.cadence') }} :</strong> {{ tooltip.cadence }} pas/min
+        </div>
+        <div v-if="showSlope && tooltip.slope !== null">
+          <strong>{{ t('graphs.slope') }} :</strong> {{ tooltip.slope.toFixed(1) }} %
+        </div>
       </div>
     </div>
   </GraphCard>
@@ -273,6 +275,18 @@ function drawCanvas() {
 }
 
 /* ===== Tooltip ===== */
+/**
+ * Where the tooltip sits in the chart's box: beside the finger, and to its
+ * left past the middle so it never runs off the screen's right edge.
+ */
+function tooltipPosition(clientX: number, clientY: number, rect: DOMRect) {
+  const x = clientX - rect.left
+  const top = `${clientY - rect.top + 10}px`
+  return x > rect.width * 0.6
+    ? { right: `${rect.width - x + 10}px`, top }
+    : { left: `${x + 10}px`, top }
+}
+
 const tooltip = ref({
   visible: false,
   style: {},
@@ -305,7 +319,7 @@ function showTooltip(ev: MouseEvent | TouchEvent) {
 
   tooltip.value = {
     visible: true,
-    style: { left: `${clientX + 10}px`, top: `${clientY + 10}px` },
+    style: tooltipPosition(clientX, clientY, rect),
     distance: s.segmentEnd ?? s.distance ?? 0,
     cadence: Math.round(s.cadence ?? 0),
     slope

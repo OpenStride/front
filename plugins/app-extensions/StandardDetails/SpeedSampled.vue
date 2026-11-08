@@ -16,21 +16,25 @@
         </option>
       </select>
     </template>
-    <canvas ref="canvas" width="800" height="400"></canvas>
-    <div
-      v-if="tooltip.visible"
-      :style="tooltip.style"
-      class="fixed z-50 bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
-    >
-      <div>
-        <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
-      </div>
-      <div>
-        <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
-      </div>
-      <div v-if="showSlope && tooltip.slope !== null">
-        <strong>{{ tooltip.slopeLabel }}</strong
-        >({{ tooltip.slope.toFixed(1) }}%)
+    <!-- The tooltip is placed in this box, not on the screen: it scrolls with
+         the chart instead of staying where the finger was. -->
+    <div class="relative">
+      <canvas ref="canvas" width="800" height="400"></canvas>
+      <div
+        v-if="tooltip.visible"
+        :style="tooltip.style"
+        class="absolute z-50 pointer-events-none bg-white text-sm shadow px-3 py-2 rounded border border-gray-200 transition-opacity duration-150"
+      >
+        <div>
+          <strong>{{ t('graphs.distance') }} :</strong> {{ formatDistance(tooltip.distance) }}
+        </div>
+        <div>
+          <strong>{{ t('graphs.speed') }} :</strong> {{ tooltip.pace }} {{ paceUnit }}
+        </div>
+        <div v-if="showSlope && tooltip.slope !== null">
+          <strong>{{ tooltip.slopeLabel }}</strong
+          >({{ tooltip.slope.toFixed(1) }}%)
+        </div>
       </div>
     </div>
 
@@ -107,9 +111,7 @@ const paceUnit = computed(() =>
   showsSpeed.value ? units.convert('speed', 1).unit : units.convert('pace', 1).unit
 )
 
-const graphTitle = computed(() =>
-  showsSpeed.value ? t('graphs.speed') : t('graphs.pace')
-)
+const graphTitle = computed(() => (showsSpeed.value ? t('graphs.speed') : t('graphs.pace')))
 
 /** m/s → the number plotted on the Y axis, in the user's units. */
 const toAxis = (metersPerSecond: number) =>
@@ -178,7 +180,6 @@ function snapToOffered(stored: string): string {
       Math.abs(Number(v) - meters) < Math.abs(Number(best) - meters) ? v : best
     )
 }
-
 
 async function savePreferences() {
   await storage.saveData('granularity_for_speed', slopeGranularity.value)
@@ -396,8 +397,7 @@ function drawCanvas() {
     const s = samples.value[i]
     const end = s.segmentEnd ?? s.distance ?? 0
     const span = s.segmentDistance
-    const d0 =
-      span != null ? end - span : i === 0 ? 0 : (samples.value[i - 1]?.segmentEnd ?? 0)
+    const d0 = span != null ? end - span : i === 0 ? 0 : (samples.value[i - 1]?.segmentEnd ?? 0)
     const d1 = end
     const xStart = pxMargin + (d0 / totalDistance) * (width - pxMargin)
     const widthPx = ((d1 - d0) / totalDistance) * (width - pxMargin)
@@ -423,6 +423,18 @@ const tooltip = ref({
 })
 
 let tooltipTimeout: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Where the tooltip sits in the chart's box: beside the finger, and to its
+ * left past the middle so it never runs off the screen's right edge.
+ */
+function tooltipPosition(clientX: number, clientY: number, rect: DOMRect) {
+  const x = clientX - rect.left
+  const top = `${clientY - rect.top + 10}px`
+  return x > rect.width * 0.6
+    ? { right: `${rect.width - x + 10}px`, top }
+    : { left: `${x + 10}px`, top }
+}
 
 function classifySlopeValue(value: number): string {
   if (value > 0.1) return 'Montée'
@@ -465,10 +477,7 @@ function showTooltip(event: MouseEvent | TouchEvent) {
 
   tooltip.value = {
     visible: true,
-    style: {
-      left: `${clientX + 10}px`,
-      top: `${clientY + 10}px`
-    },
+    style: tooltipPosition(clientX, clientY, rect),
     distance: segmentMark(s, index),
     speed,
     pace: paceStr,
