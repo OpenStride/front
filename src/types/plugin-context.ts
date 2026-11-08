@@ -1,6 +1,6 @@
 import type { Activity, ActivityDetails, Sample } from './activity'
 import type { Converted, Dimension, Formatted, UnitSystem } from './units'
-import type { SegmentSample, ElevationProfile } from '@/services/ActivityAnalyzer'
+import type { SegmentSample, ElevationProfile } from './analysis'
 import type {
   AggregationPeriod,
   AggregatedRecord,
@@ -9,7 +9,7 @@ import type {
 import type { CustomAggregate } from './customAggregate'
 import type { Gear, GearInput } from './gear'
 import type { ActivityPhoto, PhotoAddResult, PhotoSize } from './photo'
-import type { CustomAggregateInput } from '@/services/CustomAggregateService'
+import type { CustomAggregateInput } from './customAggregate'
 import type { CapabilityReport } from '@/composables/useSampleCapabilities'
 
 /**

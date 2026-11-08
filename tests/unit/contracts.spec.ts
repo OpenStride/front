@@ -432,3 +432,57 @@ describe('colours come from the palette', () => {
     expect(offenders, `Use a token from variables.css:\n${offenders.join('\n')}`).toEqual([])
   })
 })
+
+/**
+ * The core and the plugins meet at known doors.
+ *
+ * The core discovers plugins (`import.meta.glob`) but never imports one by
+ * name: a core that names a plugin cannot run without it. A plugin reaches the
+ * core through the `PluginContext` — `usePluginContext()` in a component,
+ * `getPluginContext()` elsewhere — plus types, utils, the public composables and
+ * the few core components listed here as its UI kit. A new door is a decision,
+ * made by adding it below, not an import that slips in.
+ */
+const PLUGIN_UI_KIT = [
+  'components/MapPreview.vue',
+  'components/MyQrCodeModal.vue',
+  'components/providers/DefaultProviderSetup.vue'
+]
+// Doors still being closed, each with the work that removes it
+const CORE_TO_PLUGIN_EXCEPTIONS: Record<string, string> = {
+  'src/sw.ts': 'the service worker hook (being replaced by a plugin extension point)'
+}
+
+describe('the core and the plugins meet at known doors', () => {
+  const importsOf = (content: string) =>
+    [...content.matchAll(/(?:from\s+|import\(\s*)['"]([^'"]+)['"]/g)].map(m => m[1])
+
+  it('the core imports no plugin by name', () => {
+    const offenders: string[] = []
+    for (const file of walk(join(ROOT, 'src'))) {
+      const rel = file.replace(ROOT + '/', '')
+      if (CORE_TO_PLUGIN_EXCEPTIONS[rel]) continue
+      for (const spec of importsOf(readFileSync(file, 'utf8'))) {
+        if (spec.startsWith('@plugins/') || /(^|\/)plugins\//.test(spec)) {
+          offenders.push(`${rel}  ${spec}`)
+        }
+      }
+    }
+    expect(offenders, `The core must not name a plugin:\n${offenders.join('\n')}`).toEqual([])
+  })
+
+  it('a plugin reaches core services only through the PluginContext', () => {
+    const offenders: string[] = []
+    for (const file of walk(join(ROOT, 'plugins'))) {
+      const rel = file.replace(ROOT + '/', '')
+      for (const spec of importsOf(readFileSync(file, 'utf8'))) {
+        const service = /^@\/services\/(.+)$/.exec(spec)
+        if (service && service[1] !== 'PluginContextFactory') offenders.push(`${rel}  ${spec}`)
+        const component = /^@\/(components\/.+)$/.exec(spec)
+        if (component && !PLUGIN_UI_KIT.includes(component[1])) offenders.push(`${rel}  ${spec}`)
+        if (/^@\/(views|router|stores)\//.test(spec)) offenders.push(`${rel}  ${spec}`)
+      }
+    }
+    expect(offenders, `Go through the PluginContext:\n${offenders.join('\n')}`).toEqual([])
+  })
+})

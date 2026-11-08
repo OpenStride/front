@@ -198,3 +198,9 @@ export function isAggregateKey(key: string): boolean {
 export function aggregateWeightKey(id: string): string {
   return `custom_${id}_w`
 }
+
+/** Fields the caller provides; the rest is bookkeeping the service owns. */
+export type CustomAggregateInput = Omit<
+  CustomAggregate,
+  'id' | 'version' | 'lastModified' | 'synced' | 'deleted'
+>
