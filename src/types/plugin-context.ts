@@ -65,6 +65,9 @@ export interface IActivityService {
    */
   setSport(ids: string[], type: string): Promise<void>
 
+  /** Rename an activity as the reader's own choice; empty restores the default label. */
+  setTitle(id: string, title: string): Promise<void>
+
   /**
    * Get all activity summaries
    * Returns array of Activity objects (without samples)

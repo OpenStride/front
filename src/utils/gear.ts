@@ -146,8 +146,21 @@ export function sportChoiceToKeep(
   return { type: loser.type, typeSetAt: loser.typeSetAt }
 }
 
+/** The title the reader gave, in the same conflict, by the same rule. */
+export function titleChoiceToKeep(
+  winner: Activity,
+  loser: Activity
+): Pick<Activity, 'title' | 'titleSetAt'> | null {
+  if ((loser.titleSetAt ?? 0) <= (winner.titleSetAt ?? 0)) return null
+  return { title: loser.title, titleSetAt: loser.titleSetAt }
+}
+
 /** Every choice of the reader's the losing side made later than the winner. */
 export function readerChoicesToKeep(winner: Activity, loser: Activity): Partial<Activity> | null {
-  const kept = { ...gearChoiceToKeep(winner, loser), ...sportChoiceToKeep(winner, loser) }
+  const kept = {
+    ...gearChoiceToKeep(winner, loser),
+    ...sportChoiceToKeep(winner, loser),
+    ...titleChoiceToKeep(winner, loser)
+  }
   return Object.keys(kept).length ? kept : null
 }

@@ -14,7 +14,34 @@
         </div>
         <div class="atb__headtext">
           <div class="atb__kicker">{{ formatSportType(activity.type) }}</div>
-          <h1 class="atb__title">{{ activity.title || formatSportType(activity.type) }}</h1>
+          <!-- Renamed in place: the field opens on the current name, all of it
+               selected, so typing replaces it and Escape leaves it as it was. -->
+          <form v-if="editingTitle" class="atb__rename" @submit.prevent="saveTitle">
+            <input
+              ref="titleInput"
+              v-model="titleDraft"
+              class="atb__title atb__title-input"
+              maxlength="120"
+              :aria-label="t('activityDetail.rename')"
+              data-test="title-input"
+              @keydown.esc.prevent="editingTitle = false"
+              @blur="saveTitle"
+            />
+          </form>
+          <div v-else class="atb__titleline">
+            <h1 class="atb__title">{{ displayTitle }}</h1>
+            <button
+              v-if="canRename"
+              type="button"
+              class="atb__rename-btn"
+              :aria-label="t('activityDetail.rename')"
+              :title="t('activityDetail.rename')"
+              data-test="title-edit"
+              @click="startRename"
+            >
+              <i class="fas fa-pen" aria-hidden="true"></i>
+            </button>
+          </div>
           <div v-if="formattedDate" class="atb__date">{{ formattedDate }}</div>
         </div>
       </header>
@@ -52,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MapPreview from '@/components/MapPreview.vue'
 import { Activity, ActivityDetails } from '@/types/activity'
@@ -66,13 +93,44 @@ import { useSlotExtensions } from '@/composables/useSlotExtensions'
 const props = defineProps<{ data: { activity: Activity; details: ActivityDetails } }>()
 const { t } = useI18n()
 
-const activity = computed(() => props.data.activity)
+/** The name shown: the reader's once they rename it here, without a reload. */
+const ownTitle = ref<{ value: string | undefined } | null>(null)
+const activity = computed(() =>
+  ownTitle.value ? { ...props.data.activity, title: ownTitle.value.value } : props.data.activity
+)
 const details = computed(() => props.data.details)
 
 const { components: summary } = useSlotExtensions('activity.summary', () => ({
   activity: props.data.activity,
   details: props.data.details
 }))
+
+// ── Rename ──────────────────────────────────────────────────────────────────
+const displayTitle = computed(() => activity.value.title || formatSportType(activity.value.type))
+/** Only one's own outings: a friend's name is theirs. */
+const canRename = computed(() => !activity.value.provider?.startsWith('friend_'))
+
+const editingTitle = ref(false)
+const titleDraft = ref('')
+const titleInput = ref<HTMLInputElement | null>(null)
+
+async function startRename() {
+  titleDraft.value = displayTitle.value
+  editingTitle.value = true
+  await nextTick()
+  titleInput.value?.focus()
+  titleInput.value?.select()
+}
+
+async function saveTitle() {
+  if (!editingTitle.value) return
+  editingTitle.value = false
+  const name = titleDraft.value.trim()
+  // Unchanged, or emptied back to the default label already shown: nothing to write
+  if (name === displayTitle.value || (!name && !activity.value.title)) return
+  await ctx.activity.setTitle(activity.value.id, name)
+  ownTitle.value = { value: name || undefined }
+}
 
 const polyline = computed<[number, number][]>(() => {
   // Build from samples (full local activities)
@@ -90,7 +148,8 @@ const iconClass = computed(() => getSportIcon(activity.value.type))
 // ── Formatters ──────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, '0')
 
-const { units, analyzer: analyzerFactory } = usePluginContext()
+const ctx = usePluginContext()
+const { units, analyzer: analyzerFactory } = ctx
 
 /**
  * Metres descended.
@@ -357,6 +416,49 @@ const secondaryStats = computed<Stat[]>(() => {
   text-transform: uppercase;
   color: var(--color-green-600);
 }
+.atb__titleline {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.atb__rename-btn {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.5rem -0.75rem -0.5rem 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.atb__rename-btn:hover {
+  color: var(--color-green-700);
+}
+
+.atb__rename {
+  margin: 0;
+}
+
+/* The field wears the title's type, so renaming does not change the page. */
+.atb__title-input {
+  width: 100%;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 1px solid var(--color-green-500);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.atb__title-input:focus-visible,
+.atb__title-input:focus {
+  outline: 2px solid var(--color-green-500);
+  outline-offset: 0;
+}
+
 .atb__title {
   margin: 0;
   font-family: var(--font-display);

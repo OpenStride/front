@@ -12,7 +12,8 @@
     "elevationDown": "Elevation -",
     "maxSpeed": "Max speed",
     "hrAvgMax": "HR avg/max",
-    "elevationUpDown": "Elevation +/-"
+    "elevationUpDown": "Elevation +/-",
+    "rename": "Rename the outing"
   },
   "sports": {
     "running": "Running",

@@ -114,6 +114,10 @@ describe('mergeGarminActivity — the reader’s sport outlives a push', () => {
       title: 'Morning Run'
     })
 
+    // A name given by hand outlives the push too
+    const renamed = { ...base, type: 'running', title: 'Sortie au lac', titleSetAt: 600 }
+    expect(mergeGarminActivity(renamed, incoming).title).toBe('Sortie au lac')
+
     const untouched = { ...base, type: 'cycling' }
     expect(mergeGarminActivity(untouched, incoming).type).toBe('running')
   })

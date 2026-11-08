@@ -182,3 +182,11 @@ describe('readerChoicesToKeep — the sport, like the gear', () => {
     expect(readerChoicesToKeep(newer, loser)).toBeNull()
   })
 })
+
+describe('readerChoicesToKeep — the name too', () => {
+  it('carries a name given after the winning record was written', () => {
+    const winner = run('a', '2026-03-01', { title: 'Morning Run' })
+    const loser = run('a', '2026-03-01', { title: 'Sortie au lac', titleSetAt: 150 })
+    expect(readerChoicesToKeep(winner, loser)).toEqual({ title: 'Sortie au lac', titleSetAt: 150 })
+  })
+})

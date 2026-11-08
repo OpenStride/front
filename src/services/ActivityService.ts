@@ -272,6 +272,25 @@ export class ActivityService implements IActivityService {
     }
   }
 
+  /**
+   * Rename an activity. Dated like the sport, so a provider push or a sync
+   * conflict keeps the reader's name. Empty gives the default label back.
+   */
+  public async setTitle(id: string, title: string): Promise<void> {
+    const activity = await this.getActivity(id)
+    if (!activity) return
+    const now = Date.now()
+    const name = title.trim()
+    await this.commitUpdate({
+      ...activity,
+      title: name || undefined,
+      titleSetAt: now,
+      version: activity.version + 1,
+      lastModified: now,
+      synced: false
+    })
+  }
+
   public async setGear(ids: string[], gearIds: string[] | null): Promise<void> {
     const now = Date.now()
     for (const id of ids) {

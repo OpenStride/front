@@ -42,6 +42,8 @@ export interface Activity extends Timestamped {
    * keeps the latest choice, as for the gear.
    */
   typeSetAt?: number
+  /** When the reader renamed the activity (ms): kept like the sport and the gear. */
+  titleSetAt?: number
 }
 
 export interface Sample {
