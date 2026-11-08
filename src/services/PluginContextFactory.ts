@@ -135,6 +135,8 @@ export async function createPluginContext(): Promise<PluginContext> {
       getMyPublicUrl: () => FriendService.getInstance().getMyPublicUrl(),
       canPublish: () => PublicFileService.getInstance().hasPublicFileSupport(),
       getPublicSummary: () => PublicDataPublisher.getInstance().getPublicSummary(),
+      isSealed: () => PublicDataPublisher.getInstance().isSealed(),
+      rotatePublicLink: () => PublicDataPublisher.getInstance().rotatePublicLink(),
       isAutoPublishEnabled: () => getPublicDataListener().isAutoPublishEnabled(),
       setAutoPublish: enabled =>
         enabled

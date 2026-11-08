@@ -1,4 +1,5 @@
 import { IndexedDBService } from './IndexedDBService'
+import { PublicKeyRing } from './PublicKeyRing'
 import { GoogleDriveApiService } from './GoogleDriveApiService'
 import { getInteractionService } from './InteractionService'
 import { getInteractionSyncService } from './InteractionSyncService'
@@ -48,7 +49,8 @@ export class FriendSyncService {
 
       if (gdrive.isGoogleDriveUrl(url)) {
         console.log('[FriendSyncService] Using GoogleDriveApiService for Google Drive URL')
-        return await gdrive.fetchJsonFromUrl<T>(url)
+        // Sealed files are opened here, with the key their owner shared
+        return await PublicKeyRing.open<T>(url, await gdrive.fetchJsonFromUrl<unknown>(url))
       }
 
       const response = await fetch(url, {
@@ -61,7 +63,7 @@ export class FriendSyncService {
         return null
       }
 
-      return await response.json()
+      return await PublicKeyRing.open<T>(url, await response.json())
     } catch (error) {
       console.error(`[FriendSyncService] ${errorContext}:`, error)
       return null

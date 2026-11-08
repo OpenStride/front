@@ -40,6 +40,11 @@ const GDriveBackupPlugin: StoragePlugin = {
     return await fs.getPublicFileUrl(filename)
   },
 
+  async clearPublicFiles(): Promise<boolean> {
+    const fs = await GoogleDriveFileService.getInstance()
+    return await fs.clearPublicFiles()
+  },
+
   extractFileIdFromUrl(url: string): string | null {
     // Google Drive format: https://drive.google.com/uc?id={fileId}&export=download
     const match = url.match(/[?&]id=([^&]+)/)

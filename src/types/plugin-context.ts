@@ -220,6 +220,13 @@ export interface IFriendService {
    * timestamp — unknown, not never.
    */
   getPublicSummary(): Promise<{ activityCount: number; publishedAt: number | null }>
+  /** Whether the public files are sealed: only the share link, key included, opens them. */
+  isSealed(): Promise<boolean>
+  /**
+   * Empty the public folder and publish again under a new link and a new key.
+   * Whoever held the old link opens nothing; friends follow again from the new one.
+   */
+  rotatePublicLink(): Promise<string | null>
   onEvent(event: string, handler: (...args: unknown[]) => void): void
   offEvent(event: string, handler: (...args: unknown[]) => void): void
 }

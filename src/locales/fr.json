@@ -926,7 +926,8 @@
     "refreshActivities": "{friends} ami(s) synchronisé(s), {activities} activité(s)",
     "refreshInteractions": "{friends} ami(s) synchronisé(s), {interactions} interaction(s)",
     "refreshFull": "{friends} ami(s) synchronisé(s), {activities} activité(s), {interactions} interaction(s)",
-    "profileMoved": "Le profil de {name} a changé d'adresse, lien mis à jour"
+    "profileMoved": "Le profil de {name} a changé d'adresse, lien mis à jour",
+    "rotateFailed": "Impossible de vider l'ancien dossier public : lien inchangé."
   },
   "myQr": {
     "title": "Mon QR code",
@@ -1280,6 +1281,12 @@
       "cadence": "Cadence"
     },
     "heading": "Ce que voient vos amis",
-    "title": "Titre de la sortie"
+    "title": "Titre de la sortie",
+    "sealed": "Chiffré : seul votre lien, clé comprise, ouvre votre profil.",
+    "notSealed": "Non chiffré : quiconque a le lien voit vos sorties, et votre stockage peut les lire.",
+    "seal": "Chiffrer et changer mon lien",
+    "rotate": "Changer mon lien",
+    "rotateHint": "Vos fichiers publics sont recréés à une nouvelle adresse, avec une nouvelle clé : l'ancien lien n'ouvre plus rien. Vos amis devront scanner votre nouveau QR code pour continuer à vous suivre.",
+    "rotateConfirm": "Changer votre lien ? L'ancien n'ouvrira plus rien, et chacun de vos amis devra scanner le nouveau QR code pour continuer à voir vos sorties."
   }
 }

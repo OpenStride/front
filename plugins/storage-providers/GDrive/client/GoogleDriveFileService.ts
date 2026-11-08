@@ -284,10 +284,9 @@ export class GoogleDriveFileService {
     }
     if (!fileId) return null
 
-    const resp = await fetch(
-      `${DRIVE_API_ENDPOINT}/${fileId}?fields=md5Checksum,modifiedTime`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    )
+    const resp = await fetch(`${DRIVE_API_ENDPOINT}/${fileId}?fields=md5Checksum,modifiedTime`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
     if (!resp.ok) {
       console.warn('[GDrive] Failed to read file metadata, status', resp.status)
       return null
@@ -522,6 +521,30 @@ export class GoogleDriveFileService {
     }
 
     return null
+  }
+
+  /**
+   * Delete every file of the public folder: changing one's share link must
+   * leave nothing behind at the old addresses.
+   */
+  public async clearPublicFiles(): Promise<boolean> {
+    const accessToken = await this.authService?.getAccessToken()
+    if (!accessToken) return false
+    const publicFolderId = await this.ensurePublicFolder()
+    if (!publicFolderId) return false
+
+    const query = `'${publicFolderId}' in parents and trashed=false`
+    const response = await fetch(
+      `${DRIVE_API_ENDPOINT}?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1000`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    if (!response.ok) return false
+    const data = (await response.json()) as { files?: { id: string }[] }
+    let ok = true
+    for (const file of data.files ?? []) {
+      if (!(await this.deleteFile(file.id))) ok = false
+    }
+    return ok
   }
 
   /**

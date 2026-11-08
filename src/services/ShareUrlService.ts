@@ -39,10 +39,21 @@ export class ShareUrlService {
    * wrapManifestUrl('https://drive.google.com/uc?id=ABC123')
    * // Returns: 'https://openstride.org/add-friend?manifest=https%3A%2F%2Fdrive.google.com...'
    */
-  static wrapManifestUrl(manifestUrl: string): string {
+  static wrapManifestUrl(manifestUrl: string, key?: string): string {
     const base = this.getBaseUrl()
     const encoded = encodeURIComponent(manifestUrl)
-    return `${base}/add-friend?manifest=${encoded}`
+    // The key goes in the fragment: browsers never send it to a server
+    return `${base}/add-friend?manifest=${encoded}${key ? `#k=${key}` : ''}`
+  }
+
+  /** The key a share link carries after `#k=`, if any (see `publicCrypto`). */
+  static keyOf(shareUrl: string): string | undefined {
+    try {
+      const hash = new URL(shareUrl).hash
+      return new URLSearchParams(hash.replace(/^#/, '')).get('k') ?? undefined
+    } catch {
+      return undefined
+    }
   }
 
   /**
