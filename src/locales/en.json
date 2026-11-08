@@ -742,10 +742,6 @@
     "movedHelp": "You already follow {name}. Their profile has moved — update the link to keep receiving their activities.",
     "updateLink": "Update the link"
   },
-  "callback": {
-    "connecting": "Connecting...",
-    "error": "Error"
-  },
   "setup": {
     "providerNotFound": "Provider not found."
   },

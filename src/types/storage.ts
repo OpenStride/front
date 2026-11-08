@@ -1,4 +1,5 @@
 import type { Component } from 'vue'
+import type { PluginRoute } from './pluginRoute'
 import type { PluginContext } from './plugin-context'
 
 export interface StoragePlugin {
@@ -14,7 +15,12 @@ export interface StoragePlugin {
    * right, which `tsc` never checked because those callers are all `.vue`.
    */
   setupComponent: () => Promise<Component>
-  //syncData: (onlystores?: string[] | null) => Promise<unknown>
+  /**
+   * Whether the user's account is connected. The onboarding asks this after
+   * the provider's sign-in, instead of reading a token it should not know the
+   * name of. Omitted means the plugin cannot tell, and counts as not connected.
+   */
+  isConnected?: () => Promise<boolean>
   readRemote(store: string): Promise<unknown[]>
   writeRemote(store: string, data: unknown[]): Promise<void>
   /**
@@ -74,5 +80,12 @@ export interface StoragePlugin {
    * Provider-specific URL parsing
    */
   extractFileIdFromUrl?(url: string): string | null
+  /**
+   * Optional: pages this plugin needs at a fixed address, typically the OAuth
+   * callback its provider redirects to. Unlike an extension's routes they are
+   * reachable whether the plugin is enabled or not: the callback arrives while
+   * the plugin is being connected.
+   */
+  routes?: PluginRoute[]
   context?: PluginContext
 }

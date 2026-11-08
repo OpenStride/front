@@ -1,6 +1,7 @@
 // types/extensionPlugin.ts
 import type { Component } from 'vue'
 import type { PluginContext } from './plugin-context'
+import type { PluginRoute } from './pluginRoute'
 import type { Activity, ActivityDetails } from './activity'
 
 /** What a slot entry gets to decide whether it is worth showing. */
@@ -40,11 +41,7 @@ export interface ExtensionPlugin {
   }
 
   // Routes à injecter dynamiquement dans le routeur
-  routes?: Array<{
-    path: string
-    name?: string
-    component: () => Promise<Component>
-  }>
+  routes?: PluginRoute[]
 
   context?: PluginContext
 }
