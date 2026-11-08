@@ -167,7 +167,7 @@ describe('FriendService', () => {
       const manifest = createPublicManifest()
       const yearFiles = new Map([[2026, createYearActivities(2026, 5)]])
 
-      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles })
+      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles, detailFiles: new Map() })
       mockWritePublicFile
         .mockResolvedValueOnce('https://drive.google.com/uc?id=year-2026&export=download')
         .mockResolvedValueOnce('https://drive.google.com/uc?id=manifest-1&export=download')
@@ -187,7 +187,7 @@ describe('FriendService', () => {
         [2026, createYearActivities(2026, 5)]
       ])
 
-      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles })
+      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles, detailFiles: new Map() })
       mockWritePublicFile
         .mockResolvedValueOnce('https://drive.google.com/uc?id=year-2025&export=download')
         .mockResolvedValueOnce(null) // 2026 fails
@@ -208,7 +208,7 @@ describe('FriendService', () => {
       const manifest = createPublicManifest()
       const yearFiles = new Map([[2026, createYearActivities(2026)]])
 
-      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles })
+      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles, detailFiles: new Map() })
       mockWritePublicFile
         .mockResolvedValueOnce('https://drive.google.com/uc?id=year-2026&export=download')
         .mockResolvedValueOnce(null) // manifest fails
@@ -221,7 +221,11 @@ describe('FriendService', () => {
 
     it('emits publish-completed event on success', async () => {
       const manifest = createPublicManifest({ availableYears: [] })
-      mockGenerateAllPublicData.mockResolvedValue({ manifest, yearFiles: new Map() })
+      mockGenerateAllPublicData.mockResolvedValue({
+        manifest,
+        yearFiles: new Map(),
+        detailFiles: new Map()
+      })
       mockWritePublicFile.mockResolvedValue('https://drive.google.com/uc?id=m&export=download')
 
       const events: any[] = []

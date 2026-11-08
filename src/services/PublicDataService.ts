@@ -1,6 +1,26 @@
 import { IndexedDBService } from './IndexedDBService'
 import { getInteractionService } from './InteractionService'
 import type { Activity } from '@/types/activity'
+import type { ActivityDetails } from '@/types/activity'
+import type { PublicActivityDetails, YearActivityDetails } from '@/types/friend'
+import {
+  SHARED_STATS,
+  SHARING_KEY,
+  readSharing,
+  shareSamples,
+  type SharingSettings
+} from '@/types/sharing'
+
+/**
+ * Noon of the outing's day, in the unit it was stored in: the day stays true,
+ * the hour a reader leaves home does not travel.
+ */
+function noonOf(startTime: number): number {
+  const ms = startTime < 1e11 ? startTime * 1000 : startTime
+  const d = new Date(ms)
+  d.setHours(12, 0, 0, 0)
+  return startTime < 1e11 ? Math.floor(d.getTime() / 1000) : d.getTime()
+}
 import type { PublicManifest, PublicActivity, YearActivities, Friend } from '@/types/friend'
 
 export class PublicDataService {
@@ -62,16 +82,59 @@ export class PublicDataService {
   /**
    * Convert Activity to PublicActivity format (sanitized)
    */
-  private toPublicActivity(activity: Activity): PublicActivity {
+  private toPublicActivity(activity: Activity, sharing: SharingSettings): PublicActivity {
     return {
       id: activity.id,
-      startTime: activity.startTime,
+      startTime: sharing.time ? activity.startTime : noonOf(activity.startTime),
       duration: activity.duration,
       distance: activity.distance,
       type: activity.type,
-      title: activity.title,
-      mapPolyline: this.reduceGPSTrack(activity.mapPolyline)
+      title: sharing.title ? activity.title : undefined,
+      mapPolyline: sharing.map ? this.reduceGPSTrack(activity.mapPolyline) : undefined
     }
+  }
+
+  /** The reader's sharing settings, read whole (see `readSharing`). */
+  public async getSharingSettings(): Promise<SharingSettings> {
+    const db = await IndexedDBService.getInstance()
+    return readSharing(await db.getData(SHARING_KEY))
+  }
+
+  /**
+   * What each public outing shares beyond its summary, by year — empty when the
+   * settings share nothing more. A friend fetches a year of it only when they
+   * open one of its outings, so the feed's sync stays as light as before.
+   */
+  public async generateDetailFiles(
+    yearFiles: Map<number, YearActivities>,
+    sharing: SharingSettings
+  ): Promise<Map<number, YearActivityDetails>> {
+    const result = new Map<number, YearActivityDetails>()
+    if (!sharing.figures && sharing.charts.length === 0) return result
+
+    const db = await IndexedDBService.getInstance()
+    for (const [year, data] of yearFiles) {
+      const activities: Record<string, PublicActivityDetails> = {}
+      for (const { id } of data.activities) {
+        const details = (await db.getDataFromStore('activity_details', id)) as
+          ActivityDetails | undefined
+        if (!details) continue
+        const entry: PublicActivityDetails = {}
+        if (sharing.figures && details.stats) {
+          const stats: Record<string, number> = {}
+          for (const key of SHARED_STATS) {
+            const v = details.stats[key]
+            if (typeof v === 'number' && Number.isFinite(v)) stats[key] = v
+          }
+          if (Object.keys(stats).length) entry.stats = stats
+        }
+        const samples = shareSamples(details.samples ?? [], sharing.charts)
+        if (samples.length) entry.samples = samples
+        if (entry.stats || entry.samples) activities[id] = entry
+      }
+      if (Object.keys(activities).length) result.set(year, { year, activities })
+    }
+    return result
   }
 
   /**
@@ -109,6 +172,8 @@ export class PublicDataService {
       }
     }
 
+    const sharing = await this.getSharingSettings()
+
     // Group by year
     const yearMap = new Map<number, PublicActivity[]>()
     for (const activity of publicActivities) {
@@ -116,7 +181,7 @@ export class PublicDataService {
       if (!yearMap.has(year)) {
         yearMap.set(year, [])
       }
-      yearMap.get(year)!.push(this.toPublicActivity(activity))
+      yearMap.get(year)!.push(this.toPublicActivity(activity, sharing))
     }
 
     // Convert to YearActivities format
@@ -203,10 +268,12 @@ export class PublicDataService {
   public async generateAllPublicData(): Promise<{
     manifest: PublicManifest
     yearFiles: Map<number, YearActivities>
+    detailFiles: Map<number, YearActivityDetails>
   }> {
     const yearFiles = await this.generateYearFiles()
     const manifest = await this.generateManifest(yearFiles)
+    const detailFiles = await this.generateDetailFiles(yearFiles, await this.getSharingSettings())
 
-    return { manifest, yearFiles }
+    return { manifest, yearFiles, detailFiles }
   }
 }

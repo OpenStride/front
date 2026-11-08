@@ -3,6 +3,8 @@ import { GoogleDriveApiService } from './GoogleDriveApiService'
 import { getInteractionService } from './InteractionService'
 import { getInteractionSyncService } from './InteractionSyncService'
 import type {
+  PublicActivityDetails,
+  YearActivityDetails,
   Friend,
   FriendActivity,
   PublicManifest,
@@ -409,6 +411,36 @@ export class FriendSyncService {
   /**
    * Refresh all friends' activities and interactions
    */
+  /** Detail files already read this session, by URL: one fetch per year opened. */
+  private detailFiles = new Map<string, Promise<YearActivityDetails | null>>()
+
+  /**
+   * What a friend shares about one outing beyond its summary — figures and
+   * chart samples, per their sharing settings — or null when they share
+   * nothing more (or cannot be reached). Read on opening the outing, never at
+   * sync: the feed does not need it.
+   */
+  public async getFriendActivityDetails(
+    friendId: string,
+    year: number,
+    activityId: string
+  ): Promise<PublicActivityDetails | null> {
+    const db = await IndexedDBService.getInstance()
+    const friend = (await db.getDataFromStore('friends', friendId)) as Friend | null
+    if (!friend?.publicUrl) return null
+    const manifest = await this.fetchManifest(friend.publicUrl)
+    const url = manifest?.availableYears.find(y => y.year === year)?.detailsUrl
+    if (!url) return null
+    if (!this.detailFiles.has(url)) {
+      this.detailFiles.set(
+        url,
+        this.fetchJson<YearActivityDetails>(url, 'Failed to fetch activity details')
+      )
+    }
+    const file = await this.detailFiles.get(url)!
+    return file?.activities?.[activityId] ?? null
+  }
+
   public async refreshAllFriends(friends: Friend[]): Promise<FriendSyncResult[]> {
     const removed = await this.deduplicateFriendActivities()
     if (removed > 0) {

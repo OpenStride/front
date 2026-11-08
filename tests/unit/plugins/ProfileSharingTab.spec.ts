@@ -15,7 +15,7 @@ function contextWith(summary: { activityCount: number; publishedAt: number | nul
       canPublish: async () => true,
       isAutoPublishEnabled: async () => false,
       setAutoPublish: vi.fn(),
-      publishPublicData: vi.fn(),
+      publishPublicData: vi.fn(async () => null),
       getPublicSummary: async () => summary
     }
   }
@@ -91,4 +91,57 @@ describe('ProfileSharingTab.vue', () => {
       expect(text).not.toMatch(/\b(profile|time)\.[a-z]/i)
     })
   }
+})
+
+describe('ProfileSharingTab.vue — what friends see', () => {
+  async function mountSharing(saved: unknown) {
+    const settings = new Map<string, unknown>([['sharingSettings', saved]])
+    const ctx = contextWith({ activityCount: 3, publishedAt: Date.now() })
+    ctx.storage = {
+      getData: async (key: string) => (key === 'defaultPrivacy' ? 'private' : settings.get(key)),
+      saveData: async (key: string, value: unknown) => {
+        settings.set(key, value)
+      }
+    } as never
+    const i18n = createI18n({ legacy: false, locale: 'en', messages: { fr, en } })
+    const wrapper = mount(ProfileSharingTab, {
+      global: {
+        plugins: [i18n],
+        provide: { [PLUGIN_CONTEXT_KEY]: ctx },
+        stubs: { MyQrCodeModal: true, RouterLink: true }
+      }
+    })
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+    return { wrapper, settings, ctx }
+  }
+
+  const checked = (w: Awaited<ReturnType<typeof mountSharing>>['wrapper'], test: string) =>
+    (w.find(`[data-test="${test}"]`).element as HTMLInputElement).checked
+
+  it('opens on what was already published: track and title, no figures, no charts', async () => {
+    const { wrapper } = await mountSharing(undefined)
+    expect(checked(wrapper, 'share-map')).toBe(true)
+    expect(checked(wrapper, 'share-title')).toBe(true)
+    expect(checked(wrapper, 'share-figures')).toBe(false)
+    expect(checked(wrapper, 'share-chart-heartRate')).toBe(false)
+  })
+
+  it('saves each choice, then republishes once the clicks have settled', async () => {
+    const { wrapper, settings, ctx } = await mountSharing(undefined)
+    vi.useFakeTimers()
+    await wrapper.find('[data-test="share-map"]').setValue(false)
+    await wrapper.find('[data-test="share-chart-heartRate"]').setValue(true)
+    await wrapper.find('[data-test="share-chart-pace"]').setValue(true)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(settings.get('sharingSettings')).toMatchObject({
+      map: false,
+      charts: ['heartRate', 'pace']
+    })
+    expect(ctx.friends.publishPublicData).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(ctx.friends.publishPublicData).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
 })

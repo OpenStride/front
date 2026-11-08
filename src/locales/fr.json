@@ -768,8 +768,8 @@
   },
   "privacy": {
     "title": "Confidentialité",
-    "isPublic": "Cette activité est publique",
-    "isPrivate": "Cette activité est privée",
+    "isPublic": "Visible par vos amis",
+    "isPrivate": "Privée",
     "public": "Public",
     "private": "Privé",
     "nowPublic": "Activité rendue publique",
@@ -1259,5 +1259,20 @@
       "apply": "Appliquer | Appliquer à {n} sortie | Appliquer à {n} sorties",
       "done": "Aucune sortie modifiée | {n} sortie modifiée | {n} sorties modifiées"
     }
+  },
+  "sharing": {
+    "lead": "Pour vos sorties publiques. Le sport, la date, la distance et la durée sont toujours visibles.",
+    "map": "Tracé GPS",
+    "time": "Heure de départ (sinon, le jour seulement)",
+    "figures": "Chiffres : dénivelé, fréquence cardiaque, calories, vitesse max",
+    "charts": "Graphiques",
+    "chartsHint": "Envoyés allégés (400 points au plus par sortie), et chargés seulement quand un ami ouvre la sortie.",
+    "chart": {
+      "pace": "Allure, vitesse et altitude",
+      "heartRate": "Fréquence cardiaque et zones",
+      "cadence": "Cadence"
+    },
+    "heading": "Ce que voient vos amis",
+    "title": "Titre de la sortie"
   }
 }

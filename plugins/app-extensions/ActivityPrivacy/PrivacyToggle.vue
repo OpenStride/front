@@ -1,32 +1,21 @@
 <template>
-  <div v-if="props.data?.activity?.id" class="privacy-toggle-container">
-    <div class="privacy-card">
-      <div class="privacy-header">
-        <div class="privacy-icon">
-          <i v-if="isPublic" class="fas fa-globe" aria-hidden="true"></i>
-          <i v-else class="fas fa-lock" aria-hidden="true"></i>
-        </div>
-        <div class="privacy-info">
-          <h4 class="privacy-title">{{ t('privacy.title') }}</h4>
-          <p class="privacy-description">
-            {{ isPublic ? t('privacy.isPublic') : t('privacy.isPrivate') }}
-          </p>
-        </div>
-      </div>
-
-      <div class="privacy-toggle">
-        <button
-          @click="togglePrivacy"
-          :class="['toggle-btn', { active: isPublic }]"
-          :disabled="saving"
-        >
-          <span class="toggle-slider"></span>
-        </button>
-        <span class="toggle-label">{{
-          isPublic ? t('privacy.public') : t('privacy.private')
-        }}</span>
-      </div>
-    </div>
+  <!-- One line, not a card: whether friends see this outing is a setting of
+       it, not news about it. The switch says the state; the label says it in words. -->
+  <div v-if="props.data?.activity?.id" class="pt" data-test="privacy-toggle">
+    <i :class="['fas', isPublic ? 'fa-user-group' : 'fa-lock', 'pt__icon']" aria-hidden="true"></i>
+    <span class="pt__label">{{ isPublic ? t('privacy.isPublic') : t('privacy.isPrivate') }}</span>
+    <button
+      type="button"
+      role="switch"
+      :aria-checked="isPublic"
+      :aria-label="t('privacy.title')"
+      :class="['pt__switch', { 'is-on': isPublic }]"
+      :disabled="saving"
+      data-test="privacy-switch"
+      @click="togglePrivacy"
+    >
+      <span class="pt__knob"></span>
+    </button>
   </div>
 </template>
 
@@ -125,120 +114,68 @@ const republishInBackground = () => {
 </script>
 
 <style scoped>
-.privacy-toggle-container {
-  margin-bottom: 1.5rem;
-}
-
-.privacy-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: var(--color-white);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  gap: 1rem;
-}
-
-.privacy-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-
-.privacy-icon {
-  font-size: 1.5rem;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-gray-100);
-  border-radius: 50%;
-  color: var(--color-green-600);
-}
-
-.privacy-icon i {
-  font-size: 1.25rem;
-}
-
-.privacy-info {
-  flex: 1;
-}
-
-.privacy-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-900);
-}
-
-.privacy-description {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  color: var(--color-gray-500);
-}
-
-.privacy-toggle {
+.pt {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
-.toggle-btn {
+.pt__icon {
+  width: 1rem;
+  color: var(--text-faint);
+}
+
+.pt__label {
+  flex: 1;
+}
+
+/* A control's radius (`--radius-sm`), like the other toggles of the app. */
+.pt__switch {
   position: relative;
-  width: 3rem;
-  height: 1.75rem;
-  background: var(--color-gray-300);
-  border: none;
-  border-radius: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  padding: 0;
-}
-
-.toggle-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toggle-btn.active {
-  background: var(--color-green-500);
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0.25rem;
-  left: 0.25rem;
-  width: 1.25rem;
+  width: 2.25rem;
   height: 1.25rem;
-  background: var(--color-white);
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  /* The 44 px target comes from the row; the switch itself stays small */
+  margin: 0.75rem 0;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.toggle-btn.active .toggle-slider {
-  transform: translateX(1.25rem);
+.pt__switch.is-on {
+  background: var(--color-green-600);
+  border-color: var(--color-green-600);
 }
 
-.toggle-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-gray-700);
-  min-width: 3.5rem;
+.pt__switch:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-@media (max-width: 640px) {
-  .privacy-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.pt__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.25rem - 6px);
+  height: calc(1.25rem - 6px);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease;
+}
 
-  .privacy-toggle {
-    width: 100%;
-    justify-content: space-between;
-  }
+.pt__switch.is-on .pt__knob {
+  transform: translateX(1rem);
+}
+
+.pt__switch:focus-visible {
+  outline: 2px solid var(--color-green-500);
+  outline-offset: 2px;
 }
 </style>
