@@ -15,8 +15,8 @@
 <script setup lang="ts">
 /**
  * The logo itself, as the sign of a like: its leaf, its dark shield and the
- * pulse between them. Liked, in the logo's colours; not yet, drawn in the
- * colour of the text around it.
+ * pulse between them. Liked, filled with the like colour; not yet, drawn in
+ * the colour of the text around it.
  */
 import { ref, watch } from 'vue'
 
@@ -59,11 +59,8 @@ watch(
 .logo-heart--liked path {
   stroke-width: 0;
 }
-.logo-heart--liked .logo-heart__leaf {
-  fill: var(--color-logo-leaf);
-}
-.logo-heart--liked .logo-heart__shield {
-  fill: var(--color-logo-ink);
+.logo-heart--liked path {
+  fill: var(--color-like);
 }
 
 /* A heartbeat: two pulses, the second softer, from the point of the shield */

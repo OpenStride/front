@@ -410,9 +410,7 @@ onUnmounted(() => {
 }
 
 .like-btn.liked {
-  color: var(--color-green-700);
-  border-color: var(--color-green-200);
-  background: var(--color-green-50);
+  color: var(--color-ink);
 }
 
 .like-btn .logo-heart {
