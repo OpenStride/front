@@ -27,18 +27,14 @@
     <!-- Status section (only when connected) -->
     <div v-if="isConnected" class="mt-6 text-center" data-test="garmin-status-section">
       <!-- Syncing state -->
-      <div v-if="syncState.status === 'syncing'" class="text-gray-600">
-        <i class="fas fa-sync-alt fa-spin mr-2" aria-hidden="true"></i>
-        <span v-if="syncProgress">
-          {{
-            t('providers.importProgress', {
-              month: syncProgress.month,
-              current: syncProgress.completed + 1,
-              total: syncProgress.total
-            })
-          }}
-        </span>
-        <span v-else>{{ t('providers.importing') }}</span>
+      <!-- The progress itself is the app-wide card above the page (BackgroundTasks):
+           here, what the reader needs is to know they may leave -->
+      <div v-if="syncState.status === 'syncing'" class="import-note" data-test="garmin-importing">
+        <p class="import-note__lead">
+          <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+          {{ t('providers.garmin.import.onPage') }}
+        </p>
+        <p class="import-note__hint">{{ t('providers.garmin.import.leave') }}</p>
       </div>
 
       <!-- Error state -->
@@ -140,7 +136,6 @@ const showFallbackRedirect = ref(false)
 // causes SecurityError because Vue's reactivity probes __v_isShallow on it.
 let oauthPopup: Window | null = null
 let popupPollInterval: ReturnType<typeof setInterval> | null = null
-const syncProgress = ref<{ month: string; completed: number; total: number } | null>(null)
 const syncState = reactive<GarminSyncState>({
   status: 'idle',
   initialImportDone: false,
@@ -463,25 +458,15 @@ function handleSyncComplete(event: Event) {
     )
   }
 
-  // Clear progress and refresh state
-  syncProgress.value = null
+  // Refresh state
   getSyncState().then(state => Object.assign(syncState, state))
 }
 
 function handleSyncProgress(event: Event) {
   const detail = (event as CustomEvent<SyncProgressEvent>).detail
 
-  if (detail.type === 'started') {
-    // Update state to show syncing
-    syncState.status = 'syncing'
-    syncProgress.value = null
-  } else if (detail.type === 'progress') {
-    syncProgress.value = {
-      month: detail.month || '',
-      completed: detail.completed || 0,
-      total: detail.total || 0
-    }
-  }
+  // The figures go to the app-wide card; this page only needs to know it runs
+  if (detail.type === 'started' || detail.type === 'progress') syncState.status = 'syncing'
 }
 
 // ============================================================================
@@ -571,6 +556,27 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.import-note {
+  max-width: 28rem;
+  margin: 0 auto;
+  text-align: left;
+}
+.import-note__lead {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--text-color);
+}
+.import-note__lead i {
+  color: var(--color-green-500);
+}
+.import-note__hint {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .fallback-section {
   margin-top: 1.5rem;
   padding: 1rem;

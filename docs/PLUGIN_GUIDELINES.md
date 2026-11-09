@@ -72,6 +72,7 @@ export interface PluginContext {
   sync: ISyncService // Trigger a sync
   units: IUnitsService // SI values -> the user's unit system
   providers: IDataProviderEvents // Imports finished by a data provider
+  tasks: IBackgroundTasks // Long jobs (a first import), shown on every page
 }
 ```
 

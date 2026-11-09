@@ -489,8 +489,6 @@
       "disconnect": "Disconnect",
       "connecting": "Connecting..."
     },
-    "importing": "Importing…",
-    "importProgress": "Importing {month} ({current}/{total})",
     "synced": "Synced",
     "connectedPending": "Connected · Import pending",
     "retry": "Retry",
@@ -546,6 +544,16 @@
       "gearDone": "| {n} piece of gear found. | {n} pieces of gear found.",
       "step1Path": "At the bottom, \"Download or Delete Your Account\" → \"Get Started\", then \"Request Your Archive\" (step 2 of the page).",
       "mobileHint": "On a phone, the link may open the Strava app, which cannot export: open it in the browser instead (long press → \"Open in browser\"), or do it from a computer."
+    },
+    "garmin": {
+      "import": {
+        "title": "Importing your Garmin history",
+        "starting": "Connecting to Garmin…",
+        "fetching": "Fetching {month} · outings found: {found}",
+        "pausing": "Short pause to respect Garmin's limits · outings found: {found}",
+        "onPage": "Your last 6 months are being imported. The progress shows at the top of every page.",
+        "leave": "You can keep using the app: your outings appear in your feed as they arrive. If you close it, the import picks up where it left off next time you open it."
+      }
     }
   },
   "update": {
@@ -1229,5 +1237,8 @@
     "failed": "This photo could not be read. | {n} photos could not be read.",
     "refused": "At most {max} photos per activity: the rest were not added.",
     "count": "{n} photo | {n} photos"
+  },
+  "backgroundTasks": {
+    "carryOn": "This runs in the background: you can use the app as usual."
   }
 }

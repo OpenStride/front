@@ -6,6 +6,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
 import UpdateBanner from '@/components/UpdateBanner.vue'
 import AutoUpdateNotification from '@/components/AutoUpdateNotification.vue'
 import MigrationProgress from '@/components/MigrationProgress.vue'
+import BackgroundTasks from '@/components/BackgroundTasks.vue'
 import { getPWAUpdateService } from '@/services/PWAUpdateService'
 import { useFriendEventToasts } from '@/composables/useFriendEventToasts'
 import { useI18n } from 'vue-i18n'
@@ -31,6 +32,7 @@ const forceRefresh = async () => {
     <SetupAlertBanner />
     <UpdateBanner />
     <AutoUpdateNotification />
+    <BackgroundTasks />
     <main>
       <router-view />
     </main>
