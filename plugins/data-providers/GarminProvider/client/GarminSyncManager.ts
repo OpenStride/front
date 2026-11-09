@@ -12,6 +12,7 @@ import { getPluginContext } from '@/services/PluginContextFactory'
 import type { Activity, ActivityDetails } from '@/types/activity'
 import pluginEnv from './env'
 import { logger } from '@/utils/logger'
+import { formatDate } from '@/utils/dateFormat'
 
 const proxyUrl = pluginEnv.proxyUrl
 
@@ -29,7 +30,14 @@ export interface SyncProgressEvent {
   month?: string
   completed?: number
   total?: number
+  /** Activities saved so far in this import. */
+  found?: number
+  /** Asking Garmin for a month, or pausing between two to respect its limits. */
+  phase?: 'fetching' | 'pausing'
 }
+
+/** The id of the first import in the app-wide list of background jobs. */
+export const INITIAL_IMPORT_TASK = 'garmin-initial-import'
 
 /**
  * GarminSyncManager handles:
@@ -103,6 +111,7 @@ export class GarminSyncManager {
           detail: { type: 'started' }
         })
       )
+      await this.reportStarting()
 
       const months = this.getLast6Months()
       const state = await getSyncState()
@@ -127,12 +136,13 @@ export class GarminSyncManager {
       for (const month of pendingSync) {
         logger.debug(`[GarminSync] ${month} - Resuming (backfill already asked)...`)
 
-        // Emit progress event
-        syncEmitter.dispatchEvent(
-          new CustomEvent<SyncProgressEvent>('sync-progress', {
-            detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
-          })
-        )
+        await this.reportProgress({
+          month,
+          completed: completedMonths,
+          total: totalMonths,
+          found: totalCount,
+          phase: 'fetching'
+        })
 
         try {
           const { start, end } = this.getMonthRange(month)
@@ -153,6 +163,13 @@ export class GarminSyncManager {
             logger.debug(`[GarminSync] ${month} returned 0 activities, will retry later`)
           }
 
+          await this.reportProgress({
+            month,
+            completed: completedMonths + 1,
+            total: totalMonths,
+            found: totalCount,
+            phase: 'pausing'
+          })
           await this.sleep(15000) // 15s between months
         } catch (err: unknown) {
           console.error(`[GarminSync] Error syncing ${month}:`, err)
@@ -165,12 +182,13 @@ export class GarminSyncManager {
       for (const month of notStarted) {
         logger.debug(`[GarminSync] Importing ${month}...`)
 
-        // Emit progress event
-        syncEmitter.dispatchEvent(
-          new CustomEvent<SyncProgressEvent>('sync-progress', {
-            detail: { type: 'progress', month, completed: completedMonths, total: totalMonths }
-          })
-        )
+        await this.reportProgress({
+          month,
+          completed: completedMonths,
+          total: totalMonths,
+          found: totalCount,
+          phase: 'fetching'
+        })
 
         try {
           const { start, end } = this.getMonthRange(month)
@@ -198,6 +216,13 @@ export class GarminSyncManager {
           }
 
           // Longer delay between chunks to respect Garmin API rate limits (100 req/min)
+          await this.reportProgress({
+            month,
+            completed: completedMonths + 1,
+            total: totalMonths,
+            found: totalCount,
+            phase: 'pausing'
+          })
           await this.sleep(15000) // 15 seconds between months
         } catch (err: unknown) {
           console.error(`[GarminSync] Error importing ${month}:`, err)
@@ -224,6 +249,8 @@ export class GarminSyncManager {
         logger.debug(`[GarminSync] Not all months synced yet. Missing: ${missingSynced.join(', ')}`)
       }
 
+      await this.finishProgress()
+
       // Emit completion event for toast notification
       syncEmitter.dispatchEvent(
         new CustomEvent<SyncCompleteEvent>('sync-complete', {
@@ -242,6 +269,8 @@ export class GarminSyncManager {
         status: 'error',
         lastError: errorMessage
       })
+
+      await this.finishProgress()
 
       // Emit error event for toast notification
       syncEmitter.dispatchEvent(
@@ -610,6 +639,71 @@ export class GarminSyncManager {
     }
 
     return savedIds.size
+  }
+
+  /**
+   * Say where the first import is: to the setup page (event) and to every page
+   * (the app's background jobs), so leaving the setup page does not look like
+   * stopping the import.
+   */
+  private async reportProgress(progress: Omit<SyncProgressEvent, 'type'>): Promise<void> {
+    syncEmitter.dispatchEvent(
+      new CustomEvent<SyncProgressEvent>('sync-progress', {
+        detail: { type: 'progress', ...progress }
+      })
+    )
+    const { month, completed = 0, total = 0, found = 0, phase } = progress
+    try {
+      const ctx = await getPluginContext()
+      ctx.tasks.report({
+        id: INITIAL_IMPORT_TASK,
+        title: { key: 'providers.garmin.import.title' },
+        detail: {
+          key:
+            phase === 'pausing'
+              ? 'providers.garmin.import.pausing'
+              : 'providers.garmin.import.fetching',
+          params: { month: month ? this.monthLabel(month) : '', found }
+        },
+        // Half a step while a month is being fetched, so the bar moves on the
+        // request and not only once its answer is in
+        done: completed + (phase === 'fetching' ? 0.5 : 0),
+        total,
+        route: '/data-provider/garmin'
+      })
+    } catch {
+      // No context (tests): the setup page still has the event
+    }
+  }
+
+  private async reportStarting(): Promise<void> {
+    try {
+      ;(await getPluginContext()).tasks.report({
+        id: INITIAL_IMPORT_TASK,
+        title: { key: 'providers.garmin.import.title' },
+        detail: { key: 'providers.garmin.import.starting' },
+        route: '/data-provider/garmin'
+      })
+    } catch {
+      // No context (tests)
+    }
+  }
+
+  private async finishProgress(): Promise<void> {
+    try {
+      ;(await getPluginContext()).tasks.finish(INITIAL_IMPORT_TASK)
+    } catch {
+      // No context (tests)
+    }
+  }
+
+  /** "septembre 2026" for '2026-09', in the reader's language. */
+  private monthLabel(month: string): string {
+    const [year, monthNum] = month.split('-').map(Number)
+    return formatDate(new Date(year, monthNum - 1, 15).getTime(), {
+      month: 'long',
+      year: 'numeric'
+    })
   }
 
   /**

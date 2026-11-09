@@ -1,5 +1,6 @@
 // plugins/data-providers/GarminProvider/client/GarminService.ts
 import { getGarminSyncManager } from './GarminSyncManager'
+import { getSyncState, getTokens } from './storage'
 
 /**
  * GarminRefresh - Called by DataProviderService.triggerRefresh()
@@ -13,4 +14,14 @@ import { getGarminSyncManager } from './GarminSyncManager'
 export async function GarminRefresh(): Promise<void> {
   const syncManager = getGarminSyncManager()
   await syncManager.dailyRefresh()
+}
+
+/**
+ * At app start: carry on a first import a closed tab interrupted. The months
+ * already fetched are kept in the sync state, so it resumes where it stopped.
+ */
+export async function GarminResume(): Promise<void> {
+  if (!(await getTokens())) return
+  if ((await getSyncState()).initialImportDone) return
+  await getGarminSyncManager().startInitialImportAsync()
 }

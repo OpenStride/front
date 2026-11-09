@@ -1,6 +1,6 @@
 // plugins/providers/GarminProvider/client/index.ts
 import type { ProviderPlugin } from '@/types/provider'
-import { GarminRefresh } from './GarminService'
+import { GarminRefresh, GarminResume } from './GarminService'
 
 const GarminProvider: ProviderPlugin = {
   id: 'garmin',
@@ -8,6 +8,7 @@ const GarminProvider: ProviderPlugin = {
   setupComponent: async () => (await import('./GarminSetup.vue')).default,
   icon: new URL('../assets/logo.png', import.meta.url).href,
   refreshData: GarminRefresh,
+  resume: GarminResume,
   // The address registered with Garmin: changing it means changing it there too
   routes: [
     {

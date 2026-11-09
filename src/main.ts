@@ -9,6 +9,7 @@ import { getPublicDataListener } from '@/services/PublicDataListener'
 import { getMigrationService } from '@/services/MigrationService'
 import { getSyncService } from '@/services/SyncService'
 import { DataProviderService } from '@/services/DataProviderService'
+import { DataProviderPluginManager } from '@/services/DataProviderPluginManager'
 import { FriendService } from '@/services/FriendService'
 import { migrations } from '@/migrations'
 import i18n, { getInitialLocale, setHtmlLang } from '@/locales'
@@ -99,6 +100,16 @@ async function bootstrap() {
 
   // 6. Create PluginContext for dependency injection
   const pluginContext = await createPluginContext()
+
+  // 6 bis. Let enabled data providers pick up what a closed tab left unfinished
+  // (a first import): the reader was told it would carry on, so it must
+  void DataProviderPluginManager.getInstance()
+    .getMyDataProviderPlugins()
+    .then(plugins => {
+      for (const plugin of plugins) {
+        plugin.resume?.().catch(err => console.warn(`[main] ${plugin.id} resume failed`, err))
+      }
+    })
 
   // 7. Create and mount Vue app
   const app = createApp(App)

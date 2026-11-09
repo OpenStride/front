@@ -56,6 +56,7 @@ Available interfaces on `PluginContext` (defined in `src/types/plugin-context.ts
 | `ctx.gear`          | `list()`, `create()`, `update()`, `remove()`, `onChanged()`                           |
 | `ctx.photos`        | `list(activityId)`, `add()`, `blob(id, size)`, `remove()`, `onChanged()`              |
 | `ctx.providers`     | `onActivitiesImported(handler)` -- a data provider finished an import                 |
+| `ctx.tasks`         | `report(task)`, `finish(id)` -- a long job shown on every page (a first import)        |
 
 `src/types/plugin-context.ts` is the reference. The doors between a plugin and
 the core (context, types, utils, public composables, a short UI kit) are held

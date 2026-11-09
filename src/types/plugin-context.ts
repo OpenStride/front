@@ -295,6 +295,45 @@ export interface IDataProviderEvents {
 }
 
 /**
+ * A locale key and its parameters. The app translates it at display time, so a
+ * job reported from code that has no `t()` (a sync manager) still reads in the
+ * reader's language, and follows a change of language while it runs.
+ */
+export interface TaskText {
+  key: string
+  params?: Record<string, string | number>
+}
+
+/**
+ * A long job running in the background — a first import, typically — that the
+ * user can leave while it works.
+ */
+export interface BackgroundTask {
+  /** Stable per job: reporting the same id again updates it. */
+  id: string
+  /** What is running ("Import Garmin"), as a locale key the app translates. */
+  title: TaskText
+  /** What is happening right now, as a locale key. */
+  detail?: TaskText
+  /** Steps done and to do, for a progress bar. Without them the bar is indeterminate. */
+  done?: number
+  total?: number
+  /** Where tapping the indicator leads (the plugin's own page), if anywhere. */
+  route?: string
+}
+
+/**
+ * Long jobs a plugin runs in the background. The app shows them on every page,
+ * so someone who leaves the plugin's screen still sees that the work goes on.
+ */
+export interface IBackgroundTasks {
+  /** Show the job, or update it. */
+  report(task: BackgroundTask): void
+  /** The job is over, whatever the outcome: stop showing it. */
+  finish(id: string): void
+}
+
+/**
  * Unit formatting interface for plugins
  *
  * Values are stored in SI everywhere; this converts them to the user's unit
@@ -399,6 +438,7 @@ export interface PluginContext {
   sync: ISyncService
   units: IUnitsService
   providers: IDataProviderEvents
+  tasks: IBackgroundTasks
 }
 
 /**

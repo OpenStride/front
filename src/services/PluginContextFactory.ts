@@ -18,6 +18,7 @@ import { DataProviderService } from './DataProviderService'
 import { getCustomAggregateService } from './CustomAggregateService'
 import { getGearService } from './GearService'
 import { getPhotoService } from './PhotoService'
+import { backgroundTasks } from './BackgroundTaskService'
 import { useSampleCapabilities } from '@/composables/useSampleCapabilities'
 import {
   convertQuantity,
@@ -200,6 +201,11 @@ export async function createPluginContext(): Promise<PluginContext> {
         service.emitter.addEventListener('provider-activities-imported', listener)
         return () => service.emitter.removeEventListener('provider-activities-imported', listener)
       }
+    },
+
+    tasks: {
+      report: task => backgroundTasks.report(task),
+      finish: id => backgroundTasks.finish(id)
     }
   }
 }

@@ -22,6 +22,12 @@ export interface ProviderPlugin {
    */
   setupComponent: () => Promise<Component>
   refreshData?: () => Promise<unknown>
+  /**
+   * Optional: called once when the app opens, for an enabled provider, to pick
+   * up work a closed tab left unfinished (a first import). Not awaited: it must
+   * return quickly and run the rest in the background.
+   */
+  resume?: () => Promise<void>
   /** If provided, the plugin is only visible when this returns true (e.g. native-only plugins). */
   available?: () => boolean
   /**

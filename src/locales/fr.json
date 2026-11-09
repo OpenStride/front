@@ -489,8 +489,6 @@
       "disconnect": "Déconnecter",
       "connecting": "Connexion..."
     },
-    "importing": "Import en cours…",
-    "importProgress": "Import de {month} ({current}/{total})",
     "synced": "Synchronisé",
     "connectedPending": "Connecté · Import en attente",
     "retry": "Réessayer",
@@ -546,6 +544,16 @@
       "gearDone": "| {n} équipement retrouvé. | {n} équipements retrouvés.",
       "step1Path": "Tout en bas, « Télécharger ou supprimer votre compte » → « Commencer », puis « Demander votre archive » (étape 2 de la page).",
       "mobileHint": "Sur téléphone, le lien peut ouvrir l'appli Strava, qui ne permet pas l'export : ouvre-le plutôt dans le navigateur (appui long → « Ouvrir dans le navigateur »), ou fais-le depuis un ordinateur."
+    },
+    "garmin": {
+      "import": {
+        "title": "Import de ton historique Garmin",
+        "starting": "Connexion à Garmin…",
+        "fetching": "Récupération de {month} · sorties trouvées : {found}",
+        "pausing": "Petite pause pour respecter les limites de Garmin · sorties trouvées : {found}",
+        "onPage": "L'import de tes 6 derniers mois est en cours. Sa progression s'affiche en haut de chaque page.",
+        "leave": "Tu peux continuer à utiliser l'app : tes sorties arrivent dans ton fil au fur et à mesure. Si tu la fermes, l'import reprendra où il en était à la prochaine ouverture."
+      }
     }
   },
   "update": {
@@ -1229,5 +1237,8 @@
     "failed": "Cette photo n'a pas pu être lue. | {n} photos n'ont pas pu être lues.",
     "refused": "{max} photos au maximum par activité : les suivantes n'ont pas été ajoutées.",
     "count": "{n} photo | {n} photos"
+  },
+  "backgroundTasks": {
+    "carryOn": "Ça continue en arrière-plan : tu peux utiliser l'app normalement."
   }
 }
