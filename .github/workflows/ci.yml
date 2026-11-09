@@ -174,7 +174,7 @@ jobs:
 
       # The action comments the preview URL on the pull request and updates that
       # one comment on later pushes. The channel expires by itself after 7 days.
-      - uses: FirebaseExtended/action-hosting-deploy@v0.10.0
+      - uses: FirebaseExtended/action-hosting-deploy@v0.11.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OPENSTRIDE }}
